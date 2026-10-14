@@ -23,6 +23,7 @@ def test_owner_reviews_and_accepts_proposal_once_while_other_user_cannot_read_it
         engine=engine,
         session_factory=sessions,
         keyring=KeyRing.for_test("proposal-api-test"),
+        testing_legacy_pages_agent=True,
     )
 
     def request(method: str, path: str, **kwargs: Any) -> httpx.Response:

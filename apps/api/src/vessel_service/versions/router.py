@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
 from vessel_service.models import Page, PageVersion, User
-from vessel_service.pages.router import _page_or_404, current_user, serialize_page
+from vessel_service.pages.router import current_user, serialize_page
+from vessel_service.spaces.resources import page_for_user
 
 router = APIRouter(prefix="/v1/pages/{page_id}/versions", tags=["page-versions"])
 
@@ -44,7 +45,7 @@ def list_versions(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:
-    _page_or_404(session, user.user_id, page_id)
+    page_for_user(session, user, page_id)
     versions = session.scalars(
         select(PageVersion)
         .where(PageVersion.page_id == page_id)
@@ -60,7 +61,7 @@ def create_checkpoint(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, dict[str, object]] | JSONResponse:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id, write=True)
     if page.revision != payload.expected_revision:
         raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
     existing = session.scalar(
@@ -108,7 +109,7 @@ def restore_version(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, dict[str, object]]:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id, write=True)
     if page.revision != payload.expected_revision:
         raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
     source = session.scalar(
@@ -125,7 +126,7 @@ def restore_version(
         update(Page)
         .where(
             Page.page_id == page_id,
-            Page.owner_user_id == user.user_id,
+            Page.space_id == page.space_id,
             Page.status == "active",
             Page.revision == payload.expected_revision,
         )
@@ -154,5 +155,5 @@ def restore_version(
         )
     )
     session.commit()
-    updated = _page_or_404(session, user.user_id, page_id)
+    updated = page_for_user(session, user, page_id)
     return {"page": serialize_page(updated)}

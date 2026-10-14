@@ -80,7 +80,7 @@ def _issue_access_token(user: User, settings: Settings, keyring: KeyRing) -> str
         subject=user.user_id,
         issuer=settings.issuer_url,
         audience="vessel-api",
-        scope="pages:session",
+        scope="vessel:session",
         lifetime_seconds=settings.access_token_ttl_seconds,
     )
 
@@ -252,7 +252,7 @@ def me(
         credentials.credentials,
         issuer=settings.issuer_url,
         audience="vessel-api",
-        required_scope="pages:session",
+        required_scope="vessel:session",
     )
     user = session.get(User, claims["sub"]) if claims else None
     if not user or user.status != "active":

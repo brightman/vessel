@@ -1,6 +1,6 @@
 # Vessel: Agent 原生个人与团队存储服务技术设计
 
-状态：总体设计稿；Pages API 基线与用户、团队、权限增量已实现，文件/表格/团队 Page 待实施
+状态：总体设计稿；用户、团队、空间化 Page 与 Apps 表格 API 已实现，通用文件与独立 Page Agent 待实施
 
 日期：2026-10-14
 
@@ -18,6 +18,8 @@
 6. Vessel 拥有独立账号系统，不依赖 Baizhi Agent Platform 的用户、Session 或数据库。
 
 本文将尚未逐项确认的工程选择标为“建议”。它们构成可实施的首版契约，评审时可更改。
+
+本轮已确认的 Pages/Apps HTTP 契约见 [API 文档](api-contract-pages-apps.md)。当前 Apps 记录使用 PostgreSQL JSONB，而本总体设计第 7 节的每表物理表方案仍是后续规模化备选；当前应用也不注册迁入的 Baizhi Page Agent 路由。Vessel 按全新数据库部署，不做历史 Page 数据回填。
 
 ## 2. 范围与交付分期
 

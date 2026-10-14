@@ -16,8 +16,11 @@ def create_app(
     engine_factory: Callable[[str], Engine] = create_database_engine,
     session_factory: sessionmaker[Session] | None = None,
     keyring: KeyRing | None = None,
+    testing_legacy_pages_agent: bool = False,
 ) -> FastAPI:
     configured = settings or Settings()
+    if testing_legacy_pages_agent and configured.environment != "test":
+        raise ValueError("Legacy Pages Agent routes are test-only")
     database_engine = engine
     if database_engine is None and configured.database_url:
         database_engine = engine_factory(configured.database_url)
@@ -64,26 +67,34 @@ def create_app(
         return {"status": "ready"}
 
     from vessel_service.auth.router import router as auth_router
+    from vessel_service.apps.router import router as apps_router
     from vessel_service.assets.router import router as assets_router
-    from vessel_service.agent_events import router as agent_events_router
-    from vessel_service.agent_platform import router as agent_platform_router
-    from vessel_service.directories.router import router as directories_router
-    from vessel_service.mcp.server import router as mcp_router
+    from vessel_service.directories.router import router as directories_router, space_router as space_directories_router
     from vessel_service.pages.router import router as pages_router
-    from vessel_service.proposals.router import router as proposals_router
+    from vessel_service.pages.space_router import router as space_pages_router
     from vessel_service.spaces.router import router as spaces_router
     from vessel_service.versions.router import router as versions_router
 
     application.include_router(auth_router)
+    application.include_router(apps_router)
     application.include_router(assets_router)
-    application.include_router(agent_events_router)
-    application.include_router(agent_platform_router)
     application.include_router(directories_router)
+    application.include_router(space_directories_router)
     application.include_router(pages_router)
-    application.include_router(proposals_router)
+    application.include_router(space_pages_router)
     application.include_router(spaces_router)
-    application.include_router(mcp_router)
     application.include_router(versions_router)
+    if testing_legacy_pages_agent:
+        # Keep imported source tests executable. Vessel never exposes these routes.
+        from vessel_service.agent_events import router as agent_events_router
+        from vessel_service.agent_platform import router as agent_platform_router
+        from vessel_service.mcp.server import router as mcp_router
+        from vessel_service.proposals.router import router as proposals_router
+
+        application.include_router(agent_events_router)
+        application.include_router(agent_platform_router)
+        application.include_router(mcp_router)
+        application.include_router(proposals_router)
     return application
 
 

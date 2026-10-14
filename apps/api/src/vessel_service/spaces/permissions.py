@@ -24,6 +24,15 @@ def create_personal_space(session: Session, user: User) -> Space:
     return space
 
 
+def personal_space(session: Session, user: User) -> Space:
+    space = session.scalar(select(Space).where(
+        Space.kind == "personal", Space.owner_user_id == user.user_id, Space.status == "active"
+    ))
+    if space is None:
+        raise HTTPException(status_code=404, detail={"code": "SPACE_NOT_FOUND"})
+    return space
+
+
 def space_access(
     session: Session, user: User, space_id: str, *, capability: str = "can_read", lock: bool = False
 ) -> tuple[Space, str]:

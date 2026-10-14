@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from vessel_service.auth.tokens import KeyRing
-from vessel_service.models import Base, Page, User
+from vessel_service.models import Base, Page, Space, User
 from vessel_service.mcp.capabilities import CapabilityError, PageCapabilityService
 
 
@@ -19,8 +19,12 @@ def capability_context(tmp_path):
             User(user_id="user_b", email="b@example.test", name="B", roles=["user"], status="active"),
         ])
         session.add_all([
-            Page(page_id="page_a", owner_user_id="user_a", title="A", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"),
-            Page(page_id="page_b", owner_user_id="user_b", title="B", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"),
+            Space(space_id="space_a", kind="personal", name="A Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"),
+            Space(space_id="space_b", kind="personal", name="B Personal", owner_user_id="user_b", created_by_user_id="user_b", status="active"),
+        ])
+        session.add_all([
+            Page(page_id="page_a", space_id="space_a", owner_user_id="user_a", title="A", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"),
+            Page(page_id="page_b", space_id="space_b", owner_user_id="user_b", title="B", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"),
         ])
         session.commit()
         yield session, KeyRing.for_test("capability-test")

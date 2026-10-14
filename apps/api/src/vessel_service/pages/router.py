@@ -21,6 +21,8 @@ from vessel_service.document.codec import (
 )
 from vessel_service.models import Page, PageDirectory, PageVersion, User
 from vessel_service.settings import Settings
+from vessel_service.spaces.permissions import personal_space, space_access
+from vessel_service.spaces.resources import page_for_user
 
 router = APIRouter(prefix="/v1/pages", tags=["pages"])
 
@@ -73,7 +75,7 @@ def current_user(
         credentials.credentials,
         issuer=settings.issuer_url,
         audience="vessel-api",
-        required_scope="pages:session",
+        required_scope="vessel:session",
     )
     user = session.get(User, claims["sub"]) if claims else None
     if not user or user.status != "active":
@@ -84,6 +86,7 @@ def current_user(
 def serialize_page(page: Page) -> dict[str, Any]:
     return {
         "page_id": page.page_id,
+        "space_id": page.space_id,
         "title": page.title,
         "directory_id": page.directory_id,
         "document": page.document_json,
@@ -117,13 +120,13 @@ def _normalize_content(document: dict[str, Any]) -> tuple[dict[str, Any], str]:
         raise HTTPException(status_code=422, detail={"code": "PAGE_DOCUMENT_INVALID"}) from error
 
 
-def _validate_directory(session: Session, owner_id: str, directory_id: str | None) -> None:
+def _validate_directory(session: Session, space_id: str, directory_id: str | None) -> None:
     if directory_id is None:
         return
     directory = session.scalar(
         select(PageDirectory.directory_id).where(
             PageDirectory.directory_id == directory_id,
-            PageDirectory.owner_user_id == owner_id,
+            PageDirectory.space_id == space_id,
             PageDirectory.status == "active",
         )
     )
@@ -135,9 +138,10 @@ def _validate_directory(session: Session, owner_id: str, directory_id: str | Non
 def list_pages(
     user: User = Depends(current_user), session: Session = Depends(get_session)
 ) -> dict[str, list[dict[str, Any]]]:
+    space = personal_space(session, user)
     pages = session.scalars(
         select(Page)
-        .where(Page.owner_user_id == user.user_id, Page.status == "active")
+        .where(Page.space_id == space.space_id, Page.status == "active")
         .order_by(Page.updated_at.desc(), Page.page_id)
     ).all()
     return {"pages": [serialize_page(page) for page in pages]}
@@ -147,9 +151,10 @@ def list_pages(
 def list_archived_pages(
     user: User = Depends(current_user), session: Session = Depends(get_session)
 ) -> dict[str, list[dict[str, Any]]]:
+    space = personal_space(session, user)
     pages = session.scalars(
         select(Page)
-        .where(Page.owner_user_id == user.user_id, Page.status == "archived")
+        .where(Page.space_id == space.space_id, Page.status == "archived")
         .order_by(Page.updated_at.desc(), Page.page_id)
     ).all()
     return {"pages": [serialize_page(page) for page in pages]}
@@ -161,11 +166,17 @@ def create_page(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
+    return _create_in_space(session, user, personal_space(session, user).space_id, payload)
+
+
+def _create_in_space(session: Session, user: User, space_id: str, payload: PageCreate) -> dict[str, Any]:
+    space_access(session, user, space_id, capability="can_write", lock=True)
     normalized, markdown = _normalize_content(payload.document)
-    _validate_directory(session, user.user_id, payload.directory_id)
+    _validate_directory(session, space_id, payload.directory_id)
     now = datetime.now(UTC)
     page = Page(
         page_id=str(uuid4()),
+        space_id=space_id,
         owner_user_id=user.user_id,
         directory_id=payload.directory_id,
         title=payload.title,
@@ -201,7 +212,7 @@ def archive_page(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> Response:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id, write=True)
     page.status = "archived"
     page.updated_at = datetime.now(UTC)
     session.commit()
@@ -214,15 +225,7 @@ def restore_archived_page(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    page = session.scalar(
-        select(Page).where(
-            Page.page_id == page_id,
-            Page.owner_user_id == user.user_id,
-            Page.status == "archived",
-        )
-    )
-    if page is None:
-        raise HTTPException(status_code=404, detail={"code": "PAGE_NOT_FOUND"})
+    page = page_for_user(session, user, page_id, write=True, status="archived")
     page.status = "active"
     page.updated_at = datetime.now(UTC)
     session.commit()
@@ -236,7 +239,7 @@ def get_page(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    return {"page": serialize_page(_page_or_404(session, user.user_id, page_id))}
+    return {"page": serialize_page(page_for_user(session, user, page_id))}
 
 
 @router.get("/{page_id}/markdown", response_class=PlainTextResponse)
@@ -245,7 +248,7 @@ def export_markdown(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> PlainTextResponse:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id)
     safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", page.title).strip("._-") or "page"
     filename = f"{safe_title[:120]}.md"
     disposition = f'attachment; filename="{filename}"'
@@ -265,7 +268,7 @@ def import_markdown(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id, write=True)
     if page.revision != payload.expected_revision:
         raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
     try:
@@ -279,7 +282,7 @@ def import_markdown(
         update(Page)
         .where(
             Page.page_id == page_id,
-            Page.owner_user_id == user.user_id,
+            Page.space_id == page.space_id,
             Page.status == "active",
             Page.revision == payload.expected_revision,
         )
@@ -307,7 +310,7 @@ def import_markdown(
         )
     )
     session.commit()
-    return {"page": serialize_page(_page_or_404(session, user.user_id, page_id))}
+    return {"page": serialize_page(page_for_user(session, user, page_id))}
 
 
 @router.patch("/{page_id}")
@@ -317,7 +320,7 @@ def update_page(
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    page = _page_or_404(session, user.user_id, page_id)
+    page = page_for_user(session, user, page_id, write=True)
     if page.revision != payload.expected_revision:
         raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
     values: dict[str, Any] = {
@@ -331,13 +334,13 @@ def update_page(
         values["document_json"] = normalized
         values["markdown"] = markdown
     if "directory_id" in payload.model_fields_set:
-        _validate_directory(session, user.user_id, payload.directory_id)
+        _validate_directory(session, page.space_id, payload.directory_id)
         values["directory_id"] = payload.directory_id
     result = session.execute(
         update(Page)
         .where(
             Page.page_id == page_id,
-            Page.owner_user_id == user.user_id,
+            Page.space_id == page.space_id,
             Page.status == "active",
             Page.revision == payload.expected_revision,
         )
@@ -347,5 +350,5 @@ def update_page(
         session.rollback()
         raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
     session.commit()
-    updated = _page_or_404(session, user.user_id, page_id)
+    updated = page_for_user(session, user, page_id)
     return {"page": serialize_page(updated)}

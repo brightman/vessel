@@ -34,6 +34,7 @@ def _make_app(tmp_path: Path, *, platform_url: str | None = "https://agent.test"
         engine=engine,
         session_factory=sessions,
         keyring=keyring,
+        testing_legacy_pages_agent=True,
     )
     return app, engine, keyring
 

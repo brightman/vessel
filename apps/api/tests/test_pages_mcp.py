@@ -12,7 +12,7 @@ from vessel_service.database import create_database_engine
 from vessel_service.main import create_app
 from vessel_service.mcp.capabilities import PageCapabilityService
 from vessel_service.mcp.server import TOOLS
-from vessel_service.models import Base, Page, User
+from vessel_service.models import Base, Page, Space, User
 from vessel_service.proposals.service import ProposalService
 from vessel_service.settings import Settings
 
@@ -48,6 +48,7 @@ def test_private_mcp_reads_and_builds_page_proposal_without_commit_tool(tmp_path
         engine=engine,
         session_factory=sessions,
         keyring=keyring,
+        testing_legacy_pages_agent=True,
     )
     document = {
         "type": "doc",
@@ -56,8 +57,9 @@ def test_private_mcp_reads_and_builds_page_proposal_without_commit_tool(tmp_path
     }
     with Session(engine, expire_on_commit=False) as session:
         session.add(User(user_id="user_a", email="mcp@example.test", name="MCP", roles=["user"], status="active"))
+        session.add(Space(space_id="space_a", kind="personal", name="MCP Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"))
         session.add(Page(
-            page_id="page_a", owner_user_id="user_a", title="Draft", document_json=document,
+            page_id="page_a", space_id="space_a", owner_user_id="user_a", title="Draft", document_json=document,
             markdown="Original\n", revision=1, status="active",
             created_at=datetime.now(UTC), updated_at=datetime.now(UTC),
         ))
@@ -129,10 +131,11 @@ def test_private_mcp_rejects_capability_without_proposal_scope(tmp_path: Path) -
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     keyring = KeyRing.for_test("mcp-scope-test")
-    app = create_app(settings=Settings(environment="test", issuer_url="https://pages.test"), engine=engine, session_factory=sessions, keyring=keyring)
+    app = create_app(settings=Settings(environment="test", issuer_url="https://pages.test"), engine=engine, session_factory=sessions, keyring=keyring, testing_legacy_pages_agent=True)
     with Session(engine) as session:
         session.add(User(user_id="user_a", email="read@example.test", name="Read", roles=["user"], status="active"))
-        session.add(Page(page_id="page_a", owner_user_id="user_a", title="Draft", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"))
+        session.add(Space(space_id="space_a", kind="personal", name="Read Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"))
+        session.add(Page(page_id="page_a", space_id="space_a", owner_user_id="user_a", title="Draft", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"))
         session.commit()
         grant = PageCapabilityService(session, keyring, issuer="https://pages.test", max_lifetime_seconds=300).issue(
             owner_user_id="user_a", page_id="page_a", run_id="run_a", scopes=["page:read"],
@@ -166,10 +169,12 @@ def test_private_mcp_enforces_configured_capability_lifetime(tmp_path: Path) -> 
         engine=engine,
         session_factory=sessions,
         keyring=keyring,
+        testing_legacy_pages_agent=True,
     )
     with Session(engine) as session:
         session.add(User(user_id="user_a", email="lifetime@example.test", name="Lifetime", roles=["user"], status="active"))
-        session.add(Page(page_id="page_a", owner_user_id="user_a", title="Draft", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"))
+        session.add(Space(space_id="space_a", kind="personal", name="Lifetime Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"))
+        session.add(Page(page_id="page_a", space_id="space_a", owner_user_id="user_a", title="Draft", document_json={"type": "doc", "schema_version": 1, "content": []}, markdown="", revision=1, status="active"))
         session.commit()
         grant = PageCapabilityService(
             session, keyring, issuer="https://pages.test", max_lifetime_seconds=1200

@@ -1,14 +1,14 @@
 # Vessel API 契约草案：Pages、Apps 与空间权限
 
-状态：**待审核，尚未实现本轮 Pages/Apps 团队对接**。日期：2026-10-14。
+状态：**三个 API 决策已确认；本轮接口已实现**。日期：2026-10-14。
 
-本文约定把迁入的 Pages 和 Baizhi Apps 表格能力接到 Vessel 独立账号与个人/团队空间后的 HTTP API。标记为「现有」的端点已在当前代码中注册；「拟新增」及「拟调整」是待审核的实现契约。现有端点目前仍按 Page 创建者隔离，**不能把本文描述的目标团队权限当成现网能力**。
+本文记录 Pages 内容能力及从 Baizhi Apps 规则适配的表格能力接入 Vessel 独立账号与空间后的 HTTP API。下表中的「新增」和「已调整」均已在 Vessel 应用中注册；通用文件 API 与新 Page Agent 另行实施。
 
 ## 1. 通用约定
 
-- API 基址由部署决定，业务路径以 `/v1` 开头。所有资源 API 使用 `Authorization: Bearer <Vessel access_token>`；注册、登录与 Refresh 除外。Vessel 独立签发 `aud=vessel-api` 的 Token，不接受 Baizhi Apps/Pages 账号 Token。
+- API 基址由部署决定，业务路径以 `/v1` 开头。所有资源 API 使用 `Authorization: Bearer <Vessel access_token>`；注册、登录与 Refresh 除外。Vessel 独立签发 `aud=vessel-api`、`scope=vessel:session` 的 Token，不接受 Baizhi Apps/Pages 账号 Token。
 - 用户注册时自动拥有一个个人空间；团队创建一个团队空间。团队 ID 即 `space_id`。资源的 `space_id` 创建后不可修改；本轮不提供跨空间移动、复制或资源级 ACL。
-- `owner_user_id`、`created_by_user_id` 等历史字段只作迁移与审计用途。团队 Page 和 App 的访问权由持久化 `space_id` 与当前成员角色决定，创建者不额外获得私有权限。请求中的角色、创建者或用户 ID 不能覆盖服务端身份。
+- `owner_user_id`、`created_by_user_id` 等现有字段只作创建者记录与审计用途。团队 Page 和 App 的访问权由持久化 `space_id` 与当前成员角色决定，创建者不额外获得私有权限。请求中的角色、创建者或用户 ID 不能覆盖服务端身份。
 - Owner/Admin/Editor 可读写；Viewer 只读。非成员或无权查看的资源返回 404；已可查看但无写权限返回 403。成员移除或角色降级后，每个新请求重新查询成员状态。写入与成员变更要在数据库事务中确定顺序。
 - 成功 JSON 使用资源名包裹，例如 `{"page": {...}}`、`{"app": {...}}`、`{"records": [...]}`；204 不返回正文。业务错误沿用当前实现的 `{"detail":{"code":"ERROR_CODE"}}`。Pydantic 字段验证错误仍是 FastAPI 的 422 格式。
 - ID 是服务端生成的 UUID 字符串。时间为 UTC ISO 8601。列表默认按稳定排序；本轮 Pages/目录保持现有无分页响应，Apps 记录使用游标分页。
@@ -21,7 +21,7 @@
 | 新建、修改、归档、恢复、上传图片、写记录 | 允许 | 允许 | 允许 | 403 | 404 |
 | 管理邀请、角色、成员 | 不适用 | 允许，受 Owner 保护规则约束 | 403 | 403 | 404 |
 
-Page 提案的接受、拒绝、版本恢复和 Agent 编辑运行属于写操作。只读 Agent 运行与提案预览属于读操作。短期 Page MCP capability 在每次工具调用时还要重查持有人当前空间权限；撤权后的旧 capability 不能继续读取或编辑团队 Page。
+版本恢复属于写操作。Vessel 将配置独立的新 Page Agent；它的认证、运行与编辑协议单独设计，不复用从 Baizhi Pages 迁入的 Agent Platform、提案或 MCP capability 接口。
 
 ## 2. 身份与团队：现有 API
 
@@ -58,20 +58,20 @@ Page 提案的接受、拒绝、版本恢复和 Agent 编辑运行属于写操�
 
 | 方法与路径 | 状态 | 请求/用途 | 成功响应 |
 | --- | --- | --- | --- |
-| `GET /v1/spaces/{space_id}/pages?status=active|archived` | 拟新增 | 列出该空间 Page，默认 `active` | `{"pages": [Page]}` |
-| `POST /v1/spaces/{space_id}/pages` | 拟新增 | `title`、`document`、可选 `directory_id` | 201；`{"page": Page}` |
-| `GET /v1/pages`、`GET /v1/pages/archived` | 现有，拟调整授权 | 只列个人空间 Page | `{"pages": [Page]}` |
-| `POST /v1/pages` | 现有，拟调整归属 | 同上创建体，固定创建在个人空间 | 201；`{"page": Page}` |
-| `GET /v1/pages/{page_id}` | 现有，拟调整授权 | 页面内容 | `{"page": Page}` |
-| `PATCH /v1/pages/{page_id}` | 现有，拟调整授权 | `expected_revision`，可选 `title`、`document`、`directory_id` | `{"page": Page}` |
-| `POST /v1/pages/{page_id}/archive` | 现有，拟调整授权 | 归档 | 204 |
-| `POST /v1/pages/{page_id}/restore` | 现有，拟调整授权 | 恢复 | `{"page": Page}` |
-| `GET /v1/spaces/{space_id}/directories` | 拟新增 | 列出空间目录 | `{"directories": [Directory]}` |
-| `POST /v1/spaces/{space_id}/directories` | 拟新增 | `{"name":"Research"}` | 201；`{"directory": Directory}` |
-| `GET /v1/directories`、`POST /v1/directories` | 现有，拟调整归属 | 只操作个人空间 | 同现有格式 |
-| `GET /v1/directories/{directory_id}` | 现有，拟调整授权 | 目录详情 | `{"directory": Directory}` |
-| `PATCH /v1/directories/{directory_id}` | 现有，拟调整授权 | `{"name":"New name"}` | `{"directory": Directory}` |
-| `POST /v1/directories/{directory_id}/archive` | 现有，拟调整授权 | 归档目录，空间内子 Page 转为无目录 | 204 |
+| `GET /v1/spaces/{space_id}/pages?status=active|archived` | 新增 | 列出该空间 Page，默认 `active` | `{"pages": [Page]}` |
+| `POST /v1/spaces/{space_id}/pages` | 新增 | `title`、`document`、可选 `directory_id` | 201；`{"page": Page}` |
+| `GET /v1/pages`、`GET /v1/pages/archived` | 已调整授权 | 只列个人空间 Page | `{"pages": [Page]}` |
+| `POST /v1/pages` | 已调整归属 | 同上创建体，固定创建在个人空间 | 201；`{"page": Page}` |
+| `GET /v1/pages/{page_id}` | 已调整授权 | 页面内容 | `{"page": Page}` |
+| `PATCH /v1/pages/{page_id}` | 已调整授权 | `expected_revision`，可选 `title`、`document`、`directory_id` | `{"page": Page}` |
+| `POST /v1/pages/{page_id}/archive` | 已调整授权 | 归档 | 204 |
+| `POST /v1/pages/{page_id}/restore` | 已调整授权 | 恢复 | `{"page": Page}` |
+| `GET /v1/spaces/{space_id}/directories` | 新增 | 列出空间目录 | `{"directories": [Directory]}` |
+| `POST /v1/spaces/{space_id}/directories` | 新增 | `{"name":"Research"}` | 201；`{"directory": Directory}` |
+| `GET /v1/directories`、`POST /v1/directories` | 已调整归属 | 只操作个人空间 | 同现有格式 |
+| `GET /v1/directories/{directory_id}` | 已调整授权 | 目录详情 | `{"directory": Directory}` |
+| `PATCH /v1/directories/{directory_id}` | 已调整授权 | `{"name":"New name"}` | `{"directory": Directory}` |
+| `POST /v1/directories/{directory_id}/archive` | 已调整授权 | 归档目录，空间内子 Page 转为无目录 | 204 |
 
 `Page` 至少包含 `page_id`、`space_id`、`title`、`directory_id`、`document`、`markdown`、`revision`、`status`、`created_at`、`updated_at`。`Directory` 至少包含 `directory_id`、`space_id`、`name`、`status`、`created_at`、`updated_at`。任何 Page 的 `directory_id` 必须指向同一空间的有效目录；跨空间目录返回 `DIRECTORY_NOT_FOUND`，不迁移页面。
 
@@ -89,30 +89,27 @@ Content-Type: application/json
 {"page":{"page_id":"<uuid>","space_id":"8e80f2dc-0b30-4a9f-b6c5-cd68e579bc56","title":"项目周报","directory_id":null,"document":{"type":"doc","schema_version":1,"content":[{"type":"heading","attrs":{"block_id":"intro","level":1},"content":[{"type":"text","text":"项目周报"}]}]},"markdown":"# 项目周报\n","revision":1,"status":"active","created_at":"2026-10-14T00:00:00+00:00","updated_at":"2026-10-14T00:00:00+00:00"}}
 ```
 
-### 3.2 Markdown、版本、图片与提案
+### 3.2 Markdown、版本与图片
 
 | 方法与路径 | 状态 | 读写能力/说明 |
 | --- | --- | --- |
-| `GET /v1/pages/{page_id}/markdown` | 现有，拟调整授权 | 读；返回 `text/markdown` 附件 |
-| `PUT /v1/pages/{page_id}/markdown` | 现有，拟调整授权 | 写；`{"expected_revision":1,"markdown":"..."}`，生成新版本 |
-| `GET /v1/pages/{page_id}/versions` | 现有，拟调整授权 | 读；返回 `versions[]` |
-| `POST /v1/pages/{page_id}/versions/checkpoint` | 现有，拟调整授权 | 写；`expected_revision` |
-| `POST /v1/pages/{page_id}/versions/{version_id}/restore` | 现有，拟调整授权 | 写；`expected_revision`，生成新修订 |
-| `POST /v1/pages/{page_id}/assets` | 现有，拟调整授权 | 写；原始 PNG/JPEG/GIF/WebP 字节，请求 `Content-Type` 为图片类型 |
-| `GET /v1/assets/{asset_id}/content` | 现有，拟调整授权 | 读；按关联 Page 的当前空间授权，返回图片字节 |
-| `GET /v1/pages/{page_id}/proposals`、`GET /v1/pages/{page_id}/proposals/{proposal_id}` | 现有，拟调整授权 | 读；团队成员可见同一 Page 的提案 |
-| `POST /v1/pages/{page_id}/proposals/{proposal_id}/accept` | 现有，拟调整授权 | 写；`{"idempotency_key":"..."}` |
-| `POST /v1/pages/{page_id}/proposals/{proposal_id}/reject` | 现有，拟调整授权 | 写 |
+| `GET /v1/pages/{page_id}/markdown` | 已调整授权 | 读；返回 `text/markdown` 附件 |
+| `PUT /v1/pages/{page_id}/markdown` | 已调整授权 | 写；`{"expected_revision":1,"markdown":"..."}`，生成新版本 |
+| `GET /v1/pages/{page_id}/versions` | 已调整授权 | 读；返回 `versions[]` |
+| `POST /v1/pages/{page_id}/versions/checkpoint` | 已调整授权 | 写；`expected_revision` |
+| `POST /v1/pages/{page_id}/versions/{version_id}/restore` | 已调整授权 | 写；`expected_revision`，生成新修订 |
+| `POST /v1/pages/{page_id}/assets` | 已调整授权 | 写；原始 PNG/JPEG/GIF/WebP 字节，请求 `Content-Type` 为图片类型 |
+| `GET /v1/assets/{asset_id}/content` | 已调整授权 | 读；按关联 Page 的当前空间授权，返回图片字节 |
 
-Page Agent Run、事件流及 `/mcp` 是从 Pages 迁入的兼容入口。本轮若继续开放，读/写均须按当前 Page 空间重新判权，且 capability 不能绕过成员撤销。它们依赖另行配置的 Baizhi Agent Platform；**Vessel 的核心 Page 存储 API 不依赖该外部服务**。图片接口是现有 Page 附件功能，不等同于未来的通用 OSS/S3 文件 API。
+现有图片接口是 Page 附件功能，不等同于未来的通用 OSS/S3 文件 API。当前只在开发和测试环境配置私有本地图片存储；生产环境未配置图片存储，以上两条图片接口返回 503 `ASSET_STORAGE_NOT_CONFIGURED`，暂不能用于生产图片读写。迁入的 `/v1/pages/{page_id}/agent/*`、`/v1/pages/{page_id}/proposals/*` 和 `/mcp` 不纳入 Vessel 公共 API；已从正常应用路由移除，避免旧 Agent Platform 被误用。新 Page Agent 的接入协议另行制定。
 
-### 3.3 旧数据迁移
+### 3.3 数据库起点
 
-给 `pages` 和 `page_directories` 增加非空 `space_id`。对历史个人 Page/目录，以原 `owner_user_id` 对应的个人空间回填；原 Page ID、目录 ID、修订号、版本与提案保持不变。Page 的 `owner_user_id` 将保留为创建人字段，不再作为团队资源的判权依据。迁移后历史 `/v1/pages/{page_id}` 仍可由原用户访问，其他用户仍不可见。
+给 `pages` 和 `page_directories` 增加非空 `space_id`；Vessel 按**全新数据库**部署，不执行历史 Page 或目录回填。已有 `owner_user_id` 在新建数据时记录创建者，不作为团队资源的判权依据。Page、目录和图片的创建者外键限制账号硬删除，以免级联删除空间资源；当前没有账号硬删除 API。若数据库已有旧 Page 数据，迁移应明确失败并要求使用空库，不能静默挂到某个个人空间。
 
-## 4. Apps：表格存储 API（拟新增）
+## 4. Apps：表格存储 API
 
-**资源模型：**一个 App 是一个空间内的表格集合，`app_id` 由 Vessel 生成；Manifest 描述多个表及字段。团队成员默认能读取该 App 下所有表和记录；不沿用 Baizhi Apps 的 `owner_id`/`permission` 逐行可见性、App 用户成员表、Agent grant、H5 发布或 Baizhi 账号体系。App API 将迁入并适配源项目的 Manifest 标识符/类型校验、字段值规范化和受控记录操作；数据存入 Vessel 自己的 PostgreSQL。
+**资源模型：**一个 App 是一个空间内的表格集合，`app_id` 由 Vessel 生成；Manifest 描述多个表及字段。团队成员默认能读取该 App 下所有表和记录；不沿用 Baizhi Apps 的 `owner_id`/`permission` 逐行可见性、App 用户成员表、Agent grant、H5 发布或 Baizhi 账号体系。App API 已适配源项目的 Manifest 标识符/类型校验、字段值规范化和受控记录操作；数据存入 Vessel 自己的 PostgreSQL。
 
 ### 4.1 Manifest
 
@@ -143,11 +140,11 @@ Page Agent Run、事件流及 `/mcp` 是从 Pages 迁入的兼容入口。本轮
 | `GET /v1/apps/{app_id}/tables` | 表名、字段和当前 Manifest 版本 | `{"tables":[TableSummary],"manifest_version":1}` |
 | `PUT /v1/apps/{app_id}/manifest` | `expected_version`、新的 `manifest` | `{"app": App}`，版本加 1 |
 
-`App` 至少包含 `app_id`、`space_id`、`name`、`manifest`、`manifest_version`、`status`、`created_at`、`updated_at`。首版 Manifest 更新只允许**新增可空字段**和新增表；删表、删字段、改名、改类型、把可空改为非空返回 422 `APP_SCHEMA_CHANGE_UNSUPPORTED`。`expected_version` 不匹配返回 409 `APP_MANIFEST_VERSION_CONFLICT`。Manifest 与数据结构在同一数据库事务中生效，不暴露部分应用状态。
+`App` 至少包含 `app_id`、`space_id`、`name`、`manifest`、`manifest_version`、`status`、`created_at`、`updated_at`。当前 Manifest 更新只允许**新增可空字段**和新增表；删表、删字段、改名、改类型、把可空改为非空返回 422 `APP_SCHEMA_CHANGE_UNSUPPORTED`。`expected_version` 不匹配返回 409 `APP_MANIFEST_VERSION_CONFLICT`。Manifest 与数据结构在同一数据库事务中生效，不暴露部分应用状态。
 
 ### 4.2 记录读写
 
-表名必须存在于当前 Manifest；传入的业务字段必须在该表声明。系统字段由服务端生成；不接受客户端传入 `created_by`、`row_version`、`owner_id`、`permission` 等字段。`numeric` 在 JSON 响应中用十进制字符串表示，`timestamp` 使用带时区的 UTC ISO 8601。单次查询默认 50 条、最多 200 条；游标绑定 App、表、排序与筛选条件。
+表名必须存在于当前 Manifest；传入的业务字段必须在该表声明。系统字段由服务端生成；不接受客户端传入 `created_by`、`row_version`、`owner_id`、`permission` 等字段。`integer` 为 PostgreSQL 32 位有符号整数；`numeric` 最多 38 位有效数字、小数位最多 18 位且整数位最多 38 位，在 JSON 响应中用十进制字符串表示；`timestamp` 使用带时区的 UTC ISO 8601。单次查询默认 50 条、最多 200 条；游标绑定 App、表、排序与筛选条件，按最后一条记录的排序字段续读，删除前页记录不会跳过后页。
 
 | 方法与路径（前缀 `/v1/apps/{app_id}/tables/{table_name}`） | 请求/用途 | 成功响应 |
 | --- | --- | --- |
@@ -170,7 +167,7 @@ Content-Type: application/json
 {"filter":{"field":"score","op":"gte","value":5},"sort":[{"field":"created_at","direction":"desc"}],"limit":50}
 ```
 
-首版 `filter` 只允许单条件或由最多 10 个条件组成的 `and`；操作符 `eq|ne|lt|lte|gt|gte|in|is_null`，字段必须在 Manifest 中声明，`in` 最多 50 个值。排序最多 3 个字段，追加 `id` 稳定排序。禁止任意 SQL、关联查询和跨 App 查询。较大文件导入与复杂查询由后续增量单独冻结 API。
+首版 `filter` 只允许单条件或由最多 10 个叶子条件组成的单层 `and`；操作符 `eq|ne|lt|lte|gt|gte|in|is_null`，业务字段必须在 Manifest 中声明，`json` 字段暂不支持筛选或排序，`in` 最多 50 个值。排序最多 3 个字段，空值排在最后，再追加 `id` 稳定排序。禁止任意 SQL、关联查询和跨 App 查询。较大文件导入与复杂查询由后续增量单独冻结 API。
 
 ## 5. 典型调用顺序
 
@@ -189,9 +186,9 @@ Content-Type: application/json
 | 409 | `PAGE_REVISION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT` | 乐观锁冲突 |
 | 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED` | 内容或结构不符合契约 |
 
-本轮范围是 Pages、其已有图片/版本/提案路径，以及 Apps 的表格 Schema 和记录 API。通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
+本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。新 Page Agent 接入、通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
 
-## 7. 待审核的三个 API 决策
+## 7. 已确认的三个 API 决策
 
 1. **团队 Page 路径：**新增 `/v1/spaces/{space_id}/pages` 和 `/directories`，旧 `/v1/pages` 与 `/directories` 列表/创建固定为个人空间。
 2. **Apps 资源边界：**一个 App 包含多张表，App 属于一个空间；团队角色统一管整套 Manifest 和全部记录，没有逐行私有权限。

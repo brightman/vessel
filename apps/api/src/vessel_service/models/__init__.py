@@ -1,4 +1,5 @@
 from vessel_service.models.base import Base
+from vessel_service.models.app import VesselApp, VesselAppRecord
 from vessel_service.models.asset import PageAsset
 from vessel_service.models.directory import PageDirectory
 from vessel_service.models.page import Page
@@ -10,4 +11,4 @@ from vessel_service.models.refresh_session import RefreshSession
 from vessel_service.models.space import Space, TeamInvitation, TeamMember
 from vessel_service.models.user import User, UserCredential
 
-__all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "PageDirectory", "PageProposal", "PageVersion", "RefreshSession", "Space", "TeamInvitation", "TeamMember", "User", "UserCredential"]
+__all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "PageDirectory", "PageProposal", "PageVersion", "RefreshSession", "Space", "TeamInvitation", "TeamMember", "User", "UserCredential", "VesselApp", "VesselAppRecord"]

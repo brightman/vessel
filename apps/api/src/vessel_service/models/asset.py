@@ -11,7 +11,7 @@ class PageAsset(Base):
 
     asset_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     owner_user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.user_id", ondelete="CASCADE"), index=True
+        ForeignKey("users.user_id", ondelete="RESTRICT"), index=True
     )
     page_id: Mapped[str] = mapped_column(
         ForeignKey("pages.page_id", ondelete="CASCADE"), index=True

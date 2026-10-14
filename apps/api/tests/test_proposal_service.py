@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from vessel_service.models import Base, Page, PageVersion, User
+from vessel_service.models import Base, Page, PageVersion, Space, User
 from vessel_service.proposals.service import ProposalError, ProposalService
 
 
@@ -14,8 +14,10 @@ def session(tmp_path):
     Base.metadata.create_all(engine)
     with Session(engine, expire_on_commit=False) as db:
         db.add(User(user_id="user_a", email="a@example.test", name="A", roles=["user"], status="active"))
+        db.add(Space(space_id="space_a", kind="personal", name="A Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"))
         db.add(Page(
             page_id="page_a",
+            space_id="space_a",
             owner_user_id="user_a",
             title="Draft",
             document_json={"type": "doc", "schema_version": 1, "content": [{"type": "paragraph", "attrs": {"block_id": "block_a"}, "content": [{"type": "text", "text": "Original"}]}]},

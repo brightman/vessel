@@ -12,6 +12,7 @@ from vessel_service.assets.storage import LocalAssetStorage
 from vessel_service.auth.router import get_session, get_settings
 from vessel_service.models import Page, PageAsset, User
 from vessel_service.pages.router import current_user
+from vessel_service.spaces.resources import page_for_user
 from vessel_service.settings import Settings
 
 router = APIRouter(prefix="/v1", tags=["assets"])
@@ -69,23 +70,14 @@ async def upload_page_asset(
     settings: Settings = Depends(get_settings),
     storage: LocalAssetStorage = Depends(get_asset_storage),
 ) -> dict[str, dict[str, str | int]]:
-    page = session.scalar(
-        select(Page).where(
-            Page.page_id == page_id,
-            Page.owner_user_id == user.user_id,
-            Page.status == "active",
-        )
-    )
-    if page is None:
-        raise HTTPException(status_code=404, detail={"code": "PAGE_NOT_FOUND"})
-
     content_type = _media_type(request)
     content = await _read_bounded_body(request, settings.max_asset_upload_bytes)
     if not content or not _IMAGE_SIGNATURES[content_type](content):
         raise HTTPException(status_code=415, detail={"code": "ASSET_CONTENT_TYPE_MISMATCH"})
+    page = page_for_user(session, user, page_id, write=True)
 
     asset_id = str(uuid4())
-    object_key = storage.make_key(user.user_id, page_id, asset_id)
+    object_key = storage.make_key(page.space_id, page_id, asset_id)
     checksum = hashlib.sha256(content).hexdigest()
     asset = PageAsset(
         asset_id=asset_id,
@@ -124,14 +116,15 @@ def read_asset_content(
     session: Session = Depends(get_session),
     storage: LocalAssetStorage = Depends(get_asset_storage),
 ) -> Response:
-    asset = session.scalar(
-        select(PageAsset).where(
-            PageAsset.asset_id == asset_id,
-            PageAsset.owner_user_id == user.user_id,
-        )
-    )
+    asset = session.scalar(select(PageAsset).where(PageAsset.asset_id == asset_id))
     if asset is None:
         raise _asset_not_found()
+    try:
+        page_for_user(session, user, asset.page_id)
+    except HTTPException as error:
+        if error.status_code == 404:
+            raise _asset_not_found() from error
+        raise
     try:
         content = storage.read(asset.object_key)
     except (FileNotFoundError, ValueError):
