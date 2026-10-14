@@ -71,6 +71,7 @@ def create_app(
     from vessel_service.mcp.server import router as mcp_router
     from vessel_service.pages.router import router as pages_router
     from vessel_service.proposals.router import router as proposals_router
+    from vessel_service.spaces.router import router as spaces_router
     from vessel_service.versions.router import router as versions_router
 
     application.include_router(auth_router)
@@ -80,6 +81,7 @@ def create_app(
     application.include_router(directories_router)
     application.include_router(pages_router)
     application.include_router(proposals_router)
+    application.include_router(spaces_router)
     application.include_router(mcp_router)
     application.include_router(versions_router)
     return application

@@ -1,6 +1,6 @@
 # Vessel: Agent 原生个人与团队存储服务技术设计
 
-状态：总体设计稿；Pages API 基线已迁入，首个开发增量为用户、团队与团队权限
+状态：总体设计稿；Pages API 基线与用户、团队、权限增量已实现，文件/表格/团队 Page 待实施
 
 日期：2026-10-14
 
@@ -78,6 +78,8 @@ Page Block ──0:N── Resource Reference (same Space)
 建议首版使用 Vessel 本地账号：规范化邮箱唯一、Argon2id 密码哈希、短期签名访问 Token、可轮换的 Refresh Session。Token 的 `issuer` 和 `audience=vessel-api` 独立于 Baizhi。服务器保存 Refresh Token 的哈希，支持单设备退出、全部设备退出和账号停用。`vessel auth login` 在本机隐藏式提示密码，将会话放入操作系统凭据库；密码和 Token 不进入 Agent 对话、配置文件或日志。CLI 支持显式环境 `--env`，不将测试与生产凭据混用。
 
 建议首版由服务器本地的 `vessel-admin bootstrap` 引导首个账号。配置邮件服务后，用户可通过 API/CLI 注册、接收一次性邮箱验证码、验证邮箱并重置密码；团队 Owner/Admin 向已验证的 Vessel 用户发出邀请，用户通过 API/CLI 接受后才成为有效成员。没有邮件服务时禁用公开注册和自助重置，由管理员在受控终端创建账号或重置凭据；团队邀请可通过已登录的 CLI 查询和接受，不把邀请码冒充为邮箱所有权证明。账号链接依据稳定 `user_id`，不依据邮箱字符串自动合并身份。OIDC 可作为后续登录方式，映射键为 `(issuer, subject)`，不以相同邮箱自动绑定已有账号。
+
+当前实现使用现有的本地邮箱/密码登录与受配置控制的注册，团队邀请目标为已存在的 active 用户 ID。邮箱验证、重置邮件、普通用户的生产开通流程、CLI 凭据库集成和 OIDC 仍待独立增量；生产默认关闭公开注册。
 
 HTTP API 使用 Bearer Access Token；本地 MCP 桥接从凭据库获得会话，远程 MCP 若提供则使用同一 Vessel 用户身份与独立 audience。对象存储凭据、数据库密码和签名私钥只存在服务端。
 

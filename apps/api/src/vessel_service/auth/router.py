@@ -16,10 +16,11 @@ from vessel_service.auth.passwords import hash_password, verify_password
 from vessel_service.auth.tokens import KeyRing
 from vessel_service.models import RefreshSession, User, UserCredential
 from vessel_service.settings import Settings
+from vessel_service.spaces.permissions import create_personal_space
 
 router = APIRouter()
 bearer = HTTPBearer(auto_error=False)
-REFRESH_COOKIE_NAME = "pages_refresh"
+REFRESH_COOKIE_NAME = "vessel_refresh"
 
 
 class RegisterRequest(BaseModel):
@@ -78,7 +79,7 @@ def _issue_access_token(user: User, settings: Settings, keyring: KeyRing) -> str
     return keyring.issue(
         subject=user.user_id,
         issuer=settings.issuer_url,
-        audience="baizhi-pages-api",
+        audience="vessel-api",
         scope="pages:session",
         lifetime_seconds=settings.access_token_ttl_seconds,
     )
@@ -155,6 +156,7 @@ def register(
     session.add(user)
     try:
         session.flush()
+        create_personal_space(session, user)
         body = _auth_response(user, session, response, settings, keyring)
     except IntegrityError as error:
         session.rollback()
@@ -249,7 +251,7 @@ def me(
     claims = keyring.verify(
         credentials.credentials,
         issuer=settings.issuer_url,
-        audience="baizhi-pages-api",
+        audience="vessel-api",
         required_scope="pages:session",
     )
     user = session.get(User, claims["sub"]) if claims else None

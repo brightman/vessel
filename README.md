@@ -2,10 +2,18 @@
 
 Vessel is an API-only storage service for people using coding agents. It will provide personal and team spaces for files, structured tables, and block-based Pages. File bytes will live in private OSS/S3 storage; Vessel owns its accounts, metadata, authorization, and APIs.
 
-The API foundation is imported from Baizhi Pages. It currently supports independent local accounts, personal Pages, page versions, private Page image assets, and a private Page MCP endpoint. Team spaces, shared resources, general OSS/S3 files, and tables are being built in separate increments. See the [technical design](docs/technical-design.md), [database schema](docs/db-schema.md), and [import record](docs/source-import.md).
+The API foundation is imported from Baizhi Pages. It now supports independent local accounts, personal spaces, teams, invitations, member roles, and current team permission checks. The inherited Pages API remains scoped to its individual Page owner. Team Pages, general OSS/S3 files, tables, and cross-resource sharing belong to later increments. See the [identity and team design](docs/identity-team-design.md), [database schema](docs/db-schema.md), [overall technical design](docs/technical-design.md), and [import record](docs/source-import.md).
 
 ## Run the API
 
 Install the locked Python dependencies from `apps/api` with `uv sync`. Create a dedicated PostgreSQL database, then from the repository root set `PAGES_DATABASE_URL` to that database and run `bash scripts/dev/start-api.sh`. The script applies Alembic migrations and starts Uvicorn. Set `PAGES_ALLOW_REGISTRATION=true` only in an isolated development environment when self-registration is needed. Health endpoints are `/healthz` and `/readyz`; the OpenAPI document is `/openapi.json`.
 
-The imported configuration still uses the `PAGES_*` prefix and existing Pages token audiences during the base migration. These compatibility details are documented in `docs/source-import.md`; the Vessel identity increment will replace the token audience before a production release.
+The imported configuration still uses the `PAGES_*` prefix. Vessel user sessions use the `vessel-api` audience and `vessel_refresh` cookie. The inherited Page MCP capability uses its separate `baizhi-pages-mcp` audience until that integration is redesigned. See `docs/source-import.md` for the compatibility boundary.
+
+The current identity increment invites existing active Vessel users by `user_id`. Self-registration defaults to disabled and email verification/reset are not implemented; do not enable public registration for production accounts. In a local isolated database, enable registration to exercise the team API. The team endpoints are `GET /v1/spaces`, `GET /v1/spaces/{id}/permissions`, `POST /v1/teams`, `GET /v1/teams/{id}`, `GET /v1/teams/{id}/members`, `GET/POST /v1/teams/{id}/invitations`, `DELETE /v1/teams/{id}/invitations/{invitation_id}`, `GET /v1/team-invitations`, `POST /v1/team-invitations/{id}/accept`, and `PATCH/DELETE /v1/teams/{id}/members/{user_id}`.
+
+With the database migrated and `PAGES_DATABASE_URL` set, a server operator can create the first administrator with `cd apps/api && PYTHONPATH=src .venv/bin/python -m vessel_service.bootstrap_admin`. To provision a regular teammate while public registration is disabled, add `--role user`. The command prompts for the password without echoing it and creates the account with a personal space.
+
+For a local isolated PostgreSQL E2E run, execute `bash scripts/dev/start-e2e-postgres.sh`, export the printed `PAGES_DATABASE_URL`, start the API with `PAGES_ALLOW_REGISTRATION=true bash scripts/dev/start-api.sh`, then run `apps/api/.venv/bin/python scripts/dev/team_http_e2e.py http://127.0.0.1:52003`. Stop the API and PostgreSQL using the command printed by the database script.
+
+With registration left disabled, `PAGES_DATABASE_URL=... apps/api/.venv/bin/python scripts/dev/local_user_http_e2e.py http://127.0.0.1:52003` verifies controlled local provisioning and login against the same isolated setup.

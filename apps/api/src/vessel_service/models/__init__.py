@@ -7,6 +7,7 @@ from vessel_service.models.page_agent_event import PageAgentEvent
 from vessel_service.models.page_version import PageVersion
 from vessel_service.models.proposal import PageProposal
 from vessel_service.models.refresh_session import RefreshSession
+from vessel_service.models.space import Space, TeamInvitation, TeamMember
 from vessel_service.models.user import User, UserCredential
 
-__all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "PageDirectory", "PageProposal", "PageVersion", "RefreshSession", "User", "UserCredential"]
+__all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "PageDirectory", "PageProposal", "PageVersion", "RefreshSession", "Space", "TeamInvitation", "TeamMember", "User", "UserCredential"]

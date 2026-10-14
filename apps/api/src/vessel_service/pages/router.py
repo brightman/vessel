@@ -72,7 +72,7 @@ def current_user(
     claims = keyring.verify(
         credentials.credentials,
         issuer=settings.issuer_url,
-        audience="baizhi-pages-api",
+        audience="vessel-api",
         required_scope="pages:session",
     )
     user = session.get(User, claims["sub"]) if claims else None
