@@ -3,8 +3,8 @@ import asyncio
 
 import httpx
 
-from pages_service.main import create_app
-from pages_service.settings import Settings
+from vessel_service.main import create_app
+from vessel_service.settings import Settings
 
 
 def register(api):

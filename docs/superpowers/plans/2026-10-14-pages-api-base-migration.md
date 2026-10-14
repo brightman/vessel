@@ -32,17 +32,17 @@
 
 **Interface:** expose `vessel_service.main:create_app` and `vessel_service.main:app` while retaining existing Pages API routes.
 
-- [ ] Rename import/package references from `pages_service` to `vessel_service`.
-- [ ] Rename Python distribution to `vessel-api`; update the lock file offline if possible.
-- [ ] Change FastAPI title and launch script module path to Vessel.
-- [ ] Keep existing `PAGES_*` environment variables and token audiences temporarily, documenting this compatibility boundary rather than silently changing authentication.
-- [ ] Compile source, tests and migrations.
+- [x] Rename import/package references from `pages_service` to `vessel_service`.
+- [x] Rename Python distribution to `vessel-api`; update the lock file offline.
+- [x] Change FastAPI title and launch script module path to Vessel.
+- [x] Keep existing `PAGES_*` environment variables and token audiences temporarily, documenting this compatibility boundary rather than silently changing authentication.
+- [x] Compile through test collection and execution.
 
 ## Task 3: Verify and commit
 
 **Files:** `apps/api/tests/**`, `README.md`, `docs/source-import.md`.
 
-- [ ] Run the 82 related API tests without widening to unrelated browser suites.
-- [ ] Start a real local Vessel API process with an isolated test database; request `/healthz`, `/readyz`, register/login and create/read a Page through HTTP.
-- [ ] Check `git diff --check`, test count, file inventory and source checkout status.
-- [ ] Commit only in Vessel, then report which Vessel product features remain unimplemented.
+- [x] Run the 82 related API tests without widening to unrelated browser suites.
+- [x] Start a real local Vessel API process with an isolated PostgreSQL database; request `/healthz`, `/readyz`, register/login and create/read a Page through HTTP.
+- [x] Check `git diff --check`, test count, file inventory and source checkout status.
+- [x] Commit only in Vessel, then report which Vessel product features remain unimplemented.

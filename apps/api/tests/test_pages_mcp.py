@@ -7,14 +7,14 @@ from typing import Any
 import httpx
 from sqlalchemy.orm import Session, sessionmaker
 
-from pages_service.auth.tokens import KeyRing
-from pages_service.database import create_database_engine
-from pages_service.main import create_app
-from pages_service.mcp.capabilities import PageCapabilityService
-from pages_service.mcp.server import TOOLS
-from pages_service.models import Base, Page, User
-from pages_service.proposals.service import ProposalService
-from pages_service.settings import Settings
+from vessel_service.auth.tokens import KeyRing
+from vessel_service.database import create_database_engine
+from vessel_service.main import create_app
+from vessel_service.mcp.capabilities import PageCapabilityService
+from vessel_service.mcp.server import TOOLS
+from vessel_service.models import Base, Page, User
+from vessel_service.proposals.service import ProposalService
+from vessel_service.settings import Settings
 
 
 def test_append_page_operations_schema_teaches_the_supported_operation_contract() -> None:
@@ -100,6 +100,7 @@ def test_private_mcp_reads_and_builds_page_proposal_without_commit_tool(tmp_path
     finish = rpc("tools/call", 7, {"name": "finish_page_edit", "arguments": {"proposal_id": begin_body["proposal_id"], "summary": "Clarify the note"}})
 
     assert initialized["protocolVersion"] == "2025-06-18"
+    assert initialized["serverInfo"]["name"] == "vessel-pages"
     assert {item["name"] for item in tools} == {
         "read_current_page", "read_current_selection", "begin_page_edit", "append_page_operations", "finish_page_edit"
     }

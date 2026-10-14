@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from pages_service.models import Base, Page, PageVersion, User
-from pages_service.proposals.service import ProposalError, ProposalService
+from vessel_service.models import Base, Page, PageVersion, User
+from vessel_service.proposals.service import ProposalError, ProposalService
 
 
 @pytest.fixture

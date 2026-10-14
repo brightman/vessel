@@ -9,13 +9,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from pages_service.auth.tokens import KeyRing
-from pages_service.database import create_database_engine
-from pages_service.main import create_app
-from pages_service.models import Base, Page, PageCapability, PageProposal, User
-from pages_service.agent_platform import _ensure_agent_thread
-from pages_service.proposals.service import ProposalService
-from pages_service.settings import Settings
+from vessel_service.auth.tokens import KeyRing
+from vessel_service.database import create_database_engine
+from vessel_service.main import create_app
+from vessel_service.models import Base, Page, PageCapability, PageProposal, User
+from vessel_service.agent_platform import _ensure_agent_thread
+from vessel_service.proposals.service import ProposalService
+from vessel_service.settings import Settings
 
 
 def _make_app(tmp_path: Path, *, platform_url: str | None = "https://agent.test"):
@@ -91,7 +91,7 @@ def test_start_agent_run_issues_separate_scoped_assertion_and_page_capability(tm
         captured.update(url=url, headers=headers, body=json, timeout=timeout)
         return _UpstreamResponse({"run_id": json["run_id"], "thread_id": json["thread_id"], "status": "queued"})
 
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", fake_post)
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", fake_post)
     response = _request(
         app,
         "POST",
@@ -147,7 +147,7 @@ def test_start_agent_ask_run_issues_read_only_capability_and_forwards_mode(tmp_p
         captured.update(url=url, headers=headers, body=json, timeout=timeout)
         return _UpstreamResponse({"run_id": json["run_id"], "thread_id": json["thread_id"], "status": "queued"})
 
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", fake_post)
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", fake_post)
     response = _request(
         app,
         "POST",
@@ -178,7 +178,7 @@ def test_start_agent_ask_run_issues_read_only_capability_and_forwards_mode(tmp_p
 def test_start_agent_run_does_not_allow_callers_to_choose_agent_or_mcp(tmp_path, monkeypatch):
     app, _, _ = _make_app(tmp_path)
     token, page_id = _registered_page(app)
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
 
     response = _request(
         app,
@@ -195,7 +195,7 @@ def test_start_agent_run_failure_revokes_its_page_capability(tmp_path, monkeypat
     app, engine, _ = _make_app(tmp_path)
     token, page_id = _registered_page(app)
     monkeypatch.setattr(
-        "pages_service.agent_platform.httpx.post",
+        "vessel_service.agent_platform.httpx.post",
         lambda *a, **kw: httpx.Response(503, request=httpx.Request("POST", "https://agent.test")),
     )
 
@@ -218,7 +218,7 @@ def test_agent_run_event_proxy_forwards_sse_frames_and_revokes_terminal_capabili
     app, engine, _ = _make_app(tmp_path)
     token, page_id = _registered_page(app)
     monkeypatch.setattr(
-        "pages_service.agent_platform.httpx.post",
+        "vessel_service.agent_platform.httpx.post",
         lambda _url, *, json, **_kwargs: _UpstreamResponse({
             "run_id": json["run_id"], "thread_id": json["thread_id"], "status": "queued",
         }),
@@ -263,7 +263,7 @@ def test_agent_run_event_proxy_forwards_sse_frames_and_revokes_terminal_capabili
             transport=httpx.ASGITransport(app=app), base_url="https://pages.test"
         ) as api_client:
             with monkeypatch.context() as patch:
-                patch.setattr("pages_service.agent_platform.httpx.AsyncClient", FakeUpstreamClient)
+                patch.setattr("vessel_service.agent_platform.httpx.AsyncClient", FakeUpstreamClient)
                 return await api_client.get(
                     f"/v1/pages/{page_id}/agent/runs/{run_id}/events",
                     headers={"Authorization": f"Bearer {token}"},
@@ -296,7 +296,7 @@ def test_cancelling_agent_run_closes_open_page_proposal(tmp_path, monkeypatch):
             return _UpstreamResponse({"status": "cancelled"})
         return _UpstreamResponse({"run_id": json["run_id"], "thread_id": json["thread_id"], "status": "queued"})
 
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", fake_post)
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", fake_post)
     headers = {"Authorization": f"Bearer {token}"}
     started = _request(app, "POST", f"/v1/pages/{page_id}/agent/runs", headers=headers, json={"message": "Edit this Page", "mode": "edit"})
     assert started.status_code == 202
@@ -331,7 +331,7 @@ def test_agent_run_is_page_owner_scoped(tmp_path, monkeypatch):
         "/v1/auth/register",
         json={"name": "Other", "email": "other@example.test", "password": "page-test-password"},
     )
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
 
     response = _request(
         app,
@@ -368,7 +368,7 @@ def test_start_agent_run_fails_closed_without_platform_url(tmp_path):
 def test_start_agent_run_rejects_whitespace_only_message(tmp_path, monkeypatch):
     app, _, _ = _make_app(tmp_path)
     token, page_id = _registered_page(app)
-    monkeypatch.setattr("pages_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
+    monkeypatch.setattr("vessel_service.agent_platform.httpx.post", lambda *a, **kw: pytest.fail("must not call Platform"))
 
     response = _request(
         app,

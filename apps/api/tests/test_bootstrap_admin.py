@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from pages_service.auth.passwords import verify_password
-from pages_service.models import Base
-from pages_service.bootstrap_admin import create_bootstrap_admin
+from vessel_service.auth.passwords import verify_password
+from vessel_service.models import Base
+from vessel_service.bootstrap_admin import create_bootstrap_admin
 
 
 def test_bootstrap_admin_creates_a_hashed_admin_account(tmp_path) -> None:

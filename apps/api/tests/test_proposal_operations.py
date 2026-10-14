@@ -1,6 +1,6 @@
 import pytest
 
-from pages_service.proposals.operations import OperationError, apply_operation_batch
+from vessel_service.proposals.operations import OperationError, apply_operation_batch
 
 
 def paragraph(block_id: str, text: str) -> dict:

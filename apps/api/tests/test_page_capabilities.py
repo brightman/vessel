@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from pages_service.auth.tokens import KeyRing
-from pages_service.models import Base, Page, User
-from pages_service.mcp.capabilities import CapabilityError, PageCapabilityService
+from vessel_service.auth.tokens import KeyRing
+from vessel_service.models import Base, Page, User
+from vessel_service.mcp.capabilities import CapabilityError, PageCapabilityService
 
 
 @pytest.fixture

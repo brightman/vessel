@@ -6,12 +6,12 @@ from typing import Any
 import httpx
 from sqlalchemy.orm import Session, sessionmaker
 
-from pages_service.database import create_database_engine
-from pages_service.main import create_app
-from pages_service.models import Base
-from pages_service.proposals.service import ProposalService
-from pages_service.settings import Settings
-from pages_service.auth.tokens import KeyRing
+from vessel_service.database import create_database_engine
+from vessel_service.main import create_app
+from vessel_service.models import Base
+from vessel_service.proposals.service import ProposalService
+from vessel_service.settings import Settings
+from vessel_service.auth.tokens import KeyRing
 
 
 def test_owner_reviews_and_accepts_proposal_once_while_other_user_cannot_read_it(tmp_path: Path) -> None:

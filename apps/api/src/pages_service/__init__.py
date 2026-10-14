@@ -1,1 +1,0 @@
-"""Baizhi Pages API service."""

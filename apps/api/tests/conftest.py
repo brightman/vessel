@@ -7,11 +7,11 @@ import httpx
 import pytest
 from sqlalchemy.orm import sessionmaker
 
-from pages_service.database import create_database_engine
-from pages_service.main import create_app
-from pages_service.models.base import Base
-from pages_service.settings import Settings
-from pages_service.auth.tokens import KeyRing
+from vessel_service.database import create_database_engine
+from vessel_service.main import create_app
+from vessel_service.models.base import Base
+from vessel_service.settings import Settings
+from vessel_service.auth.tokens import KeyRing
 
 
 @pytest.fixture

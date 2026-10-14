@@ -1,6 +1,6 @@
 import pytest
 
-from pages_service.document.codec import markdown_from_document, markdown_to_document
+from vessel_service.document.codec import markdown_from_document, markdown_to_document
 
 
 def test_markdown_parser_round_trips_supported_blocks_and_marks() -> None:

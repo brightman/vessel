@@ -2,8 +2,8 @@ import asyncio
 
 import httpx
 
-from pages_service.main import app, create_app
-from pages_service.settings import Settings
+from vessel_service.main import app, create_app
+from vessel_service.settings import Settings
 
 
 async def _get_health() -> httpx.Response:
@@ -25,6 +25,7 @@ def test_health_endpoint_returns_ok_status() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+    assert app.title == "Vessel API"
 
 
 def test_readiness_endpoint_reports_missing_database_configuration() -> None:
