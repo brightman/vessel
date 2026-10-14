@@ -4,9 +4,12 @@
 !.env.example
 .venv/
 __pycache__/
+*.pyc
 .pytest_cache/
+.coverage
 *.egg-info/
 node_modules/
 dist/
 build/
 data/
+apps/api/var/
