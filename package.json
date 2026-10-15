@@ -5,7 +5,8 @@
   "scripts": {
     "dev:web": "vite --config apps/web/vite.config.ts",
     "build:web": "tsc --noEmit && vite build --config apps/web/vite.config.ts",
-    "test:console": "playwright test tests/e2e/console.spec.mjs"
+    "test:console": "playwright test tests/e2e/console.spec.mjs",
+    "build:marketing": "tsc --noEmit -p apps/marketing/tsconfig.json && vite build --config apps/marketing/vite.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

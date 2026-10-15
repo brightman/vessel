@@ -1,6 +1,6 @@
-# Vessel
+# Memory on Cloud
 
-Vessel is a storage service for people using coding agents. It provides personal and team spaces for files, structured tables, and block-based Pages. File bytes live in private OSS/S3 storage; Vessel owns its accounts, metadata, authorization, and APIs. A small Web console is available for account, team, Pages, and Apps management.
+Memory on Cloud is the public brand for Vessel, a storage service for people using coding agents. It provides personal and team spaces for files, structured tables, and block-based Pages. File bytes live in private OSS/S3 storage; Vessel owns its accounts, metadata, authorization, and APIs. A small Web console is available for account, team, Pages, and Apps management.
 
 The API foundation is imported from Baizhi Pages. It supports independent local accounts, personal spaces, teams, invitations, member roles, space-owned Pages, and structured Apps tables. Team members see resources by default; viewers read and editors write. The inherited Baizhi Page Agent routes are not exposed in the Vessel API; Vessel will use a separate Page Agent. Shared files now support private Aliyun OSS storage, personal sharing, team folders, versions and a recoverable file worker. See the [file API contract](docs/api-contract-files.md) and [file runtime guide](docs/files-runtime.md). See the [API contract](docs/api-contract-pages-apps.md), [identity and team design](docs/identity-team-design.md), [database schema](docs/db-schema.md), [overall technical design](docs/technical-design.md), and [import record](docs/source-import.md).
 
@@ -8,9 +8,9 @@ The API foundation is imported from Baizhi Pages. It supports independent local 
 
 Install the locked Python dependencies from `apps/api` with `uv sync`. Create a dedicated PostgreSQL database, then from the repository root set `PAGES_DATABASE_URL` to that database and run `bash scripts/dev/start-api.sh`. The script applies Alembic migrations and starts Uvicorn. Set `PAGES_ALLOW_REGISTRATION=true` only in an isolated development environment when self-registration is needed. Health endpoints are `/healthz` and `/readyz`; the OpenAPI document is `/openapi.json`. The primary API reference is Scalar at `/docs`; Swagger UI remains at `/swagger` and ReDoc at `/redoc`.
 
-## Web console
+## Website and Web console
 
-Run `npm ci && npm run build:web` from the repository root before starting the API. Open `http://127.0.0.1:52003/console` to log in, or `/register` to create an account when `PAGES_ALLOW_REGISTRATION=true`. For plain HTTP on local loopback, set `PAGES_REFRESH_COOKIE_SECURE=false` so the browser can retain the refresh cookie; keep it true under HTTPS. The built console is served by the same FastAPI origin and calls the existing `/v1` endpoints. For frontend development, `npm run dev:web` serves Vite on port 52004 and proxies `/v1` to the API on port 52003.
+Run `npm ci && npm run build:marketing && npm run build:web` from the repository root before starting the API. Open `http://127.0.0.1:52003/` for the Memory on Cloud website, `/console` to log in to the Vessel management console, or `/register` to create an account when `PAGES_ALLOW_REGISTRATION=true`. For plain HTTP on local loopback, set `PAGES_REFRESH_COOKIE_SECURE=false` so the browser can retain the refresh cookie; keep it true under HTTPS. Both static sites are served by the same FastAPI origin; the public website uses `/assets/*`, while console assets remain under `/console/assets/*`. The console calls the existing `/v1` endpoints. For frontend development, `npm run dev:web` serves Vite on port 52004 and proxies `/v1` to the API on port 52003.
 
 The console reuses the Baizhi Pages Tiptap block editor. Team Pages and Apps use the selected Vessel space and current role capabilities. The inherited Baizhi Page Agent UI is not included; Page image upload controls are disabled in this increment, while existing images can still be displayed. Unsaved Page drafts stay in browser memory and are lost on reload; save them before closing the tab. Team invitations require the invitee's existing Vessel user ID.
 

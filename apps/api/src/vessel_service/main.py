@@ -22,6 +22,7 @@ def create_app(
     keyring: KeyRing | None = None,
     testing_legacy_pages_agent: bool = False,
     web_dist_path: Path | None = None,
+    marketing_dist_path: Path | None = None,
 ) -> FastAPI:
     configured = settings or Settings()
     if testing_legacy_pages_agent and configured.environment != "test":
@@ -47,6 +48,14 @@ def create_app(
     )
     add_api_docs(application)
     web_dist = web_dist_path or Path(__file__).resolve().parents[4] / "dist" / "console"
+    marketing_dist = marketing_dist_path or Path(__file__).resolve().parents[4] / "dist" / "marketing"
+
+    @application.get("/", include_in_schema=False)
+    def marketing_home() -> FileResponse:
+        index = marketing_dist / "index.html"
+        if not index.is_file():
+            raise HTTPException(status_code=503, detail={"code": "MARKETING_SITE_NOT_BUILT"})
+        return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
 
     @application.get("/console", include_in_schema=False)
     @application.get("/console/", include_in_schema=False)
@@ -58,6 +67,7 @@ def create_app(
         return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
 
     application.mount("/console/assets", StaticFiles(directory=web_dist / "assets", check_dir=False), name="console-assets")
+    application.mount("/assets", StaticFiles(directory=marketing_dist / "assets", check_dir=False), name="marketing-assets")
     application.state.settings = configured
     application.state.database_engine = database_engine
     application.state.session_factory = database_sessions
