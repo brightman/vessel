@@ -1,0 +1,35 @@
+{
+  "name": "vessel-console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "vite --config apps/web/vite.config.ts",
+    "build:web": "tsc --noEmit && vite build --config apps/web/vite.config.ts",
+    "test:console": "playwright test tests/e2e/console.spec.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
+  },
+  "dependencies": {
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extension-link": "^3.31.4",
+    "@tiptap/extension-table": "^3.31.4",
+    "@tiptap/extension-table-cell": "^3.31.4",
+    "@tiptap/extension-table-row": "^3.31.4",
+    "@tiptap/extension-task-item": "^3.31.4",
+    "@tiptap/extension-task-list": "^3.31.4",
+    "@tiptap/extension-underline": "^3.31.4",
+    "@tiptap/extension-unique-id": "^3.31.4",
+    "@tiptap/extensions": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "@tiptap/suggestion": "^3.31.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

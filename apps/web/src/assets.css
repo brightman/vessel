@@ -1,0 +1,19 @@
+.editor-document .doc .image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.editor-document .doc .image-upload-status,
+.editor-document .doc .image-loading,
+.editor-document .doc .image-error {
+  color: #85827a;
+  font-size: 12px;
+}
+
+.editor-document .doc .image-error {
+  color: #a14539;
+}

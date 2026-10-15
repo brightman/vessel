@@ -13,3 +13,5 @@ dist/
 build/
 data/
 apps/api/var/
+test-results/
+playwright-report/

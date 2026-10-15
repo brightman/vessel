@@ -1,6 +1,9 @@
 from collections.abc import Callable
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
@@ -17,6 +20,7 @@ def create_app(
     session_factory: sessionmaker[Session] | None = None,
     keyring: KeyRing | None = None,
     testing_legacy_pages_agent: bool = False,
+    web_dist_path: Path | None = None,
 ) -> FastAPI:
     configured = settings or Settings()
     if testing_legacy_pages_agent and configured.environment != "test":
@@ -34,6 +38,18 @@ def create_app(
         active_keyring = KeyRing.for_development()
 
     application = FastAPI(title="Vessel API")
+    web_dist = web_dist_path or Path(__file__).resolve().parents[4] / "dist" / "console"
+
+    @application.get("/console", include_in_schema=False)
+    @application.get("/console/", include_in_schema=False)
+    @application.get("/register", include_in_schema=False)
+    def web_console() -> FileResponse:
+        index = web_dist / "index.html"
+        if not index.is_file():
+            raise HTTPException(status_code=503, detail={"code": "WEB_CONSOLE_NOT_BUILT"})
+        return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+    application.mount("/console/assets", StaticFiles(directory=web_dist / "assets", check_dir=False), name="console-assets")
     application.state.settings = configured
     application.state.database_engine = database_engine
     application.state.session_factory = database_sessions

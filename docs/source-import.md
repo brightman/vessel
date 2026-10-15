@@ -27,3 +27,9 @@ Migration verification: `uv lock --offline`, `uv sync --offline`, and `.venv/bin
 The later identity and team increment adds migration `0007`, changes user session audience to `vessel-api`, and changes its cookie to `vessel_refresh`. The Page MCP capability retains its separate historical audience. See `docs/db-schema.md` for current tables and limits.
 
 The Pages/Apps integration adds migration `0008` for space-owned Pages/directories and Vessel App records. The normal Vessel application no longer registers the imported Agent Platform, proposal, or MCP routes. Their imported tests can enable those routes only through an explicit test-environment factory argument; a separate Vessel Page Agent will be configured later. Baizhi Apps Manifest identifier/type rules and value normalization were adapted into `vessel_service.apps.manifest`; its runtime policy, row ACL, Agent, and H5 modules were not imported. Source checkouts remain read-only.
+
+## Web console editor import (2026-10-15)
+
+After Vessel gained a Web console requirement, the editor source was copied from the same Baizhi Pages checkout into `apps/web/src/editor.tsx` and `apps/web/src/editor/`. The copied modules are the Tiptap editor, block/section controls, slash menu, image rendering block, table controls, and supporting editor styles. The current source filesystem state was used because `apps/web/` and the prototype modules remain untracked in that checkout. The Baizhi Pages source tree was not edited or cleaned.
+
+Vessel's `apps/web/src/App.tsx`, `Teams.tsx`, `Pages.tsx`, `Apps.tsx`, and `api.ts` are new Vessel code. They call Vessel account, team, space, Page, and App APIs. The legacy Baizhi Pages Agent and proposal UI was not imported. Page image upload is disabled in this console; existing images can be rendered through the existing Page asset read API.
