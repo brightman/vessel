@@ -89,11 +89,29 @@ class VersionRequest(BaseModel):
     expected_row_version: int = Field(ge=1)
 
 
+class RecordVersion(BaseModel):
+    id: str = Field(min_length=1, max_length=36)
+    expected_row_version: int = Field(ge=1)
+
+
+class BulkDeleteRequest(BaseModel):
+    records: list[RecordVersion] = Field(min_length=1, max_length=100)
+
+
 class RecordQuery(BaseModel):
     filter: dict[str, Any] | None = None
+    search: str | None = Field(default=None, max_length=120)
     sort: list[dict[str, str]] = Field(default_factory=list, max_length=3)
     limit: int = Field(default=50, ge=1, le=200)
     cursor: str | None = None
+
+    @field_validator("search")
+    @classmethod
+    def normalize_search(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
 
 
 def _invalid(error: ManifestError) -> HTTPException:
@@ -493,15 +511,27 @@ def _sort_value(row: VesselAppRecord, field: str):
     return row.values_json.get(field)
 
 
+def _text_search_predicate(search: str, fields: dict):
+    escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    terms = [
+        _field_expression(name, fields).ilike(f"%{escaped}%", escape="\\")
+        for name, definition in fields.items()
+        if definition["type"] == "text"
+    ]
+    return or_(*terms) if terms else False
+
+
 def _records_page(session: Session, app: VesselApp, table_name: str, query: RecordQuery) -> dict:
     fields = _fields(app, table_name)
-    signature = hashlib.sha256(json.dumps([app.app_id, table_name, query.filter, query.sort], sort_keys=True).encode()).hexdigest()
+    signature = hashlib.sha256(json.dumps([app.app_id, table_name, query.filter, query.search, query.sort], sort_keys=True).encode()).hexdigest()
     statement = select(VesselAppRecord).where(
         VesselAppRecord.app_id == app.app_id, VesselAppRecord.table_name == table_name,
         VesselAppRecord.deleted_at.is_(None),
     )
     if query.filter is not None:
         statement = statement.where(_query_predicate(query.filter, fields))
+    if query.search is not None:
+        statement = statement.where(_text_search_predicate(query.search, fields))
     sort = query.sort or [{"field": "created_at", "direction": "asc"}]
     sort_terms = []
     for item in sort:
@@ -535,6 +565,36 @@ def list_records(app_id: str, table_name: str, limit: int = Query(default=50, ge
 def query_records(app_id: str, table_name: str, payload: RecordQuery,
                   user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
     return _records_page(session, _app(session, user, app_id), table_name, payload)
+
+
+@router.post("/v1/apps/{app_id}/tables/{table_name}/records/bulk-delete")
+def bulk_delete_records(app_id: str, table_name: str, payload: BulkDeleteRequest,
+                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True)
+    _fields(app, table_name)
+    if len({record.id for record in payload.records}) != len(payload.records):
+        raise HTTPException(status_code=422, detail={"code": "APP_BULK_DELETE_INVALID"})
+    expected_versions = {record.id: record.expected_row_version for record in payload.records}
+    rows = session.scalars(select(VesselAppRecord).where(
+        VesselAppRecord.record_id.in_(expected_versions), VesselAppRecord.app_id == app.app_id,
+        VesselAppRecord.table_name == table_name, VesselAppRecord.deleted_at.is_(None),
+    ).with_for_update()).all()
+    if (len(rows) != len(expected_versions)
+            or any(row.row_version != expected_versions[row.record_id] for row in rows)):
+        session.rollback()
+        raise HTTPException(status_code=409, detail={"code": "APP_RECORD_VERSION_CONFLICT"})
+    now = datetime.now(UTC)
+    result = session.execute(update(VesselAppRecord).where(
+        VesselAppRecord.record_id.in_(expected_versions), VesselAppRecord.app_id == app.app_id,
+        VesselAppRecord.table_name == table_name, VesselAppRecord.deleted_at.is_(None),
+    ).values(deleted_at=now, row_version=VesselAppRecord.row_version + 1,
+             updated_by=user.user_id, updated_at=now))
+    if result.rowcount != len(expected_versions):
+        session.rollback()
+        raise HTTPException(status_code=409, detail={"code": "APP_RECORD_VERSION_CONFLICT"})
+    _audit(session, app.app_id, user.user_id, "records.bulk_deleted", {"deleted_count": len(expected_versions)})
+    session.commit()
+    return {"deleted_count": len(expected_versions)}
 
 
 @router.get("/v1/apps/{app_id}/tables/{table_name}/records/{record_id}")

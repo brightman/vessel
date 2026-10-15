@@ -128,3 +128,53 @@ def test_app_audit_events_are_keyset_paged_and_manager_only(api_factory):
     denied = api("GET", f"/v1/apps/{app_id}/audit-events", headers=viewer_headers)
     assert denied.status_code == 403
     assert denied.json()["detail"]["code"] == "APP_MANAGER_REQUIRED"
+
+
+def _seeded_text_records(api_factory):
+    api = api_factory()
+    token, _ = _account(api, "data-grid-owner")
+    headers = _headers(token)
+    space_id = api("GET", "/v1/spaces", headers=headers).json()["spaces"][0]["space_id"]
+    created = api("POST", f"/v1/spaces/{space_id}/apps", headers=headers, json={
+        "name": "Data grid", "manifest": {"tables": {"items": {"fields": {
+            "title": {"type": "text", "nullable": False},
+            "note": {"type": "text", "nullable": True},
+        }}}},
+    })
+    assert created.status_code == 201, created.text
+    prefix = f"/v1/apps/{created.json()['app']['app_id']}/tables/items/records"
+    first = api("POST", prefix, headers=headers, json={"values": {"title": "Alpha", "note": "First"}})
+    second = api("POST", prefix, headers=headers, json={"values": {"title": "Beta", "note": None}})
+    assert first.status_code == 201 and second.status_code == 201
+    return api, prefix, headers, first.json()["record"], second.json()["record"]
+
+
+def test_app_record_query_search_and_bulk_delete_are_bounded_and_atomic(api_factory):
+    api, prefix, headers, first, second = _seeded_text_records(api_factory)
+
+    result = api("POST", f"{prefix}/query", headers=headers, json={"search": "be", "limit": 20})
+    assert result.status_code == 200, result.text
+    assert [row["id"] for row in result.json()["records"]] == [second["id"]]
+
+    duplicate = api("POST", f"{prefix}/bulk-delete", headers=headers, json={"records": [
+        {"id": first["id"], "expected_row_version": first["row_version"]},
+        {"id": first["id"], "expected_row_version": first["row_version"]},
+    ]})
+    assert duplicate.status_code == 422
+    assert duplicate.json()["detail"]["code"] == "APP_BULK_DELETE_INVALID"
+
+    stale = api("POST", f"{prefix}/bulk-delete", headers=headers, json={"records": [
+        {"id": first["id"], "expected_row_version": first["row_version"]},
+        {"id": second["id"], "expected_row_version": 99},
+    ]})
+    assert stale.status_code == 409
+    assert stale.json()["detail"]["code"] == "APP_RECORD_VERSION_CONFLICT"
+    assert api("GET", f"{prefix}/{first['id']}", headers=headers).status_code == 200
+
+    deleted = api("POST", f"{prefix}/bulk-delete", headers=headers, json={"records": [
+        {"id": first["id"], "expected_row_version": first["row_version"]},
+        {"id": second["id"], "expected_row_version": second["row_version"]},
+    ]})
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json() == {"deleted_count": 2}
+    assert api("GET", f"{prefix}/{first['id']}", headers=headers).status_code == 404

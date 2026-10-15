@@ -159,7 +159,8 @@ Content-Type: application/json
 | `POST /records` | `{"values":{"company":"A","score":7}}` | 201；`{"record": Record}` |
 | `POST /records/bulk` | `{"records":[{"values":{...}}]}`；最多 100 条、整批事务 | 201；`{"records":[Record]}` |
 | `GET /records?limit=50&cursor=...` | 按 `created_at,id` 顺序列出未删除记录 | `{"records":[Record],"next_cursor":string|null}` |
-| `POST /records/query` | 白名单字段筛选和排序，见下例 | 同上 |
+| `POST /records/query` | 白名单字段筛选、排序和可选 `search`，见下例 | 同上 |
+| `POST /records/bulk-delete` | `{"records":[{"id":"...","expected_row_version":1}]}`；1–100 条、整批事务 | `{"deleted_count":2}` |
 | `GET /records/{record_id}` | 读取未删除记录 | `{"record": Record}` |
 | `PATCH /records/{record_id}` | `expected_row_version`、`values` | `{"record": Record}` |
 | `DELETE /records/{record_id}` | `expected_row_version`；软删除 | 204 |
@@ -175,7 +176,7 @@ Content-Type: application/json
 {"filter":{"field":"score","op":"gte","value":5},"sort":[{"field":"created_at","direction":"desc"}],"limit":50}
 ```
 
-首版 `filter` 只允许单条件或由最多 10 个叶子条件组成的单层 `and`；操作符 `eq|ne|lt|lte|gt|gte|in|is_null`，业务字段必须在 Manifest 中声明，`json` 字段暂不支持筛选或排序，`in` 最多 50 个值。排序最多 3 个字段，空值排在最后，再追加 `id` 稳定排序。禁止任意 SQL、关联查询和跨 App 查询。较大文件导入与复杂查询由后续增量单独冻结 API。
+首版 `filter` 只允许单条件或由最多 10 个叶子条件组成的单层 `and`；操作符 `eq|ne|lt|lte|gt|gte|in|is_null`，业务字段必须在 Manifest 中声明，`json` 字段暂不支持筛选或排序，`in` 最多 50 个值。`search` 最长 120 字符，只在当前表声明的 `text` 字段上做大小写不敏感的字面子串匹配，特殊 SQL 通配符按普通文本处理；`search`、`filter` 和 `sort` 共同绑定到游标。排序最多 3 个字段，空值排在最后，再追加 `id` 稳定排序。`bulk-delete` 不能重复 ID；任一行不存在、已删除或版本不匹配时，整批返回 409 `APP_RECORD_VERSION_CONFLICT`，不会删除其他行。禁止任意 SQL、关联查询和跨 App 查询。较大文件导入与复杂查询由后续增量单独冻结 API。
 
 ## 5. 典型调用顺序
 
@@ -192,7 +193,7 @@ Content-Type: application/json
 | 403 | `SPACE_PERMISSION_DENIED`、`APP_MANAGER_REQUIRED` | 已是成员，但角色不允许写；或 Editor/Viewer 试图变更 App 资料、Schema 或读取审计日志 |
 | 404 | `SPACE_NOT_FOUND`、`PAGE_NOT_FOUND`、`DIRECTORY_NOT_FOUND`、`APP_NOT_FOUND`、`APP_RECORD_NOT_FOUND` | 不存在或不可见，避免枚举 |
 | 409 | `PAGE_REVISION_CONFLICT`、`APP_SETTINGS_VERSION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT` | 乐观锁冲突 |
-| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID` | 内容、结构或游标不符合契约 |
+| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID`、`APP_BULK_DELETE_INVALID` | 内容、结构、游标或批量删除请求不符合契约 |
 
 本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。新 Page Agent 接入、通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
 
