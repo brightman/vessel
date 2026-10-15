@@ -246,6 +246,26 @@ test("upload queue describes a temporary Files storage outage", async ({ page })
   await expect(page.getByRole("status", { name: "上传队列" })).toContainText("文件存储暂时不可用，请稍后重试。", { timeout: 20_000 });
 });
 
+test("a failed OSS transfer cancels its reserved upload intent", async ({ page }) => {
+  const actor = await register(page, "Upload Transport Failure");
+  await page.getByRole("button", { name: "Files" }).click();
+  const origin = new URL(page.url()).origin;
+  await page.route("**/*", async route => {
+    const request = route.request();
+    if (request.method() === "PUT" && new URL(request.url()).origin !== origin) {
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  });
+  const created = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/file-uploads$/.test(new URL(response.url()).pathname));
+  await page.getByLabel("选择文件上传").setInputFiles({ name: "transport-error.txt", mimeType: "text/plain", buffer: Buffer.from("cancel stale reservation") });
+  const upload = (await (await created).json()).upload;
+  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("Failed to fetch", { timeout: 20_000 });
+  await expect.poll(async () => (await fileApi(page, actor, "GET", `/v1/file-uploads/${upload.upload_id}`)).upload.status, { timeout: 20_000 }).toBe("cancelled");
+  await expect.poll(() => page.evaluate(userId => sessionStorage.getItem(`vessel.files.uploads.${userId}`), actor.userId)).toBeNull();
+});
+
 test("browser multipart upload receives exposed OSS ETags", async ({ page }) => {
   await register(page, "Multipart Owner");
   await page.getByRole("button", { name: "Files" }).click();

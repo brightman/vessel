@@ -44,9 +44,15 @@ export async function uploadFile(file: File, target: UploadTarget, onProgress: (
   });
   const upload = intent.upload;
   onUploadId(upload.upload_id);
+  let parts: { part_number: number; etag: string }[] = [];
   try {
     onProgress({ stage: "transfer", bytesDone: 0, bytesTotal: file.size });
-    const parts = await putSignedParts(file, upload, async numbers => (await signParts(upload.upload_id, numbers)).instructions, fetch, (bytesDone, bytesTotal) => onProgress({ stage: "transfer", bytesDone, bytesTotal }), signal);
+    parts = await putSignedParts(file, upload, async numbers => (await signParts(upload.upload_id, numbers)).instructions, fetch, (bytesDone, bytesTotal) => onProgress({ stage: "transfer", bytesDone, bytesTotal }), signal);
+  } catch (error) {
+    try { await cancelUpload(upload.upload_id); } catch { /* terminal state is read on reopen */ }
+    throw error;
+  }
+  try {
     onProgress({ stage: "publishing", bytesDone: file.size, bytesTotal: file.size });
     await completeUpload(upload.upload_id, upload.transfer_mode === "multipart" ? parts : []);
     for (;;) {

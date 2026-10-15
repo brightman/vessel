@@ -69,8 +69,10 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
       const controller = new AbortController();
       controllers.current.set(task.key, controller);
       update(task.key, { state: "hashing", controller });
+      let activeUploadId: string | undefined;
       void uploadFile(task.file!, task.target!, (progress) => update(task.key, { state: progress.stage, progress }), controller.signal, uploadId => {
         if (!alive.current) return;
+        activeUploadId = uploadId;
         update(task.key, { uploadId });
         keep(userId, Array.from(new Set([...read(userId), uploadId])));
       }).then(result => {
@@ -81,6 +83,7 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
         onFinishedRef.current();
       }).catch(error => {
         if (!alive.current) return;
+        if (activeUploadId) discard(userId, activeUploadId);
         update(task.key, { state: controller.signal.aborted ? "已取消" : "失败", error: controller.signal.aborted ? undefined : uploadError(error), file: undefined, controller: undefined });
       }).finally(() => {
         controllers.current.delete(task.key);
