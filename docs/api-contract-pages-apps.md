@@ -111,6 +111,8 @@ Content-Type: application/json
 
 **资源模型：**一个 App 是一个空间内的表格集合，`app_id` 由 Vessel 生成；Manifest 描述多个表及字段。团队成员默认能读取该 App 下所有表和记录；不沿用 Baizhi Apps 的 `owner_id`/`permission` 逐行可见性、App 用户成员表、Agent grant、H5 发布或 Baizhi 账号体系。App API 已适配源项目的 Manifest 标识符/类型校验、字段值规范化和受控记录操作；数据存入 Vessel 自己的 PostgreSQL。
 
+`owner` 与 `admin` 是 App 管理员，可创建 App、更新 App 资料、修改 Manifest、归档、恢复及读取审计事件；`editor` 可管理记录；`viewer` 只读。归档 App 保留 Manifest、记录和后续发布元数据，但只对管理员可见。
+
 ### 4.1 Manifest
 
 创建请求中的 `manifest.tables` 非空。表名/字段名只允许安全标识符。首版字段类型为 `text|integer|numeric|boolean|timestamp|uuid|json`，每个字段有 `type` 和 `nullable`。`id`、`created_at`、`updated_at`、`created_by`、`updated_by`、`row_version`、`deleted_at` 为系统字段，不允许在 Manifest 中声明。请求不能包含原始 SQL、物理表名、逐行权限表达式或 AI Field Agent 绑定。
@@ -134,13 +136,19 @@ Content-Type: application/json
 
 | 方法与路径 | 请求/用途 | 成功响应 |
 | --- | --- | --- |
-| `GET /v1/spaces/{space_id}/apps` | 列出空间 App | `{"apps":[AppSummary]}` |
-| `POST /v1/spaces/{space_id}/apps` | `name`、`manifest` | 201；`{"app": App}`，`manifest_version=1` |
+| `GET /v1/spaces/{space_id}/apps?status=active\|archived` | 列出空间 App；默认 `active`，`archived` 仅管理员可查 | `{"apps":[AppSummary]}` |
+| `POST /v1/spaces/{space_id}/apps` | `name`、`manifest`；仅管理员 | 201；`{"app": App}`，`manifest_version=1` |
 | `GET /v1/apps/{app_id}` | App 详情与当前 Manifest | `{"app": App}` |
+| `PATCH /v1/apps/{app_id}` | `expected_settings_version`、可选 `name`、`description`；仅管理员 | `{"app": App}`，`settings_version` 加 1 |
+| `POST /v1/apps/{app_id}/archive` | `expected_settings_version`；仅管理员 | `{"app": App}`，状态为 `archived` |
+| `POST /v1/apps/{app_id}/restore` | `expected_settings_version`；仅管理员 | `{"app": App}`，状态为 `active` |
 | `GET /v1/apps/{app_id}/tables` | 表名、字段和当前 Manifest 版本 | `{"tables":[TableSummary],"manifest_version":1}` |
-| `PUT /v1/apps/{app_id}/manifest` | `expected_version`、新的 `manifest` | `{"app": App}`，版本加 1 |
+| `PUT /v1/apps/{app_id}/manifest` | `expected_version`、新的 `manifest`；仅管理员 | `{"app": App}`，版本加 1 |
+| `GET /v1/apps/{app_id}/audit-events?limit=50&cursor=...` | 管理员审计日志，按 `created_at DESC,event_id DESC` 键集分页 | `{"events":[AuditEvent],"next_cursor":string\|null}` |
 
-`App` 至少包含 `app_id`、`space_id`、`name`、`manifest`、`manifest_version`、`status`、`created_at`、`updated_at`。当前 Manifest 更新只允许**新增可空字段**和新增表；删表、删字段、改名、改类型、把可空改为非空返回 422 `APP_SCHEMA_CHANGE_UNSUPPORTED`。`expected_version` 不匹配返回 409 `APP_MANIFEST_VERSION_CONFLICT`。Manifest 与数据结构在同一数据库事务中生效，不暴露部分应用状态。
+`App` 至少包含 `app_id`、`space_id`、`name`、`description`、`manifest`、`manifest_version`、`settings_version`、`status`、`archived_at`、`created_at`、`updated_at`。资料修改、归档与恢复都必须提供 `expected_settings_version`；版本不符返回 409 `APP_SETTINGS_VERSION_CONFLICT`。当前 Manifest 更新只允许**新增可空字段**和新增表；删表、删字段、改名、改类型、把可空改为非空返回 422 `APP_SCHEMA_CHANGE_UNSUPPORTED`。`expected_version` 不匹配返回 409 `APP_MANIFEST_VERSION_CONFLICT`。Manifest 与数据结构在同一数据库事务中生效，不暴露部分应用状态。
+
+`AuditEvent` 包含 `event_id`、可空 `release_id`、`actor_user_id`、`action`、不含记录值或凭据的 `details` 和 `created_at`。游标不可修改；格式无效时返回 422 `APP_CURSOR_INVALID`。
 
 ### 4.2 记录读写
 
@@ -181,10 +189,10 @@ Content-Type: application/json
 | HTTP | 典型 code | 含义 |
 | --- | --- | --- |
 | 401 | `AUTHENTICATION_REQUIRED`、`INVALID_ACCESS_TOKEN` | 未登录或 Token 无效 |
-| 403 | `SPACE_PERMISSION_DENIED` | 已是成员，但角色不允许写 |
+| 403 | `SPACE_PERMISSION_DENIED`、`APP_MANAGER_REQUIRED` | 已是成员，但角色不允许写；或 Editor/Viewer 试图变更 App 资料、Schema 或读取审计日志 |
 | 404 | `SPACE_NOT_FOUND`、`PAGE_NOT_FOUND`、`DIRECTORY_NOT_FOUND`、`APP_NOT_FOUND`、`APP_RECORD_NOT_FOUND` | 不存在或不可见，避免枚举 |
-| 409 | `PAGE_REVISION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT` | 乐观锁冲突 |
-| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED` | 内容或结构不符合契约 |
+| 409 | `PAGE_REVISION_CONFLICT`、`APP_SETTINGS_VERSION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT` | 乐观锁冲突 |
+| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID` | 内容、结构或游标不符合契约 |
 
 本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。新 Page Agent 接入、通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
 

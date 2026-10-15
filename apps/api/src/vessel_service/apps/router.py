@@ -6,20 +6,21 @@ import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import Numeric, and_, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from vessel_service.apps.manifest import ManifestError, check_additive_manifest, normalize_manifest, normalize_record, normalize_value
 from vessel_service.auth.router import get_session
-from vessel_service.models import User, VesselApp, VesselAppRecord
+from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRecord
 from vessel_service.pages.router import current_user
 from vessel_service.spaces.permissions import space_access
 
 router = APIRouter(tags=["apps"])
+APP_MANAGER_ROLES = {"owner", "admin"}
 
 
 class AppCreate(BaseModel):
@@ -38,6 +39,37 @@ class AppCreate(BaseModel):
 class ManifestUpdate(BaseModel):
     expected_version: int = Field(ge=1)
     manifest: dict[str, Any]
+
+
+class AppSettingsUpdate(BaseModel):
+    expected_settings_version: int = Field(ge=1)
+    name: str | None = Field(default=None, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("App name cannot be blank")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def trim_description(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None else None
+
+    @model_validator(mode="after")
+    def requires_change(self) -> "AppSettingsUpdate":
+        if self.name is None and self.description is None:
+            raise ValueError("At least one App setting is required")
+        return self
+
+
+class SettingsVersionRequest(BaseModel):
+    expected_settings_version: int = Field(ge=1)
 
 
 class RecordCreate(BaseModel):
@@ -68,16 +100,27 @@ def _invalid(error: ManifestError) -> HTTPException:
     return HTTPException(status_code=422, detail={"code": error.code})
 
 
-def _app(session: Session, user: User, app_id: str, *, write: bool = False) -> VesselApp:
-    app = session.scalar(select(VesselApp).where(VesselApp.app_id == app_id, VesselApp.status == "active"))
+def _app(
+    session: Session, user: User, app_id: str, *, write: bool = False,
+    include_archived_for_manager: bool = False, require_manager: bool = False,
+) -> VesselApp:
+    app = session.scalar(select(VesselApp).where(VesselApp.app_id == app_id))
     if app is None:
         raise HTTPException(status_code=404, detail={"code": "APP_NOT_FOUND"})
     try:
-        space_access(session, user, app.space_id, capability="can_write" if write else "can_read", lock=write)
+        _, role = space_access(
+            session, user, app.space_id,
+            capability="can_read" if require_manager else ("can_write" if write else "can_read"),
+            lock=write or require_manager,
+        )
     except HTTPException as error:
         if error.status_code == 404:
             raise HTTPException(status_code=404, detail={"code": "APP_NOT_FOUND"}) from error
         raise
+    if require_manager and role not in APP_MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail={"code": "APP_MANAGER_REQUIRED"})
+    if app.status != "active" and not (include_archived_for_manager and role in APP_MANAGER_ROLES):
+        raise HTTPException(status_code=404, detail={"code": "APP_NOT_FOUND"})
     return app
 
 
@@ -103,7 +146,9 @@ def _row(session: Session, app: VesselApp, table_name: str, record_id: str, *, d
 def _app_payload(app: VesselApp) -> dict:
     return {"app_id": app.app_id, "space_id": app.space_id, "name": app.name,
             "manifest": app.manifest_json, "manifest_version": app.manifest_version,
-            "status": app.status, "created_at": app.created_at.isoformat(),
+            "description": app.description, "settings_version": app.settings_version,
+            "status": app.status, "archived_at": app.archived_at.isoformat() if app.archived_at else None,
+            "created_at": app.created_at.isoformat(),
             "updated_at": app.updated_at.isoformat()}
 
 
@@ -114,24 +159,36 @@ def _row_payload(row: VesselAppRecord) -> dict:
             "deleted_at": row.deleted_at.isoformat() if row.deleted_at else None}
 
 
+def _audit(session: Session, app_id: str, actor_user_id: str, action: str, details: dict[str, Any]) -> None:
+    session.add(VesselAppAuditEvent(
+        event_id=str(uuid4()), app_id=app_id, actor_user_id=actor_user_id,
+        action=action, details_json=details, created_at=datetime.now(UTC),
+    ))
+
+
 @router.get("/v1/spaces/{space_id}/apps")
-def list_apps(space_id: str, user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
-    space_access(session, user, space_id)
-    apps = session.scalars(select(VesselApp).where(VesselApp.space_id == space_id, VesselApp.status == "active")
+def list_apps(space_id: str, status: Literal["active", "archived"] = "active",
+              user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    _, role = space_access(session, user, space_id)
+    if status == "archived" and role not in APP_MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail={"code": "APP_MANAGER_REQUIRED"})
+    apps = session.scalars(select(VesselApp).where(VesselApp.space_id == space_id, VesselApp.status == status)
                            .order_by(VesselApp.created_at, VesselApp.app_id)).all()
     return {"apps": [_app_payload(app) for app in apps]}
 
 
 @router.post("/v1/spaces/{space_id}/apps", status_code=201)
 def create_app(space_id: str, payload: AppCreate, user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
-    space_access(session, user, space_id, capability="can_write", lock=True)
+    _, role = space_access(session, user, space_id, capability="can_write", lock=True)
+    if role not in APP_MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail={"code": "APP_MANAGER_REQUIRED"})
     try:
         manifest = normalize_manifest(payload.manifest)
     except ManifestError as error:
         raise _invalid(error) from error
     now = datetime.now(UTC)
     app = VesselApp(app_id=str(uuid4()), space_id=space_id, name=payload.name,
-                    manifest_json=manifest, manifest_version=1, status="active",
+                    manifest_json=manifest, manifest_version=1, settings_version=1, status="active", description="",
                     created_by=user.user_id, updated_by=user.user_id, created_at=now, updated_at=now)
     session.add(app)
     session.commit()
@@ -140,7 +197,7 @@ def create_app(space_id: str, payload: AppCreate, user: User = Depends(current_u
 
 @router.get("/v1/apps/{app_id}")
 def get_app(app_id: str, user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
-    return {"app": _app_payload(_app(session, user, app_id))}
+    return {"app": _app_payload(_app(session, user, app_id, include_archived_for_manager=True))}
 
 
 @router.get("/v1/apps/{app_id}/tables")
@@ -152,7 +209,7 @@ def list_tables(app_id: str, user: User = Depends(current_user), session: Sessio
 
 @router.put("/v1/apps/{app_id}/manifest")
 def update_manifest(app_id: str, payload: ManifestUpdate, user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
-    app = _app(session, user, app_id, write=True)
+    app = _app(session, user, app_id, write=True, require_manager=True)
     if app.manifest_version != payload.expected_version:
         raise HTTPException(status_code=409, detail={"code": "APP_MANIFEST_VERSION_CONFLICT"})
     try:
@@ -167,9 +224,124 @@ def update_manifest(app_id: str, payload: ManifestUpdate, user: User = Depends(c
     if result.rowcount != 1:
         session.rollback()
         raise HTTPException(status_code=409, detail={"code": "APP_MANIFEST_VERSION_CONFLICT"})
+    _audit(session, app_id, user.user_id, "manifest.updated", {"manifest_version": payload.expected_version + 1})
     session.commit()
     session.refresh(app)
     return {"app": _app_payload(app)}
+
+
+@router.patch("/v1/apps/{app_id}")
+def update_app_settings(app_id: str, payload: AppSettingsUpdate,
+                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    changes: dict[str, Any] = {"settings_version": payload.expected_settings_version + 1,
+                               "updated_by": user.user_id, "updated_at": datetime.now(UTC)}
+    if payload.name is not None:
+        changes["name"] = payload.name
+    if payload.description is not None:
+        changes["description"] = payload.description
+    result = session.execute(update(VesselApp).where(
+        VesselApp.app_id == app.app_id, VesselApp.status == "active",
+        VesselApp.settings_version == payload.expected_settings_version,
+    ).values(**changes))
+    if result.rowcount != 1:
+        session.rollback()
+        raise HTTPException(status_code=409, detail={"code": "APP_SETTINGS_VERSION_CONFLICT"})
+    _audit(session, app.app_id, user.user_id, "app.updated", {"settings_version": payload.expected_settings_version + 1})
+    session.commit()
+    session.refresh(app)
+    return {"app": _app_payload(app)}
+
+
+@router.post("/v1/apps/{app_id}/archive")
+def archive_app(app_id: str, payload: SettingsVersionRequest,
+                user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    now = datetime.now(UTC)
+    result = session.execute(update(VesselApp).where(
+        VesselApp.app_id == app.app_id, VesselApp.status == "active",
+        VesselApp.settings_version == payload.expected_settings_version,
+    ).values(status="archived", archived_by=user.user_id, archived_at=now,
+             settings_version=payload.expected_settings_version + 1, updated_by=user.user_id, updated_at=now))
+    if result.rowcount != 1:
+        session.rollback()
+        raise HTTPException(status_code=409, detail={"code": "APP_SETTINGS_VERSION_CONFLICT"})
+    _audit(session, app.app_id, user.user_id, "app.archived", {"settings_version": payload.expected_settings_version + 1})
+    session.commit()
+    session.refresh(app)
+    return {"app": _app_payload(app)}
+
+
+@router.post("/v1/apps/{app_id}/restore")
+def restore_app(app_id: str, payload: SettingsVersionRequest,
+                user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, include_archived_for_manager=True, require_manager=True)
+    now = datetime.now(UTC)
+    result = session.execute(update(VesselApp).where(
+        VesselApp.app_id == app.app_id, VesselApp.status == "archived",
+        VesselApp.settings_version == payload.expected_settings_version,
+    ).values(status="active", archived_by=None, archived_at=None,
+             settings_version=payload.expected_settings_version + 1, updated_by=user.user_id, updated_at=now))
+    if result.rowcount != 1:
+        session.rollback()
+        raise HTTPException(status_code=409, detail={"code": "APP_SETTINGS_VERSION_CONFLICT"})
+    _audit(session, app.app_id, user.user_id, "app.restored", {"settings_version": payload.expected_settings_version + 1})
+    session.commit()
+    session.refresh(app)
+    return {"app": _app_payload(app)}
+
+
+def _audit_payload(event: VesselAppAuditEvent) -> dict:
+    return {
+        "event_id": event.event_id,
+        "release_id": event.release_id,
+        "actor_user_id": event.actor_user_id,
+        "action": event.action,
+        "details": event.details_json,
+        "created_at": event.created_at.isoformat(),
+    }
+
+
+def _audit_cursor(cursor: str | None) -> tuple[datetime, str] | None:
+    if cursor is None:
+        return None
+    try:
+        if len(cursor) > 1024:
+            raise ValueError("Cursor too long")
+        data = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        if set(data) != {"created_at", "event_id"}:
+            raise ValueError("Cursor shape invalid")
+        created_at = datetime.fromisoformat(data["created_at"])
+        if str(UUID(data["event_id"])) != data["event_id"]:
+            raise ValueError("Cursor values invalid")
+        return created_at, data["event_id"]
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError):
+        raise HTTPException(status_code=422, detail={"code": "APP_CURSOR_INVALID"}) from None
+
+
+@router.get("/v1/apps/{app_id}/audit-events")
+def list_app_audit_events(app_id: str, limit: int = Query(default=50, ge=1, le=200), cursor: str | None = None,
+                          user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, include_archived_for_manager=True, require_manager=True)
+    statement = select(VesselAppAuditEvent).where(VesselAppAuditEvent.app_id == app.app_id)
+    anchor = _audit_cursor(cursor)
+    if anchor is not None:
+        created_at, event_id = anchor
+        statement = statement.where(or_(
+            VesselAppAuditEvent.created_at < created_at,
+            and_(VesselAppAuditEvent.created_at == created_at, VesselAppAuditEvent.event_id < event_id),
+        ))
+    events = session.scalars(statement.order_by(
+        VesselAppAuditEvent.created_at.desc(), VesselAppAuditEvent.event_id.desc(),
+    ).limit(limit + 1)).all()
+    more = len(events) > limit
+    current_page = events[:limit]
+    next_cursor = None
+    if more:
+        last = current_page[-1]
+        payload = json.dumps({"created_at": last.created_at.isoformat(), "event_id": last.event_id}, separators=(",", ":"))
+        next_cursor = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
+    return {"events": [_audit_payload(event) for event in current_page], "next_cursor": next_cursor}
 
 
 def _insert_record(session: Session, app: VesselApp, table_name: str, fields: dict, values: dict, user: User) -> VesselAppRecord:
