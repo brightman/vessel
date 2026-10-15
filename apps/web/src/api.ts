@@ -8,7 +8,7 @@ export type PageRecord = { page_id: string; space_id: string; title: string; dir
 export type PageVersion = { version_id: string; revision: number; title: string; markdown: string; created_at: string };
 export type FieldDefinition = { type: "text" | "integer" | "numeric" | "boolean" | "timestamp" | "uuid" | "json"; nullable: boolean };
 export type Manifest = { tables: Record<string, { fields: Record<string, FieldDefinition> }> };
-export type VesselApp = { app_id: string; space_id: string; name: string; manifest: Manifest; manifest_version: number };
+export type VesselApp = { app_id: string; space_id: string; name: string; manifest: Manifest; manifest_version: number; description: string; settings_version: number; status: "active" | "archived" };
 export type AppRecord = { id: string; values: Record<string, unknown>; row_version: number; created_at: string; updated_at: string };
 
 export class ApiError extends Error {
@@ -21,7 +21,7 @@ let refreshPromise: Promise<User | null> | null = null;
 export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const headers = new Headers(init.headers);
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-  if (init.body && !(init.body instanceof File) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (init.body && !(init.body instanceof File) && !(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const response = await fetch(path, { ...init, headers, credentials: "include" });
   if (response.status === 401 && retry && !path.startsWith("/v1/auth/")) {
     if (await refreshSession()) return request<T>(path, init, false);
@@ -90,10 +90,29 @@ export async function resolvePageAsset(contentUrl: string): Promise<string> {
   return URL.createObjectURL(await response.blob());
 }
 
-export const listApps = (spaceId: string) => request<{ apps: VesselApp[] }>(`/v1/spaces/${id(spaceId)}/apps`);
+export const listApps = (spaceId: string, status: "active" | "archived" = "active") => request<{ apps: VesselApp[] }>(`/v1/spaces/${id(spaceId)}/apps?status=${status}`);
 export const createApp = (spaceId: string, name: string, manifest: Manifest) => json<{ app: VesselApp }>("POST", `/v1/spaces/${id(spaceId)}/apps`, { name, manifest });
 export const updateManifest = (app: VesselApp, manifest: Manifest) => json<{ app: VesselApp }>("PUT", `/v1/apps/${id(app.app_id)}/manifest`, { expected_version: app.manifest_version, manifest });
 export const listRecords = (appId: string, table: string, cursor?: string) => request<{ records: AppRecord[]; next_cursor: string | null }>(`/v1/apps/${id(appId)}/tables/${id(table)}/records?limit=50${cursor ? `&cursor=${id(cursor)}` : ""}`);
 export const createRecord = (appId: string, table: string, values: Record<string, unknown>) => json<{ record: AppRecord }>("POST", `/v1/apps/${id(appId)}/tables/${id(table)}/records`, { values });
 export const updateRecord = (appId: string, table: string, record: AppRecord, values: Record<string, unknown>) => json<{ record: AppRecord }>("PATCH", `/v1/apps/${id(appId)}/tables/${id(table)}/records/${id(record.id)}`, { expected_row_version: record.row_version, values });
 export const deleteRecord = (appId: string, table: string, record: AppRecord) => json("DELETE", `/v1/apps/${id(appId)}/tables/${id(table)}/records/${id(record.id)}`, { expected_row_version: record.row_version });
+
+export type AuditEvent = { event_id: string; release_id: string | null; actor_user_id: string; action: string; details: Record<string, unknown>; created_at: string };
+export type AppRelease = { release_id: string; app_id: string; version: number; manifest_version: number; status: "draft" | "validation_failed" | "published"; entry_file: string | null; file_count: number | null; total_size_bytes: number | null; checksum_sha256: string | null; validation_error_code: string | null; is_current: boolean; created_at: string; published_at: string | null };
+export type RecordFilter = { field: string; op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "is_null"; value: unknown };
+export type RecordQuery = { search?: string; filter?: RecordFilter | { and: RecordFilter[] }; sort?: Array<{ field: string; direction: "asc" | "desc" }>; limit?: number; cursor?: string };
+export const getApp = (appId: string) => request<{ app: VesselApp }>(`/v1/apps/${id(appId)}`);
+export const saveAppSettings = (app: VesselApp, name: string, description: string) => json<{ app: VesselApp }>("PATCH", `/v1/apps/${id(app.app_id)}`, { expected_settings_version: app.settings_version, name, description });
+export const setAppArchived = (app: VesselApp, archived: boolean) => json<{ app: VesselApp }>("POST", `/v1/apps/${id(app.app_id)}/${archived ? "archive" : "restore"}`, { expected_settings_version: app.settings_version });
+export const listAppAudit = (appId: string, cursor?: string) => request<{ events: AuditEvent[]; next_cursor: string | null }>(`/v1/apps/${id(appId)}/audit-events?limit=50${cursor ? `&cursor=${id(cursor)}` : ""}`);
+export const queryRecords = (appId: string, table: string, query: RecordQuery) => json<{ records: AppRecord[]; next_cursor: string | null }>("POST", `/v1/apps/${id(appId)}/tables/${id(table)}/records/query`, query);
+export const bulkDeleteRecords = (appId: string, table: string, records: AppRecord[]) => json<{ deleted_count: number }>("POST", `/v1/apps/${id(appId)}/tables/${id(table)}/records/bulk-delete`, { records: records.map(record => ({ id: record.id, expected_row_version: record.row_version })) });
+export const listAppReleases = (appId: string) => request<{ releases: AppRelease[] }>(`/v1/apps/${id(appId)}/releases`);
+export const createAppDraft = (appId: string) => json<{ release: AppRelease }>("POST", `/v1/apps/${id(appId)}/releases`);
+export const uploadAppRelease = (appId: string, releaseId: string, file: File) => {
+  const body = new FormData(); body.append("file", file);
+  return request<{ release: AppRelease; preview_url: string | null }>(`/v1/apps/${id(appId)}/releases/${id(releaseId)}/upload`, { method: "POST", body });
+};
+export const publishAppRelease = (appId: string, releaseId: string) => json<{ release: AppRelease }>("POST", `/v1/apps/${id(appId)}/releases/${id(releaseId)}/publish`);
+export const rollbackAppRelease = (appId: string, releaseId: string) => json<{ release: AppRelease }>("POST", `/v1/apps/${id(appId)}/releases/${id(releaseId)}/rollback`);

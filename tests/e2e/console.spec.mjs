@@ -2,17 +2,33 @@ import { test, expect } from "@playwright/test";
 
 async function registerTestUser(page) {
   await page.goto("/register");
-  await page.getByLabel("姓名").fill("Console Regression");
-  await page.getByLabel("邮箱").fill(`console-${crypto.randomUUID()}@example.test`);
-  await page.getByLabel("密码").fill("vessel-e2e-password");
+  await page.getByLabel("Name").fill("Console Regression");
+  await page.getByLabel("Email").fill(`console-${crypto.randomUUID()}@example.test`);
+  await page.getByLabel("Password").fill("vessel-e2e-password");
   const [response] = await Promise.all([
     page.waitForResponse(item => item.url().endsWith("/v1/auth/register")),
-    page.getByRole("button", { name: "注册" }).click(),
+    page.getByRole("button", { name: "Create account" }).click(),
   ]);
   expect(response.status()).toBe(201);
   await expect(page.getByRole("heading", { name: "Vessel" })).toBeVisible();
   return (await response.json()).access_token;
 }
+
+test("selecting a Page folder creates the new Page inside that folder", async ({ page }) => {
+  await registerTestUser(page);
+  await page.getByRole("button", { name: "Pages", exact: true }).click();
+
+  page.once("dialog", dialog => void dialog.accept("Research"));
+  await page.getByRole("button", { name: "＋ New folder" }).click();
+
+  await page.getByRole("button", { name: "Select folder Research" }).click();
+  const createResponse = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/pages$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "New Page" }).click();
+
+  const created = await (await createResponse).json();
+  await expect(page.getByLabel("Page folder")).toHaveValue(created.page.directory_id);
+  expect(created.page.directory_id).toBeTruthy();
+});
 
 test("registration, team sharing, Pages editing and Apps records use Vessel API", async ({ browser }) => {
   const suffix = Date.now().toString(36);
@@ -20,13 +36,13 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
   await ownerPage.goto("/register");
-  await expect(ownerPage.getByRole("heading", { name: "创建 Vessel 账号" })).toBeVisible();
-  await ownerPage.getByLabel("姓名").fill("Vessel Owner");
-  await ownerPage.getByLabel("邮箱").fill(ownerEmail);
-  await ownerPage.getByLabel("密码").fill("vessel-e2e-password");
+  await expect(ownerPage.getByRole("heading", { name: "Create your Vessel account" })).toBeVisible();
+  await ownerPage.getByLabel("Name").fill("Vessel Owner");
+  await ownerPage.getByLabel("Email").fill(ownerEmail);
+  await ownerPage.getByLabel("Password").fill("vessel-e2e-password");
   const [ownerRegistration] = await Promise.all([
     ownerPage.waitForResponse(response => response.url().endsWith("/v1/auth/register")),
-    ownerPage.getByRole("button", { name: "注册" }).click(),
+    ownerPage.getByRole("button", { name: "Create account" }).click(),
   ]);
   expect(ownerRegistration.status()).toBe(201);
   const ownerToken = (await ownerRegistration.json()).access_token;
@@ -34,71 +50,72 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   const ownerId = await ownerPage.getByTestId("current-user-id").textContent();
   expect(ownerId).toMatch(/^[0-9a-f-]{36}$/);
 
-  await ownerPage.getByRole("button", { name: "团队" }).click();
-  await ownerPage.getByLabel("团队名称").fill("Research Team");
-  await ownerPage.getByRole("button", { name: "创建团队" }).click();
+  await ownerPage.getByRole("button", { name: "Teams" }).click();
+  await ownerPage.getByLabel("Team name").fill("Research Team");
+  await ownerPage.getByRole("button", { name: "Create team" }).click();
   await expect(ownerPage.getByRole("heading", { name: "Research Team" })).toBeVisible();
 
   const viewer = await browser.newContext();
   const viewerPage = await viewer.newPage();
   await viewerPage.goto("/register");
-  await viewerPage.getByLabel("姓名").fill("Vessel Viewer");
-  await viewerPage.getByLabel("邮箱").fill(`viewer-${suffix}@example.test`);
-  await viewerPage.getByLabel("密码").fill("vessel-e2e-password");
+  await viewerPage.getByLabel("Name").fill("Vessel Viewer");
+  await viewerPage.getByLabel("Email").fill(`viewer-${suffix}@example.test`);
+  await viewerPage.getByLabel("Password").fill("vessel-e2e-password");
   const [viewerRegistration] = await Promise.all([
     viewerPage.waitForResponse(response => response.url().endsWith("/v1/auth/register")),
-    viewerPage.getByRole("button", { name: "注册" }).click(),
+    viewerPage.getByRole("button", { name: "Create account" }).click(),
   ]);
   expect(viewerRegistration.status()).toBe(201);
   const viewerToken = (await viewerRegistration.json()).access_token;
   await expect(viewerPage.getByRole("heading", { name: "Vessel" })).toBeVisible();
   const viewerId = await viewerPage.getByTestId("current-user-id").textContent();
 
-  await ownerPage.getByLabel("受邀用户 ID").fill(viewerId);
-  await ownerPage.getByLabel("邀请角色").selectOption("viewer");
-  await ownerPage.getByRole("button", { name: "发送邀请" }).click();
+  await ownerPage.getByLabel("Invitee user ID").fill(viewerId);
+  await ownerPage.getByLabel("Invitation role").selectOption("viewer");
+  await ownerPage.getByRole("button", { name: "Send invitation" }).click();
   await expect(ownerPage.getByText(viewerId, { exact: true })).toBeVisible();
   let revokeWarning = "";
   ownerPage.once("dialog", dialog => { revokeWarning = dialog.message(); void dialog.dismiss(); });
-  await ownerPage.getByRole("button", { name: "撤销" }).click();
-  expect(revokeWarning).toContain("撤销");
+  await ownerPage.getByRole("button", { name: "Revoke" }).click();
+  expect(revokeWarning).toContain("Revoke");
   await expect(ownerPage.getByText(viewerId, { exact: true })).toBeVisible();
-  await viewerPage.getByRole("button", { name: "团队" }).click();
-  await viewerPage.getByRole("button", { name: "接受邀请" }).click();
-  await viewerPage.getByLabel("当前空间").selectOption({ label: "Research Team" });
+  await viewerPage.getByRole("button", { name: "Teams" }).click();
+  await viewerPage.getByRole("button", { name: "Accept invitation" }).click();
+  await viewerPage.getByLabel("Current space").selectOption({ label: "Research Team" });
   await expect(viewerPage.getByRole("heading", { name: "Research Team" })).toBeVisible();
 
-  await ownerPage.getByRole("button", { name: "Pages" }).click();
-  await ownerPage.getByRole("button", { name: "新建 Page" }).click();
-  await ownerPage.getByLabel("Page 标题").fill("Team Notes");
-  const body = ownerPage.getByLabel("Page 文档");
+  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
+  await ownerPage.getByRole("button", { name: "New Page" }).click();
+  await ownerPage.getByLabel("Page title").fill("Team Notes");
+  const body = ownerPage.getByLabel("Page document");
   await body.click();
   await body.pressSequentially("Shared note");
-  await ownerPage.getByRole("button", { name: "保存 Page" }).click();
-  await expect(ownerPage.getByRole("status", { name: "Page 保存状态" })).toContainText("已保存");
+  await ownerPage.getByRole("button", { name: "Save Page" }).click();
+  await expect(ownerPage.getByRole("status", { name: "Page save status" })).toContainText("Saved");
   if (process.env.VESSEL_E2E_SCREENSHOTS_DIR) await ownerPage.screenshot({ path: `${process.env.VESSEL_E2E_SCREENSHOTS_DIR}/pages.png`, fullPage: true });
   await ownerPage.reload();
-  await ownerPage.getByRole("button", { name: "Pages" }).click();
-  await expect(ownerPage.getByLabel("Page 文档")).toContainText("Shared note");
+  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
+  await expect(ownerPage.getByLabel("Page document")).toContainText("Shared note");
 
-  await viewerPage.getByRole("button", { name: "Pages" }).click();
-  await expect(viewerPage.getByLabel("Page 文档")).toContainText("Shared note");
-  await expect(viewerPage.getByRole("button", { name: "保存 Page" })).toBeDisabled();
+  await viewerPage.getByRole("button", { name: "Pages", exact: true }).click();
+  await expect(viewerPage.getByLabel("Page document")).toContainText("Shared note");
+  await expect(viewerPage.getByRole("button", { name: "Save Page" })).toBeDisabled();
 
   await ownerPage.getByRole("button", { name: "Apps" }).click();
-  await ownerPage.getByLabel("App 名称").fill("Contacts");
-  await ownerPage.getByLabel("表名").fill("contacts");
-  await ownerPage.getByLabel("字段名").fill("name");
-  await ownerPage.getByRole("button", { name: "创建 App" }).click();
+  await ownerPage.getByLabel("App name").fill("Contacts");
+  await ownerPage.getByLabel("Table name").fill("contacts");
+  await ownerPage.getByLabel("Field name").fill("name");
+  await ownerPage.getByRole("button", { name: "Create App" }).click();
   await expect(ownerPage.getByRole("heading", { name: "Contacts", exact: true })).toBeVisible();
+  await ownerPage.getByRole("button", { name: "New record", exact: true }).click();
   await ownerPage.getByLabel("name", { exact: true }).fill("Ada");
-  await ownerPage.getByRole("button", { name: "新增记录" }).click();
-  await expect(ownerPage.getByRole("cell", { name: "Ada" })).toBeVisible();
+  await ownerPage.getByRole("button", { name: "Add record" }).click();
+  await expect(ownerPage.locator(".record-cell-value").filter({ hasText: /^Ada$/ })).toBeVisible();
   if (process.env.VESSEL_E2E_SCREENSHOTS_DIR) await ownerPage.screenshot({ path: `${process.env.VESSEL_E2E_SCREENSHOTS_DIR}/apps.png`, fullPage: true });
 
   await viewerPage.getByRole("button", { name: "Apps" }).click();
-  await expect(viewerPage.getByRole("cell", { name: "Ada" })).toBeVisible();
-  await expect(viewerPage.getByRole("button", { name: "新增记录" })).toBeDisabled();
+  await expect(viewerPage.locator(".record-cell-value").filter({ hasText: /^Ada$/ })).toBeVisible();
+  await expect(viewerPage.getByRole("button", { name: "New record", exact: true })).toBeDisabled();
 
   const appList = await ownerPage.request.get("/v1/spaces", { headers: { Authorization: `Bearer ${ownerToken}` } });
   const teamId = (await appList.json()).spaces.find(item => item.name === "Research Team").space_id;
@@ -109,38 +126,38 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   });
   expect(rejectedWrite.status()).toBe(403);
 
-  await ownerPage.getByRole("button", { name: "团队" }).click();
-  await ownerPage.getByLabel(`成员 ${viewerId} 的角色`).selectOption("editor");
-  await expect(ownerPage.getByLabel(`成员 ${viewerId} 的角色`)).toHaveValue("editor");
+  await ownerPage.getByRole("button", { name: "Teams" }).click();
+  await ownerPage.getByLabel(`Role for member ${viewerId}`).selectOption("editor");
+  await expect(ownerPage.getByLabel(`Role for member ${viewerId}`)).toHaveValue("editor");
   await expect.poll(async () => {
     const response = await viewerPage.request.get(`/v1/spaces/${teamId}/permissions`, { headers: { Authorization: `Bearer ${viewerToken}` } });
     return (await response.json()).can_write;
   }).toBe(true);
   await viewerPage.reload();
   await viewerPage.getByRole("button", { name: "Apps" }).click();
-  await expect(viewerPage.getByRole("button", { name: "新增记录" })).toBeEnabled();
+  await expect(viewerPage.getByRole("button", { name: "New record", exact: true })).toBeEnabled();
 
   const pagesResponse = await ownerPage.request.get(`/v1/spaces/${teamId}/pages`, { headers: { Authorization: `Bearer ${ownerToken}` } });
   const savedPage = (await pagesResponse.json()).pages.find(item => item.title === "Team Notes");
-  await ownerPage.getByRole("button", { name: "Pages" }).click();
-  await expect(ownerPage.getByLabel("Page 标题")).toHaveValue("Team Notes");
+  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
+  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes");
   const concurrentChange = await ownerPage.request.patch(`/v1/pages/${savedPage.page_id}`, {
     headers: { Authorization: `Bearer ${ownerToken}` },
     data: { expected_revision: savedPage.revision, title: "Team Notes on server" },
   });
   expect(concurrentChange.status()).toBe(200);
-  await ownerPage.getByLabel("Page 标题").fill("Team Notes local draft");
-  await ownerPage.getByRole("button", { name: "保存 Page" }).click();
-  await expect(ownerPage.getByRole("status", { name: "Page 保存状态" })).toContainText("保存冲突");
-  await expect(ownerPage.getByLabel("Page 标题")).toHaveValue("Team Notes local draft");
-  await ownerPage.getByRole("button", { name: "丢弃草稿并载入服务器版本" }).click();
-  await expect(ownerPage.getByLabel("Page 标题")).toHaveValue("Team Notes on server");
+  await ownerPage.getByLabel("Page title").fill("Team Notes local draft");
+  await ownerPage.getByRole("button", { name: "Save Page" }).click();
+  await expect(ownerPage.getByRole("status", { name: "Page save status" })).toContainText("Save conflict");
+  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes local draft");
+  await ownerPage.getByRole("button", { name: "Discard draft and reload" }).click();
+  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes on server");
 
-  await ownerPage.getByRole("button", { name: "退出登录" }).click();
-  await expect(ownerPage.getByRole("heading", { name: "登录 Vessel" })).toBeVisible();
-  await ownerPage.getByLabel("邮箱").fill(ownerEmail);
-  await ownerPage.getByLabel("密码").fill("vessel-e2e-password");
-  await ownerPage.getByRole("button", { name: "登录", exact: true }).click();
+  await ownerPage.getByRole("button", { name: "Sign out" }).click();
+  await expect(ownerPage.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
+  await ownerPage.getByLabel("Email").fill(ownerEmail);
+  await ownerPage.getByLabel("Password").fill("vessel-e2e-password");
+  await ownerPage.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(ownerPage.getByRole("heading", { name: "Vessel" })).toBeVisible();
 
   await owner.close();
@@ -151,13 +168,13 @@ test("mobile console keeps account controls visible", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto("/register");
-  await page.getByLabel("姓名").fill("Mobile User");
-  await page.getByLabel("邮箱").fill(`mobile-${Date.now()}@example.test`);
-  await page.getByLabel("密码").fill("vessel-e2e-password");
-  await page.getByRole("button", { name: "注册" }).click();
+  await page.getByLabel("Name").fill("Mobile User");
+  await page.getByLabel("Email").fill(`mobile-${Date.now()}@example.test`);
+  await page.getByLabel("Password").fill("vessel-e2e-password");
+  await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByTestId("current-user-id")).toBeVisible();
-  await page.getByRole("button", { name: "退出登录" }).click();
-  await expect(page.getByRole("heading", { name: "登录 Vessel" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
   await context.close();
 });
 
@@ -165,8 +182,8 @@ test("Page keeps a draft in memory, locks editing during save, and warns before 
   await page.addInitScript(() => localStorage.setItem("vessel.page.draft.v1:legacy", "old team secret"));
   await registerTestUser(page);
   expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("vessel.page.draft")))).toEqual([]);
-  await page.getByRole("button", { name: "新建 Page" }).click();
-  const title = page.getByLabel("Page 标题");
+  await page.getByRole("button", { name: "New Page" }).click();
+  const title = page.getByLabel("Page title");
   await title.fill("First draft");
   expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("vessel.page.draft")))).toEqual([]);
 
@@ -176,42 +193,43 @@ test("Page keeps a draft in memory, locks editing during save, and warns before 
     if (route.request().method() === "PATCH") await gate;
     await route.continue();
   });
-  await page.getByRole("button", { name: "保存 Page" }).click();
+  await page.getByRole("button", { name: "Save Page" }).click();
   try {
-    await expect(page.getByRole("status", { name: "Page 保存状态" })).toContainText("保存中");
+    await expect(page.getByRole("status", { name: "Page save status" })).toContainText("Saving");
     await expect(title).toBeDisabled();
-    await expect(page.getByLabel("Page 文档")).toHaveAttribute("contenteditable", "false");
+    await expect(page.getByLabel("Page document")).toHaveAttribute("contenteditable", "false");
   } finally { releasePatch(); }
-  await expect(page.getByRole("status", { name: "Page 保存状态" })).toContainText("已保存");
+  await expect(page.getByRole("status", { name: "Page save status" })).toContainText("Saved");
 
   await title.fill("Unsaved changes");
   let warning = "";
   page.once("dialog", dialog => { warning = dialog.message(); void dialog.dismiss(); });
-  await page.getByRole("button", { name: "归档", exact: true }).click();
-  expect(warning).toContain("未保存");
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  expect(warning).toContain("Unsaved");
   await expect(title).toHaveValue("Unsaved changes");
 });
 
 test("failed logout keeps the authenticated console visible", async ({ page }) => {
   await registerTestUser(page);
   await page.route("**/v1/auth/logout", route => route.fulfill({ status: 503, contentType: "application/json", body: '{"detail":{"code":"TEMPORARY_FAILURE"}}' }));
-  await page.getByRole("button", { name: "退出登录" }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Vessel" })).toBeVisible();
-  await expect(page.getByRole("alert")).toContainText("请求失败");
+  await expect(page.getByRole("alert")).toContainText("Request failed");
 });
 
 test("App version conflicts offer a reload before retry", async ({ page }) => {
   const token = await registerTestUser(page);
   const headers = { Authorization: `Bearer ${token}` };
   await page.getByRole("button", { name: "Apps" }).click();
-  await page.getByLabel("App 名称").fill("Conflict App");
-  await page.getByLabel("表名").fill("contacts");
-  await page.getByLabel("字段名").fill("name");
-  await page.getByRole("button", { name: "创建 App" }).click();
+  await page.getByLabel("App name").fill("Conflict App");
+  await page.getByLabel("Table name").fill("contacts");
+  await page.getByLabel("Field name").fill("name");
+  await page.getByRole("button", { name: "Create App" }).click();
   await expect(page.getByRole("heading", { name: "Conflict App" })).toBeVisible();
+  await page.getByRole("button", { name: "New record", exact: true }).click();
   await page.getByLabel("name", { exact: true }).fill("Ada");
-  await page.getByRole("button", { name: "新增记录" }).click();
-  await expect(page.getByRole("cell", { name: "Ada" })).toBeVisible();
+  await page.getByRole("button", { name: "Add record" }).click();
+  await expect(page.locator(".record-cell-value").filter({ hasText: /^Ada$/ })).toBeVisible();
 
   const spaces = await (await page.request.get("/v1/spaces", { headers })).json();
   const appResponse = await page.request.get(`/v1/spaces/${spaces.spaces[0].space_id}/apps`, { headers });
@@ -219,26 +237,281 @@ test("App version conflicts offer a reload before retry", async ({ page }) => {
   const recordsResponse = await page.request.get(`/v1/apps/${app.app_id}/tables/contacts/records`, { headers });
   const record = (await recordsResponse.json()).records[0];
 
-  await page.getByRole("button", { name: "编辑" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByLabel("name", { exact: true }).fill("Local Ada");
   const serverUpdate = await page.request.patch(`/v1/apps/${app.app_id}/tables/contacts/records/${record.id}`, {
     headers, data: { expected_row_version: record.row_version, values: { name: "Server Ada" } },
   });
   expect(serverUpdate.status()).toBe(200);
-  await page.getByRole("button", { name: "保存记录" }).click();
-  await expect(page.getByRole("button", { name: "丢弃编辑并重新载入记录" })).toBeVisible();
-  await page.getByRole("button", { name: "丢弃编辑并重新载入记录" }).click();
-  await expect(page.getByRole("cell", { name: "Server Ada" })).toBeVisible();
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Discard edits and reload record" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard edits and reload record" }).click();
+  await expect(page.locator(".record-cell-value").filter({ hasText: /^Server Ada$/ })).toBeVisible();
 
-  await page.getByRole("button", { name: "查看 / 修改 Manifest" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "View / edit Manifest" }).click();
   const serverManifest = await page.request.put(`/v1/apps/${app.app_id}/manifest`, {
     headers,
     data: { expected_version: app.manifest_version, manifest: { tables: { contacts: { fields: { name: { type: "text", nullable: false }, note: { type: "text", nullable: true } } } } } },
   });
   expect(serverManifest.status()).toBe(200);
-  await page.getByRole("button", { name: "保存 Manifest" }).click();
-  await expect(page.getByRole("button", { name: "丢弃更改并重新载入 Manifest" })).toBeVisible();
-  await page.getByRole("button", { name: "丢弃更改并重新载入 Manifest" }).click();
-  await page.getByRole("button", { name: "查看 / 修改 Manifest" }).click();
+  await page.getByRole("button", { name: "Save Manifest" }).click();
+  await expect(page.getByRole("button", { name: "Discard changes and reload Manifest" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard changes and reload Manifest" }).click();
+  await page.getByRole("button", { name: "View / edit Manifest" }).click();
   await expect(page.getByLabel("Manifest JSON")).toContainText('"note"');
+});
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function staticZip(entries) {
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+  for (const [name, content] of Object.entries(entries)) {
+    const nameBytes = Buffer.from(name);
+    const contentBytes = Buffer.from(content);
+    const crc = crc32(contentBytes);
+    const local = Buffer.alloc(30 + nameBytes.length + contentBytes.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(contentBytes.length, 18);
+    local.writeUInt32LE(contentBytes.length, 22);
+    local.writeUInt16LE(nameBytes.length, 26);
+    nameBytes.copy(local, 30);
+    contentBytes.copy(local, 30 + nameBytes.length);
+    locals.push(local);
+
+    const central = Buffer.alloc(46 + nameBytes.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(contentBytes.length, 20);
+    central.writeUInt32LE(contentBytes.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt32LE(offset, 42);
+    nameBytes.copy(central, 46);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const centralSize = centrals.reduce((size, item) => size + item.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, ...centrals, end]);
+}
+
+test("App managers publish a draft while Editors only edit typed data", async ({ browser }) => {
+  const suffix = crypto.randomUUID();
+  const owner = await browser.newContext();
+  const editor = await browser.newContext();
+  const viewer = await browser.newContext();
+  const ownerPage = await owner.newPage();
+  const editorPage = await editor.newPage();
+  const viewerPage = await viewer.newPage();
+  const ownerToken = await registerTestUser(ownerPage);
+  const editorToken = await registerTestUser(editorPage);
+  const viewerToken = await registerTestUser(viewerPage);
+  const ownerId = await ownerPage.getByTestId("current-user-id").textContent();
+  const editorId = await editorPage.getByTestId("current-user-id").textContent();
+  const viewerId = await viewerPage.getByTestId("current-user-id").textContent();
+  expect(ownerId).toBeTruthy(); expect(editorId).toBeTruthy(); expect(viewerId).toBeTruthy();
+  const headers = { Authorization: `Bearer ${ownerToken}` };
+  const teamResponse = await ownerPage.request.post("/v1/teams", { headers, data: { name: `Apps Team ${suffix}` } });
+  expect(teamResponse.status()).toBe(201);
+  const team = (await teamResponse.json()).space;
+  for (const [userId, role] of [[editorId, "editor"], [viewerId, "viewer"]]) {
+    const invitation = await ownerPage.request.post(`/v1/teams/${team.space_id}/invitations`, { headers, data: { invitee_user_id: userId, role } });
+    expect(invitation.status()).toBe(201);
+    const token = role === "editor" ? editorToken : viewerToken;
+    const accept = await ownerPage.request.post(`/v1/team-invitations/${(await invitation.json()).invitation.invitation_id}/accept`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(accept.status()).toBe(200);
+  }
+  const appResponse = await ownerPage.request.post(`/v1/spaces/${team.space_id}/apps`, {
+    headers, data: { name: "Lunch Log", manifest: { tables: { meals: { fields: { title: { type: "text", nullable: false }, amount: { type: "numeric", nullable: true } } } } } },
+  });
+  expect(appResponse.status()).toBe(201);
+  const app = (await appResponse.json()).app;
+
+  for (const page of [ownerPage, editorPage, viewerPage]) {
+    await page.reload();
+    await page.getByLabel("Current space").selectOption(team.space_id);
+    await page.getByRole("button", { name: "Apps" }).click();
+    await expect(page.getByRole("heading", { name: "Lunch Log", exact: true })).toBeVisible();
+  }
+  await ownerPage.getByRole("button", { name: "Settings" }).click();
+  await expect(ownerPage.getByLabel("App description")).toBeVisible();
+  await expect(ownerPage.getByRole("button", { name: "Save app settings" })).toBeEnabled();
+  await ownerPage.getByLabel("App description").fill("Shared lunch records");
+  const settingsSave = ownerPage.waitForResponse(r => r.request().method() === "PATCH" && r.url().endsWith(`/v1/apps/${app.app_id}`));
+  await ownerPage.getByRole("button", { name: "Save app settings" }).click();
+  expect((await settingsSave).status()).toBe(200);
+  await ownerPage.getByLabel("New nullable field name").fill("note");
+  const schemaSave = ownerPage.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/manifest"));
+  await ownerPage.getByRole("button", { name: "Add nullable field" }).click();
+  expect((await schemaSave).status()).toBe(200);
+  await ownerPage.getByLabel("New table name").fill("notes");
+  const tableSave = ownerPage.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/manifest"));
+  await ownerPage.getByRole("button", { name: "Add table", exact: true }).click();
+  const tableResult = await (await tableSave).json();
+  expect(tableResult.app.manifest.tables.notes.fields.name).toEqual({ type: "text", nullable: true });
+
+  await editorPage.getByRole("button", { name: "Settings" }).click();
+  await expect(editorPage.getByRole("button", { name: "Save app settings" })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Add table", exact: true })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Add nullable field" })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Archive App" })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Create App", exact: true })).toBeDisabled();
+  await editorPage.getByRole("button", { name: "Data" }).click();
+  await expect(editorPage.getByRole("button", { name: "New record", exact: true })).toBeEnabled();
+  await editorPage.getByRole("button", { name: "New record", exact: true }).click();
+  await editorPage.getByLabel("title", { exact: true }).fill("Editor lunch");
+  await editorPage.getByLabel("amount", { exact: true }).fill("12345678901234567890.123456789012345678");
+  const createdResponse = editorPage.waitForResponse(r => r.request().method() === "POST" && r.url().endsWith("/meals/records"));
+  await editorPage.getByRole("button", { name: "Add record", exact: true }).click();
+  const created = await (await createdResponse).json();
+  expect(created.record.values.amount).toBe("12345678901234567890.123456789012345678");
+  await editorPage.getByLabel(`Edit title for record ${created.record.id}`).fill("Updated by editor");
+  const inlineSave = editorPage.waitForResponse(r => r.request().method() === "PATCH" && r.url().endsWith(`/records/${created.record.id}`));
+  await editorPage.getByRole("button", { name: `Save record ${created.record.id}`, exact: true }).click();
+  expect((await inlineSave).status()).toBe(200);
+  await expect(editorPage.getByLabel(`Edit title for record ${created.record.id}`)).toHaveValue("Updated by editor");
+  await editorPage.getByLabel("Search records").fill("Updated by editor");
+  await editorPage.getByLabel("Filter field", { exact: true }).selectOption("amount");
+  await editorPage.getByLabel("Filter operator").selectOption("gte");
+  await editorPage.getByLabel("Filter value").fill("12345678901234567890.123456789012345678");
+  await editorPage.getByLabel("Sort field", { exact: true }).selectOption("amount");
+  const queryResponse = editorPage.waitForResponse(r => r.url().endsWith("/records/query"));
+  await editorPage.getByRole("button", { name: "Apply query" }).click();
+  const filtered = await queryResponse;
+  expect(filtered.status()).toBe(200);
+  expect(filtered.request().postDataJSON().filter.value).toBe("12345678901234567890.123456789012345678");
+  expect((await filtered.json()).records.map(item => item.id)).toContain(created.record.id);
+  await editorPage.getByLabel("Filter operator").selectOption("in");
+  await editorPage.getByLabel("Filter value").fill("[12345678901234567890.123456789012345678]");
+  await editorPage.getByRole("button", { name: "Apply query" }).click();
+  await expect(editorPage.getByRole("alert")).toContainText("Use quoted decimal strings in numeric filters");
+  await editorPage.getByRole("button", { name: "Close", exact: true }).click();
+  await editorPage.getByLabel("Filter value").fill('["12345678901234567890.123456789012345678"]');
+  const inQuery = editorPage.waitForResponse(r => r.url().endsWith("/records/query"));
+  await editorPage.getByRole("button", { name: "Apply query" }).click();
+  const inResponse = await inQuery;
+  expect(inResponse.request().postDataJSON().filter.value).toEqual(["12345678901234567890.123456789012345678"]);
+  expect((await inResponse.json()).records.map(item => item.id)).toContain(created.record.id);
+  await editorPage.getByRole("button", { name: "Publish" }).click();
+  await expect(editorPage.getByRole("button", { name: "Create draft" })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Upload H5 ZIP" })).toBeDisabled();
+  await expect(editorPage.getByRole("button", { name: "Publish draft", exact: true })).toBeDisabled();
+  await ownerPage.getByRole("button", { name: "Publish" }).click();
+  await ownerPage.getByRole("button", { name: "Create draft" }).click();
+  await expect(ownerPage.getByLabel("H5 ZIP file")).toBeEnabled();
+  await ownerPage.getByLabel("H5 ZIP file").setInputFiles({ name: "lunch-log.zip", mimeType: "application/zip", buffer: staticZip({ "index.html": "<h1>Lunch Log</h1>" }) });
+  await expect(ownerPage.getByRole("button", { name: "Upload H5 ZIP" })).toBeEnabled();
+  await ownerPage.getByRole("button", { name: "Upload H5 ZIP" }).click();
+  const preview = ownerPage.getByRole("link", { name: "Preview draft" });
+  await expect(preview).toBeVisible();
+  const previewResponse = await ownerPage.request.get(await preview.getAttribute("href"));
+  expect(previewResponse.status()).toBe(200);
+  expect(await previewResponse.text()).toContain("Lunch Log");
+  await ownerPage.getByRole("button", { name: "Publish draft", exact: true }).click();
+  await expect(ownerPage.getByText("Version 1 · published · Current", { exact: true })).toBeVisible();
+  const published = await ownerPage.request.get(`/apps/${app.app_id}/releases/1/index.html`);
+  expect(published.status()).toBe(200);
+  expect(await published.text()).toContain("Lunch Log");
+  await ownerPage.getByRole("button", { name: "Create draft" }).click();
+  await expect(ownerPage.getByLabel("H5 ZIP file")).toBeEnabled();
+  await ownerPage.getByLabel("H5 ZIP file").setInputFiles({ name: "v2.zip", mimeType: "application/zip", buffer: staticZip({ "index.html": "<h1>Second release</h1>" }) });
+  await ownerPage.getByRole("button", { name: "Upload H5 ZIP" }).click();
+  await expect(preview).toBeVisible();
+  await ownerPage.getByRole("button", { name: "Publish draft", exact: true }).click();
+  await expect(ownerPage.getByText("Version 2 · published · Current", { exact: true })).toBeVisible();
+  ownerPage.once("dialog", dialog => void dialog.accept());
+  await ownerPage.getByRole("button", { name: "Rollback to version 1", exact: true }).click();
+  await expect(ownerPage.getByText("Version 1 · published · Current", { exact: true })).toBeVisible();
+  await viewerPage.getByRole("button", { name: "Publish" }).click();
+  await expect(viewerPage.getByRole("button", { name: "Upload H5 ZIP" })).toBeDisabled();
+  await expect(viewerPage.getByRole("button", { name: "Rollback to version 2", exact: true })).toBeDisabled();
+  await viewerPage.getByRole("button", { name: "Data", exact: true }).click();
+  await expect(viewerPage.getByRole("button", { name: "New record", exact: true })).toBeDisabled();
+  await expect(viewerPage.getByLabel(`Edit title for record ${created.record.id}`)).toBeDisabled();
+  await ownerPage.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(ownerPage.getByText("release.published", { exact: true })).toHaveCount(2);
+  const latestApp = (await (await ownerPage.request.get(`/v1/apps/${app.app_id}`, { headers })).json()).app;
+  const changedSettings = await ownerPage.request.patch(`/v1/apps/${app.app_id}`, { headers, data: { expected_settings_version: latestApp.settings_version, description: "Server description" } });
+  expect(changedSettings.status()).toBe(200);
+  await ownerPage.getByLabel("App description").fill("Local description");
+  await ownerPage.getByRole("button", { name: "Save app settings" }).click();
+  await expect(ownerPage.getByRole("button", { name: "Discard changes and reload settings" })).toBeVisible();
+  await expect(ownerPage.getByLabel("App description")).toHaveValue("Local description");
+  await ownerPage.getByRole("button", { name: "Discard changes and reload settings" }).click();
+  await expect(ownerPage.getByLabel("App description")).toHaveValue("Server description");
+  ownerPage.once("dialog", dialog => void dialog.accept());
+  await ownerPage.getByRole("button", { name: "Archive App", exact: true }).click();
+  await expect(ownerPage.getByRole("heading", { name: "Lunch Log", exact: true })).not.toBeVisible();
+  await ownerPage.getByLabel("App status", { exact: true }).selectOption("archived");
+  await expect(ownerPage.getByRole("button", { name: "Restore App", exact: true })).toBeEnabled();
+  ownerPage.once("dialog", dialog => void dialog.accept());
+  await ownerPage.getByRole("button", { name: "Restore App", exact: true }).click();
+  await ownerPage.getByLabel("App status", { exact: true }).selectOption("active");
+  await expect(ownerPage.getByRole("heading", { name: "Lunch Log", exact: true })).toBeVisible();
+
+  await owner.close(); await editor.close(); await viewer.close();
+});
+
+
+test("App data bulk conflicts reload explicitly and pagination survives deletion", async ({ page }) => {
+  const token = await registerTestUser(page);
+  const headers = { Authorization: `Bearer ${token}` };
+  const spaces = (await (await page.request.get("/v1/spaces", { headers })).json()).spaces;
+  const created = await page.request.post(`/v1/spaces/${spaces[0].space_id}/apps`, { headers, data: { name: "Paged records", manifest: { tables: { items: { fields: { title: { type: "text", nullable: false } } } } } } });
+  expect(created.status()).toBe(201);
+  const app = (await created.json()).app;
+  const seed = await page.request.post(`/v1/apps/${app.app_id}/tables/items/records/bulk`, { headers, data: { records: Array.from({ length: 52 }, (_, i) => ({ values: { title: `Item ${String(i).padStart(2, "0")}` } })) } });
+  expect(seed.status()).toBe(201);
+  const records = (await seed.json()).records;
+  await page.getByRole("button", { name: "Apps", exact: true }).click();
+  await expect(page.getByLabel(`Select record ${records[0].id}`)).toBeVisible();
+  await page.getByLabel(`Select record ${records[0].id}`).check();
+  await page.getByLabel(`Select record ${records[1].id}`).check();
+  const changed = await page.request.patch(`/v1/apps/${app.app_id}/tables/items/records/${records[0].id}`, { headers, data: { expected_row_version: 1, values: { title: "Server updated" } } });
+  expect(changed.status()).toBe(200);
+  page.once("dialog", dialog => void dialog.accept());
+  await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Discard edits and reload record" })).toBeVisible();
+  const unchanged = await page.request.get(`/v1/apps/${app.app_id}/tables/items/records/${records[1].id}`, { headers });
+  expect(unchanged.status()).toBe(200);
+  await page.getByRole("button", { name: "Discard edits and reload record" }).click();
+  await expect(page.getByLabel(`Edit title for record ${records[0].id}`)).toHaveValue("Server updated");
+  await page.getByLabel(`Select record ${records[0].id}`).check();
+  await page.getByLabel(`Select record ${records[1].id}`).check();
+  page.once("dialog", dialog => void dialog.dismiss());
+  await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  await expect(page.getByLabel(`Select record ${records[0].id}`)).toBeVisible();
+  page.once("dialog", dialog => void dialog.accept());
+  const deletion = page.waitForResponse(r => r.url().endsWith("/records/bulk-delete"));
+  await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  expect((await (await deletion).json()).deleted_count).toBe(2);
+  await expect(page.getByLabel(`Select record ${records[0].id}`)).not.toBeVisible();
+  // Refill the first page: after deleting two rows, all 50 remaining rows fit.
+  await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
+  const extra = await page.request.post(`/v1/apps/${app.app_id}/tables/items/records`, { headers, data: { values: { title: "Next page" } } });
+  expect(extra.status()).toBe(201);
+  await page.getByRole("button", { name: "Apply query", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Next", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByLabel(`Edit title for record ${(await extra.json()).record.id}`)).toHaveValue("Next page");
+  await page.getByRole("button", { name: "Previous", exact: true }).click();
+  await expect(page.getByLabel(`Select record ${records[2].id}`)).toBeVisible();
 });

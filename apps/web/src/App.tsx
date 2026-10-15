@@ -12,19 +12,23 @@ const selectedKey = "vessel.console.space.v1";
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
     const known: Record<string, string> = {
-      INVALID_CREDENTIALS: "邮箱或密码错误。", EMAIL_ALREADY_REGISTERED: "这个邮箱已注册。",
-      REGISTRATION_DISABLED: "目前未开放注册。", SPACE_PERMISSION_DENIED: "当前角色没有此操作权限。",
-      PAGE_REVISION_CONFLICT: "Page 已被其他人修改。请复制当前内容，再重新载入。",
-      APP_MANIFEST_VERSION_CONFLICT: "表结构已有新版本，请重新载入后再修改。",
-      APP_RECORD_VERSION_CONFLICT: "记录已有新版本，请重新载入后再修改。",
-      APP_FIELD_VALUE_INVALID: "字段值不符合表结构。", APP_MANIFEST_INVALID: "表结构格式无效。",
-      APP_SCHEMA_CHANGE_UNSUPPORTED: "只允许新增表和可空字段。",
+      INVALID_CREDENTIALS: "Incorrect email or password.", EMAIL_ALREADY_REGISTERED: "This email is already registered.",
+      REGISTRATION_DISABLED: "Registration is not available.", SPACE_PERMISSION_DENIED: "Your role does not allow this action.",
+      PAGE_REVISION_CONFLICT: "This Page was changed by someone else. Copy your changes, then reload.",
+      APP_MANAGER_REQUIRED: "Only a space Owner or Admin can manage Apps.",
+      APP_SETTINGS_VERSION_CONFLICT: "App settings changed. Reload before saving or changing its status.",
+      APP_RELEASE_NOT_PUBLISHABLE: "This draft cannot be published. Check its validation and Manifest version.",
+      APP_RELEASE_STORAGE_UNAVAILABLE: "App release storage is unavailable. Please try again later.",
+      APP_MANIFEST_VERSION_CONFLICT: "The schema has a newer version. Reload before editing.",
+      APP_RECORD_VERSION_CONFLICT: "This record has a newer version. Reload before editing.",
+      APP_FIELD_VALUE_INVALID: "A field value does not match the schema.", APP_MANIFEST_INVALID: "The schema format is invalid.",
+      APP_SCHEMA_CHANGE_UNSUPPORTED: "You can add tables and nullable fields only.",
     };
     if (known[error.code]) return known[error.code];
-    if (error.status === 422) return `输入不符合要求：${error.code}`;
-    return `请求失败（${error.status}）：${error.code}`;
+    if (error.status === 422) return `Input is invalid: ${error.code}`;
+    return `Request failed (${error.status}): ${error.code}`;
   }
-  return error instanceof Error ? error.message : "请求失败，请重试。";
+  return error instanceof Error ? error.message : "Request failed. Please try again.";
 }
 
 export function App() {
@@ -99,47 +103,47 @@ export function App() {
     history.replaceState(null, "", "/console");
   }
 
-  if (booting) return <main className="boot-screen">正在连接 Vessel…</main>;
+  if (booting) return <main className="boot-screen">Connecting to Vessel…</main>;
   if (!user) return <main className="auth-screen"><section className="auth-card">
     <div className="brand-lockup"><span className="brand-symbol">V</span><span>Vessel</span></div>
-    <h1>{authMode === "register" ? "创建 Vessel 账号" : "登录 Vessel"}</h1>
-    <p className="subtle">在个人空间和团队中管理 Files、Pages 与 Apps。</p>
+    <h1>{authMode === "register" ? "Create your Vessel account" : "Sign in to Vessel"}</h1>
+    <p className="subtle">Manage Files, Pages, and Apps in personal and team spaces.</p>
     <form onSubmit={event => void authenticate(event)} className="stacked-form">
-      {authMode === "register" && <label>姓名<input name="name" required maxLength={120} autoComplete="name" /></label>}
-      <label>邮箱<input name="email" type="email" required autoComplete="email" /></label>
-      <label>密码<input name="password" type="password" required minLength={authMode === "register" ? 8 : 1} autoComplete={authMode === "register" ? "new-password" : "current-password"} /></label>
+      {authMode === "register" && <label>Name<input name="name" required maxLength={120} autoComplete="name" /></label>}
+      <label>Email<input name="email" type="email" required autoComplete="email" /></label>
+      <label>Password<input name="password" type="password" required minLength={authMode === "register" ? 8 : 1} autoComplete={authMode === "register" ? "new-password" : "current-password"} /></label>
       {authError && <p role="alert" className="error-banner">{authError}</p>}
-      <button className="primary" disabled={authBusy}>{authBusy ? "请稍候…" : authMode === "register" ? "注册" : "登录"}</button>
+      <button className="primary" disabled={authBusy}>{authBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</button>
     </form>
     {registrationEnabled && (authMode === "login"
-      ? <a href="/register" onClick={event => { event.preventDefault(); history.pushState(null, "", "/register"); setAuthMode("register"); setAuthError(""); }}>创建账号</a>
-      : <a href="/console" onClick={event => { event.preventDefault(); history.pushState(null, "", "/console"); setAuthMode("login"); setAuthError(""); }}>已有账号？登录</a>)}
+      ? <a href="/register" onClick={event => { event.preventDefault(); history.pushState(null, "", "/register"); setAuthMode("register"); setAuthError(""); }}>Create an account</a>
+      : <a href="/console" onClick={event => { event.preventDefault(); history.pushState(null, "", "/console"); setAuthMode("login"); setAuthError(""); }}>Already have an account? Sign in</a>)}
   </section></main>;
 
   const space = spaces.find(item => item.space_id === spaceId);
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand-lockup"><span className="brand-symbol">V</span><h1>Vessel</h1></div>
-      <label className="space-label">当前空间<select aria-label="当前空间" value={spaceId} onChange={event => {
+      <label className="space-label">CURRENT SPACE<select aria-label="Current space" value={spaceId} onChange={event => {
         setSpaceId(event.target.value); localStorage.setItem(selectedKey, event.target.value);
       }}>{spaces.map(item => <option key={item.space_id} value={item.space_id}>{item.name}</option>)}</select></label>
-      <nav aria-label="主要导航">
+      <nav aria-label="Primary navigation">
         <button className={view === "files" ? "active" : ""} onClick={() => setView("files")}>Files</button>
         <button className={view === "pages" ? "active" : ""} onClick={() => setView("pages")}>Pages</button>
         <button className={view === "apps" ? "active" : ""} onClick={() => setView("apps")}>Apps</button>
-        <button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>团队</button>
+        <button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>Teams</button>
       </nav>
       <div className="sidebar-spacer" />
-      <div className="account-panel"><strong>{user.name}</strong><span>{user.email}</span><small>我的用户 ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><button aria-label="复制用户 ID" title="复制用户 ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>复制</button></div><button className="text-button" onClick={() => void signOut()}>退出登录</button></div>
+      <div className="account-panel"><strong>{user.name}</strong><span>{user.email}</span><small>YOUR USER ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><button aria-label="Copy user ID" title="Copy user ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>Copy</button></div><button className="text-button" onClick={() => void signOut()}>Sign out</button></div>
     </aside>
     <main className="main-panel">
-      {error && <div role="alert" className="error-banner">{error}<button onClick={() => setError("")}>关闭</button></div>}
+      {error && <div role="alert" className="error-banner">{error}<button onClick={() => setError("")}>Close</button></div>}
       {space && permissions ? <>
         {view === "teams" && <Teams space={space} permissions={permissions} user={user} reloadSpaces={reloadSpaces} onError={setError} />}
         {view === "pages" && <Pages key={space.space_id} space={space} permissions={permissions} user={user} onError={setError} />}
         {view === "apps" && <Apps key={space.space_id} space={space} permissions={permissions} onError={setError} />}
         {view === "files" && <Files key={`${user.user_id}:${space.space_id}`} space={space} user={user} onError={setError} />}
-      </> : <div className="loading-panel">正在加载空间…</div>}
+      </> : <div className="loading-panel">Loading space…</div>}
     </main>
   </div>;
 }
