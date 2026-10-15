@@ -4,6 +4,7 @@ import { Teams } from "./Teams";
 import { Pages, clearPageDrafts } from "./Pages";
 import { Apps } from "./Apps";
 import { Files } from "./files/Files";
+import { clearTransfers } from "./files/Transfers";
 
 type View = "teams" | "pages" | "apps" | "files";
 const selectedKey = "vessel.console.space.v1";
@@ -92,6 +93,7 @@ export function App() {
   async function signOut() {
     try { await logout(); } catch (problem) { setError(message(problem)); return; }
     clearPageDrafts();
+    if (user) clearTransfers(user.user_id);
     setUser(null); setSpaces([]); setSpaceId(""); setPermissions(null); setAuthMode("login");
     localStorage.removeItem(selectedKey);
     history.replaceState(null, "", "/console");

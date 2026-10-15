@@ -11,7 +11,7 @@ const date = (value: string) => new Date(value).toLocaleString("zh-CN", { dateSt
 export function Directory({ items, selectedId, loading, nextCursor, onSelect, onOpen, onMore }: Props) {
   return <div className="files-table-wrap"><table className="files-table">
     <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>修改时间</th></tr></thead>
-    <tbody>{items.map(item => <tr key={item.item_id} tabIndex={0} aria-selected={selectedId === item.item_id}
+    <tbody>{items.map(item => <tr key={item.item_id} data-file-row-id={item.item_id} tabIndex={0} aria-selected={selectedId === item.item_id}
       onClick={() => onSelect(item)} onDoubleClick={() => onOpen(item)}
       onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); onOpen(item); } if (event.key === " ") { event.preventDefault(); onSelect(item); } }}>
       <td><span className="file-glyph" aria-hidden="true">{item.kind === "folder" ? "▣" : "▤"}</span>{item.name}</td>
