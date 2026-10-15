@@ -12,13 +12,13 @@ export type VesselApp = { app_id: string; space_id: string; name: string; manife
 export type AppRecord = { id: string; values: Record<string, unknown>; row_version: number; created_at: string; updated_at: string };
 
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly code: string, readonly detail?: unknown) { super(code); }
+  constructor(readonly status: number, readonly code: string, readonly detail?: unknown, readonly requestId?: string | null) { super(code); }
 }
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<User | null> | null = null;
 
-async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const headers = new Headers(init.headers);
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   if (init.body && !(init.body instanceof File) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
@@ -28,7 +28,7 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: { code?: string } } | null;
-    throw new ApiError(response.status, payload?.detail?.code ?? `HTTP_${response.status}`, payload?.detail);
+    throw new ApiError(response.status, payload?.detail?.code ?? `HTTP_${response.status}`, payload?.detail, response.headers.get("X-Request-ID"));
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

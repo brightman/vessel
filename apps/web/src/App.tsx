@@ -3,8 +3,9 @@ import { ApiError, authOptions, getPermissions, listSpaces, login, logout, refre
 import { Teams } from "./Teams";
 import { Pages, clearPageDrafts } from "./Pages";
 import { Apps } from "./Apps";
+import { Files } from "./files/Files";
 
-type View = "teams" | "pages" | "apps";
+type View = "teams" | "pages" | "apps" | "files";
 const selectedKey = "vessel.console.space.v1";
 
 export function message(error: unknown): string {
@@ -100,7 +101,7 @@ export function App() {
   if (!user) return <main className="auth-screen"><section className="auth-card">
     <div className="brand-lockup"><span className="brand-symbol">V</span><span>Vessel</span></div>
     <h1>{authMode === "register" ? "创建 Vessel 账号" : "登录 Vessel"}</h1>
-    <p className="subtle">在个人空间和团队中管理 Pages 与 Apps。</p>
+    <p className="subtle">在个人空间和团队中管理 Files、Pages 与 Apps。</p>
     <form onSubmit={event => void authenticate(event)} className="stacked-form">
       {authMode === "register" && <label>姓名<input name="name" required maxLength={120} autoComplete="name" /></label>}
       <label>邮箱<input name="email" type="email" required autoComplete="email" /></label>
@@ -121,6 +122,7 @@ export function App() {
         setSpaceId(event.target.value); localStorage.setItem(selectedKey, event.target.value);
       }}>{spaces.map(item => <option key={item.space_id} value={item.space_id}>{item.name}</option>)}</select></label>
       <nav aria-label="主要导航">
+        <button className={view === "files" ? "active" : ""} onClick={() => setView("files")}>Files</button>
         <button className={view === "pages" ? "active" : ""} onClick={() => setView("pages")}>Pages</button>
         <button className={view === "apps" ? "active" : ""} onClick={() => setView("apps")}>Apps</button>
         <button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>团队</button>
@@ -134,6 +136,7 @@ export function App() {
         {view === "teams" && <Teams space={space} permissions={permissions} user={user} reloadSpaces={reloadSpaces} onError={setError} />}
         {view === "pages" && <Pages key={space.space_id} space={space} permissions={permissions} user={user} onError={setError} />}
         {view === "apps" && <Apps key={space.space_id} space={space} permissions={permissions} onError={setError} />}
+        {view === "files" && <Files key={`${user.user_id}:${space.space_id}`} space={space} user={user} onError={setError} />}
       </> : <div className="loading-panel">正在加载空间…</div>}
     </main>
   </div>;
