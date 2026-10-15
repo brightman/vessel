@@ -149,3 +149,38 @@ def test_release_rollback_switches_only_current_pointer(api_factory, tmp_path):
     history = api("GET", f"/v1/apps/{app_id}/releases", headers=headers).json()["releases"]
     assert [release["version"] for release in history if release["is_current"]] == [1]
     assert {release["status"] for release in history} == {"published"}
+
+
+def test_create_draft_flushes_release_before_its_audit_event():
+    from vessel_service.apps.releases import create_draft
+    from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRelease
+
+    class OrderedSession:
+        def __init__(self):
+            self.release_added = False
+            self.flushed = False
+            self.scalar_calls = 0
+
+        def scalar(self, _statement):
+            self.scalar_calls += 1
+            return "app-id" if self.scalar_calls == 1 else None
+
+        def add(self, item):
+            if isinstance(item, VesselAppRelease):
+                self.release_added = True
+            if isinstance(item, VesselAppAuditEvent):
+                assert self.release_added
+                assert self.flushed, "the release row must exist before its audit row"
+
+        def flush(self):
+            assert self.release_added
+            self.flushed = True
+
+        def commit(self):
+            assert self.flushed
+
+    app = VesselApp(app_id="app-id", space_id="space-id", name="Release test", manifest_json={"tables": {}},
+                    manifest_version=1, settings_version=1, status="active", description="", created_by="user-id", updated_by="user-id")
+    actor = User(user_id="user-id", name="Release owner", email="release-ordering@example.test", status="active", roles=[])
+    release = create_draft(OrderedSession(), app, actor)
+    assert release.app_id == app.app_id

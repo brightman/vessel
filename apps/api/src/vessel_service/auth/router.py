@@ -1,6 +1,7 @@
 import hashlib
 import re
 import secrets
+from urllib.parse import urlsplit
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -130,6 +131,17 @@ def _refresh_principal(request: Request, session: Session) -> tuple[User, Refres
     return user, current
 
 
+def _require_issuer_origin(request: Request, settings: Settings) -> None:
+    origin = request.headers.get("origin")
+    if not origin:
+        return
+    parsed = urlsplit(origin)
+    normalized = f"{parsed.scheme}://{parsed.netloc}".lower()
+    expected = urlsplit(settings.issuer_url)
+    if normalized != f"{expected.scheme}://{expected.netloc}".lower():
+        raise HTTPException(status_code=403, detail={"code": "AUTH_ORIGIN_INVALID"})
+
+
 def refresh_session_user(request: Request, session: Session = Depends(get_session)) -> User:
     """Authenticate a refresh cookie without rotating or exposing it."""
     return _refresh_principal(request, session)[0]
@@ -216,6 +228,7 @@ def refresh(
     keyring: KeyRing = Depends(get_keyring),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
+    _require_issuer_origin(request, settings)
     user, current = _refresh_principal(request, session)
     current.revoked_at = datetime.now(UTC)
     return _auth_response(user, session, response, settings, keyring)

@@ -23,11 +23,13 @@ def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
     test_keyring = KeyRing.for_test("test-key")
 
     def build(*, allow_registration: bool = True,
+              app_release_origin: str | None = "https://apps.test",
               configure_application: Callable[[Any], None] | None = None) -> Callable[..., httpx.Response]:
         application = create_app(
             settings=Settings(
                 environment="test",
                 issuer_url="https://pages.test",
+                app_release_origin=app_release_origin,
                 allow_registration=allow_registration,
                 refresh_cookie_secure=False,
                 app_release_storage_path=tmp_path / "app-releases",

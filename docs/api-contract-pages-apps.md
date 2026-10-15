@@ -189,17 +189,33 @@ Content-Type: application/json
 | `POST /v1/apps/{app_id}/releases/{release_id}/upload` | `multipart/form-data`，字段 `file` 为 ZIP；仅管理员 | `{"release": Release,"preview_url":string|null}` |
 | `POST /v1/apps/{app_id}/releases/{release_id}/publish` | 显式发布已校验草稿；仅管理员 | `{"release": Release}` |
 | `POST /v1/apps/{app_id}/releases/{release_id}/rollback` | 将已发布版本设为当前版本；仅管理员 | `{"release": Release}` |
+| `POST /v1/apps/{app_id}/releases/{release_id}/launch` | 为当前成员签发某个已发布版本的 H5 启动 URL | `{"launch_url":string}` |
 | `GET /v1/apps/{app_id}/releases/{release_id}/preview/{path}?ticket=...` | 十分钟草稿预览票据；不需要 Access Token | 静态字节；未命中带扩展名的资源返回 404 |
-| `POST /v1/apps/{app_id}/h5/session` | 刷新 Cookie 和 `{"release_version":1}` | `{"access_token":...,"expires_in":300}` |
-| `GET /apps/{app_id}/releases/{version}/{path}` | 已发布静态资源；公开只读 | 静态字节；不可变缓存 |
+| `POST /apps/{app_id}/releases/{version}/h5/session` | 已完成启动的发布页在同源路径换取 H5 Token | `{"access_token":...,"expires_in":300}` |
+| `GET /apps/{app_id}/releases/{version}/{path}` | 已发布静态资源；公开只读；启动 URL 在入口资源追加 `?launch=...` | 静态字节；不可变缓存，仅在发布域名响应 |
 
-`Release` 包含 `release_id`、`app_id`、`version`、`manifest_version`、`status`、`entry_file`、`file_count`、`total_size_bytes`、`checksum_sha256`、`validation_error_code`、`is_current`、创建和发布时间及操作者。状态为 `draft`、`validation_failed` 或 `published`；任何 App 最多一个 `is_current=true` 的已发布 Release。
+`Release` 包含 `release_id`、`app_id`、`version`、`manifest_version`、`status`、`entry_file`、`file_count`、`total_size_bytes`、`checksum_sha256`、`validation_error_code`、`is_current`、创建和发布时间及操作者。已发布 Release 额外有绝对 `public_url`，控制台和外部调用方必须使用它打开 H5。状态为 `draft`、`validation_failed` 或 `published`；任何 App 最多一个 `is_current=true` 的已发布 Release。
 
 上传只接受不超过 50 MiB 的 ZIP。服务端限制解压后最多 200 MiB、2,000 个文件、10 层目录和每文件 10 MiB；只允许 HTML/CSS/JS/JSON、字体、图片和 SVG 等静态资源，拒绝遍历路径、符号链接、可执行文件、环境或密钥文件、`file://` 引用和已知密钥标记。压缩包需要 `index.html` 或 `dist/index.html`；可选 `vessel-app.json` 可声明自身 `app_id`、所需表和 CRUD 操作。验证失败把草稿记录标记为 `validation_failed`，不会改变当前发布版本。
 
 草稿 ZIP 和最终静态对象都保存在私有存储中。最终对象路径固定为 `vessel-apps/{app_id}/releases/{version}/`，不会覆盖已发布版本；重试发布仅接受内容完全相同的已有对象。上传成功后服务端返回十分钟有效的草稿预览 URL；票据不落库、不写审计日志，篡改或过期返回 401。公开路径只读取 `published` Release 的静态字节，缺少带扩展名的资源不回退到 HTML，扩展名为空的客户端路由才回退到入口 HTML；响应带 `X-Content-Type-Options: nosniff` 和一年不可变缓存。
 
-H5 页面可通过刷新 Cookie 向 `/v1/apps/{app_id}/h5/session` 交换五分钟 App 专属 Token。该 Token 的 `aud=vessel-app-h5`、`scope=vessel:app-h5`、`app_id` 和 `release_version` 都由服务端签发；它只可调用同一 `app_id` 的记录接口，并在每次请求时重新检查当前空间成员角色。它不能读取另一个 App、Pages、Files、团队配置、App Settings 或发布接口。生产环境必须设置 `PAGES_H5_PREVIEW_SECRET`；刷新 Cookie 的路径为 `/`，使浏览器能在 H5 Session 端点发送它，但 Cookie 始终为 `HttpOnly` 且按环境强制 `Secure`。
+控制台先使用当前登录 Access Token 调用 `POST /v1/apps/{app_id}/releases/{release_id}/launch`。服务端生成五分钟有效、绑定 `user_id`、`app_id`、`release_id` 和 `release_version` 的签名启动 URL。该 URL 只能请求相应版本的入口资源；发布网关验证后写入 `HttpOnly`、`SameSite=Strict`、路径限定为 `/apps/{app_id}/releases/{version}/h5/` 的启动 Cookie，并重定向到无票据的地址。H5 页面只能在该发布域名下通过相对路径 `/apps/{app_id}/releases/{version}/h5/session` 换取五分钟 App 专属 Token；直接公开发布 URL 不会产生 Token。该 Token 的 `aud=vessel-app-h5`、`scope=vessel:app-h5`、`app_id` 和 `release_version` 都由服务端签发；它只可调用同一 `app_id` 的记录接口，并在每次请求时重新检查当前空间成员角色。它不能读取另一个 App、Pages、Files、团队配置、App Settings 或发布接口。
+
+`PAGES_APP_RELEASE_ORIGIN` 是发布区的完整 `http`/`https` Origin，生产环境必须配置为 HTTPS，且其 hostname 必须与 `PAGES_ISSUER_URL` 不同。它不是共享的 Bundle Origin：当配置为 `https://apps.memoryon.cloud` 时，App `<app_id>` 的发布、草稿预览和启动页都在 `https://<app_id>.apps.memoryon.cloud`。默认端口会规范化，因此 `https://apps.example:443` 等同于 `https://apps.example`；非默认端口保留。生产环境必须为 `*.apps.memoryon.cloud` 配置通配 DNS 和覆盖该通配符的 TLS 证书；本地可用 `apps.127.0.0.1.nip.io`，其子域同样解析到 loopback。草稿和启动票据只用于各自 App Host 的第一次请求，网关写入 host-only、路径受限 Cookie 并重定向到不含票据的 URL，以便同一 Bundle 的 CSS、JS 和图片继续加载。H5 session 端点拒绝带有其他 App Origin 的请求。只有请求路径中同一 `app_id` 派生出的 Origin 发往 `/v1/apps/{app_id}/tables/{table}/records...` 才会收到 CORS 预检和响应头，允许 `Authorization`、`Content-Type` 及 `GET|POST|PATCH|DELETE`。`/v1/auth/refresh` 对任何发布区 Origin 的浏览器请求返回 403 `AUTH_ORIGIN_INVALID`。
+
+发布包如果要读写 App 数据，应在前端配置 API Origin，并在运行时交换 Token，不能把长期 Access Token 或 Refresh Token 写入 ZIP、代码或浏览器存储。可选的 `vessel-app.json` 已携带 `app_id` 时，页面可以读取它来拼接请求路径：
+
+```js
+const apiOrigin = "https://api.memoryon.cloud";
+const appId = "<vessel-app.json app_id>";
+const session = await fetch(`${window.location.pathname.replace(/\/[^/]+$/, "")}/h5/session`, {
+  method: "POST",
+}).then(response => response.json());
+const records = await fetch(`${apiOrigin}/v1/apps/${appId}/tables/meals/records`, {
+  headers: { Authorization: `Bearer ${session.access_token}` },
+});
+```
 
 ## 5. 典型调用顺序
 

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import Engine, text
@@ -46,6 +46,58 @@ def create_app(
         openapi_tags=API_TAGS,
         swagger_ui_oauth2_redirect_url="/swagger/oauth2-redirect",
     )
+
+    @application.middleware("http")
+    async def h5_record_cors(request: Request, call_next):
+        """Permit an App release to call only its typed-record endpoints.
+
+        App HTML runs on the isolated release origin.  It needs to send its
+        short-lived App token to the API, while the broader Vessel API must
+        never become cross-origin readable by that untrusted HTML.
+        """
+        origin = request.headers.get("origin")
+        path = request.url.path.strip("/").split("/")
+        is_record_endpoint = (
+            len(path) >= 6
+            and path[:2] == ["v1", "apps"]
+            and path[3:4] == ["tables"]
+            and path[5:6] == ["records"]
+        )
+        app_id = path[2] if is_record_endpoint else None
+        try:
+            allowed_origin = configured.app_release_origin_for(app_id) if app_id else None
+        except ValueError:
+            allowed_origin = None
+        if not allowed_origin or not is_record_endpoint or origin != allowed_origin:
+            return await call_next(request)
+
+        if request.method == "OPTIONS":
+            requested_method = request.headers.get("access-control-request-method", "").upper()
+            requested_headers = {
+                header.strip().lower()
+                for header in request.headers.get("access-control-request-headers", "").split(",")
+                if header.strip()
+            }
+            if requested_method not in {"GET", "POST", "PATCH", "DELETE"} or not requested_headers <= {
+                "authorization", "content-type"
+            }:
+                return Response(status_code=403, headers={"Vary": "Origin"})
+            return Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Origin": allowed_origin,
+                    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE",
+                    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+                    "Access-Control-Max-Age": "600",
+                    "Vary": "Origin",
+                },
+            )
+
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = allowed_origin
+        response.headers["Vary"] = "Origin"
+        return response
+
     add_api_docs(application)
     web_dist = web_dist_path or Path(__file__).resolve().parents[4] / "dist" / "console"
     marketing_dist = marketing_dist_path or Path(__file__).resolve().parents[4] / "dist" / "marketing"

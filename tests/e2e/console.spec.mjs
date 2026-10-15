@@ -1,5 +1,14 @@
 import { test, expect } from "@playwright/test";
 
+const apiOrigin = process.env.VESSEL_E2E_ORIGIN ?? "http://api.127.0.0.1.nip.io:52013";
+const releaseOrigin = process.env.VESSEL_RELEASE_ORIGIN ?? "http://apps.127.0.0.1.nip.io:52013";
+
+function appReleaseOrigin(appId) {
+  const origin = new URL(releaseOrigin);
+  origin.hostname = `${appId}.${origin.hostname}`;
+  return origin.origin;
+}
+
 async function registerTestUser(page) {
   await page.goto("/register");
   await page.getByLabel("Name").fill("Console Regression");
@@ -422,14 +431,39 @@ test("App managers publish a draft while Editors only edit typed data", async ({
   await ownerPage.getByRole("button", { name: "Upload H5 ZIP" }).click();
   const preview = ownerPage.getByRole("link", { name: "Preview draft" });
   await expect(preview).toBeVisible();
-  const previewResponse = await ownerPage.request.get(await preview.getAttribute("href"));
+  const previewHref = await preview.getAttribute("href");
+  expect(previewHref?.startsWith(`${appReleaseOrigin(app.app_id)}/v1/apps/`)).toBe(true);
+  const previewResponse = await ownerPage.request.get(previewHref);
   expect(previewResponse.status()).toBe(200);
   expect(await previewResponse.text()).toContain("Lunch Log");
   await ownerPage.getByRole("button", { name: "Publish draft", exact: true }).click();
   await expect(ownerPage.getByText("Version 1 · published · Current", { exact: true })).toBeVisible();
-  const published = await ownerPage.request.get(`/apps/${app.app_id}/releases/1/index.html`);
+  const publicRelease = `${appReleaseOrigin(app.app_id)}/apps/${app.app_id}/releases/1/index.html`;
+  const published = await ownerPage.request.get(publicRelease);
   expect(published.status()).toBe(200);
   expect(await published.text()).toContain("Lunch Log");
+  await expect(ownerPage.getByRole("button", { name: "Open version 1" })).toBeVisible();
+  const releases = await (await ownerPage.request.get(`/v1/apps/${app.app_id}/releases`, { headers })).json();
+  const launch = await ownerPage.request.post(`/v1/apps/${app.app_id}/releases/${releases.releases[0].release_id}/launch`, { headers });
+  expect(launch.status()).toBe(200);
+  const h5Page = await owner.newPage();
+  await h5Page.goto((await launch.json()).launch_url);
+  await expect(h5Page).toHaveURL(publicRelease);
+  const h5Session = await h5Page.evaluate(async () => {
+    const response = await fetch(`${window.location.pathname.replace(/\/[^/]+$/, "")}/h5/session`, { method: "POST" });
+    return { status: response.status, payload: await response.json() };
+  });
+  expect(h5Session.status).toBe(200);
+  const h5Record = await h5Page.evaluate(async ({ apiOrigin, appId, accessToken }) => {
+    const response = await fetch(`${apiOrigin}/v1/apps/${appId}/tables/meals/records`, {
+      method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: { title: "H5 lunch", amount: "10" } }),
+    });
+    return { status: response.status, payload: await response.json() };
+  }, { apiOrigin, appId: app.app_id, accessToken: h5Session.payload.access_token });
+  expect(h5Record.status).toBe(201);
+  expect(h5Record.payload.record.values.title).toBe("H5 lunch");
+  await h5Page.close();
   await ownerPage.getByRole("button", { name: "Create draft" }).click();
   await expect(ownerPage.getByLabel("H5 ZIP file")).toBeEnabled();
   await ownerPage.getByLabel("H5 ZIP file").setInputFiles({ name: "v2.zip", mimeType: "application/zip", buffer: staticZip({ "index.html": "<h1>Second release</h1>" }) });
@@ -464,7 +498,7 @@ test("App managers publish a draft while Editors only edit typed data", async ({
   await expect(ownerPage.getByRole("button", { name: "Restore App", exact: true })).toBeEnabled();
   ownerPage.once("dialog", dialog => void dialog.accept());
   await ownerPage.getByRole("button", { name: "Restore App", exact: true }).click();
-  await ownerPage.getByLabel("App status", { exact: true }).selectOption("active");
+  await expect(ownerPage.getByLabel("App status", { exact: true })).toHaveValue("active");
   await expect(ownerPage.getByRole("heading", { name: "Lunch Log", exact: true })).toBeVisible();
 
   await owner.close(); await editor.close(); await viewer.close();

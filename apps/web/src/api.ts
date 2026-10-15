@@ -99,7 +99,7 @@ export const updateRecord = (appId: string, table: string, record: AppRecord, va
 export const deleteRecord = (appId: string, table: string, record: AppRecord) => json("DELETE", `/v1/apps/${id(appId)}/tables/${id(table)}/records/${id(record.id)}`, { expected_row_version: record.row_version });
 
 export type AuditEvent = { event_id: string; release_id: string | null; actor_user_id: string; action: string; details: Record<string, unknown>; created_at: string };
-export type AppRelease = { release_id: string; app_id: string; version: number; manifest_version: number; status: "draft" | "validation_failed" | "published"; entry_file: string | null; file_count: number | null; total_size_bytes: number | null; checksum_sha256: string | null; validation_error_code: string | null; is_current: boolean; created_at: string; published_at: string | null };
+export type AppRelease = { release_id: string; app_id: string; version: number; manifest_version: number; status: "draft" | "validation_failed" | "published"; entry_file: string | null; file_count: number | null; total_size_bytes: number | null; checksum_sha256: string | null; validation_error_code: string | null; is_current: boolean; created_at: string; published_at: string | null; public_url: string | null };
 export type RecordFilter = { field: string; op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "is_null"; value: unknown };
 export type RecordQuery = { search?: string; filter?: RecordFilter | { and: RecordFilter[] }; sort?: Array<{ field: string; direction: "asc" | "desc" }>; limit?: number; cursor?: string };
 export const getApp = (appId: string) => request<{ app: VesselApp }>(`/v1/apps/${id(appId)}`);
@@ -116,3 +116,4 @@ export const uploadAppRelease = (appId: string, releaseId: string, file: File) =
 };
 export const publishAppRelease = (appId: string, releaseId: string) => json<{ release: AppRelease }>("POST", `/v1/apps/${id(appId)}/releases/${id(releaseId)}/publish`);
 export const rollbackAppRelease = (appId: string, releaseId: string) => json<{ release: AppRelease }>("POST", `/v1/apps/${id(appId)}/releases/${id(releaseId)}/rollback`);
+export const launchAppRelease = (appId: string, releaseId: string) => json<{ launch_url: string }>("POST", `/v1/apps/${id(appId)}/releases/${id(releaseId)}/launch`);

@@ -18,6 +18,34 @@ Files has a complete browser console: current-space folders, server-side search,
 
 Run the Files worker with the API environment before uploading: `cd apps/api && PYTHONPATH=src .venv/bin/python -m vessel_service.files.worker`. For a browser OSS test, authorize a narrowly scoped CORS rule for the exact local API Origin, `PUT`, the signed OSS request headers, and expose `ETag` for multipart receipts. The real upload path reports a temporary storage outage or quota/size limit while directory browsing remains available. Files currently use the API limits of 512 MiB per file, 10 GiB per space, 32 folder levels and 30 days of trash retention.
 
+## App publishing
+
+Apps have manager-only Settings and Publish workspaces, plus a role-aware Data workspace. Owners and Admins may change settings and additive schemas, archive or restore Apps, upload a static H5 ZIP, preview its Draft, explicitly publish it, and roll back the current public release. Editors can create and update typed records; Viewers can read them. `PAGES_APP_RELEASE_ORIGIN` defines a separate release zone, and every App runs on its own subdomain within that zone. The console creates a five-minute launch URL bound to the signed-in member, App, and release, then that App's release host exchanges its host-only, path-scoped HttpOnly launch Cookie for an App-only token. A direct public URL remains static-only; Draft archives and preview tickets remain private.
+
+For local development and browser E2E, leave `VESSEL_FILES_OSS_FINAL_BUCKET` and `VESSEL_FILES_OSS_CONFIG_FILE` unset. The API then uses private local storage at `PAGES_APP_RELEASE_STORAGE_PATH` (default `var/app-releases`). Use an isolated PostgreSQL database and a temporary release directory:
+
+```bash
+bash scripts/dev/start-e2e-postgres.sh
+export PAGES_DATABASE_URL='postgresql+psycopg://vessel@127.0.0.1:<printed-port>/vessel_e2e'
+PAGES_ALLOW_REGISTRATION=true \
+PAGES_REFRESH_COOKIE_SECURE=false \
+PAGES_ISSUER_URL='http://api.127.0.0.1.nip.io:52013' \
+PAGES_APP_RELEASE_ORIGIN='http://apps.127.0.0.1.nip.io:52013' \
+PAGES_PORT=52013 \
+PAGES_APP_RELEASE_STORAGE_PATH="$(mktemp -d /private/tmp/vessel-app-releases.XXXXXX)" \
+bash scripts/dev/start-api.sh
+
+VESSEL_E2E_ORIGIN=http://api.127.0.0.1.nip.io:52013 \
+VESSEL_RELEASE_ORIGIN=http://apps.127.0.0.1.nip.io:52013 \
+npm run test:console -- --grep 'App managers publish a draft'
+```
+
+`PAGES_APP_RELEASE_ORIGIN` must be a complete `http` or `https` release-zone origin whose hostname differs from `PAGES_ISSUER_URL`; production requires HTTPS. A release for App `<app_id>` is served from `https://<app_id>.apps.example`, when the configured base is `https://apps.example`. Default ports are normalized, so `https://apps.example:443` is equivalent to `https://apps.example`; non-default ports are preserved. For local browser E2E, `apps.127.0.0.1.nip.io` resolves both the base and `<app_id>.apps.127.0.0.1.nip.io` to loopback. The gateway serves each App's published and preview assets only from that App's host. It permits cross-origin H5 data calls only from that App's exact origin to its own typed record endpoints; `/v1/auth/refresh` rejects browser requests from every release origin.
+
+When `VESSEL_FILES_OSS_FINAL_BUCKET` or `VESSEL_FILES_OSS_CONFIG_FILE` is configured, App releases reuse that read-only OSS connection configuration. Final release objects use immutable `vessel-apps/{app_id}/releases/{version}/` keys; Draft ZIPs use private `vessel-apps/{app_id}/drafts/{release_id}.zip` keys. The configuration must provide an HTTPS endpoint, region, temporary and final buckets, and runtime credentials through a RAM role, environment, or approved config file. Bucket versioning is preferred. An unversioned final bucket requires the explicit `VESSEL_FILES_OSS_ALLOW_UNVERSIONED=true` opt-in and uses OSS forbid-overwrite headers.
+
+Before production deployment, run a ZIP upload, preview, publish, public-asset fetch, and rollback against a dedicated non-production OSS configuration. That live OSS verification has not been performed by this repository's local test suite. Production also requires `PAGES_H5_PREVIEW_SECRET`, `PAGES_APP_RELEASE_ORIGIN` on a separate HTTPS release zone such as `https://apps.memoryon.cloud`, wildcard DNS for `*.apps.memoryon.cloud`, a TLS certificate that covers that wildcard, `PAGES_SIGNING_KEYS_FILE`, HTTPS cookies, and production database configuration; do not point exploratory E2E runs at a production OSS bucket.
+
 The imported configuration still uses the `PAGES_*` prefix. Vessel user sessions use the `vessel-api` audience, `vessel:session` scope and `vessel_refresh` cookie. The old `baizhi-pages-mcp` capability and Agent Platform routes are test-only compatibility code and are not registered by the normal application. See `docs/source-import.md` for the import boundary.
 
 The current identity increment invites existing active Vessel users by `user_id`. Self-registration defaults to disabled and email verification/reset are not implemented; do not enable public registration for production accounts. In a local isolated database, enable registration to exercise the team API. The team endpoints are `GET /v1/spaces`, `GET /v1/spaces/{id}/permissions`, `POST /v1/teams`, `GET /v1/teams/{id}`, `GET /v1/teams/{id}/members`, `GET/POST /v1/teams/{id}/invitations`, `DELETE /v1/teams/{id}/invitations/{invitation_id}`, `GET /v1/team-invitations`, `POST /v1/team-invitations/{id}/accept`, and `PATCH/DELETE /v1/teams/{id}/members/{user_id}`.

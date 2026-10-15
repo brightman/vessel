@@ -74,6 +74,10 @@ def create_draft(session: Session, app: VesselApp, actor: User) -> VesselAppRele
         is_current=False,
     )
     session.add(release)
+    # PostgreSQL can insert the audit row before the pending Release row when
+    # both are flushed at commit time, despite the audit FK pointing at it.
+    # Persist the Release first while retaining a single transaction.
+    session.flush()
     _audit(session, app.app_id, actor.user_id, "release.created", {"version": next_version}, release_id=release_id)
     session.commit()
     return release
@@ -218,6 +222,45 @@ def verify_preview_ticket(settings: Settings, ticket: str, app_id: str, release_
         )
     except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError):
         return False
+
+
+def issue_h5_launch_ticket(settings: Settings, user_id: str, app_id: str, release: VesselAppRelease) -> str:
+    payload = json.dumps({
+        "app_id": app_id,
+        "release_id": release.release_id,
+        "release_version": release.version,
+        "user_id": user_id,
+        "expires_at": int(datetime.now(UTC).timestamp()) + 300,
+    }, sort_keys=True, separators=(",", ":")).encode()
+    encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    signature = hmac.new(_preview_secret(settings), encoded.encode(), hashlib.sha256).digest()
+    return encoded + "." + base64.urlsafe_b64encode(signature).decode().rstrip("=")
+
+
+def verify_h5_launch_ticket(settings: Settings, ticket: str, app_id: str, version: int) -> tuple[str, str] | None:
+    try:
+        encoded, supplied = ticket.split(".")
+        if len(ticket) > 2048:
+            return None
+        expected = hmac.new(_preview_secret(settings), encoded.encode(), hashlib.sha256).digest()
+        actual = base64.urlsafe_b64decode(supplied + "=" * (-len(supplied) % 4))
+        payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        if not (
+            hmac.compare_digest(expected, actual)
+            and set(payload) == {"app_id", "release_id", "release_version", "user_id", "expires_at"}
+            and payload["app_id"] == app_id
+            and type(payload["release_version"]) is int
+            and payload["release_version"] == version
+            and isinstance(payload["release_id"], str)
+            and isinstance(payload["user_id"], str)
+            and bool(payload["user_id"])
+            and type(payload["expires_at"]) is int
+            and payload["expires_at"] > int(datetime.now(UTC).timestamp())
+        ):
+            return None
+        return payload["user_id"], payload["release_id"]
+    except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
 
 
 def draft_asset(storage: AppReleaseStorage, app: VesselApp, release: VesselAppRelease, asset_path: str) -> bytes | None:
