@@ -22,18 +22,22 @@ def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     test_keyring = KeyRing.for_test("test-key")
 
-    def build(*, allow_registration: bool = True) -> Callable[..., httpx.Response]:
+    def build(*, allow_registration: bool = True,
+              configure_application: Callable[[Any], None] | None = None) -> Callable[..., httpx.Response]:
         application = create_app(
             settings=Settings(
                 environment="test",
                 issuer_url="https://pages.test",
                 allow_registration=allow_registration,
                 refresh_cookie_secure=False,
+                app_release_storage_path=tmp_path / "app-releases",
             ),
             engine=engine,
             session_factory=sessions,
             keyring=test_keyring,
         )
+        if configure_application is not None:
+            configure_application(application)
 
         def request(method: str, path: str, **kwargs: Any) -> httpx.Response:
             async def send() -> httpx.Response:

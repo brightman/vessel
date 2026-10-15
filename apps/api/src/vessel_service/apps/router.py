@@ -8,14 +8,18 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import Numeric, and_, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from vessel_service.apps.h5_release import MAX_ZIP_BYTES
 from vessel_service.apps.manifest import ManifestError, check_additive_manifest, normalize_manifest, normalize_record, normalize_value
+from vessel_service.apps.releases import (
+    ReleaseError, create_draft, publish_draft, release_payload, rollback_release, upload_draft,
+)
 from vessel_service.auth.router import get_session
-from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRecord
+from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRecord, VesselAppRelease
 from vessel_service.pages.router import current_user
 from vessel_service.spaces.permissions import space_access
 
@@ -182,6 +186,17 @@ def _audit(session: Session, app_id: str, actor_user_id: str, action: str, detai
         event_id=str(uuid4()), app_id=app_id, actor_user_id=actor_user_id,
         action=action, details_json=details, created_at=datetime.now(UTC),
     ))
+
+
+def _release_storage(request: Request):
+    storage = getattr(request.app.state, "app_release_storage", None)
+    if storage is None:
+        raise HTTPException(status_code=503, detail={"code": "APP_RELEASE_STORAGE_UNAVAILABLE"})
+    return storage
+
+
+def _release_error(error: ReleaseError) -> HTTPException:
+    return HTTPException(status_code=error.status_code, detail={"code": error.code})
 
 
 @router.get("/v1/spaces/{space_id}/apps")
@@ -360,6 +375,60 @@ def list_app_audit_events(app_id: str, limit: int = Query(default=50, ge=1, le=2
         payload = json.dumps({"created_at": last.created_at.isoformat(), "event_id": last.event_id}, separators=(",", ":"))
         next_cursor = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
     return {"events": [_audit_payload(event) for event in current_page], "next_cursor": next_cursor}
+
+
+@router.post("/v1/apps/{app_id}/releases", status_code=201)
+def create_app_release(app_id: str, request: Request,
+                       user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    try:
+        return {"release": release_payload(create_draft(session, app, user))}
+    except ReleaseError as error:
+        raise _release_error(error) from error
+
+
+@router.get("/v1/apps/{app_id}/releases")
+def list_app_releases(app_id: str, user: User = Depends(current_user),
+                      session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id)
+    releases = session.scalars(select(VesselAppRelease).where(
+        VesselAppRelease.app_id == app.app_id,
+    ).order_by(VesselAppRelease.version.desc())).all()
+    return {"releases": [release_payload(release) for release in releases]}
+
+
+@router.post("/v1/apps/{app_id}/releases/{release_id}/upload")
+async def upload_app_release(app_id: str, release_id: str, request: Request,
+                             file: UploadFile = File(...), user: User = Depends(current_user),
+                             session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    archive = await file.read(MAX_ZIP_BYTES + 1)
+    try:
+        release = upload_draft(session, app, release_id, user, _release_storage(request), archive)
+        return {"release": release_payload(release)}
+    except ReleaseError as error:
+        raise _release_error(error) from error
+
+
+@router.post("/v1/apps/{app_id}/releases/{release_id}/publish")
+def publish_app_release(app_id: str, release_id: str, request: Request,
+                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    try:
+        release = publish_draft(session, app, release_id, user, _release_storage(request))
+        return {"release": release_payload(release)}
+    except ReleaseError as error:
+        raise _release_error(error) from error
+
+
+@router.post("/v1/apps/{app_id}/releases/{release_id}/rollback")
+def rollback_app_release(app_id: str, release_id: str,
+                         user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id, write=True, require_manager=True)
+    try:
+        return {"release": release_payload(rollback_release(session, app, release_id, user))}
+    except ReleaseError as error:
+        raise _release_error(error) from error
 
 
 def _insert_record(session: Session, app: VesselApp, table_name: str, fields: dict, values: dict, user: User) -> VesselAppRecord:

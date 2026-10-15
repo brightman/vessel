@@ -81,6 +81,13 @@ def create_app(
         if file_settings.oss_final_bucket or file_settings.oss_config_file
         else None
     )
+    from vessel_service.apps.release_storage import LocalAppReleaseStorage, OSSAppReleaseStorage
+
+    application.state.app_release_storage = (
+        OSSAppReleaseStorage(file_settings)
+        if file_settings.oss_final_bucket or file_settings.oss_config_file
+        else (None if configured.environment == "production" else LocalAppReleaseStorage(configured.app_release_storage_path))
+    )
     if configured.environment == "production":
         application.state.asset_storage = None
     else:

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     refresh_token_ttl_seconds: int = 2_592_000
     page_capability_ttl_seconds: int = 86_400
     asset_storage_path: Path = Path("var/pages-assets")
+    app_release_storage_path: Path = Path("var/app-releases")
     max_asset_upload_bytes: int = 5_242_880
     refresh_cookie_secure: bool = True
     signing_keys_file: Path | None = None

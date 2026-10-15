@@ -109,7 +109,7 @@ Content-Type: application/json
 
 ## 4. Apps：表格存储 API
 
-**资源模型：**一个 App 是一个空间内的表格集合，`app_id` 由 Vessel 生成；Manifest 描述多个表及字段。团队成员默认能读取该 App 下所有表和记录；不沿用 Baizhi Apps 的 `owner_id`/`permission` 逐行可见性、App 用户成员表、Agent grant、H5 发布或 Baizhi 账号体系。App API 已适配源项目的 Manifest 标识符/类型校验、字段值规范化和受控记录操作；数据存入 Vessel 自己的 PostgreSQL。
+**资源模型：**一个 App 是一个空间内的表格集合，`app_id` 由 Vessel 生成；Manifest 描述多个表及字段。团队成员默认能读取该 App 下所有表和记录；不沿用 Baizhi Apps 的 `owner_id`/`permission` 逐行可见性、App 用户成员表、Agent grant 或 Baizhi 账号体系。App API 已适配源项目的 Manifest 标识符/类型校验、字段值规范化、受控记录操作及静态 H5 发布；数据和发布元数据存入 Vessel 自己的 PostgreSQL。
 
 `owner` 与 `admin` 是 App 管理员，可创建 App、更新 App 资料、修改 Manifest、归档、恢复及读取审计事件；`editor` 可管理记录；`viewer` 只读。归档 App 保留 Manifest、记录和后续发布元数据，但只对管理员可见。
 
@@ -178,6 +178,24 @@ Content-Type: application/json
 
 首版 `filter` 只允许单条件或由最多 10 个叶子条件组成的单层 `and`；操作符 `eq|ne|lt|lte|gt|gte|in|is_null`，业务字段必须在 Manifest 中声明，`json` 字段暂不支持筛选或排序，`in` 最多 50 个值。`search` 最长 120 字符，只在当前表声明的 `text` 字段上做大小写不敏感的字面子串匹配，特殊 SQL 通配符按普通文本处理；`search`、`filter` 和 `sort` 共同绑定到游标。排序最多 3 个字段，空值排在最后，再追加 `id` 稳定排序。`bulk-delete` 不能重复 ID；任一行不存在、已删除或版本不匹配时，整批返回 409 `APP_RECORD_VERSION_CONFLICT`，不会删除其他行。禁止任意 SQL、关联查询和跨 App 查询。较大文件导入与复杂查询由后续增量单独冻结 API。
 
+### 4.3 静态 H5 草稿与发布
+
+静态 H5 Release 属于一个 App，由 `owner` 或 `admin` 管理；`editor` 和 `viewer` 可以读取 Release 历史，但不能创建、上传、发布或回滚。一个 Release 有 App 内单调递增的 `version`，在创建时绑定当前 `manifest_version`。修改 Manifest 后，旧草稿不能发布，必须在当前 Schema 下重新建立草稿。
+
+| 方法与路径 | 请求/用途 | 成功响应 |
+| --- | --- | --- |
+| `POST /v1/apps/{app_id}/releases` | 新建 H5 草稿；仅管理员 | 201；`{"release": Release}` |
+| `GET /v1/apps/{app_id}/releases` | 按版本倒序列出 Release；所有可见成员可读 | `{"releases":[Release]}` |
+| `POST /v1/apps/{app_id}/releases/{release_id}/upload` | `multipart/form-data`，字段 `file` 为 ZIP；仅管理员 | `{"release": Release}` |
+| `POST /v1/apps/{app_id}/releases/{release_id}/publish` | 显式发布已校验草稿；仅管理员 | `{"release": Release}` |
+| `POST /v1/apps/{app_id}/releases/{release_id}/rollback` | 将已发布版本设为当前版本；仅管理员 | `{"release": Release}` |
+
+`Release` 包含 `release_id`、`app_id`、`version`、`manifest_version`、`status`、`entry_file`、`file_count`、`total_size_bytes`、`checksum_sha256`、`validation_error_code`、`is_current`、创建和发布时间及操作者。状态为 `draft`、`validation_failed` 或 `published`；任何 App 最多一个 `is_current=true` 的已发布 Release。
+
+上传只接受不超过 50 MiB 的 ZIP。服务端限制解压后最多 200 MiB、2,000 个文件、10 层目录和每文件 10 MiB；只允许 HTML/CSS/JS/JSON、字体、图片和 SVG 等静态资源，拒绝遍历路径、符号链接、可执行文件、环境或密钥文件、`file://` 引用和已知密钥标记。压缩包需要 `index.html` 或 `dist/index.html`；可选 `vessel-app.json` 可声明自身 `app_id`、所需表和 CRUD 操作。验证失败把草稿记录标记为 `validation_failed`，不会改变当前发布版本。
+
+草稿 ZIP 和最终静态对象都保存在私有存储中。最终对象路径固定为 `vessel-apps/{app_id}/releases/{version}/`，不会覆盖已发布版本；重试发布仅接受内容完全相同的已有对象。当前 API 完成草稿、上传、发布和回滚状态机；公开静态读取、预览 URL 与 H5 受限数据 Token 在后续接口增量提供。
+
 ## 5. 典型调用顺序
 
 1. 人类用户在 Vessel 登录，Agent 客户端在其授权下持有 Access Token。`GET /v1/spaces` 选择个人或团队 `space_id`。
@@ -192,8 +210,9 @@ Content-Type: application/json
 | 401 | `AUTHENTICATION_REQUIRED`、`INVALID_ACCESS_TOKEN` | 未登录或 Token 无效 |
 | 403 | `SPACE_PERMISSION_DENIED`、`APP_MANAGER_REQUIRED` | 已是成员，但角色不允许写；或 Editor/Viewer 试图变更 App 资料、Schema 或读取审计日志 |
 | 404 | `SPACE_NOT_FOUND`、`PAGE_NOT_FOUND`、`DIRECTORY_NOT_FOUND`、`APP_NOT_FOUND`、`APP_RECORD_NOT_FOUND` | 不存在或不可见，避免枚举 |
-| 409 | `PAGE_REVISION_CONFLICT`、`APP_SETTINGS_VERSION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT` | 乐观锁冲突 |
-| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID`、`APP_BULK_DELETE_INVALID` | 内容、结构、游标或批量删除请求不符合契约 |
+| 409 | `PAGE_REVISION_CONFLICT`、`APP_SETTINGS_VERSION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT`、`APP_RELEASE_NOT_PUBLISHABLE` | 乐观锁冲突或无效发布状态转换 |
+| 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID`、`APP_BULK_DELETE_INVALID`、`H5_*` | 内容、结构、游标、批量删除请求或静态包不符合契约 |
+| 503 | `APP_RELEASE_STORAGE_UNAVAILABLE` | 当前部署未配置或无法安全访问 App Release 私有存储 |
 
 本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。新 Page Agent 接入、通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
 
