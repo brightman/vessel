@@ -8,6 +8,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from vessel_service.api_docs import API_TAGS, add_api_docs
 from vessel_service.auth.tokens import KeyRing
 from vessel_service.database import create_database_engine
 from vessel_service.settings import Settings
@@ -37,7 +38,14 @@ def create_app(
     if active_keyring is None and configured.environment in {"development", "test"}:
         active_keyring = KeyRing.for_development()
 
-    application = FastAPI(title="Vessel API")
+    application = FastAPI(
+        title="Vessel API",
+        description="Personal and team storage for files, Pages and structured Apps.",
+        docs_url="/swagger",
+        openapi_tags=API_TAGS,
+        swagger_ui_oauth2_redirect_url="/swagger/oauth2-redirect",
+    )
+    add_api_docs(application)
     web_dist = web_dist_path or Path(__file__).resolve().parents[4] / "dist" / "console"
 
     @application.get("/console", include_in_schema=False)
@@ -54,6 +62,15 @@ def create_app(
     application.state.database_engine = database_engine
     application.state.session_factory = database_sessions
     application.state.keyring = active_keyring
+    from vessel_service.files.storage import FilesSettings, OSSStorage
+
+    file_settings = FilesSettings()
+    application.state.file_settings = file_settings
+    application.state.file_storage = (
+        OSSStorage(file_settings)
+        if file_settings.oss_final_bucket or file_settings.oss_config_file
+        else None
+    )
     if configured.environment == "production":
         application.state.asset_storage = None
     else:
@@ -61,11 +78,11 @@ def create_app(
 
         application.state.asset_storage = LocalAssetStorage(configured.asset_storage_path)
 
-    @application.get("/healthz")
+    @application.get("/healthz", tags=["system"])
     async def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
-    @application.get("/readyz")
+    @application.get("/readyz", tags=["system"])
     async def readyz() -> dict[str, str]:
         if database_engine is None:
             raise HTTPException(
@@ -91,7 +108,10 @@ def create_app(
     from vessel_service.spaces.router import router as spaces_router
     from vessel_service.versions.router import router as versions_router
 
-    application.include_router(auth_router)
+    from vessel_service.files.router import router as files_router
+
+    application.include_router(files_router)
+    application.include_router(auth_router, tags=["auth"])
     application.include_router(apps_router)
     application.include_router(assets_router)
     application.include_router(directories_router)

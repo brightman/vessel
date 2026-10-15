@@ -8,9 +8,11 @@ dependencies = [
   "argon2-cffi>=23,<26",
   "fastapi>=0.115,<1",
   "httpx>=0.27,<1",
+  "oss2>=2.19,<3",
   "psycopg[binary]>=3.2,<4",
   "pydantic-settings>=2.5,<3",
   "PyJWT[crypto]>=2.9,<3",
+  "scalar-fastapi>=1.9.1",
   "sqlalchemy>=2.0,<3",
   "uvicorn[standard]>=0.30,<1",
 ]

@@ -12,3 +12,6 @@ from vessel_service.models.space import Space, TeamInvitation, TeamMember
 from vessel_service.models.user import User, UserCredential
 
 __all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "PageDirectory", "PageProposal", "PageVersion", "RefreshSession", "Space", "TeamInvitation", "TeamMember", "User", "UserCredential", "VesselApp", "VesselAppRecord"]
+
+# Register the independent file domain for migrations and metadata creation.
+from vessel_service.files import models as _file_models
