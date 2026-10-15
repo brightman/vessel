@@ -3,12 +3,15 @@
 import base64
 import hashlib
 import json
+import mimetypes
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import Numeric, and_, cast, func, or_, select, update
 from sqlalchemy.orm import Session
@@ -16,11 +19,14 @@ from sqlalchemy.orm import Session
 from vessel_service.apps.h5_release import MAX_ZIP_BYTES
 from vessel_service.apps.manifest import ManifestError, check_additive_manifest, normalize_manifest, normalize_record, normalize_value
 from vessel_service.apps.releases import (
-    ReleaseError, create_draft, publish_draft, release_payload, rollback_release, upload_draft,
+    ReleaseError, create_draft, draft_asset, issue_preview_ticket, publish_draft, release_payload, rollback_release, upload_draft, verify_preview_ticket,
 )
-from vessel_service.auth.router import get_session
+from vessel_service.apps.release_storage import AppReleaseStorageError
+from vessel_service.auth.router import bearer, get_keyring, get_session, get_settings, refresh_session_user
+from vessel_service.auth.tokens import KeyRing
 from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRecord, VesselAppRelease
 from vessel_service.pages.router import current_user
+from vessel_service.settings import Settings
 from vessel_service.spaces.permissions import space_access
 
 router = APIRouter(tags=["apps"])
@@ -76,6 +82,10 @@ class SettingsVersionRequest(BaseModel):
     expected_settings_version: int = Field(ge=1)
 
 
+class H5SessionRequest(BaseModel):
+    release_version: int = Field(ge=1)
+
+
 class RecordCreate(BaseModel):
     values: dict[str, Any]
 
@@ -120,6 +130,29 @@ class RecordQuery(BaseModel):
 
 def _invalid(error: ManifestError) -> HTTPException:
     return HTTPException(status_code=422, detail={"code": error.code})
+
+
+def current_app_user(
+    app_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    settings: Settings = Depends(get_settings),
+    keyring: KeyRing = Depends(get_keyring),
+    session: Session = Depends(get_session),
+) -> User:
+    if not credentials:
+        raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_REQUIRED"})
+    token = credentials.credentials
+    claims = keyring.verify(token, issuer=settings.issuer_url, audience="vessel-api", required_scope="vessel:session")
+    if claims is None:
+        claims = keyring.verify(token, issuer=settings.issuer_url, audience="vessel-app-h5", required_scope="vessel:app-h5")
+        if claims is None:
+            raise HTTPException(status_code=401, detail={"code": "INVALID_ACCESS_TOKEN"})
+        if claims.get("app_id") != app_id or type(claims.get("release_version")) is not int:
+            raise HTTPException(status_code=404, detail={"code": "APP_NOT_FOUND"})
+    user = session.get(User, claims["sub"])
+    if not user or user.status != "active":
+        raise HTTPException(status_code=401, detail={"code": "INVALID_ACCESS_TOKEN"})
+    return user
 
 
 def _app(
@@ -377,6 +410,79 @@ def list_app_audit_events(app_id: str, limit: int = Query(default=50, ge=1, le=2
     return {"events": [_audit_payload(event) for event in current_page], "next_cursor": next_cursor}
 
 
+@router.post("/v1/apps/{app_id}/h5/session")
+def create_h5_session(app_id: str, payload: H5SessionRequest, user: User = Depends(refresh_session_user),
+                      settings: Settings = Depends(get_settings), keyring: KeyRing = Depends(get_keyring),
+                      session: Session = Depends(get_session)) -> dict:
+    app = _app(session, user, app_id)
+    release = session.scalar(select(VesselAppRelease).where(
+        VesselAppRelease.app_id == app.app_id, VesselAppRelease.version == payload.release_version,
+        VesselAppRelease.status == "published",
+    ))
+    if release is None:
+        raise HTTPException(status_code=404, detail={"code": "APP_RELEASE_NOT_FOUND"})
+    return {
+        "access_token": keyring.issue(
+            subject=user.user_id,
+            issuer=settings.issuer_url,
+            audience="vessel-app-h5",
+            scope="vessel:app-h5",
+            lifetime_seconds=300,
+            additional_claims={"app_id": app.app_id, "release_version": release.version},
+        ),
+        "token_type": "bearer",
+        "expires_in": 300,
+    }
+
+
+@router.get("/v1/apps/{app_id}/releases/{release_id}/preview/{asset_path:path}", include_in_schema=False)
+def preview_release_asset(app_id: str, release_id: str, request: Request, asset_path: str,
+                          ticket: str = Query(min_length=1, max_length=2048), settings: Settings = Depends(get_settings),
+                          session: Session = Depends(get_session)) -> Response:
+    if not verify_preview_ticket(settings, ticket, app_id, release_id):
+        raise HTTPException(status_code=401, detail={"code": "APP_PREVIEW_TICKET_INVALID"})
+    release = session.scalar(select(VesselAppRelease).where(
+        VesselAppRelease.release_id == release_id, VesselAppRelease.app_id == app_id,
+    ))
+    app = session.get(VesselApp, app_id)
+    if release is None or app is None:
+        raise HTTPException(status_code=404, detail={"code": "APP_RELEASE_NOT_FOUND"})
+    try:
+        content = draft_asset(_release_storage(request), app, release, asset_path)
+    except ReleaseError as error:
+        raise _release_error(error) from error
+    if content is None:
+        raise HTTPException(status_code=404, detail={"code": "APP_RELEASE_ASSET_NOT_FOUND"})
+    return Response(content, media_type=mimetypes.guess_type(asset_path)[0] or "application/octet-stream", headers={
+        "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+    })
+
+
+@router.get("/apps/{app_id}/releases/{version}/{asset_path:path}", include_in_schema=False)
+def published_release_asset(app_id: str, version: int, asset_path: str, request: Request,
+                            session: Session = Depends(get_session)) -> Response:
+    release = session.scalar(select(VesselAppRelease).where(
+        VesselAppRelease.app_id == app_id, VesselAppRelease.version == version,
+        VesselAppRelease.status == "published",
+    ))
+    if release is None:
+        raise HTTPException(status_code=404, detail={"code": "APP_RELEASE_NOT_FOUND"})
+    storage = _release_storage(request)
+    try:
+        content = storage.get_published(release.object_prefix, asset_path)
+        if content is None and not Path(asset_path).suffix and release.entry_file:
+            content = storage.get_published(release.object_prefix, release.entry_file)
+    except AppReleaseStorageError as error:
+        raise HTTPException(status_code=503, detail={"code": error.code}) from None
+    if content is None:
+        raise HTTPException(status_code=404, detail={"code": "APP_RELEASE_ASSET_NOT_FOUND"})
+    media_type = mimetypes.guess_type(asset_path)[0] or "application/octet-stream"
+    return Response(content, media_type=media_type, headers={
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
 @router.post("/v1/apps/{app_id}/releases", status_code=201)
 def create_app_release(app_id: str, request: Request,
                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
@@ -405,7 +511,12 @@ async def upload_app_release(app_id: str, release_id: str, request: Request,
     archive = await file.read(MAX_ZIP_BYTES + 1)
     try:
         release = upload_draft(session, app, release_id, user, _release_storage(request), archive)
-        return {"release": release_payload(release)}
+        payload = {"release": release_payload(release), "preview_url": None}
+        if release.status == "draft" and release.entry_file:
+            ticket = issue_preview_ticket(get_settings(request), app.app_id, release.release_id)
+            preview = request.url_for("preview_release_asset", app_id=app.app_id, release_id=release.release_id, asset_path=release.entry_file)
+            payload["preview_url"] = f"{preview}?ticket={ticket}"
+        return payload
     except ReleaseError as error:
         raise _release_error(error) from error
 
@@ -446,7 +557,7 @@ def _insert_record(session: Session, app: VesselApp, table_name: str, fields: di
 
 @router.post("/v1/apps/{app_id}/tables/{table_name}/records", status_code=201)
 def create_record(app_id: str, table_name: str, payload: RecordCreate,
-                  user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                  user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id, write=True)
     row = _insert_record(session, app, table_name, _fields(app, table_name), payload.values, user)
     session.commit()
@@ -455,7 +566,7 @@ def create_record(app_id: str, table_name: str, payload: RecordCreate,
 
 @router.post("/v1/apps/{app_id}/tables/{table_name}/records/bulk", status_code=201)
 def create_records_bulk(app_id: str, table_name: str, payload: BulkCreate,
-                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                        user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id, write=True)
     fields = _fields(app, table_name)
     rows = [_insert_record(session, app, table_name, fields, item.values, user) for item in payload.records]
@@ -626,19 +737,19 @@ def _records_page(session: Session, app: VesselApp, table_name: str, query: Reco
 
 @router.get("/v1/apps/{app_id}/tables/{table_name}/records")
 def list_records(app_id: str, table_name: str, limit: int = Query(default=50, ge=1, le=200), cursor: str | None = None,
-                 user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                 user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     return _records_page(session, _app(session, user, app_id), table_name, RecordQuery(limit=limit, cursor=cursor))
 
 
 @router.post("/v1/apps/{app_id}/tables/{table_name}/records/query")
 def query_records(app_id: str, table_name: str, payload: RecordQuery,
-                  user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                  user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     return _records_page(session, _app(session, user, app_id), table_name, payload)
 
 
 @router.post("/v1/apps/{app_id}/tables/{table_name}/records/bulk-delete")
 def bulk_delete_records(app_id: str, table_name: str, payload: BulkDeleteRequest,
-                        user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                        user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id, write=True)
     _fields(app, table_name)
     if len({record.id for record in payload.records}) != len(payload.records):
@@ -668,7 +779,7 @@ def bulk_delete_records(app_id: str, table_name: str, payload: BulkDeleteRequest
 
 @router.get("/v1/apps/{app_id}/tables/{table_name}/records/{record_id}")
 def get_record(app_id: str, table_name: str, record_id: str,
-               user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+               user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id)
     _fields(app, table_name)
     return {"record": _row_payload(_row(session, app, table_name, record_id))}
@@ -676,7 +787,7 @@ def get_record(app_id: str, table_name: str, record_id: str,
 
 @router.patch("/v1/apps/{app_id}/tables/{table_name}/records/{record_id}")
 def update_record(app_id: str, table_name: str, record_id: str, payload: RecordUpdate,
-                  user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                  user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id, write=True)
     fields = _fields(app, table_name)
     row = _row(session, app, table_name, record_id)
@@ -701,7 +812,7 @@ def update_record(app_id: str, table_name: str, record_id: str, payload: RecordU
 
 @router.delete("/v1/apps/{app_id}/tables/{table_name}/records/{record_id}", status_code=204)
 def delete_record(app_id: str, table_name: str, record_id: str, payload: VersionRequest,
-                  user: User = Depends(current_user), session: Session = Depends(get_session)) -> Response:
+                  user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> Response:
     app = _app(session, user, app_id, write=True)
     _fields(app, table_name)
     _row(session, app, table_name, record_id)
@@ -721,7 +832,7 @@ def delete_record(app_id: str, table_name: str, record_id: str, payload: Version
 
 @router.post("/v1/apps/{app_id}/tables/{table_name}/records/{record_id}/restore")
 def restore_record(app_id: str, table_name: str, record_id: str, payload: VersionRequest,
-                   user: User = Depends(current_user), session: Session = Depends(get_session)) -> dict:
+                   user: User = Depends(current_app_user), session: Session = Depends(get_session)) -> dict:
     app = _app(session, user, app_id, write=True)
     _fields(app, table_name)
     row = _row(session, app, table_name, record_id, deleted=True)

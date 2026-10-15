@@ -92,7 +92,7 @@ def _set_refresh_cookie(
         key=REFRESH_COOKIE_NAME,
         value=raw_token,
         max_age=settings.refresh_token_ttl_seconds,
-        path="/v1/auth",
+        path="/",
         secure=settings.refresh_cookie_secure,
         httponly=True,
         samesite="lax",
@@ -111,6 +111,28 @@ def _create_refresh_session(session: Session, user: User, settings: Settings) ->
         )
     )
     return raw_token
+
+
+def _refresh_principal(request: Request, session: Session) -> tuple[User, RefreshSession]:
+    raw_token = request.cookies.get(REFRESH_COOKIE_NAME)
+    if not raw_token:
+        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    current = session.scalar(select(RefreshSession).where(RefreshSession.token_hash == token_hash))
+    now = datetime.now(UTC)
+    if not current or current.revoked_at or _as_utc(current.expires_at) <= now:
+        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
+    user = session.get(User, current.user_id)
+    if not user or user.status != "active":
+        current.revoked_at = now
+        session.commit()
+        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
+    return user, current
+
+
+def refresh_session_user(request: Request, session: Session = Depends(get_session)) -> User:
+    """Authenticate a refresh cookie without rotating or exposing it."""
+    return _refresh_principal(request, session)[0]
 
 
 def _auth_response(
@@ -194,22 +216,8 @@ def refresh(
     keyring: KeyRing = Depends(get_keyring),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
-    raw_token = request.cookies.get(REFRESH_COOKIE_NAME)
-    if not raw_token:
-        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
-    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-    current = session.scalar(
-        select(RefreshSession).where(RefreshSession.token_hash == token_hash)
-    )
-    now = datetime.now(UTC)
-    if not current or current.revoked_at or _as_utc(current.expires_at) <= now:
-        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
-    user = session.get(User, current.user_id)
-    if not user or user.status != "active":
-        current.revoked_at = now
-        session.commit()
-        raise HTTPException(status_code=401, detail={"code": "INVALID_REFRESH_TOKEN"})
-    current.revoked_at = now
+    user, current = _refresh_principal(request, session)
+    current.revoked_at = datetime.now(UTC)
     return _auth_response(user, session, response, settings, keyring)
 
 
@@ -231,7 +239,7 @@ def logout(
     cleared = Response(status_code=204)
     cleared.delete_cookie(
         key=REFRESH_COOKIE_NAME,
-        path="/v1/auth",
+        path="/",
         secure=settings.refresh_cookie_secure,
         httponly=True,
         samesite="lax",

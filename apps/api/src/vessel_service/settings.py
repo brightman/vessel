@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     page_capability_ttl_seconds: int = 86_400
     asset_storage_path: Path = Path("var/pages-assets")
     app_release_storage_path: Path = Path("var/app-releases")
+    h5_preview_secret: str | None = None
     max_asset_upload_bytes: int = 5_242_880
     refresh_cookie_secure: bool = True
     signing_keys_file: Path | None = None
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
                 raise ValueError("PAGES_SIGNING_KEYS_FILE is required in production")
             if not self.refresh_cookie_secure:
                 raise ValueError("PAGES_REFRESH_COOKIE_SECURE must be true in production")
+            if not self.h5_preview_secret:
+                raise ValueError("PAGES_H5_PREVIEW_SECRET is required in production")
         if (
             self.access_token_ttl_seconds < 60
             or self.refresh_token_ttl_seconds < 300

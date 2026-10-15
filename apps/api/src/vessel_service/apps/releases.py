@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import tempfile
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from sqlalchemy import select, update
@@ -13,6 +17,7 @@ from sqlalchemy.orm import Session
 from vessel_service.apps.h5_release import H5PackageValidator, cleanup_h5_package
 from vessel_service.apps.release_storage import AppReleaseStorage, AppReleaseStorageError
 from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRelease
+from vessel_service.settings import Settings
 
 
 class ReleaseError(RuntimeError):
@@ -115,6 +120,8 @@ def upload_draft(session: Session, app: VesselApp, release_id: str, actor: User,
         return release
     except AppReleaseStorageError as error:
         raise ReleaseError(error.code, status_code=503) from None
+    except ValueError:
+        raise ReleaseError("APP_RELEASE_NOT_PUBLISHABLE") from None
     finally:
         cleanup_h5_package(package)
     release.status = "draft"
@@ -143,6 +150,8 @@ def publish_draft(session: Session, app: VesselApp, release_id: str, actor: User
         storage.publish_tree(release.object_prefix, package)
     except AppReleaseStorageError as error:
         raise ReleaseError(error.code, status_code=503) from None
+    except ValueError:
+        raise ReleaseError("APP_RELEASE_NOT_PUBLISHABLE") from None
     finally:
         cleanup_h5_package(package)
     now = datetime.now(UTC)
@@ -175,3 +184,60 @@ def rollback_release(session: Session, app: VesselApp, release_id: str, actor: U
     _audit(session, app.app_id, actor.user_id, "release.rolled_back", {"version": release.version}, release_id=release.release_id)
     session.commit()
     return release
+
+
+def _preview_secret(settings: Settings) -> bytes:
+    return (settings.h5_preview_secret or f"{settings.issuer_url}|development-preview-ticket").encode()
+
+
+def issue_preview_ticket(settings: Settings, app_id: str, release_id: str) -> str:
+    payload = json.dumps({
+        "app_id": app_id, "release_id": release_id,
+        "expires_at": int(datetime.now(UTC).timestamp()) + 600,
+    }, sort_keys=True, separators=(",", ":")).encode()
+    encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    signature = hmac.new(_preview_secret(settings), encoded.encode(), hashlib.sha256).digest()
+    return encoded + "." + base64.urlsafe_b64encode(signature).decode().rstrip("=")
+
+
+def verify_preview_ticket(settings: Settings, ticket: str, app_id: str, release_id: str) -> bool:
+    try:
+        encoded, supplied = ticket.split(".")
+        if len(ticket) > 2048:
+            return False
+        expected = hmac.new(_preview_secret(settings), encoded.encode(), hashlib.sha256).digest()
+        actual = base64.urlsafe_b64decode(supplied + "=" * (-len(supplied) % 4))
+        payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        return (
+            hmac.compare_digest(expected, actual)
+            and set(payload) == {"app_id", "release_id", "expires_at"}
+            and payload["app_id"] == app_id
+            and payload["release_id"] == release_id
+            and type(payload["expires_at"]) is int
+            and payload["expires_at"] > int(datetime.now(UTC).timestamp())
+        )
+    except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+
+
+def draft_asset(storage: AppReleaseStorage, app: VesselApp, release: VesselAppRelease, asset_path: str) -> bytes | None:
+    if release.status != "draft" or not release.checksum_sha256:
+        raise ReleaseError("APP_RELEASE_NOT_FOUND", status_code=404)
+    path = PurePosixPath(asset_path)
+    if not asset_path or path.is_absolute() or ".." in path.parts or any(part in {"", "."} for part in path.parts):
+        return None
+    package = None
+    try:
+        package = _validate_archive(storage.get_draft(release.draft_object_key), app)
+        if package.checksum_sha256 != release.checksum_sha256:
+            raise ReleaseError("APP_RELEASE_NOT_PUBLISHABLE")
+        target = (package.root / path.as_posix()).resolve()
+        if not target.is_relative_to(package.root.resolve()) or not target.is_file():
+            if path.suffix or not release.entry_file:
+                return None
+            target = package.root / release.entry_file
+        return target.read_bytes()
+    except AppReleaseStorageError as error:
+        raise ReleaseError(error.code, status_code=503) from None
+    finally:
+        cleanup_h5_package(package)

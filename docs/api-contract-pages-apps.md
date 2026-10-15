@@ -186,15 +186,20 @@ Content-Type: application/json
 | --- | --- | --- |
 | `POST /v1/apps/{app_id}/releases` | 新建 H5 草稿；仅管理员 | 201；`{"release": Release}` |
 | `GET /v1/apps/{app_id}/releases` | 按版本倒序列出 Release；所有可见成员可读 | `{"releases":[Release]}` |
-| `POST /v1/apps/{app_id}/releases/{release_id}/upload` | `multipart/form-data`，字段 `file` 为 ZIP；仅管理员 | `{"release": Release}` |
+| `POST /v1/apps/{app_id}/releases/{release_id}/upload` | `multipart/form-data`，字段 `file` 为 ZIP；仅管理员 | `{"release": Release,"preview_url":string|null}` |
 | `POST /v1/apps/{app_id}/releases/{release_id}/publish` | 显式发布已校验草稿；仅管理员 | `{"release": Release}` |
 | `POST /v1/apps/{app_id}/releases/{release_id}/rollback` | 将已发布版本设为当前版本；仅管理员 | `{"release": Release}` |
+| `GET /v1/apps/{app_id}/releases/{release_id}/preview/{path}?ticket=...` | 十分钟草稿预览票据；不需要 Access Token | 静态字节；未命中带扩展名的资源返回 404 |
+| `POST /v1/apps/{app_id}/h5/session` | 刷新 Cookie 和 `{"release_version":1}` | `{"access_token":...,"expires_in":300}` |
+| `GET /apps/{app_id}/releases/{version}/{path}` | 已发布静态资源；公开只读 | 静态字节；不可变缓存 |
 
 `Release` 包含 `release_id`、`app_id`、`version`、`manifest_version`、`status`、`entry_file`、`file_count`、`total_size_bytes`、`checksum_sha256`、`validation_error_code`、`is_current`、创建和发布时间及操作者。状态为 `draft`、`validation_failed` 或 `published`；任何 App 最多一个 `is_current=true` 的已发布 Release。
 
 上传只接受不超过 50 MiB 的 ZIP。服务端限制解压后最多 200 MiB、2,000 个文件、10 层目录和每文件 10 MiB；只允许 HTML/CSS/JS/JSON、字体、图片和 SVG 等静态资源，拒绝遍历路径、符号链接、可执行文件、环境或密钥文件、`file://` 引用和已知密钥标记。压缩包需要 `index.html` 或 `dist/index.html`；可选 `vessel-app.json` 可声明自身 `app_id`、所需表和 CRUD 操作。验证失败把草稿记录标记为 `validation_failed`，不会改变当前发布版本。
 
-草稿 ZIP 和最终静态对象都保存在私有存储中。最终对象路径固定为 `vessel-apps/{app_id}/releases/{version}/`，不会覆盖已发布版本；重试发布仅接受内容完全相同的已有对象。当前 API 完成草稿、上传、发布和回滚状态机；公开静态读取、预览 URL 与 H5 受限数据 Token 在后续接口增量提供。
+草稿 ZIP 和最终静态对象都保存在私有存储中。最终对象路径固定为 `vessel-apps/{app_id}/releases/{version}/`，不会覆盖已发布版本；重试发布仅接受内容完全相同的已有对象。上传成功后服务端返回十分钟有效的草稿预览 URL；票据不落库、不写审计日志，篡改或过期返回 401。公开路径只读取 `published` Release 的静态字节，缺少带扩展名的资源不回退到 HTML，扩展名为空的客户端路由才回退到入口 HTML；响应带 `X-Content-Type-Options: nosniff` 和一年不可变缓存。
+
+H5 页面可通过刷新 Cookie 向 `/v1/apps/{app_id}/h5/session` 交换五分钟 App 专属 Token。该 Token 的 `aud=vessel-app-h5`、`scope=vessel:app-h5`、`app_id` 和 `release_version` 都由服务端签发；它只可调用同一 `app_id` 的记录接口，并在每次请求时重新检查当前空间成员角色。它不能读取另一个 App、Pages、Files、团队配置、App Settings 或发布接口。生产环境必须设置 `PAGES_H5_PREVIEW_SECRET`；刷新 Cookie 的路径为 `/`，使浏览器能在 H5 Session 端点发送它，但 Cookie 始终为 `HttpOnly` 且按环境强制 `Secure`。
 
 ## 5. 典型调用顺序
 
@@ -207,7 +212,7 @@ Content-Type: application/json
 
 | HTTP | 典型 code | 含义 |
 | --- | --- | --- |
-| 401 | `AUTHENTICATION_REQUIRED`、`INVALID_ACCESS_TOKEN` | 未登录或 Token 无效 |
+| 401 | `AUTHENTICATION_REQUIRED`、`INVALID_ACCESS_TOKEN`、`INVALID_REFRESH_TOKEN`、`APP_PREVIEW_TICKET_INVALID` | 未登录、Access/刷新 Cookie 或草稿预览票据无效 |
 | 403 | `SPACE_PERMISSION_DENIED`、`APP_MANAGER_REQUIRED` | 已是成员，但角色不允许写；或 Editor/Viewer 试图变更 App 资料、Schema 或读取审计日志 |
 | 404 | `SPACE_NOT_FOUND`、`PAGE_NOT_FOUND`、`DIRECTORY_NOT_FOUND`、`APP_NOT_FOUND`、`APP_RECORD_NOT_FOUND` | 不存在或不可见，避免枚举 |
 | 409 | `PAGE_REVISION_CONFLICT`、`APP_SETTINGS_VERSION_CONFLICT`、`APP_MANIFEST_VERSION_CONFLICT`、`APP_RECORD_VERSION_CONFLICT`、`APP_RELEASE_NOT_PUBLISHABLE` | 乐观锁冲突或无效发布状态转换 |
