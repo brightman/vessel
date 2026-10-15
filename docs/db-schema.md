@@ -1,6 +1,6 @@
 # Vessel 数据库 Schema
 
-状态：身份与团队由 `0007_spaces_and_team_permissions` 实现；Pages/Apps 空间资源由 `0008_space_resources` 实现。以迁移和模型为最终执行依据。日期：2026-10-14。
+状态：身份与团队由 `0007_spaces_and_team_permissions` 实现；Pages/Apps 空间资源由 `0008_space_resources` 实现；App 设置、发布版本和审计事件由 `0010_app_management_publishing` 实现。以迁移和模型为最终执行依据。日期：2026-10-15。
 
 ## 1. 数据库边界
 
@@ -19,6 +19,8 @@ erDiagram
   spaces ||--o{ page_directories : contains
   spaces ||--o{ vessel_apps : contains
   vessel_apps ||--o{ vessel_app_records : stores
+  vessel_apps ||--o{ vessel_app_releases : publishes
+  vessel_apps ||--o{ vessel_app_audit_events : audits
   pages ||--o{ page_versions : versions
   pages ||--o{ page_proposals : proposals
 ```
@@ -83,8 +85,10 @@ erDiagram
 
 | 表 | 列与索引 |
 | --- | --- |
-| `vessel_apps` | `app_id varchar(36) PK`, `space_id varchar(36) FK spaces`, `name varchar(120)`, `manifest_json jsonb`, `manifest_version integer`, `status varchar(16)`, `created_by/updated_by varchar(36) FK users`, `created_at/updated_at timestamptz`; 索引 `(space_id,status)` |
+| `vessel_apps` | `app_id varchar(36) PK`, `space_id varchar(36) FK spaces`, `name varchar(120)`, `description varchar(2000)`, `manifest_json jsonb`, `manifest_version integer`, `settings_version integer`, `status varchar(16)`, `created_by/updated_by/archived_by varchar(36) FK users`, `archived_at timestamptz?`, `created_at/updated_at timestamptz`; 索引 `(space_id,status)` |
 | `vessel_app_records` | `record_id varchar(36) PK`, `app_id varchar(36) FK vessel_apps`, `table_name varchar(63)`, `values_json jsonb`, `row_version integer`, `created_by/updated_by varchar(36) FK users`, `deleted_at timestamptz?`, `created_at/updated_at timestamptz`; 索引 `(app_id,table_name,deleted_at,created_at,record_id)` |
+| `vessel_app_releases` | `release_id varchar(36) PK`, `app_id varchar(36) FK vessel_apps`, `version integer`, `manifest_version integer`, `status varchar(32)`, `entry_file varchar(512)?`, `object_prefix/draft_object_key varchar(512) UNIQUE`, `file_count integer?`, `total_size_bytes bigint?`, `checksum_sha256 varchar(64)?`, `validation_error_code varchar(128)?`, `created_by/published_by varchar(36) FK users`, `created_at/published_at timestamptz?`, `is_current boolean`; `(app_id,version)` 唯一，且每个 App 最多一个 current 的 published release |
+| `vessel_app_audit_events` | `event_id varchar(36) PK`, `app_id varchar(36) FK vessel_apps`, `release_id varchar(36)? FK vessel_app_releases`, `actor_user_id varchar(36) FK users`, `action varchar(64)`, `details_json jsonb`, `created_at timestamptz`; 索引 `(app_id,created_at,event_id)` |
 
 Manifest 字段值以 Baizhi Apps 的标识符、类型和规范化规则为起点，使用当前 Manifest 做白名单验证；Vessel 首版将记录存于 JSONB，不创建每个 App 的物理业务表。该选择使新增表/可空字段与 Manifest 版本在单事务提交。大规模表格、专用索引与跨表关系需重新评估物理表方案。团队角色管整张 App，不沿用 Baizhi 的逐行 `owner_id/permission`。
 
@@ -94,7 +98,7 @@ Manifest 字段值以 Baizhi Apps 的标识符、类型和规范化规则为起�
 
 ## 5. 迁移与验收
 
-迁移顺序：`0001`–`0006` 基线 → `0007` 个人/团队空间 → `0008` Pages/Apps 资源。Vessel 本增量按全新数据库部署；`0008` 检查 Page 与目录为空，非空则失败，不回填或重新归属历史 Page。生产恢复依靠数据库备份。
+迁移顺序：`0001`–`0006` 基线 → `0007` 个人/团队空间 → `0008` Pages/Apps 资源 → `0009` 文件元数据 → `0010` App 设置、发布版本和审计。Vessel 本增量按全新数据库部署；`0008` 检查 Page 与目录为空，非空则失败，不回填或重新归属历史 Page。生产恢复依靠数据库备份。
 
 验收覆盖：新用户只有一个个人空间；创建团队后自动成为 Owner；邀请、接受、角色变更和撤权；最后 Owner 保护；非成员不可枚举；Page/Apps 资源的角色读写与跨空间隔离；隔离 PostgreSQL 上的真实 HTTP 用户路径。专项与核心测试合计不超过 100 例。
 
