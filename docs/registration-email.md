@@ -4,15 +4,16 @@ Self-registration requires an emailed code before account, personal space and re
 
 ## Configuration
 
-Local secrets go in Git-ignored, owner-only `apps/api/.env.brevo`. `scripts/dev/start-api.sh` loads it with uv's dotenv support; process environment values take precedence. Use an absolute `PAGES_BREVO_CONFIG_FILE` for another file, or an empty string to disable local loading. A missing explicitly named file fails startup. Other deployments must inject the same server environment; never expose these values in Vite.
+Local secrets go in Git-ignored, owner-only `apps/api/.env`. `scripts/dev/start-api.sh` loads it with uv's dotenv support; process environment values take precedence. Set `BREVO_CONFIG_FILE` to select another env file, or to an empty string to disable local file loading. A missing explicitly named file fails startup. Other deployments must inject the same server environment; never expose these values in Vite.
 
 ```dotenv
-PAGES_BREVO_API_KEY='your-Brevo-API-key'
-PAGES_BREVO_SENDER_EMAIL='hello@karama.cloud'
-PAGES_BREVO_SENDER_NAME='Memory on Cloud'
-PAGES_REGISTRATION_CODE_SECRET='stable-random-secret-of-at-least-32-characters'
-PAGES_REGISTRATION_EMAIL_VERIFICATION_REQUIRED=true
-PAGES_REGISTRATION_EMAIL_DAILY_LIMIT=300
+BREVO_API_KEY='your-Brevo-API-key'
+BREVO_SENDER_EMAIL='hello@karama.cloud'
+BREVO_SENDER_NAME='Karama'
+BREVO_TIMEOUT_SECONDS=10
+REGISTRATION_CODE_SECRET='stable-random-secret-of-at-least-32-characters'
+REGISTRATION_EMAIL_VERIFICATION_REQUIRED=true
+REGISTRATION_EMAIL_DAILY_LIMIT=300
 ```
 
 Use a key from Brevo **SMTP & API → API Keys**, not SMTP Keys. Authorize the sender and authenticate its domain. If Brevo rejects an unknown caller IP, authorize the actual API server egress IP in **Settings → Security → Authorized IPs**. Test and production egress IPs can differ; keep IP security enabled.

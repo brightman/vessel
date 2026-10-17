@@ -7,12 +7,12 @@ if [[ -z "${PAGES_DATABASE_URL:-}" ]]; then
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-brevo_config="${PAGES_BREVO_CONFIG_FILE-$repo_root/apps/api/.env.brevo}"
+brevo_config="${BREVO_CONFIG_FILE-$repo_root/apps/api/.env}"
 env_args=()
 if [[ -n "$brevo_config" && -f "$brevo_config" ]]; then
   env_args=(--env-file "$brevo_config")
-elif [[ -n "${PAGES_BREVO_CONFIG_FILE:-}" ]]; then
-  echo "PAGES_BREVO_CONFIG_FILE does not exist." >&2
+elif [[ -n "${BREVO_CONFIG_FILE:-}" ]]; then
+  echo "BREVO_CONFIG_FILE does not exist." >&2
   exit 2
 fi
 

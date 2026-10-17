@@ -15,13 +15,21 @@ class Settings(BaseSettings):
     database_url: str | None = None
     issuer_url: str = "http://127.0.0.1:52003"
     allow_registration: bool = False
-    registration_email_verification_required: bool = True
-    registration_code_secret: SecretStr | None = None
-    registration_email_daily_limit: int = Field(default=300, ge=1, le=300)
-    brevo_api_key: SecretStr | None = None
-    brevo_sender_email: str = ""
-    brevo_sender_name: str = "Memory on Cloud"
-    brevo_timeout_seconds: float = Field(default=10.0, gt=0, le=30)
+    registration_email_verification_required: bool = Field(
+        default=True, validation_alias="REGISTRATION_EMAIL_VERIFICATION_REQUIRED"
+    )
+    registration_code_secret: SecretStr | None = Field(
+        default=None, validation_alias="REGISTRATION_CODE_SECRET"
+    )
+    registration_email_daily_limit: int = Field(
+        default=300, ge=1, le=300, validation_alias="REGISTRATION_EMAIL_DAILY_LIMIT"
+    )
+    brevo_api_key: SecretStr | None = Field(default=None, validation_alias="BREVO_API_KEY")
+    brevo_sender_email: str = Field(default="", validation_alias="BREVO_SENDER_EMAIL")
+    brevo_sender_name: str = Field(default="Karama", validation_alias="BREVO_SENDER_NAME")
+    brevo_timeout_seconds: float = Field(
+        default=10.0, gt=0, le=30, validation_alias="BREVO_TIMEOUT_SECONDS"
+    )
     access_token_ttl_seconds: int = 900
     refresh_token_ttl_seconds: int = 2_592_000
     page_capability_ttl_seconds: int = 86_400

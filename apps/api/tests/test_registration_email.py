@@ -204,6 +204,53 @@ def test_configuration_masks_secrets_and_prevents_production_bypass():
     assert SECRET not in repr(Settings(registration_code_secret=SecretStr(SECRET)))
 
 
+def test_email_settings_accept_unprefixed_names(monkeypatch):
+    unprefixed = {
+        "BREVO_API_KEY": "unprefixed-api-key",
+        "BREVO_SENDER_EMAIL": "sender@example.test",
+        "BREVO_SENDER_NAME": "Karama",
+        "BREVO_TIMEOUT_SECONDS": "12",
+        "REGISTRATION_CODE_SECRET": SECRET,
+        "REGISTRATION_EMAIL_VERIFICATION_REQUIRED": "false",
+        "REGISTRATION_EMAIL_DAILY_LIMIT": "123",
+    }
+    for name, value in unprefixed.items():
+        monkeypatch.setenv(name, value)
+    settings = Settings(_env_file=None)
+    assert settings.brevo_api_key.get_secret_value() == "unprefixed-api-key"
+    assert settings.brevo_sender_email == "sender@example.test"
+    assert settings.brevo_sender_name == "Karama"
+    assert settings.brevo_timeout_seconds == 12
+    assert settings.registration_code_secret.get_secret_value() == SECRET
+    assert settings.registration_email_verification_required is False
+    assert settings.registration_email_daily_limit == 123
+
+    for name in unprefixed:
+        monkeypatch.delenv(name)
+
+
+def test_email_settings_ignore_pages_prefixed_names(monkeypatch):
+    legacy = {
+        "PAGES_BREVO_API_KEY": "legacy-api-key",
+        "PAGES_BREVO_SENDER_EMAIL": "legacy@example.test",
+        "PAGES_BREVO_SENDER_NAME": "Legacy",
+        "PAGES_BREVO_TIMEOUT_SECONDS": "14",
+        "PAGES_REGISTRATION_CODE_SECRET": SECRET,
+        "PAGES_REGISTRATION_EMAIL_VERIFICATION_REQUIRED": "false",
+        "PAGES_REGISTRATION_EMAIL_DAILY_LIMIT": "234",
+    }
+    for name, value in legacy.items():
+        monkeypatch.setenv(name, value)
+    settings = Settings(_env_file=None)
+    assert settings.brevo_api_key is None
+    assert settings.brevo_sender_email == ""
+    assert settings.brevo_sender_name == "Karama"
+    assert settings.brevo_timeout_seconds == 10
+    assert settings.registration_code_secret is None
+    assert settings.registration_email_verification_required is True
+    assert settings.registration_email_daily_limit == 300
+
+
 def test_cleanup_removes_only_a_bounded_expired_batch(verified_api):
     from vessel_service.auth.cleanup_email_codes import cleanup
     api, box, state = verified_api
