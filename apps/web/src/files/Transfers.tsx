@@ -1,3 +1,4 @@
+import { Button } from "../components/controls";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api";
 import { cancelUpload, getUpload } from "./api";
@@ -17,11 +18,11 @@ export const clearTransfers = (userId: string) => sessionStorage.removeItem(stor
 
 function uploadError(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 503 || error.code === "FILE_STORAGE_UNAVAILABLE") return "文件存储暂时不可用，请稍后重试。";
-    if (error.status === 413) return "文件大小或空间配额超限。";
-    return `${error.code}${error.requestId ? ` · 请求 ${error.requestId}` : ""}`;
+    if (error.status === 503 || error.code === "FILE_STORAGE_UNAVAILABLE") return "File storage is temporarily unavailable. Please try again later.";
+    if (error.status === 413) return "The file size or space quota was exceeded.";
+    return `${error.code}${error.requestId ? ` · Request ${error.requestId}` : ""}`;
   }
-  return error instanceof Error ? error.message : "上传失败";
+  return error instanceof Error ? error.message : "Upload failed";
 }
 
 export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, versionTarget, clearVersionTarget }: Props) {
@@ -43,7 +44,7 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
     const ids = read(userId);
     if (ids.length) {
       void Promise.all(ids.map(async uploadId => {
-        try { const state = await getUpload(uploadId); return { key: uploadId, name: `上传 ${uploadId.slice(0, 8)}`, uploadId, state: state.upload.status } as Task; }
+        try { const state = await getUpload(uploadId); return { key: uploadId, name: `Upload ${uploadId.slice(0, 8)}`, uploadId, state: state.upload.status } as Task; }
         catch { return null; }
       })).then(rows => {
         if (!alive.current) return;
@@ -78,13 +79,13 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
       }).then(result => {
         if (!alive.current) return;
         discard(userId, result.upload.upload_id);
-        update(task.key, { state: "已完成", file: undefined, controller: undefined });
+        update(task.key, { state: "Complete", file: undefined, controller: undefined });
         clearVersionTarget?.();
         onFinishedRef.current();
       }).catch(error => {
         if (!alive.current) return;
         if (activeUploadId) discard(userId, activeUploadId);
-        update(task.key, { state: controller.signal.aborted ? "已取消" : "失败", error: controller.signal.aborted ? undefined : uploadError(error), file: undefined, controller: undefined });
+        update(task.key, { state: controller.signal.aborted ? "Cancelled" : "Failed", error: controller.signal.aborted ? undefined : uploadError(error), file: undefined, controller: undefined });
       }).finally(() => {
         controllers.current.delete(task.key);
         running.current.delete(task.key);
@@ -95,7 +96,7 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
 
   function enqueue(files: File[]) {
     if (!canUpload || files.length === 0) return;
-    const created = files.map(file => ({ key: crypto.randomUUID(), name: file.name, file, target: versionTarget ?? { mode: "create" as const, spaceId, parentFolderId: folderId, name: file.name }, state: "等待中" }));
+    const created = files.map(file => ({ key: crypto.randomUUID(), name: file.name, file, target: versionTarget ?? { mode: "create" as const, spaceId, parentFolderId: folderId, name: file.name }, state: "Waiting" }));
     pending.current.push(...created);
     setTasks(current => [...created, ...current]); setExpanded(true);
     window.setTimeout(runNext, 0);
@@ -104,11 +105,11 @@ export function Transfers({ userId, spaceId, folderId, canUpload, onFinished, ve
     task.controller?.abort();
     if (!task.controller) pending.current = pending.current.filter(value => value.key !== task.key);
     if (task.uploadId && !task.controller) { try { await cancelUpload(task.uploadId); } catch { /* status remains visible */ } }
-    update(task.key, { state: "已取消", file: undefined });
+    update(task.key, { state: "Cancelled", file: undefined });
   };
 
   return <div className="files-transfer-wrap" onDragOver={event => { if (canUpload) event.preventDefault(); }} onDrop={event => { if (!canUpload) return; event.preventDefault(); enqueue(Array.from(event.dataTransfer.files)); }}>
-    {canUpload && <label className="primary files-upload-label">{versionTarget ? "选择新版本" : "上传文件"}<input aria-label="选择文件上传" type="file" multiple={!versionTarget} onChange={event => { enqueue(Array.from(event.target.files ?? [])); event.target.value = ""; }} /></label>}
-    {tasks.length > 0 && <div className="files-transfer-queue" role="status" aria-label="上传队列" aria-live="polite"><button className="files-transfer-toggle" onClick={() => setExpanded(value => !value)}>上传队列 · {tasks.length} {expanded ? "收起" : "展开"}</button>{expanded && <div>{tasks.map(task => <div key={task.key}><strong>{task.name}</strong><span>{task.state}{task.progress?.stage === "transfer" ? ` ${Math.round(task.progress.bytesDone / Math.max(1, task.progress.bytesTotal) * 100)}%` : ""}</span>{task.error && <small>{task.error}</small>}{!["已完成", "已取消", "失败"].includes(task.state) && <button className="text-button" onClick={() => void cancel(task)}>取消</button>}</div>)}</div>}</div>}
+    {canUpload && <label className="primary files-upload-label">{versionTarget ? "Choose new version" : "Upload files"}<input aria-label="Choose files to upload" type="file" multiple={!versionTarget} onChange={event => { enqueue(Array.from(event.target.files ?? [])); event.target.value = ""; }} /></label>}
+    {tasks.length > 0 && <div className="files-transfer-queue" role="status" aria-label="Upload queue" aria-live="polite"><Button className="files-transfer-toggle" onClick={() => setExpanded(value => !value)}>Upload queue · {tasks.length} {expanded ? "Collapse" : "Expand"}</Button>{expanded && <div>{tasks.map(task => <div key={task.key}><strong>{task.name}</strong><span>{task.state}{task.progress?.stage === "transfer" ? ` ${Math.round(task.progress.bytesDone / Math.max(1, task.progress.bytesTotal) * 100)}%` : ""}</span>{task.error && <small>{task.error}</small>}{!["Complete", "Cancelled", "Failed"].includes(task.state) && <Button className="text-button" onClick={() => void cancel(task)}>Cancel</Button>}</div>)}</div>}</div>}
   </div>;
 }

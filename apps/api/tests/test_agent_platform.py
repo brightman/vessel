@@ -27,7 +27,7 @@ def _make_app(tmp_path: Path, *, platform_url: str | None = "https://agent.test"
         settings=Settings(
             environment="test",
             issuer_url="https://pages.test",
-            allow_registration=True,
+            allow_registration=True, registration_email_verification_required=False,
             refresh_cookie_secure=False,
             agent_platform_url=platform_url,
         ),

@@ -1,3 +1,5 @@
+import { RegistrationEmail } from "./RegistrationEmail";
+import { Button, Input } from "./components/controls";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiError, authOptions, getPermissions, listSpaces, login, logout, refreshSession, register, type Permissions, type Space, type User } from "./api";
 import { Teams } from "./Teams";
@@ -13,6 +15,10 @@ export function message(error: unknown): string {
   if (error instanceof ApiError) {
     const known: Record<string, string> = {
       INVALID_CREDENTIALS: "Incorrect email or password.", EMAIL_ALREADY_REGISTERED: "This email is already registered.",
+      EMAIL_VERIFICATION_REQUIRED: "Request an email verification code before creating your account.",
+      EMAIL_CODE_INVALID: "The verification code is invalid or expired. Check the code or request a new one.",
+      EMAIL_CODE_RATE_LIMITED: "Too many verification requests. Please wait before trying again.",
+      EMAIL_DELIVERY_UNAVAILABLE: "Verification email is temporarily unavailable. Please try again later.",
       REGISTRATION_DISABLED: "Registration is not available.", SPACE_PERMISSION_DENIED: "Your role does not allow this action.",
       PAGE_REVISION_CONFLICT: "This Page was changed by someone else. Copy your changes, then reload.",
       APP_MANAGER_REQUIRED: "Only a space Owner or Admin can manage Apps.",
@@ -35,6 +41,9 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [booting, setBooting] = useState(true);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(true);
+  const [authEmail, setAuthEmail] = useState("");
+  const [emailChallenge, setEmailChallenge] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "register">(window.location.pathname === "/register" ? "register" : "login");
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -57,9 +66,10 @@ export function App() {
   useEffect(() => {
     clearPageDrafts();
     let live = true;
-    void Promise.all([refreshSession(), authOptions().catch(() => ({ registration_enabled: false }))]).then(async ([restored, options]) => {
+    void Promise.all([refreshSession(), authOptions().catch(() => ({ registration_enabled: false, registration_email_verification_required: true }))]).then(async ([restored, options]) => {
       if (!live) return;
       setRegistrationEnabled(options.registration_enabled);
+      setVerificationRequired(options.registration_email_verification_required !== false);
       if (!options.registration_enabled) setAuthMode("login");
       setUser(restored);
       if (restored) {
@@ -85,7 +95,7 @@ export function App() {
       const email = String(form.get("email") ?? "");
       const password = String(form.get("password") ?? "");
       const signed = authMode === "register"
-        ? await register(String(form.get("name") ?? ""), email, password)
+        ? await register(String(form.get("name") ?? ""), email, password, emailChallenge ?? undefined, String(form.get("verification_code") ?? "") || undefined)
         : await login(email, password);
       setUser(signed);
       history.replaceState(null, "", "/console");
@@ -109,11 +119,12 @@ export function App() {
     <h1>{authMode === "register" ? "Create your Vessel account" : "Sign in to Vessel"}</h1>
     <p className="subtle">Manage Files, Pages, and Apps in personal and team spaces.</p>
     <form onSubmit={event => void authenticate(event)} className="stacked-form">
-      {authMode === "register" && <label>Name<input name="name" required maxLength={120} autoComplete="name" /></label>}
-      <label>Email<input name="email" type="email" required autoComplete="email" /></label>
-      <label>Password<input name="password" type="password" required minLength={authMode === "register" ? 8 : 1} autoComplete={authMode === "register" ? "new-password" : "current-password"} /></label>
+      {authMode === "register" && <label>Name<Input name="name" required maxLength={120} autoComplete="name" /></label>}
+      <label>Email<Input name="email" type="email" value={authEmail} onChange={event => { setAuthEmail(event.target.value); setAuthError(""); }} required autoComplete="email" /></label>
+      <label>Password<Input name="password" type="password" required minLength={authMode === "register" ? 8 : 1} autoComplete={authMode === "register" ? "new-password" : "current-password"} /></label>
+      {authMode === "register" && verificationRequired && <RegistrationEmail email={authEmail} onChallenge={setEmailChallenge} describeError={message} />}
       {authError && <p role="alert" className="error-banner">{authError}</p>}
-      <button className="primary" disabled={authBusy}>{authBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</button>
+      <Button className="primary" disabled={authBusy || (authMode === "register" && verificationRequired && !emailChallenge)}>{authBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</Button>
     </form>
     {registrationEnabled && (authMode === "login"
       ? <a href="/register" onClick={event => { event.preventDefault(); history.pushState(null, "", "/register"); setAuthMode("register"); setAuthError(""); }}>Create an account</a>
@@ -128,16 +139,16 @@ export function App() {
         setSpaceId(event.target.value); localStorage.setItem(selectedKey, event.target.value);
       }}>{spaces.map(item => <option key={item.space_id} value={item.space_id}>{item.name}</option>)}</select></label>
       <nav aria-label="Primary navigation">
-        <button className={view === "files" ? "active" : ""} onClick={() => setView("files")}>Files</button>
-        <button className={view === "pages" ? "active" : ""} onClick={() => setView("pages")}>Pages</button>
-        <button className={view === "apps" ? "active" : ""} onClick={() => setView("apps")}>Apps</button>
-        <button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>Teams</button>
+        <Button className={view === "files" ? "active" : ""} onClick={() => setView("files")}>Files</Button>
+        <Button className={view === "pages" ? "active" : ""} onClick={() => setView("pages")}>Pages</Button>
+        <Button className={view === "apps" ? "active" : ""} onClick={() => setView("apps")}>Apps</Button>
+        <Button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>Teams</Button>
       </nav>
       <div className="sidebar-spacer" />
-      <div className="account-panel"><strong>{user.name}</strong><span>{user.email}</span><small>YOUR USER ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><button aria-label="Copy user ID" title="Copy user ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>Copy</button></div><button className="text-button" onClick={() => void signOut()}>Sign out</button></div>
+      <div className="account-panel"><strong>{user.name}</strong><span>{user.email}</span><small>YOUR USER ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><Button aria-label="Copy user ID" title="Copy user ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>Copy</Button></div><Button className="text-button" onClick={() => void signOut()}>Sign out</Button></div>
     </aside>
     <main className="main-panel">
-      {error && <div role="alert" className="error-banner">{error}<button onClick={() => setError("")}>Close</button></div>}
+      {error && <div role="alert" className="error-banner">{error}<Button onClick={() => setError("")}>Close</Button></div>}
       {space && permissions ? <>
         {view === "teams" && <Teams space={space} permissions={permissions} user={user} reloadSpaces={reloadSpaces} onError={setError} />}
         {view === "pages" && <Pages key={space.space_id} space={space} permissions={permissions} user={user} onError={setError} />}

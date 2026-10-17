@@ -52,8 +52,8 @@ def test_auth_options_disclose_registration_without_exposing_secrets(api_factory
     disabled = api_factory(allow_registration=False)
     enabled = api_factory(allow_registration=True)
 
-    assert disabled("GET", "/v1/auth/options").json() == {"registration_enabled": False}
-    assert enabled("GET", "/v1/auth/options").json() == {"registration_enabled": True}
+    assert disabled("GET", "/v1/auth/options").json() == {"registration_enabled": False, "registration_email_verification_required": False, "registration_email_resend_seconds": 60}
+    assert enabled("GET", "/v1/auth/options").json() == {"registration_enabled": True, "registration_email_verification_required": False, "registration_email_resend_seconds": 60}
 
 
 def test_duplicate_registration_returns_conflict(api_factory) -> None:

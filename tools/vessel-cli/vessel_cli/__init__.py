@@ -1,0 +1,1 @@
+"""Vessel command-line client."""

@@ -48,6 +48,6 @@ Vessel 使用自己的 `users`、密码凭据、Refresh Session、JWT 签名密�
 
 ## 当前边界
 
-生产默认禁止公开注册。受控终端可运行 `python -m vessel_service.bootstrap_admin --role user` 创建普通账号；当前没有邮箱验证、自助密码重置、普通账号生产开通 API、账号停用 API、团队审计表或 CLI 凭据库。`PAGES_*` 环境变量名沿用迁入代码；旧 Page MCP capability 仅在显式测试模式注册，正常应用不暴露。部署时须配置 Vessel 专用数据库和密钥。后续账号停用流程必须在同一事务中检查团队 Owner 不变量。
+生产默认禁止公开注册。受控终端可运行 `python -m vessel_service.bootstrap_admin --role user` 创建普通账号。注册邮箱验证正在开发：当前工作区已有验证码 API、Brevo 适配、前端表单和迁移，但未完成生产送达与部署验收。自助密码重置、普通账号生产开通流程、账号停用 API、团队审计表和 CLI 凭据库仍未提供。`PAGES_*` 环境变量名沿用迁入代码；旧 Page MCP capability 仅在显式测试模式注册，正常应用不暴露。部署时须配置 Vessel 专用数据库和密钥。后续账号停用流程必须在同一事务中检查团队 Owner 不变量。
 
 本阶段不提供单资源 ACL、公开分享或跨团队资源访问。Page 与 Apps 每次读写都按持久化空间和当前成员关系检查；文件增量需采取相同方式。

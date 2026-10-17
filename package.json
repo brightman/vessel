@@ -6,7 +6,9 @@
     "dev:web": "vite --config apps/web/vite.config.ts",
     "build:web": "tsc --noEmit && vite build --config apps/web/vite.config.ts",
     "test:console": "playwright test tests/e2e/console.spec.mjs",
-    "build:marketing": "tsc --noEmit -p apps/marketing/tsconfig.json && vite build --config apps/marketing/vite.config.ts"
+    "build:cli-download": "python3 scripts/build-vessel-cli-download.py",
+    "build:marketing": "npm run build:cli-download && tsc --noEmit -p apps/marketing/tsconfig.json && vite build --config apps/marketing/vite.config.ts",
+    "test:ui": "playwright test --config playwright.ui.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
@@ -17,6 +19,11 @@
   },
   "dependencies": {
     "@noble/hashes": "2.4.0",
+    "@radix-ui/react-dialog": "^1.3.1",
+    "@radix-ui/react-dropdown-menu": "^2.2.1",
+    "@radix-ui/react-slot": "^1.5.0",
+    "@radix-ui/react-tooltip": "^1.4.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@tiptap/extension-image": "^3.31.4",
     "@tiptap/extension-link": "^3.31.4",
     "@tiptap/extension-table": "^3.31.4",
@@ -31,7 +38,12 @@
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
     "@tiptap/suggestion": "^3.31.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.57.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3"
   }
 }

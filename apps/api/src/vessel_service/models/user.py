@@ -18,6 +18,8 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     credential: Mapped["UserCredential"] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False
     )

@@ -31,6 +31,7 @@ def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
                 issuer_url="https://pages.test",
                 app_release_origin=app_release_origin,
                 allow_registration=allow_registration,
+                registration_email_verification_required=False,
                 refresh_cookie_secure=False,
                 app_release_storage_path=tmp_path / "app-releases",
             ),

@@ -92,7 +92,7 @@ erDiagram
 
 Manifest 字段值以 Baizhi Apps 的标识符、类型和规范化规则为起点，使用当前 Manifest 做白名单验证；Vessel 首版将记录存于 JSONB，不创建每个 App 的物理业务表。该选择使新增表/可空字段与 Manifest 版本在单事务提交。大规模表格、专用索引与跨表关系需重新评估物理表方案。团队角色管整张 App，不沿用 Baizhi 的逐行 `owner_id/permission`。
 
-当前账号 API 使用 `vessel-api` Token audience 和 `vessel_refresh` Cookie；环境变量仍采用 `PAGES_*` 前缀。邀请仅指向已存在且 active 的用户；受控终端命令可创建管理员或普通用户。邮箱验证、自助重置、正式生产账号开通 API 与审计表尚未实现，生产环境默认关闭自助注册。
+当前账号 API 使用 `vessel-api` Token audience 和 `vessel_refresh` Cookie；环境变量仍采用 `PAGES_*` 前缀。邀请仅指向已存在且 active 的用户；受控终端命令可创建管理员或普通用户。迁移 `0011_registration_email` 已新增验证码挑战、共享限流表和 `users.email_verified_at`；注册前邮箱验证已在隔离 PostgreSQL 与真实 Brevo 投递上验收，生产部署仍需单独验收；自助密码重置、正式生产账号开通流程与团队审计表仍未实现。生产环境默认关闭自助注册。
 
 通用文件、统一目录与 OSS/S3 对象键尚未在本增量创建；后续迁移会分别冻结 DDL。
 

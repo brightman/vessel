@@ -1,3 +1,4 @@
+import { Modal, Button, Input } from "../components/controls";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import { commitMove, getItem, getItemPermissions, getRoot, listChildren, prepareMove, renameItem, trashItem } from "./api";
@@ -5,7 +6,7 @@ import type { ChangePreview, FileItem, FilePermissions } from "./types";
 
 type Props = { item: FileItem; permissions: FilePermissions; spaceId: string; onSaved: () => void; onError: (text: string) => void };
 type Mode = "rename" | "move" | "trash" | null;
-const description = (error: unknown) => error instanceof ApiError ? `${error.code}${error.requestId ? ` · 请求 ${error.requestId}` : ""}` : error instanceof Error ? error.message : "请求失败";
+const description = (error: unknown) => error instanceof ApiError ? `${error.code}${error.requestId ? ` · Request ${error.requestId}` : ""}` : error instanceof Error ? error.message : "Request failed";
 
 export function Actions({ item, permissions, spaceId, onSaved, onError }: Props) {
   const [mode, setMode] = useState<Mode>(null);
@@ -65,7 +66,7 @@ export function Actions({ item, permissions, spaceId, onSaved, onError }: Props)
   const pick = async (folder: FileItem) => {
     try {
       const access = await getItemPermissions(folder.item_id);
-      if (!access.permissions.can_create_children || isForbiddenDestination(folder)) { setError("目标目录不可写，或位于当前文件夹内。"); return; }
+      if (!access.permissions.can_create_children || isForbiddenDestination(folder)) { setError("The destination cannot accept files, or it is inside the current folder."); return; }
       setDestination(folder); setPreview(null); setError("");
     } catch (problem) { setError(description(problem)); }
   };
@@ -97,16 +98,16 @@ export function Actions({ item, permissions, spaceId, onSaved, onError }: Props)
   };
 
   return <div className="files-actions">
-    {permissions.can_write && <button className="secondary" onClick={() => { setName(item.name); setMode("rename"); }}>重命名</button>}
-    {permissions.can_move && <button className="secondary" onClick={() => setMode("move")}>移动</button>}
-    {permissions.can_trash && <button className="secondary danger" onClick={() => setMode("trash")}>移入回收站</button>}
-    {mode && <div className="modal-backdrop" onClick={() => setMode(null)}><div className="modal-card files-action-modal" role="dialog" aria-label={mode === "move" && preview ? "移动权限变化" : mode === "move" ? "选择移动位置" : mode === "rename" ? "重命名文件" : "移入回收站"} onClick={event => event.stopPropagation()}>
-      <header><h3>{mode === "move" ? "移动文件" : mode === "rename" ? "重命名" : "移入回收站"}</h3><button className="icon-button" aria-label="关闭操作" onClick={() => setMode(null)}>×</button></header>
-      {error && <p role="alert" className="error-banner">{error} <button onClick={() => mode === "move" ? void reloadAndPrepare() : (setPreview(null), setError(""))}>重新载入并再次预览</button></p>}
-      {mode === "rename" && <form className="files-action-form" onSubmit={rename}><label>名称<input value={name} onChange={event => setName(event.target.value)} required /></label><button className="primary" disabled={busy}>保存名称</button></form>}
-      {mode === "move" && <div className="files-action-form"><p>目标：{destination?.name ?? "正在加载…"}</p><div className="files-folder-picker"><button className="text-button" onClick={returnToRoot}>根目录</button><span>{browse?.name}</span>{folders.map(folder => <div key={folder.item_id}><span>{folder.name}</span><button className="text-button" disabled={isForbiddenDestination(folder)} title={isForbiddenDestination(folder) ? "不能移动到自身或子文件夹" : undefined} onClick={() => void pick(folder)}>选择 {folder.name}</button><button className="text-button" onClick={() => openFolder(folder)}>打开</button></div>)}{folderCursor && <button className="text-button" disabled={loadingFolders} onClick={() => void loadMoreFolders()}>加载更多目录</button>}</div><button className="secondary" disabled={!destination || busy} onClick={() => void prepare()}>预览移动</button>
-        {preview && <div className="files-preview"><h4>权限变化</h4><p>新增来源：{preview.permission_changes.gained.length}；失去来源：{preview.permission_changes.lost.length}</p>{preview.permission_changes.gained.map(grant => <p key={grant.grant_id}>新增 {grant.grantee_user_id} · {grant.role}</p>)}{preview.permission_changes.lost.map(grant => <p key={grant.grant_id}>失去 {grant.grantee_user_id} · {grant.role}</p>)}<button className="primary" disabled={busy} onClick={() => void run(() => commitMove(item.item_id, preview))}>确认移动</button></div>}</div>}
-      {mode === "trash" && <div className="files-action-form"><p>确认将“{item.name}”及其中的文件移入回收站？</p><button className="primary danger" disabled={busy} onClick={() => void run(() => trashItem(item))}>确认移入回收站</button></div>}
-    </div></div>}
+    {permissions.can_write && <Button className="secondary" onClick={() => { setName(item.name); setMode("rename"); }}>Rename</Button>}
+    {permissions.can_move && <Button className="secondary" onClick={() => setMode("move")}>Move</Button>}
+    {permissions.can_trash && <Button className="secondary danger" onClick={() => setMode("trash")}>Move to Trash</Button>}
+    {mode && <Modal title={mode === "move" && preview ? "Move permission changes" : mode === "move" ? "Select move destination" : mode === "rename" ? "Rename file" : "Move to Trash"} onClose={() => setMode(null)} className="files-action-modal">
+      <header><h3>{mode === "move" ? "Move file" : mode === "rename" ? "Rename" : "Move to Trash"}</h3><Button className="icon-button" aria-label="Close action" onClick={() => setMode(null)}>×</Button></header>
+      {error && <p role="alert" className="error-banner">{error} <Button onClick={() => mode === "move" ? void reloadAndPrepare() : (setPreview(null), setError(""))}>Reload and preview again</Button></p>}
+      {mode === "rename" && <form className="files-action-form" onSubmit={rename}><label>Name<Input value={name} onChange={event => setName(event.target.value)} required /></label><Button className="primary" disabled={busy}>Save name</Button></form>}
+      {mode === "move" && <div className="files-action-form"><p>Destination: {destination?.name ?? "Loading…"}</p><div className="files-folder-picker"><Button className="text-button" onClick={returnToRoot}>Root folder</Button><span>{browse?.name}</span>{folders.map(folder => <div key={folder.item_id}><span>{folder.name}</span><Button className="text-button" disabled={isForbiddenDestination(folder)} title={isForbiddenDestination(folder) ? "You cannot move an item into itself or one of its subfolders" : undefined} onClick={() => void pick(folder)}>Select {folder.name}</Button><Button className="text-button" onClick={() => openFolder(folder)}>Open</Button></div>)}{folderCursor && <Button className="text-button" disabled={loadingFolders} onClick={() => void loadMoreFolders()}>Load more folders</Button>}</div><Button className="secondary" disabled={!destination || busy} onClick={() => void prepare()}>Preview move</Button>
+        {preview && <div className="files-preview"><h4>Permission changes</h4><p>Gained sources: {preview.permission_changes.gained.length}; lost sources: {preview.permission_changes.lost.length}</p>{preview.permission_changes.gained.map(grant => <p key={grant.grant_id}>Gained {grant.grantee_user_id} · {grant.role}</p>)}{preview.permission_changes.lost.map(grant => <p key={grant.grant_id}>Lost {grant.grantee_user_id} · {grant.role}</p>)}<Button className="primary" disabled={busy} onClick={() => void run(() => commitMove(item.item_id, preview))}>Confirm move</Button></div>}</div>}
+      {mode === "trash" && <div className="files-action-form"><p>Move “{item.name}” and its contents to Trash?</p><Button className="primary danger" disabled={busy} onClick={() => void run(() => trashItem(item))}>Confirm move to Trash</Button></div>}
+    </Modal>}
   </div>;
 }

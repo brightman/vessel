@@ -4,7 +4,7 @@ import re
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     database_url: str | None = None
     issuer_url: str = "http://127.0.0.1:52003"
     allow_registration: bool = False
+    registration_email_verification_required: bool = True
+    registration_code_secret: SecretStr | None = None
+    registration_email_daily_limit: int = Field(default=300, ge=1, le=300)
+    brevo_api_key: SecretStr | None = None
+    brevo_sender_email: str = ""
+    brevo_sender_name: str = "Memory on Cloud"
+    brevo_timeout_seconds: float = Field(default=10.0, gt=0, le=30)
     access_token_ttl_seconds: int = 900
     refresh_token_ttl_seconds: int = 2_592_000
     page_capability_ttl_seconds: int = 86_400
@@ -28,6 +35,21 @@ class Settings(BaseSettings):
     agent_platform_url: str | None = None
     agent_platform_audience: str = "baizhi-agent-platform"
     agent_platform_request_timeout_seconds: float = 15.0
+
+    @field_validator("brevo_sender_email")
+    @classmethod
+    def validate_sender(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", normalized):
+            raise ValueError("Invalid Brevo sender email")
+        return normalized
+
+    @field_validator("registration_code_secret")
+    @classmethod
+    def validate_code_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and len(value.get_secret_value()) < 32:
+            raise ValueError("Registration code secret must have at least 32 characters")
+        return value
 
     def app_release_origin_for(self, app_id: str) -> str | None:
         """Return the isolated release origin for one Vessel App."""
@@ -77,6 +99,8 @@ class Settings(BaseSettings):
                 raise ValueError("PAGES_APP_RELEASE_ORIGIN must use a host distinct from PAGES_ISSUER_URL")
             self.app_release_origin = release_origin
         if self.environment == "production":
+            if self.allow_registration and not self.registration_email_verification_required:
+                raise ValueError("Production self-registration requires email verification")
             if not self.database_url:
                 raise ValueError("PAGES_DATABASE_URL is required in production")
             if not self.signing_keys_file:

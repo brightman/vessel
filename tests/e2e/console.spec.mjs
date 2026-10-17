@@ -27,8 +27,9 @@ test("selecting a Page folder creates the new Page inside that folder", async ({
   await registerTestUser(page);
   await page.getByRole("button", { name: "Pages", exact: true }).click();
 
-  page.once("dialog", dialog => void dialog.accept("Research"));
   await page.getByRole("button", { name: "＋ New folder" }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("Research");
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
 
   await page.getByRole("button", { name: "Select folder Research" }).click();
   const createResponse = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/pages$/.test(new URL(response.url()).pathname));
@@ -84,8 +85,9 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   await ownerPage.getByRole("button", { name: "Send invitation" }).click();
   await expect(ownerPage.getByText(viewerId, { exact: true })).toBeVisible();
   let revokeWarning = "";
-  ownerPage.once("dialog", dialog => { revokeWarning = dialog.message(); void dialog.dismiss(); });
   await ownerPage.getByRole("button", { name: "Revoke" }).click();
+  revokeWarning = await ownerPage.getByRole("dialog").innerText();
+  await ownerPage.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
   expect(revokeWarning).toContain("Revoke");
   await expect(ownerPage.getByText(viewerId, { exact: true })).toBeVisible();
   await viewerPage.getByRole("button", { name: "Teams" }).click();
@@ -212,8 +214,9 @@ test("Page keeps a draft in memory, locks editing during save, and warns before 
 
   await title.fill("Unsaved changes");
   let warning = "";
-  page.once("dialog", dialog => { warning = dialog.message(); void dialog.dismiss(); });
   await page.getByRole("button", { name: "Archive", exact: true }).click();
+  warning = await page.getByRole("dialog").innerText();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
   expect(warning).toContain("Unsaved");
   await expect(title).toHaveValue("Unsaved changes");
 });
@@ -471,8 +474,8 @@ test("App managers publish a draft while Editors only edit typed data", async ({
   await expect(preview).toBeVisible();
   await ownerPage.getByRole("button", { name: "Publish draft", exact: true }).click();
   await expect(ownerPage.getByText("Version 2 · published · Current", { exact: true })).toBeVisible();
-  ownerPage.once("dialog", dialog => void dialog.accept());
   await ownerPage.getByRole("button", { name: "Rollback to version 1", exact: true }).click();
+  await ownerPage.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(ownerPage.getByText("Version 1 · published · Current", { exact: true })).toBeVisible();
   await viewerPage.getByRole("button", { name: "Publish" }).click();
   await expect(viewerPage.getByRole("button", { name: "Upload H5 ZIP" })).toBeDisabled();
@@ -491,13 +494,13 @@ test("App managers publish a draft while Editors only edit typed data", async ({
   await expect(ownerPage.getByLabel("App description")).toHaveValue("Local description");
   await ownerPage.getByRole("button", { name: "Discard changes and reload settings" }).click();
   await expect(ownerPage.getByLabel("App description")).toHaveValue("Server description");
-  ownerPage.once("dialog", dialog => void dialog.accept());
   await ownerPage.getByRole("button", { name: "Archive App", exact: true }).click();
+  await ownerPage.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(ownerPage.getByRole("heading", { name: "Lunch Log", exact: true })).not.toBeVisible();
   await ownerPage.getByLabel("App status", { exact: true }).selectOption("archived");
   await expect(ownerPage.getByRole("button", { name: "Restore App", exact: true })).toBeEnabled();
-  ownerPage.once("dialog", dialog => void dialog.accept());
   await ownerPage.getByRole("button", { name: "Restore App", exact: true }).click();
+  await ownerPage.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(ownerPage.getByLabel("App status", { exact: true })).toHaveValue("active");
   await expect(ownerPage.getByRole("heading", { name: "Lunch Log", exact: true })).toBeVisible();
 
@@ -521,8 +524,8 @@ test("App data bulk conflicts reload explicitly and pagination survives deletion
   await page.getByLabel(`Select record ${records[1].id}`).check();
   const changed = await page.request.patch(`/v1/apps/${app.app_id}/tables/items/records/${records[0].id}`, { headers, data: { expected_row_version: 1, values: { title: "Server updated" } } });
   expect(changed.status()).toBe(200);
-  page.once("dialog", dialog => void dialog.accept());
   await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(page.getByRole("button", { name: "Discard edits and reload record" })).toBeVisible();
   const unchanged = await page.request.get(`/v1/apps/${app.app_id}/tables/items/records/${records[1].id}`, { headers });
   expect(unchanged.status()).toBe(200);
@@ -530,12 +533,12 @@ test("App data bulk conflicts reload explicitly and pagination survives deletion
   await expect(page.getByLabel(`Edit title for record ${records[0].id}`)).toHaveValue("Server updated");
   await page.getByLabel(`Select record ${records[0].id}`).check();
   await page.getByLabel(`Select record ${records[1].id}`).check();
-  page.once("dialog", dialog => void dialog.dismiss());
   await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByLabel(`Select record ${records[0].id}`)).toBeVisible();
-  page.once("dialog", dialog => void dialog.accept());
   const deletion = page.waitForResponse(r => r.url().endsWith("/records/bulk-delete"));
   await page.getByRole("button", { name: "Delete selected records", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   expect((await (await deletion).json()).deleted_count).toBe(2);
   await expect(page.getByLabel(`Select record ${records[0].id}`)).not.toBeVisible();
   // Refill the first page: after deleting two rows, all 50 remaining rows fit.
@@ -548,4 +551,26 @@ test("App data bulk conflicts reload explicitly and pagination survives deletion
   await expect(page.getByLabel(`Edit title for record ${(await extra.json()).record.id}`)).toHaveValue("Next page");
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await expect(page.getByLabel(`Select record ${records[2].id}`)).toBeVisible();
+});
+
+test("Page title and formatting dropdown retain typography, selection and keyboard focus", async ({ page }) => {
+  await registerTestUser(page);
+  await page.getByRole("button", { name: "Pages", exact: true }).click();
+  await page.getByRole("button", { name: "New Page", exact: true }).click();
+  const title = page.getByLabel("Page title");
+  expect(parseFloat(await title.evaluate(element => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(32);
+  await expect(title).toHaveCSS("border-top-width", "0px");
+  const body = page.getByLabel("Page document");
+  await body.fill("Selected text");
+  for (let i = 0; i < 13; i++) await body.press("Shift+ArrowLeft");
+  const trigger = page.getByRole("button", { name: "Text", exact: true });
+  await expect(trigger).toBeInViewport();
+  await trigger.click();
+  await expect(page.getByRole("menu", { name: "Text style" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await page.getByRole("menuitem", { name: "Heading 1", exact: true }).click();
+  await expect(body.locator("h1")).toHaveText("Selected text");
+  await expect(body).toBeFocused();
 });

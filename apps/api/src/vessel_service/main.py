@@ -120,6 +120,8 @@ def create_app(
 
     application.mount("/console/assets", StaticFiles(directory=web_dist / "assets", check_dir=False), name="console-assets")
     application.mount("/assets", StaticFiles(directory=marketing_dist / "assets", check_dir=False), name="marketing-assets")
+    from vessel_service.auth.email_verification import BrevoMailer
+    application.state.registration_mailer = BrevoMailer(configured)
     application.state.settings = configured
     application.state.database_engine = database_engine
     application.state.session_factory = database_sessions

@@ -28,6 +28,8 @@ class RegisterRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=8, max_length=256)
+    challenge_id: str | None = Field(default=None, max_length=36)
+    verification_code: str | None = Field(default=None, pattern=r"^[0-9]{6}$")
 
     @field_validator("email")
     @classmethod
@@ -36,6 +38,15 @@ class RegisterRequest(BaseModel):
         if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", normalized):
             raise ValueError("Invalid email address")
         return normalized
+
+
+class RegistrationEmailRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return RegisterRequest.normalize_email(value)
 
 
 class LoginRequest(BaseModel):
@@ -162,22 +173,44 @@ def _auth_response(
 
 
 @router.get("/v1/auth/options")
-def auth_options(settings: Settings = Depends(get_settings)) -> dict[str, bool]:
-    return {"registration_enabled": settings.allow_registration}
+def auth_options(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+    return {"registration_enabled": settings.allow_registration,
+            "registration_email_verification_required": settings.registration_email_verification_required,
+            "registration_email_resend_seconds": 60}
+
+
+@router.post("/v1/auth/registration/email-code", status_code=202)
+def send_registration_email_code(payload: RegistrationEmailRequest, request: Request,
+                                 settings: Settings = Depends(get_settings),
+                                 session: Session = Depends(get_session)) -> dict[str, object]:
+    from vessel_service.auth.email_verification import request_code
+    _require_issuer_origin(request, settings)
+    if not settings.allow_registration:
+        raise HTTPException(403, detail={"code": "REGISTRATION_DISABLED"})
+    if not settings.registration_email_verification_required:
+        raise HTTPException(403, detail={"code": "EMAIL_VERIFICATION_DISABLED"})
+    return request_code(session, settings, request.app.state.registration_mailer, payload.email,
+                        request.client.host if request.client else "unknown")
 
 
 @router.post("/v1/auth/register", status_code=201)
 def register(
     payload: RegisterRequest,
+    request: Request,
     response: Response,
     settings: Settings = Depends(get_settings),
     keyring: KeyRing = Depends(get_keyring),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
+    _require_issuer_origin(request, settings)
     if not settings.allow_registration:
         raise HTTPException(status_code=403, detail={"code": "REGISTRATION_DISABLED"})
     if session.scalar(select(User.user_id).where(User.email == payload.email)):
         raise HTTPException(status_code=409, detail={"code": "EMAIL_ALREADY_REGISTERED"})
+
+    if settings.registration_email_verification_required:
+        from vessel_service.auth.email_verification import consume_code
+        consume_code(session, settings, payload.email, payload.challenge_id, payload.verification_code)
 
     user = User(
         user_id=str(uuid4()),
@@ -185,6 +218,7 @@ def register(
         name=payload.name.strip(),
         roles=["user"],
         status="active",
+        email_verified_at=datetime.now(UTC) if settings.registration_email_verification_required else None,
     )
     user.credential = UserCredential(password_hash=hash_password(payload.password))
     session.add(user)

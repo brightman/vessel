@@ -1,3 +1,4 @@
+import { Modal, Button, Input } from "../components/controls";
 import { useCallback, useEffect, useState } from "react";
 import type { Space, User } from "../api";
 import { createFolder, getItemPermissions, getRoot, listChildren, listItems, listShared, searchItems } from "./api";
@@ -81,23 +82,23 @@ export function Files({ space, user, onError }: Props) {
     if (id) window.setTimeout(() => document.querySelector<HTMLElement>(`[data-file-row-id="${id}"]`)?.focus(), 0);
   }, [selected]);
   return <div className="files-layout">
-    <aside className={`files-rail ${folderDrawer ? "open" : ""}`} aria-label="Files 目录">
-      <div className="files-rail-heading"><h2>Files</h2><button className="files-rail-close" onClick={() => setFolderDrawer(false)}>关闭</button></div>
-      <button className={view === "mine" ? "active" : ""} onClick={() => switchView("mine")}>我的文件</button>
-      <button className={view === "shared" ? "active" : ""} onClick={() => switchView("shared")}>共享给我</button>
-      <button className={view === "trash" ? "active" : ""} onClick={() => switchView("trash")}>回收站</button>
-      {view !== "trash" && trail.length > 0 && <div className="files-tree"><p>当前位置</p>{trail.map((node, index) => <button key={node.item_id} onClick={() => backTo(index)}>{node.name}</button>)}</div>}
+    <aside className={`files-rail ${folderDrawer ? "open" : ""}`} aria-label="Files folders">
+      <div className="files-rail-heading"><h2>Files</h2><Button className="files-rail-close" onClick={() => setFolderDrawer(false)}>Close</Button></div>
+      <Button className={view === "mine" ? "active" : ""} onClick={() => switchView("mine")}>My Files</Button>
+      <Button className={view === "shared" ? "active" : ""} onClick={() => switchView("shared")}>Shared with me</Button>
+      <Button className={view === "trash" ? "active" : ""} onClick={() => switchView("trash")}>Trash</Button>
+      {view !== "trash" && trail.length > 0 && <div className="files-tree"><p>Current location</p>{trail.map((node, index) => <Button key={node.item_id} onClick={() => backTo(index)}>{node.name}</Button>)}</div>}
     </aside>
-    {folderDrawer && <button className="files-rail-shade" aria-label="关闭目录" onClick={() => setFolderDrawer(false)} />}
+    {folderDrawer && <Button className="files-rail-shade" aria-label="Close folders" onClick={() => setFolderDrawer(false)} />}
     <section className="files-main">
-      <div className="files-toolbar"><button className="files-mobile-menu secondary" onClick={() => setFolderDrawer(true)}>目录</button><div className="files-breadcrumbs"><button onClick={() => backTo(-1)}>{view === "mine" ? "我的文件" : view === "shared" ? "共享给我" : "回收站"}</button>{trail.map((node, index) => <span key={node.item_id}> / <button onClick={() => backTo(index)}>{node.name}</button></span>)}</div></div>
-      <div className="files-content"><header className="files-content-header"><div><small className="eyebrow">{space.name}</small><h2>{view === "mine" && !trail.length ? "我的文件" : view === "shared" && !trail.length ? "共享给我" : view === "trash" ? "回收站" : folder?.name}</h2></div><div className="files-header-actions">{canUpload && folder && <button className="secondary" onClick={() => setCreatingFolder(true)}>新建文件夹</button>}{view !== "trash" && <Transfers userId={user.user_id} spaceId={versionTarget?.spaceId ?? folder?.space_id ?? space.space_id} folderId={folder?.item_id ?? ""} canUpload={canUpload || !!versionTarget} versionTarget={versionTarget} clearVersionTarget={() => setVersionTarget(null)} onFinished={() => { setDetailsEpoch(value => value + 1); void load(); }} />}</div></header>
-        {view === "mine" && <div className="files-filters"><label>搜索名称<input value={nameFilter} onChange={event => setNameFilter(event.target.value)} placeholder="搜索当前空间" /></label><label>类型<select value={kindFilter} onChange={event => setKindFilter(event.target.value as typeof kindFilter)}><option value="">全部</option><option value="file">文件</option><option value="folder">文件夹</option></select></label></div>}
-        {view === "shared" && sharedRoot && <p className="files-muted">仅显示已共享的文件夹内容。</p>}
+      <div className="files-toolbar"><Button className="files-mobile-menu secondary" onClick={() => setFolderDrawer(true)}>Folders</Button><div className="files-breadcrumbs"><Button onClick={() => backTo(-1)}>{view === "mine" ? "My Files" : view === "shared" ? "Shared with me" : "Trash"}</Button>{trail.map((node, index) => <span key={node.item_id}> / <Button onClick={() => backTo(index)}>{node.name}</Button></span>)}</div></div>
+      <div className="files-content"><header className="files-content-header"><div><small className="eyebrow">{space.name}</small><h2>{view === "mine" && !trail.length ? "My Files" : view === "shared" && !trail.length ? "Shared with me" : view === "trash" ? "Trash" : folder?.name}</h2></div><div className="files-header-actions">{canUpload && folder && <Button className="secondary" onClick={() => setCreatingFolder(true)}>New folder</Button>}{view !== "trash" && <Transfers userId={user.user_id} spaceId={versionTarget?.spaceId ?? folder?.space_id ?? space.space_id} folderId={folder?.item_id ?? ""} canUpload={canUpload || !!versionTarget} versionTarget={versionTarget} clearVersionTarget={() => setVersionTarget(null)} onFinished={() => { setDetailsEpoch(value => value + 1); void load(); }} />}</div></header>
+        {view === "mine" && <div className="files-filters"><label>Search name<Input value={nameFilter} onChange={event => setNameFilter(event.target.value)} placeholder="Search this space" /></label><label>Type<select value={kindFilter} onChange={event => setKindFilter(event.target.value as typeof kindFilter)}><option value="">All</option><option value="file">Files</option><option value="folder">Folders</option></select></label></div>}
+        {view === "shared" && sharedRoot && <p className="files-muted">Only shared folder contents are shown.</p>}
         {view === "trash" ? <Trash space={space} onRestored={() => switchView("mine")} onError={onError} /> : <Directory items={items} selectedId={selected?.item_id ?? null} loading={loading} nextCursor={cursor} onSelect={setSelected} onOpen={open} onMore={() => void load(cursor ?? undefined)} />}
       </div>
     </section>
     {selected && <Details key={`${selected.item_id}:${detailsEpoch}`} item={selected} space={space} onClose={closeDetails} onChanged={() => void load()} onError={onError} onNewVersion={item => setVersionTarget({ mode: "new_version", spaceId: item.space_id, fileId: item.item_id, expectedCurrentVersionId: item.current_version_id!, expectedMetadataVersion: item.metadata_version })} />}
-    {creatingFolder && folder && <div className="modal-backdrop"><form className="modal-card files-action-modal files-action-form" role="dialog" aria-label="新建文件夹" onSubmit={event => { event.preventDefault(); void createFolder(folder.space_id, folder.item_id, folderName.trim()).then(() => { setCreatingFolder(false); setFolderName(""); void load(); }).catch(error => onError(String(error))); }}><h3>新建文件夹</h3><label>文件夹名称<input autoFocus value={folderName} onChange={event => setFolderName(event.target.value)} required /></label><div><button className="primary">创建文件夹</button><button type="button" className="secondary" onClick={() => setCreatingFolder(false)}>取消</button></div></form></div>}
+    {creatingFolder && folder && <Modal title="New folder" onClose={() => setCreatingFolder(false)}><form className="files-action-form" onSubmit={event => { event.preventDefault(); void createFolder(folder.space_id, folder.item_id, folderName.trim()).then(() => { setCreatingFolder(false); setFolderName(""); void load(); }).catch(error => onError(String(error))); }}><h3>New folder</h3><label>Folder name<Input autoFocus value={folderName} onChange={event => setFolderName(event.target.value)} required /></label><div><Button className="primary">Create folder</Button><Button type="button" className="secondary" onClick={() => setCreatingFolder(false)}>Cancel</Button></div></form></Modal>}
   </div>;
 }

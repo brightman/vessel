@@ -1,6 +1,6 @@
 # Vessel: Agent 原生个人与团队存储服务技术设计
 
-状态：总体设计稿；用户、团队、空间化 Page 与 Apps 表格 API 已实现，通用文件与独立 Page Agent 待实施
+状态：总体设计稿；身份、团队、Files、Pages、Apps API 与 Web 管理控制台已有实现；注册邮箱验证正在开发，独立 Page Agent 待实施。各功能验收状态以对应运行文档为准。
 
 日期：2026-10-14
 
@@ -14,7 +14,7 @@
 2. 同时支持个人空间和团队空间；团队有多位成员。团队空间内的文件、表格、Page 对有效成员默认可见，读写由成员角色决定。
 3. 文件内容存放在私有 OSS/S3 对象存储，提供类似 Google Drive 的文件管理能力。
 4. 表格参考 Baizhi Apps 的受控 Schema 与数据 API；Page 参考 Baizhi Pages 的分块文档能力。
-5. 产品自身只提供 API，不建设业务 Web UI。
+5. 产品以 API 为核心，同时提供 Memory on Cloud 官网、Vessel Web 管理控制台和独立 `vessel` CLI；MCP 等 Agent 接入仍按独立增量建设。
 6. Vessel 拥有独立账号系统，不依赖 Baizhi Agent Platform 的用户、Session 或数据库。
 
 本文将尚未逐项确认的工程选择标为“建议”。它们构成可实施的首版契约，评审时可更改。
@@ -32,7 +32,7 @@ Vessel 是一个产品，但按四个可单独验收的增量实施：
 | C：表格 | 受控字段定义、Schema 变更、记录 CRUD、筛选和批量导入 | Agent 建表并从文件导入记录 |
 | D：Page 与 Agent 入口 | 分块 Page、修订、引用、CLI/Skill、MCP 适配 | Agent 根据文件和表格写 Page，另一成员读取和编辑 |
 
-每一增量必须有真实 HTTP E2E；完整产品的最终 E2E 串起四个增量。CLI/MCP 是 API 客户端，不持有业务数据库权限。首版不做 Web 编辑器、实时协同、公开分享链接、匿名访问、任意 SQL、任意代码执行、向量检索、自动 AI 解析流水线或跨团队共享。
+每一增量必须有真实 HTTP E2E；完整产品的最终 E2E 串起四个增量。CLI/MCP 是 API 客户端，不持有业务数据库权限。Web 管理控制台已覆盖账号、团队、Files、Pages 和 Apps，包含 Page 编辑器。当前不做实时协同、公开分享链接、匿名访问、任意 SQL、任意代码执行、向量检索、自动 AI 解析流水线或跨团队共享。
 
 ## 3. 总体架构
 
@@ -81,7 +81,7 @@ Page Block ──0:N── Resource Reference (same Space)
 
 建议首版由服务器本地的 `vessel-admin bootstrap` 引导首个账号。配置邮件服务后，用户可通过 API/CLI 注册、接收一次性邮箱验证码、验证邮箱并重置密码；团队 Owner/Admin 向已验证的 Vessel 用户发出邀请，用户通过 API/CLI 接受后才成为有效成员。没有邮件服务时禁用公开注册和自助重置，由管理员在受控终端创建账号或重置凭据；团队邀请可通过已登录的 CLI 查询和接受，不把邀请码冒充为邮箱所有权证明。账号链接依据稳定 `user_id`，不依据邮箱字符串自动合并身份。OIDC 可作为后续登录方式，映射键为 `(issuer, subject)`，不以相同邮箱自动绑定已有账号。
 
-当前实现使用现有的本地邮箱/密码登录与受配置控制的注册，团队邀请目标为已存在的 active 用户 ID。邮箱验证、重置邮件、普通用户的生产开通流程、CLI 凭据库集成和 OIDC 仍待独立增量；生产默认关闭公开注册。
+当前实现使用本地邮箱/密码登录与受配置控制的注册，团队邀请目标为已存在的 active 用户 ID。注册邮箱验证码、Brevo 发信和前端表单正在开发，代码与迁移已进入当前工作区；生产邮件送达和部署尚未验收。自助密码重置、普通用户的生产开通流程、CLI 凭据库集成和 OIDC 仍需独立增量；生产默认关闭公开注册。
 
 HTTP API 使用 Bearer Access Token；本地 MCP 桥接从凭据库获得会话，远程 MCP 若提供则使用同一 Vessel 用户身份与独立 audience。对象存储凭据、数据库密码和签名私钥只存在服务端。
 
@@ -215,7 +215,7 @@ Page 块操作必须绑定读取时的修订号，并以稳定 block ID 定位�
 
 ## 10. Agent 客户端接入
 
-建议先发布跨平台的 `vessel` CLI 与简短 Skill。CLI 使用 HTTPS API 和系统凭据库，提供 `auth`、`spaces`、`files`、`tables`、`pages` 命令；`--json` 输出稳定机器可读结果。每次操作显式选择命名环境；大文件走本地路径上传或下载，正文不经模型参数。删除、永久清理和 Schema apply 在 CLI 展示目标与差异，并要求交互式确认或明确 `--confirm`。
+`vessel` CLI v1 已实现并打包，提供 `auth`、`spaces`、`files`、`apps`、`pages` 命令，使用 Vessel HTTP API 和系统凭据库，命令默认输出 JSON。每次网络操作显式选择命名环境；大文件通过本地路径上传或下载，正文不经模型参数。生产写操作要求 `--confirm`；Schema apply 也需要明确确认。完整认证 HTTP 流程和真实 OSS 传输仍需目标环境验收。
 
 为支持 MCP 客户端，可提供本地 stdio MCP 桥接：它从 Vessel CLI 的凭据库读取会话，工具调用转发到相同 HTTP API；不提供本地数据库或 OSS 密钥。工具分组按空间与资源动态发现，至少有 list/search/get、文件上传/下载、表格 Schema/记录和 Page 区块操作。MCP 工具标记读写效果，遵循宿主客户端审批机制；服务端始终独立执行身份、成员与版本校验。WorkBuddy 的具体 CLI/MCP 支持方式在集成时实测，不能仅因协议存在就宣称兼容。
 

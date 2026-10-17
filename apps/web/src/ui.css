@@ -1,0 +1,30 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) important;
+@theme inline {
+  --color-background: var(--surface, #ffffff);
+  --color-foreground: var(--ink, #232722);
+  --color-primary: #205d40;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f4f6f2;
+  --color-secondary-foreground: var(--ink, #232722);
+  --color-muted: #f4f6f2;
+  --color-muted-foreground: var(--muted, #757a72);
+  --color-accent: #edf4ed;
+  --color-accent-foreground: var(--ink, #232722);
+  --color-destructive: #a1433a;
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--line, #e3e8e0);
+  --color-input: #d8dfd5;
+  --color-ring: #6ea988;
+  --color-popover: var(--surface, #ffffff);
+  --color-popover-foreground: var(--ink, #232722);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+/* No Preflight: existing document and table editing styles retain their defaults. */
+[data-vessel-dialog] { box-sizing: border-box; max-height: 85dvh; overflow: auto; width: min(560px, calc(100vw - 32px)); color: var(--ink, #232722); }
+
+/* Preserve the navigation alignment while adopting the shared button primitive. */
+.sidebar nav button, .resource-list button { justify-content: flex-start !important; }

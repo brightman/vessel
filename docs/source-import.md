@@ -15,7 +15,7 @@ Imported:
 
 Excluded:
 
-- `apps/web/`, browser prototype, Node packages, browser tests and Playwright scripts, because Vessel is API-only.
+- `apps/web/`, browser prototype, Node packages, browser tests and Playwright scripts were excluded from this 2026-10-14 API source import. Vessel later added its own Web console and browser tests; see the 2026-10-15 editor import below.
 - `apps/api/.venv/`, `.pytest_cache/`, `__pycache__/`, `*.pyc`, `apps/api/var/`, source `.env`, local object data and generated output.
 
 Before package renaming, a checksum-mode `rsync -anc` comparison of the bounded `apps/api/` source and destination produced no differences. The copied launch script had the same SHA-256 (`ab5875cd762af56464be63baceed4df3c7460879e38a13d7168bf0ff7f5bd200`). Running the imported API suite in Vessel with the source virtualenv as a read-only interpreter gave `82 passed in 5.24s`. Vessel will install its own dependencies before the final verification.

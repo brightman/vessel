@@ -25,12 +25,13 @@
 
 ## 2. 身份与团队：现有 API
 
-以下端点已实现，本轮沿用其路径与主要字段。
+以下端点已在当前工作区实现，本轮沿用其路径与主要字段。注册前邮箱验证码已完成本地开发与 Brevo 真实投递验收；生产部署需单独配置与验收，详见 [注册邮件说明](registration-email.md)。
 
 | 方法与路径 | 请求 | 成功响应 |
 | --- | --- | --- |
-| `GET /v1/auth/options` | 无 | `{"registration_enabled": boolean}` |
-| `POST /v1/auth/register` | `name`、`email`、`password` | 201；`access_token`、`token_type`、`expires_in`、`user`，设置 `vessel_refresh` Cookie |
+| `GET /v1/auth/options` | 无 | `registration_enabled`、`registration_email_verification_required`、`registration_email_resend_seconds` |
+| `POST /v1/auth/registration/email-code` | `email` | 202；`challenge_id`、`expires_in=600`、`resend_after=60`；注册前验证邮箱 |
+| `POST /v1/auth/register` | `name`、`email`、`password`；启用邮箱验证时还需 `challenge_id`、`verification_code` | 201；`access_token`、`token_type`、`expires_in`、`user`，设置 `vessel_refresh` Cookie |
 | `POST /v1/auth/login` | `email`、`password` | 同上 |
 | `POST /v1/auth/refresh` | `vessel_refresh` Cookie | 轮换 Cookie，返回新 Access Token |
 | `POST /v1/auth/logout` | Refresh Cookie | 204 |
@@ -48,7 +49,7 @@
 | `PATCH /v1/teams/{space_id}/members/{user_id}` | `{"role":"editor"}` | `{"member": {...}}` |
 | `DELETE /v1/teams/{space_id}/members/{user_id}` | 无 | 204 |
 
-角色是 `owner|admin|editor|viewer`。团队邀请只面向已存在且 active 的 Vessel 用户。生产默认关闭公开注册；当前尚无邮箱验证与自助重置 API。
+角色是 `owner|admin|editor|viewer`。团队邀请只面向已存在且 active 的 Vessel 用户。生产默认关闭公开注册；注册邮箱验证接口已进入当前开发工作区，但尚未完成生产送达与部署验收。自助密码重置 API 尚未提供。
 
 ## 3. Pages：个人兼容路径与团队空间路径
 
@@ -235,7 +236,7 @@ const records = await fetch(`${apiOrigin}/v1/apps/${appId}/tables/meals/records`
 | 422 | `PAGE_DOCUMENT_INVALID`、`APP_MANIFEST_INVALID`、`APP_FIELD_VALUE_INVALID`、`APP_SCHEMA_CHANGE_UNSUPPORTED`、`APP_CURSOR_INVALID`、`APP_BULK_DELETE_INVALID`、`H5_*` | 内容、结构、游标、批量删除请求或静态包不符合契约 |
 | 503 | `APP_RELEASE_STORAGE_UNAVAILABLE` | 当前部署未配置或无法安全访问 App Release 私有存储 |
 
-本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。新 Page Agent 接入、通用 Google Drive 式文件、OSS/S3 直传、统一目录、公开分享、跨空间复制、CSV 大文件导入、全文搜索与独立 CLI/MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
+本轮范围是 Pages 的内容、目录、图片与版本 API，以及 Apps 的表格 Schema 和记录 API。独立 `vessel` CLI v1 已实现为现有 HTTP API 的客户端；新 Page Agent 接入、公开分享、跨空间复制、CSV 大文件导入、全文搜索和 MCP 桥接仍按 [总体技术设计](technical-design.md) 后续实施。现有 Pages 的本地图片存储不作为通用文件服务对外承诺。
 
 ## 7. 已确认的三个 API 决策
 

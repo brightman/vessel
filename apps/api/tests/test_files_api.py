@@ -94,7 +94,7 @@ def files_api(tmp_path):
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     application = create_app(
         settings=Settings(
-            environment="test", allow_registration=True, refresh_cookie_secure=False
+            environment="test", allow_registration=True, registration_email_verification_required=False, refresh_cookie_secure=False
         ),
         engine=engine,
         session_factory=sessions,

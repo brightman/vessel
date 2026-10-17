@@ -12,7 +12,7 @@ export type VesselApp = { app_id: string; space_id: string; name: string; manife
 export type AppRecord = { id: string; values: Record<string, unknown>; row_version: number; created_at: string; updated_at: string };
 
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly code: string, readonly detail?: unknown, readonly requestId?: string | null) { super(code); }
+  constructor(readonly status: number, readonly code: string, readonly detail?: unknown, readonly requestId?: string | null, readonly retryAfter?: number) { super(code); }
 }
 
 let accessToken: string | null = null;
@@ -28,7 +28,8 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: { code?: string } } | null;
-    throw new ApiError(response.status, payload?.detail?.code ?? `HTTP_${response.status}`, payload?.detail, response.headers.get("X-Request-ID"));
+    const retry = Number(response.headers.get("Retry-After"));
+    throw new ApiError(response.status, payload?.detail?.code ?? `HTTP_${response.status}`, payload?.detail, response.headers.get("X-Request-ID"), Number.isFinite(retry) && retry > 0 ? Math.min(Math.ceil(retry), 86400) : undefined);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -44,9 +45,10 @@ async function authenticate(path: string, body: unknown): Promise<User> {
   return result.user;
 }
 
-export const authOptions = () => request<{ registration_enabled: boolean }>("/v1/auth/options");
+export const authOptions = () => request<{ registration_enabled: boolean; registration_email_verification_required: boolean; registration_email_resend_seconds: number }>("/v1/auth/options");
 export const login = (email: string, password: string) => authenticate("/v1/auth/login", { email, password });
-export const register = (name: string, email: string, password: string) => authenticate("/v1/auth/register", { name, email, password });
+export const register = (name: string, email: string, password: string, challenge_id?: string, verification_code?: string) => authenticate("/v1/auth/register", { name, email, password, challenge_id, verification_code });
+export const requestRegistrationCode = (email: string) => json<{ challenge_id: string; expires_in: number; resend_after: number }>("POST", "/v1/auth/registration/email-code", { email });
 export async function refreshSession(): Promise<User | null> {
   if (!refreshPromise) refreshPromise = (async () => {
     try {
@@ -63,6 +65,18 @@ export async function logout(): Promise<void> {
 }
 
 const id = encodeURIComponent;
+function clientBlockId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `block-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
 export const listSpaces = () => request<{ spaces: Space[] }>("/v1/spaces");
 export const getPermissions = (spaceId: string) => request<Permissions>(`/v1/spaces/${id(spaceId)}/permissions`);
 export const createTeam = (name: string) => json<{ space: Space }>("POST", "/v1/teams", { name });
@@ -78,7 +92,7 @@ export const removeMember = (spaceId: string, userId: string) => json("DELETE", 
 export const listPages = (spaceId: string, status: "active" | "archived" = "active") => request<{ pages: PageRecord[] }>(`/v1/spaces/${id(spaceId)}/pages?status=${status}`);
 export const listDirectories = (spaceId: string) => request<{ directories: Directory[] }>(`/v1/spaces/${id(spaceId)}/directories`);
 export const createDirectory = (spaceId: string, name: string) => json<{ directory: Directory }>("POST", `/v1/spaces/${id(spaceId)}/directories`, { name });
-export const createPage = (spaceId: string, title: string, directoryId: string | null) => json<{ page: PageRecord }>("POST", `/v1/spaces/${id(spaceId)}/pages`, { title, directory_id: directoryId, document: { type: "doc", schema_version: 1, content: [{ type: "paragraph", attrs: { block_id: crypto.randomUUID() } }] } });
+export const createPage = (spaceId: string, title: string, directoryId: string | null) => json<{ page: PageRecord }>("POST", `/v1/spaces/${id(spaceId)}/pages`, { title, directory_id: directoryId, document: { type: "doc", schema_version: 1, content: [{ type: "paragraph", attrs: { block_id: clientBlockId() } }] } });
 export const savePage = (page: PageRecord, title: string, document: Record<string, unknown>, directoryId: string | null) => json<{ page: PageRecord }>("PATCH", `/v1/pages/${id(page.page_id)}`, { expected_revision: page.revision, title, document, directory_id: directoryId });
 export const archivePage = (pageId: string) => json("POST", `/v1/pages/${id(pageId)}/archive`);
 export const restorePage = (pageId: string) => json<{ page: PageRecord }>("POST", `/v1/pages/${id(pageId)}/restore`);

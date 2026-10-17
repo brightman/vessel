@@ -13,12 +13,12 @@ async function capture(page, name) {
 
 async function register(page, label) {
   await page.goto("/register");
-  await page.getByLabel("姓名").fill(label);
-  await page.getByLabel("邮箱").fill(`${label.toLowerCase().replace(/\s/g, "-")}-${crypto.randomUUID()}@example.test`);
-  await page.getByLabel("密码").fill("vessel-files-e2e-password");
+  await page.getByLabel("Name").fill(label);
+  await page.getByLabel("Email").fill(`${label.toLowerCase().replace(/\s/g, "-")}-${crypto.randomUUID()}@example.test`);
+  await page.getByLabel("Password").fill("vessel-files-e2e-password");
   const [response] = await Promise.all([
     page.waitForResponse(value => value.url().endsWith("/v1/auth/register")),
-    page.getByRole("button", { name: "注册" }).click(),
+    page.getByRole("button", { name: "Create account" }).click(),
   ]);
   expect(response.status()).toBe(201);
   const payload = await response.json();
@@ -70,10 +70,10 @@ test("root and shared navigation shows only granted descendants", async ({ brows
   await fileApi(sharerPage, sharer, "POST", `/v1/file-items/${shared.item_id}/grants`, { grantee_user_id: owner.userId, role: "viewer", expected_acl_revision: grants.acl_revision });
 
   await ownerPage.getByRole("button", { name: "Files" }).click();
-  await expect(ownerPage.getByRole("heading", { name: "我的文件" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: "My Files" })).toBeVisible();
   await expect(ownerPage.getByRole("row", { name: /Research/ })).toBeVisible();
   await capture(ownerPage, "files-desktop");
-  await ownerPage.getByRole("button", { name: "共享给我" }).click();
+  await ownerPage.getByRole("button", { name: "Shared with me" }).click();
   await expect(ownerPage.getByRole("row", { name: /Shared research/ })).toBeVisible();
   await expect(ownerPage.getByText("Private sibling")).toHaveCount(0);
   await ownerContext.close();
@@ -85,9 +85,9 @@ test("Files uses a directory drawer at 390 px", async ({ browser }) => {
   const page = await context.newPage();
   await register(page, "Files Mobile");
   await page.getByRole("button", { name: "Files" }).click();
-  await expect(page.getByRole("button", { name: "目录" })).toBeVisible();
-  await page.getByRole("button", { name: "目录" }).click();
-  await expect(page.getByRole("complementary", { name: "Files 目录" })).toHaveClass(/open/);
+  await expect(page.getByRole("button", { name: "Folders" })).toBeVisible();
+  await page.getByRole("button", { name: "Folders" }).click();
+  await expect(page.getByRole("complementary", { name: "Files folders" })).toHaveClass(/open/);
   await page.waitForTimeout(250);
   await capture(page, "files-mobile-390");
   await context.close();
@@ -106,15 +106,15 @@ test("item capabilities show read controls for personal and team viewers", async
   await fileApi(ownerPage, owner, "POST", `/v1/file-items/${file.item_id}/grants`, { grantee_user_id: viewer.userId, role: "viewer", expected_acl_revision: grants.acl_revision });
 
   await viewerPage.getByRole("button", { name: "Files" }).click();
-  await viewerPage.getByRole("button", { name: "共享给我" }).click();
+  await viewerPage.getByRole("button", { name: "Shared with me" }).click();
   await viewerPage.getByRole("row", { name: /Shared report/ }).click();
-  await expect(viewerPage.getByRole("button", { name: "下载" })).toBeVisible();
-  await expect(viewerPage.getByRole("button", { name: "重命名" })).toHaveCount(0);
-  await expect(viewerPage.getByRole("tab", { name: "共享设置" })).toHaveCount(0);
+  await expect(viewerPage.getByRole("button", { name: "Download" })).toBeVisible();
+  await expect(viewerPage.getByRole("button", { name: "Rename" })).toHaveCount(0);
+  await expect(viewerPage.getByRole("tab", { name: "Sharing" })).toHaveCount(0);
 
   await ownerPage.getByRole("button", { name: "Files" }).click();
   await ownerPage.getByRole("row", { name: /Shared report/ }).click();
-  await expect(ownerPage.getByRole("tab", { name: "共享设置" })).toBeVisible();
+  await expect(ownerPage.getByRole("tab", { name: "Sharing" })).toBeVisible();
   await ownerContext.close();
   await viewerContext.close();
 });
@@ -130,33 +130,33 @@ test("owner updates and revokes a personal file share through the console", asyn
 
   await ownerPage.getByRole("button", { name: "Files" }).click();
   await ownerPage.getByRole("row", { name: /share-console.txt/ }).click();
-  await ownerPage.getByRole("tab", { name: "共享设置" }).click();
-  await ownerPage.getByLabel("Vessel 用户 ID").fill(recipient.userId);
-  await ownerPage.getByRole("button", { name: "添加共享" }).click();
+  await ownerPage.getByRole("tab", { name: "Sharing" }).click();
+  await ownerPage.getByLabel("Vessel user ID").fill(recipient.userId);
+  await ownerPage.getByRole("button", { name: "Add share" }).click();
 
   await recipientPage.getByRole("button", { name: "Files" }).click();
-  await recipientPage.getByRole("button", { name: "共享给我" }).click();
+  await recipientPage.getByRole("button", { name: "Shared with me" }).click();
   await recipientPage.getByRole("row", { name: /share-console.txt/ }).click();
-  await expect(recipientPage.getByRole("button", { name: "重命名" })).toHaveCount(0);
+  await expect(recipientPage.getByRole("button", { name: "Rename" })).toHaveCount(0);
 
-  await ownerPage.getByLabel(`权限 ${recipient.userId}`).selectOption("editor");
+  await ownerPage.getByLabel(`Permission for ${recipient.userId}`).selectOption("editor");
   await expect.poll(async () => (await fileApi(ownerPage, owner, "GET", `/v1/file-items/${file.item_id}/grants`)).grants.find(grant => grant.grantee_user_id === recipient.userId)?.role).toBe("editor");
   await recipientPage.reload();
   await recipientPage.getByRole("button", { name: "Files" }).click();
-  await recipientPage.getByRole("button", { name: "共享给我" }).click();
+  await recipientPage.getByRole("button", { name: "Shared with me" }).click();
   await recipientPage.getByRole("row", { name: /share-console.txt/ }).click();
-  await expect(recipientPage.getByRole("button", { name: "重命名" })).toBeVisible();
-  await recipientPage.getByRole("button", { name: "上传新版本" }).click();
-  await recipientPage.getByLabel("选择文件上传").setInputFiles({ name: "editor-replacement.txt", mimeType: "text/plain", buffer: Buffer.from("editor replacement") });
-  await expect(recipientPage.getByRole("status", { name: "上传队列" })).toContainText("已完成", { timeout: 40_000 });
+  await expect(recipientPage.getByRole("button", { name: "Rename" })).toBeVisible();
+  await recipientPage.getByRole("button", { name: "Upload new version" }).click();
+  await recipientPage.getByLabel("Choose files to upload").setInputFiles({ name: "editor-replacement.txt", mimeType: "text/plain", buffer: Buffer.from("editor replacement") });
+  await expect(recipientPage.getByRole("status", { name: "Upload queue" })).toContainText("Complete", { timeout: 40_000 });
   await expect.poll(async () => (await fileApi(ownerPage, owner, "GET", `/v1/files/${file.item_id}/versions`)).versions).toHaveLength(2);
 
-  ownerPage.once("dialog", dialog => void dialog.accept());
-  await ownerPage.getByRole("button", { name: "撤销" }).click();
+  await ownerPage.getByRole("button", { name: "Revoke" }).click();
+  await ownerPage.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect.poll(async () => (await fileApi(ownerPage, owner, "GET", `/v1/file-items/${file.item_id}/grants`)).grants.some(grant => grant.grantee_user_id === recipient.userId)).toBeFalsy();
   await recipientPage.reload();
   await recipientPage.getByRole("button", { name: "Files" }).click();
-  await recipientPage.getByRole("button", { name: "共享给我" }).click();
+  await recipientPage.getByRole("button", { name: "Shared with me" }).click();
   await expect(recipientPage.getByRole("row", { name: /share-console.txt/ })).toHaveCount(0);
   await ownerContext.close();
   await recipientContext.close();
@@ -166,13 +166,13 @@ test("browser OSS upload publishes and downloads matching bytes", async ({ page 
   const actor = await register(page, "Upload Owner");
   await page.getByRole("button", { name: "Files" }).click();
   const bytes = Buffer.from("browser upload through Vessel and OSS\n");
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "browser-upload.txt", mimeType: "text/plain", buffer: bytes });
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("已完成", { timeout: 40_000 });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "browser-upload.txt", mimeType: "text/plain", buffer: bytes });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("Complete", { timeout: 40_000 });
   await expect.poll(() => page.evaluate(userId => sessionStorage.getItem(`vessel.files.uploads.${userId}`), actor.userId)).toBeNull();
   await expect(page.getByRole("row", { name: /browser-upload.txt/ })).toBeVisible();
   await page.getByRole("row", { name: /browser-upload.txt/ }).click();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "下载", exact: true }).click();
+  await page.getByRole("button", { name: "Download", exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("browser-upload.txt");
   expect(createHash("sha256").update(await readFile(await download.path())).digest("hex")).toBe(createHash("sha256").update(bytes).digest("hex"));
@@ -182,9 +182,9 @@ test("an upload finishing after folder navigation does not replace the current d
   await register(page, "Upload Navigation Owner");
   await page.getByRole("button", { name: "Files" }).click();
   for (const name of ["Upload source", "View target"]) {
-    await page.getByRole("button", { name: "新建文件夹" }).click();
-    await page.getByLabel("文件夹名称").fill(name);
-    await page.getByRole("button", { name: "创建文件夹" }).click();
+    await page.getByRole("button", { name: "New folder" }).click();
+    await page.getByLabel("Folder name").fill(name);
+    await page.getByRole("button", { name: "Create folder" }).click();
   }
   await page.getByRole("row", { name: /Upload source/ }).dblclick();
   let markStarted;
@@ -196,13 +196,13 @@ test("an upload finishing after folder navigation does not replace the current d
     await release;
     await route.continue();
   });
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "delayed-source.txt", mimeType: "text/plain", buffer: Buffer.from("delayed upload") });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "delayed-source.txt", mimeType: "text/plain", buffer: Buffer.from("delayed upload") });
   await started;
-  await page.locator(".files-breadcrumbs").getByRole("button", { name: "我的文件" }).click();
+  await page.locator(".files-breadcrumbs").getByRole("button", { name: "My Files" }).click();
   await page.getByRole("row", { name: /View target/ }).dblclick();
   await expect(page.getByRole("heading", { name: "View target" })).toBeVisible();
   releaseUpload();
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("已完成", { timeout: 40_000 });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("Complete", { timeout: 40_000 });
   await expect(page.getByRole("row", { name: /delayed-source.txt/ })).toHaveCount(0);
 });
 
@@ -224,10 +224,10 @@ test("an upload finishing after logout does not reload a Files view", async ({ p
   page.on("request", request => {
     if (loggedOut && request.method() === "GET" && (/\/v1\/spaces\/[^/]+\/file-items\?/.test(request.url()) || /\/v1\/shared-files(?:\?|$)/.test(request.url()))) requestsAfterLogout += 1;
   });
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "logout-pending.txt", mimeType: "text/plain", buffer: Buffer.from("logout while polling") });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "logout-pending.txt", mimeType: "text/plain", buffer: Buffer.from("logout while polling") });
   await statusIsHeld;
-  await page.getByRole("button", { name: "退出登录" }).click();
-  await expect(page.getByRole("heading", { name: "登录 Vessel" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
   loggedOut = true;
   releaseStatus();
   await page.waitForTimeout(2_000);
@@ -242,8 +242,8 @@ test("upload queue describes a temporary Files storage outage", async ({ page })
     headers: { "content-type": "application/json", "x-request-id": "ui-storage-test" },
     body: JSON.stringify({ detail: { code: "FILE_STORAGE_UNAVAILABLE" } }),
   }));
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "storage-error.txt", mimeType: "text/plain", buffer: Buffer.from("retry later") });
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("文件存储暂时不可用，请稍后重试。", { timeout: 20_000 });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "storage-error.txt", mimeType: "text/plain", buffer: Buffer.from("retry later") });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("File storage is temporarily unavailable. Please try again later.", { timeout: 20_000 });
 });
 
 test("a failed OSS transfer cancels its reserved upload intent", async ({ page }) => {
@@ -259,9 +259,9 @@ test("a failed OSS transfer cancels its reserved upload intent", async ({ page }
     await route.continue();
   });
   const created = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/file-uploads$/.test(new URL(response.url()).pathname));
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "transport-error.txt", mimeType: "text/plain", buffer: Buffer.from("cancel stale reservation") });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "transport-error.txt", mimeType: "text/plain", buffer: Buffer.from("cancel stale reservation") });
   const upload = (await (await created).json()).upload;
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("Failed to fetch", { timeout: 20_000 });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("Failed to fetch", { timeout: 20_000 });
   await expect.poll(async () => (await fileApi(page, actor, "GET", `/v1/file-uploads/${upload.upload_id}`)).upload.status, { timeout: 20_000 }).toBe("cancelled");
   await expect.poll(() => page.evaluate(userId => sessionStorage.getItem(`vessel.files.uploads.${userId}`), actor.userId)).toBeNull();
 });
@@ -270,8 +270,8 @@ test("browser multipart upload receives exposed OSS ETags", async ({ page }) => 
   await register(page, "Multipart Owner");
   await page.getByRole("button", { name: "Files" }).click();
   const bytes = Buffer.alloc(17 * 1024 * 1024, "v");
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "multipart.bin", mimeType: "application/octet-stream", buffer: bytes });
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("已完成", { timeout: 90_000 });
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "multipart.bin", mimeType: "application/octet-stream", buffer: bytes });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("Complete", { timeout: 90_000 });
   await expect(page.getByRole("row", { name: /multipart.bin/ })).toBeVisible();
 });
 
@@ -280,13 +280,13 @@ test("new-version upload refreshes history and restores a prior version", async 
   const initial = await uploadFixture(page, actor, "versioned.txt", Buffer.from("first version"));
   await page.getByRole("button", { name: "Files" }).click();
   await page.getByRole("row", { name: /versioned.txt/ }).click();
-  await page.getByRole("button", { name: "上传新版本" }).click();
-  await page.getByLabel("选择文件上传").setInputFiles({ name: "replacement.txt", mimeType: "text/plain", buffer: Buffer.from("second version") });
-  await expect(page.getByRole("status", { name: "上传队列" })).toContainText("已完成", { timeout: 40_000 });
-  await page.getByRole("tab", { name: "历史版本" }).click();
+  await page.getByRole("button", { name: "Upload new version" }).click();
+  await page.getByLabel("Choose files to upload").setInputFiles({ name: "replacement.txt", mimeType: "text/plain", buffer: Buffer.from("second version") });
+  await expect(page.getByRole("status", { name: "Upload queue" })).toContainText("Complete", { timeout: 40_000 });
+  await page.getByRole("tab", { name: "Version history" }).click();
   await expect(page.locator(".files-versions > div")).toHaveCount(2);
-  page.once("dialog", dialog => void dialog.accept());
-  await page.getByRole("button", { name: "恢复此版本" }).last().click();
+  await page.getByRole("button", { name: "Restore this version" }).last().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(page.locator(".files-versions > div")).toHaveCount(3, { timeout: 30_000 });
   const versions = await fileApi(page, actor, "GET", `/v1/files/${initial.item_id}/versions`);
   expect(versions.versions).toHaveLength(3);
@@ -311,17 +311,17 @@ test("team Viewer remains read-only while Editor can create folders", async ({ b
   await fileApi(ownerPage, owner, "POST", `/v1/spaces/${team.space_id}/folders`, { name: "Team visible", parent_folder_id: root.item_id });
 
   await viewerPage.reload();
-  await viewerPage.getByLabel("当前空间").selectOption(team.space_id);
+  await viewerPage.getByLabel("Current space").selectOption(team.space_id);
   await viewerPage.getByRole("button", { name: "Files" }).click();
   await expect(viewerPage.getByRole("row", { name: /Team visible/ })).toBeVisible();
-  await expect(viewerPage.getByRole("button", { name: "新建文件夹" })).toHaveCount(0);
+  await expect(viewerPage.getByRole("button", { name: "New folder" })).toHaveCount(0);
 
   await editorPage.reload();
-  await editorPage.getByLabel("当前空间").selectOption(team.space_id);
+  await editorPage.getByLabel("Current space").selectOption(team.space_id);
   await editorPage.getByRole("button", { name: "Files" }).click();
-  await editorPage.getByRole("button", { name: "新建文件夹" }).click();
-  await editorPage.getByLabel("文件夹名称").fill("Editor write");
-  await editorPage.getByRole("button", { name: "创建文件夹" }).click();
+  await editorPage.getByRole("button", { name: "New folder" }).click();
+  await editorPage.getByLabel("Folder name").fill("Editor write");
+  await editorPage.getByRole("button", { name: "Create folder" }).click();
   await expect(editorPage.getByRole("row", { name: /Editor write/ })).toBeVisible();
   await ownerContext.close();
   await viewerContext.close();
@@ -331,37 +331,37 @@ test("team Viewer remains read-only while Editor can create folders", async ({ b
 test("folder move preview requires explicit confirmation", async ({ page }) => {
   await register(page, "Move Owner");
   await page.getByRole("button", { name: "Files" }).click();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Source");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Source");
+  await page.getByRole("button", { name: "Create folder" }).click();
   await expect(page.getByRole("row", { name: /Source/ })).toBeVisible();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Destination");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Destination");
+  await page.getByRole("button", { name: "Create folder" }).click();
   await page.getByRole("row", { name: /Source/ }).click();
-  await page.getByRole("button", { name: "移动" }).click();
-  await page.getByRole("button", { name: "选择 Destination" }).click();
-  await page.getByRole("button", { name: "预览移动" }).click();
-  await expect(page.getByRole("dialog", { name: "移动权限变化" })).toBeVisible();
-  await page.getByRole("button", { name: "确认移动" }).click();
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await page.getByRole("button", { name: "Select Destination" }).click();
+  await page.getByRole("button", { name: "Preview move" }).click();
+  await expect(page.getByRole("dialog", { name: "Move permission changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Confirm move" }).click();
   await expect(page.getByRole("row", { name: /Source/ })).toHaveCount(0);
 });
 
 test("move picker rejects an item's own descendant", async ({ page }) => {
   await register(page, "Move Descendant Owner");
   await page.getByRole("button", { name: "Files" }).click();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Source parent");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Source parent");
+  await page.getByRole("button", { name: "Create folder" }).click();
   await page.getByRole("row", { name: /Source parent/ }).dblclick();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Source child");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
-  await page.locator(".files-breadcrumbs").getByRole("button", { name: "我的文件" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Source child");
+  await page.getByRole("button", { name: "Create folder" }).click();
+  await page.locator(".files-breadcrumbs").getByRole("button", { name: "My Files" }).click();
   await page.getByRole("row", { name: /Source parent/ }).click();
-  await page.getByRole("button", { name: "移动" }).click();
-  await page.getByRole("button", { name: "打开" }).click();
-  await expect(page.getByRole("button", { name: "选择 Source child" })).toBeDisabled();
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await page.getByRole("button", { name: "Open" }).click();
+  await expect(page.getByRole("button", { name: "Select Source child" })).toBeDisabled();
 });
 
 test("move picker loads later destination pages", async ({ page }) => {
@@ -372,10 +372,10 @@ test("move picker loads later destination pages", async ({ page }) => {
   await fileApi(page, actor, "POST", `/v1/spaces/${actor.spaceId}/folders`, { name: "Z later destination", parent_folder_id: root.item_id });
   await page.getByRole("button", { name: "Files" }).click();
   await page.getByRole("row", { name: /M move source/ }).click();
-  await page.getByRole("button", { name: "移动" }).click();
-  await expect(page.getByRole("button", { name: "选择 Z later destination" })).toHaveCount(0);
-  await page.getByRole("button", { name: "加载更多目录" }).click();
-  await expect(page.getByRole("button", { name: "选择 Z later destination" })).toBeVisible();
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Select Z later destination" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Load more folders" }).click();
+  await expect(page.getByRole("button", { name: "Select Z later destination" })).toBeVisible();
 });
 
 test("move retry reloads the item after a concurrent metadata update", async ({ page }) => {
@@ -387,52 +387,52 @@ test("move retry reloads the item after a concurrent metadata update", async ({ 
   await page.getByRole("row", { name: /Move retry source/ }).click();
   await expect(page.getByRole("heading", { name: "Move retry source" })).toBeVisible();
   await fileApi(page, actor, "PATCH", `/v1/file-items/${source.item_id}`, { name: "Move retry source updated", expected_metadata_version: source.metadata_version });
-  await page.getByRole("button", { name: "移动" }).click();
-  await page.getByRole("button", { name: "选择 Move retry destination" }).click();
-  await page.getByRole("button", { name: "预览移动" }).click();
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await page.getByRole("button", { name: "Select Move retry destination" }).click();
+  await page.getByRole("button", { name: "Preview move" }).click();
   await expect(page.getByRole("alert")).toContainText("FILE_METADATA_VERSION_CONFLICT");
-  await page.getByRole("button", { name: "重新载入并再次预览" }).click();
-  await expect(page.getByRole("dialog", { name: "移动权限变化" })).toBeVisible();
+  await page.getByRole("button", { name: "Reload and preview again" }).click();
+  await expect(page.getByRole("dialog", { name: "Move permission changes" })).toBeVisible();
 });
 
 test("trash restore and purge use batch previews and job status", async ({ page }) => {
   const actor = await register(page, "Trash Owner");
   await page.getByRole("button", { name: "Files" }).click();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Recover me");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Recover me");
+  await page.getByRole("button", { name: "Create folder" }).click();
   await page.getByRole("row", { name: /Recover me/ }).click();
-  await page.getByRole("button", { name: "移入回收站" }).click();
-  await page.getByRole("button", { name: "确认移入回收站" }).click();
-  await page.getByRole("button", { name: "回收站", exact: true }).click();
+  await page.getByRole("button", { name: "Move to Trash" }).click();
+  await page.getByRole("button", { name: "Confirm move to Trash" }).click();
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
   const batches = await fileApi(page, actor, "GET", `/v1/spaces/${actor.spaceId}/file-trash`);
   await expect(page.getByText(batches.trash_batches[0].batch_id)).toBeVisible();
-  await page.getByRole("button", { name: "恢复", exact: true }).click();
-  await page.getByRole("button", { name: "预览恢复" }).click();
-  await expect(page.getByRole("dialog", { name: "恢复权限变化" })).toBeVisible();
-  await page.getByRole("button", { name: "确认恢复" }).click();
-  await expect(page.getByRole("dialog", { name: "恢复权限变化" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Restore", exact: true }).click();
+  await page.getByRole("button", { name: "Preview restore" }).click();
+  await expect(page.getByRole("dialog", { name: "Restore permission changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Confirm restore" }).click();
+  await expect(page.getByRole("dialog", { name: "Restore permission changes" })).toHaveCount(0);
   const root = (await fileApi(page, actor, "GET", `/v1/spaces/${actor.spaceId}/folders/root`)).folder;
   const restored = await fileApi(page, actor, "GET", `/v1/spaces/${actor.spaceId}/file-items?parent_folder_id=${root.item_id}`);
   expect(restored.items.some(item => item.name === "Recover me")).toBeTruthy();
-  await expect(page.getByRole("heading", { name: "我的文件" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My Files" })).toBeVisible();
   await expect(page.getByRole("row", { name: /Recover me/ })).toBeVisible();
 });
 
 test("owner sees a purge job until it finishes", async ({ page }) => {
   const actor = await register(page, "Purge Owner");
   await page.getByRole("button", { name: "Files" }).click();
-  await page.getByRole("button", { name: "新建文件夹" }).click();
-  await page.getByLabel("文件夹名称").fill("Purge me");
-  await page.getByRole("button", { name: "创建文件夹" }).click();
+  await page.getByRole("button", { name: "New folder" }).click();
+  await page.getByLabel("Folder name").fill("Purge me");
+  await page.getByRole("button", { name: "Create folder" }).click();
   await page.getByRole("row", { name: /Purge me/ }).click();
-  await page.getByRole("button", { name: "移入回收站" }).click();
-  await page.getByRole("button", { name: "确认移入回收站" }).click();
-  await page.getByRole("button", { name: "回收站", exact: true }).click();
+  await page.getByRole("button", { name: "Move to Trash" }).click();
+  await page.getByRole("button", { name: "Confirm move to Trash" }).click();
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
   const batches = await fileApi(page, actor, "GET", `/v1/spaces/${actor.spaceId}/file-trash`);
   const row = page.locator("article.files-trash-row").filter({ hasText: batches.trash_batches[0].batch_id });
-  page.once("dialog", dialog => void dialog.accept());
-  await row.getByRole("button", { name: "永久清理" }).click();
-  await expect(page.getByRole("status")).toContainText("清理任务", { timeout: 10_000 });
-  await expect(page.getByRole("status")).toContainText("已完成", { timeout: 30_000 });
+  await row.getByRole("button", { name: "Permanently purge" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Purge job", { timeout: 10_000 });
+  await expect(page.getByRole("status")).toContainText("Complete", { timeout: 30_000 });
 });

@@ -15,3 +15,5 @@ __all__ = ["Base", "Page", "PageAgentEvent", "PageAsset", "PageCapability", "Pag
 
 # Register the independent file domain for migrations and metadata creation.
 from vessel_service.files import models as _file_models
+
+from vessel_service.models.registration_email import RegistrationEmailChallenge, RegistrationEmailLimit

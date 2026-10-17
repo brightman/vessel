@@ -2,7 +2,7 @@ import type { FieldDefinition } from "./api";
 
 function decimalKey(raw: string): string {
   const match = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(raw);
-  if (!match) throw new Error("JSON 数字格式无效。");
+  if (!match) throw new Error("The JSON number format is invalid.");
   let digits = `${match[2]}${match[3] ?? ""}`.replace(/^0+/, "");
   if (!digits) return "0";
   let exponent = BigInt(match[4] ?? "0") - BigInt((match[3] ?? "").length);
@@ -16,17 +16,17 @@ export function parseValue(raw: string, definition: FieldDefinition): unknown {
   if (raw === "" && definition.nullable) return null;
   switch (definition.type) {
     case "integer":
-      if (!/^-?\d+$/.test(raw)) throw new Error("整数应填写完整数字。");
-      if (!Number.isSafeInteger(Number(raw))) throw new Error("整数超出 JavaScript 安全整数范围，请使用 numeric 字段。");
+      if (!/^-?\d+$/.test(raw)) throw new Error("Enter a complete integer.");
+      if (!Number.isSafeInteger(Number(raw))) throw new Error("The integer is outside JavaScript's safe range. Use a numeric field instead.");
       return Number(raw);
     case "numeric": return raw;
     case "boolean":
-      if (raw !== "true" && raw !== "false") throw new Error("布尔值必须选择是或否。");
+      if (raw !== "true" && raw !== "false") throw new Error("Select Yes or No for a boolean value.");
       return raw === "true";
     case "timestamp": {
-      if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)) throw new Error("时间必须包含时区，例如 2026-10-15T12:00:00Z。");
+      if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)) throw new Error("The timestamp must include a timezone, for example 2026-10-15T12:00:00Z.");
       const parsed = new Date(raw);
-      if (Number.isNaN(parsed.getTime())) throw new Error("时间格式无效。");
+      if (Number.isNaN(parsed.getTime())) throw new Error("The timestamp format is invalid.");
       return parsed.toISOString();
     }
     case "json": {
@@ -37,7 +37,7 @@ export function parseValue(raw: string, definition: FieldDefinition): unknown {
         (Number.isInteger(Number(token)) && !Number.isSafeInteger(Number(token))) ||
         decimalKey(token) !== decimalKey(Number(token).toString())
       ))) {
-        throw new Error("JSON 数字会丢失精度，请改用字符串以保留原值。");
+        throw new Error("A JSON number would lose precision. Use a string to preserve the original value.");
       }
       return value;
     }

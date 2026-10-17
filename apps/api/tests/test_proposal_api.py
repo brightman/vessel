@@ -19,7 +19,7 @@ def test_owner_reviews_and_accepts_proposal_once_while_other_user_cannot_read_it
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     app = create_app(
-        settings=Settings(environment="test", issuer_url="https://pages.test", allow_registration=True, refresh_cookie_secure=False),
+        settings=Settings(environment="test", issuer_url="https://pages.test", allow_registration=True, registration_email_verification_required=False, refresh_cookie_secure=False),
         engine=engine,
         session_factory=sessions,
         keyring=KeyRing.for_test("proposal-api-test"),

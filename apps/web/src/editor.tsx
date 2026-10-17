@@ -1,3 +1,6 @@
+import { useDialogs } from "./components/dialogs";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "./components/ui/dropdown-menu";
+import { Button } from "./components/controls";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Editor as TiptapEditor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -66,6 +69,9 @@ function applyBlockStyle(editor: TiptapEditor, style: string): void {
 }
 
 export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentChange, readOnly }: Props) {
+  const { prompt } = useDialogs();
+  const styleChosen = useRef(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const [styleMenuOpen, setStyleMenuOpen] = useState(false);
   const onChangeRef = useRef(onDocumentChange);
   const onCollapseRef = useRef(onCollapse);
@@ -74,7 +80,7 @@ export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentCh
   onCollapseRef.current = onCollapse;
   const initialContent = useMemo(() => toEditorDocument(page.document), []);
   const editorProps = useMemo(() => ({
-    attributes: { id: "pageBody", class: "doc", "data-testid": "page-body", "aria-label": "Page 文档" },
+    attributes: { id: "pageBody", class: "doc", "data-testid": "page-body", "aria-label": "Page document" },
   }), []);
   const extensions = useMemo(() => [
     StarterKit,
@@ -131,33 +137,37 @@ export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentCh
     <div className="editor-document"><EditorContent editor={editor} />
       {editor && !readOnly && <BubbleMenu
         editor={editor}
+        pluginKey="vessel-selection-menu"
         updateDelay={0}
-        options={{ placement: "top", strategy: "fixed", offset: 8, flip: true, shift: { padding: 12 } }}
+        options={{ placement: "top", strategy: "fixed", offset: 8, flip: true, shift: { padding: 12 }, onShow: () => {
+          // Measure after React has committed the toolbar and its menu trigger.
+          requestAnimationFrame(() => { if (!editor.isDestroyed) editor.commands.setMeta("vessel-selection-menu", "updatePosition"); });
+        } }}
         shouldShow={({ editor: instance }) => {
           const selection = instance.state.selection;
           return instance.isEditable && !selection.empty && selection.$from.parent.inlineContent && selection.$to.parent.inlineContent;
         }}
       >
-        <div className="selection-toolbar" data-testid="selection-toolbar" role="toolbar" aria-label="Selected text formatting" onMouseDown={event => event.preventDefault()}>
-          <button type="button" aria-label="Bold" aria-pressed={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
-          <button type="button" aria-label="Italic" aria-pressed={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
-          <button type="button" aria-label="Underline" aria-pressed={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></button>
-          <button type="button" aria-label="Strikethrough" aria-pressed={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
-          <button type="button" aria-label="Inline code" aria-pressed={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>&lt;/&gt;</button>
-          <button type="button" aria-label="Link" onClick={() => {
-            const value = window.prompt("Paste a link");
+        <div ref={toolbarRef} className="selection-toolbar" data-testid="selection-toolbar" role="toolbar" aria-label="Selected text formatting" onMouseDown={event => event.preventDefault()}>
+          <Button type="button" aria-label="Bold" aria-pressed={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></Button>
+          <Button type="button" aria-label="Italic" aria-pressed={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></Button>
+          <Button type="button" aria-label="Underline" aria-pressed={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></Button>
+          <Button type="button" aria-label="Strikethrough" aria-pressed={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></Button>
+          <Button type="button" aria-label="Inline code" aria-pressed={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>&lt;/&gt;</Button>
+          <Button type="button" aria-label="Link" onClick={async () => {
+            const value = await prompt("Paste a link");
             if (!value) return;
             try {
               const url = new URL(value);
               if (["http:", "https:"].includes(url.protocol)) editor.chain().focus().setLink({ href: url.href }).run();
             } catch { /* Keep the current selection when the URL is invalid. */ }
-          }}>↗</button>
-          <div className="selection-style-control">
-            <button type="button" aria-label="Text" aria-haspopup="menu" aria-expanded={styleMenuOpen} onClick={() => setStyleMenuOpen(open => !open)}>Text⌄</button>
-            {styleMenuOpen && <div className="selection-style-menu" role="menu" aria-label="Text style">
-              {[["paragraph", "Text"], ["heading-1", "Heading 1"], ["heading-2", "Heading 2"], ["heading-3", "Heading 3"], ["bullet-list", "Bulleted list"], ["numbered-list", "Numbered list"], ["quote", "Quote"], ["code-block", "Code block"]].map(([style, label]) => <button type="button" role="menuitem" key={style} onClick={() => { applyBlockStyle(editor, style); setStyleMenuOpen(false); }}>{label}</button>)}
-            </div>}
-          </div>
+          }}>↗</Button>
+          <DropdownMenu open={styleMenuOpen} onOpenChange={setStyleMenuOpen}>
+            <DropdownMenuTrigger asChild><Button type="button" aria-label="Text">Text⌄</Button></DropdownMenuTrigger>
+            <DropdownMenuContent container={toolbarRef.current} aria-labelledby={undefined} aria-label="Text style" onCloseAutoFocus={event => { if (styleChosen.current) { event.preventDefault(); editor.commands.focus(); styleChosen.current = false; } }}>
+              {[["paragraph", "Text"], ["heading-1", "Heading 1"], ["heading-2", "Heading 2"], ["heading-3", "Heading 3"], ["bullet-list", "Bulleted list"], ["numbered-list", "Numbered list"], ["quote", "Quote"], ["code-block", "Code block"]].map(([style, label]) => <DropdownMenuItem key={style} onSelect={() => { styleChosen.current = true; applyBlockStyle(editor, style); }}>{label}</DropdownMenuItem>)}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </BubbleMenu>}
     </div>

@@ -8,7 +8,7 @@
 --aqua:#9ee9d3;
 --aqua-deep:#1e766a;
 --coral:#ff856e;
---radius:16px;
+--radius:12px;
 font-family:ui-rounded,"Avenir Next",Avenir,"Segoe UI",sans-serif;
 color:var(--ink);
 background:var(--paper);
@@ -83,7 +83,7 @@ color:#365b61}
 align-items:center;
 justify-content:center;
 min-height:42px;
-border-radius:999px;
+border-radius:8px;
 padding:0 18px;
 font-size:12px;
 font-weight:830;
@@ -91,7 +91,9 @@ letter-spacing:-.01em;
 white-space:nowrap;
 transition:transform .18s ease,background .18s ease,color .18s ease}
 .button:active{transform:translateY(1px) scale(.98)}
-.button-primary{background:var(--night);
+.button-primary{--cta-bg:var(--night);
+--cta-hover:#10434a;
+background:var(--night);
 color:var(--white);
 box-shadow:0 8px 20px #0821261a}
 .button-primary:hover{background:#10434a}
@@ -145,7 +147,9 @@ line-height:1.65}
 .hero-actions{display:flex;
 gap:10px;
 margin-top:31px}
-.hero-actions .button-primary{background:var(--aqua-deep)}
+.hero-actions .button-primary{--cta-bg:var(--aqua-deep);
+--cta-hover:#135b54;
+background:var(--aqua-deep)}
 .hero-actions .button-primary:hover{background:#135b54}
 .hero-note{margin:25px 0 0;
 color:#799094;
@@ -397,6 +401,8 @@ font-size:8px;
 letter-spacing:.03em;
 text-transform:uppercase;
 vertical-align:middle}
+.steps h3 b.step-available{background:#d9f2e7;
+color:#1d6657}
 .steps p{margin:14px 0 0;
 color:#4d6b6d;
 font-size:13px;
@@ -524,10 +530,84 @@ border-radius:99px;
 padding:4px 6px;
 color:#a6c4bf;
 font-size:8px}
+.integration-line small.integration-available{border-color:#75c7ad;
+background:#19463f;
+color:var(--aqua)}
 .integration-panel>p{margin:15px 5px 3px;
 color:#82a5a1;
 font-size:10px;
 line-height:1.5}
+.cli-section{padding:125px 0;
+background:#e1ece6}
+.cli-grid{display:grid;
+grid-template-columns:.9fr 1.1fr;
+align-items:center;
+gap:72px}
+.cli-copy h2{margin:18px 0 0;
+color:var(--night);
+font-size:clamp(42px,5vw,68px);
+letter-spacing:-.075em;
+line-height:.92}
+.cli-copy>p:not(.cli-requirements){max-width:440px;
+margin:23px 0 0;
+color:#4f696c;
+font-size:15px;
+line-height:1.65}
+.cli-capabilities{display:flex;
+flex-wrap:wrap;
+gap:7px;
+margin:22px 0 25px}
+.cli-capabilities span{border:1px solid #afc4bc;
+border-radius:999px;
+padding:7px 9px;
+color:#496962;
+font-size:9px;
+font-weight:760}
+.cli-download{gap:13px;
+min-height:46px;
+padding:0 17px}
+.cli-download span{font-size:16px}
+.cli-requirements{margin:13px 0 0;
+color:#748b87;
+font-size:10px;
+line-height:1.5}
+.cli-quickstart{overflow:hidden;
+border:1px solid #355d5a;
+border-radius:var(--radius);
+padding:18px;
+background:var(--night);
+box-shadow:16px 17px 0 #bfd7cc}
+.cli-quickstart-head{display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+border-bottom:1px solid #345854;
+padding:1px 2px 13px;
+color:var(--aqua);
+font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+font-size:11px}
+.cli-quickstart-head small{color:#97b2ad;
+font-size:9px}
+.cli-quickstart pre{overflow-x:auto;
+margin:0;
+padding:20px 3px 15px;
+color:#e1f5ed;
+font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+font-size:11px;
+line-height:1.9;
+white-space:pre}
+.cli-quickstart p{margin:0;
+border-top:1px solid #345854;
+padding:13px 2px 0;
+color:#9db9b4;
+font-size:10px;
+line-height:1.55}
+.cli-quickstart>a{display:inline-block;
+margin:13px 2px 0;
+color:var(--aqua);
+font-size:10px;
+font-weight:760}
+.cli-quickstart>a:hover{text-decoration:underline}
 .faq-section{padding:130px 0}
 .faq-list{width:min(820px,100%);
 margin:55px 0 0 auto;
@@ -588,7 +668,7 @@ color:#547076;
 font-size:10px}
 .site-footer p{margin:0}
 .site-footer .brand{color:var(--night)}
-:focus-visible{outline:3px solid var(--coral);
+:focus-visible{outline:2px solid var(--aqua-deep);
 outline-offset:3px}
 @keyframes blink{0%,100%{opacity:.3}
 50%{opacity:1}
@@ -609,6 +689,8 @@ padding:75px 0 105px}
 justify-self:end}
 .why-grid,.integration-grid{grid-template-columns:1fr;
 gap:38px}
+.cli-grid{grid-template-columns:1fr;
+gap:36px}
 .why-copy{padding-top:0}
 .storage-grid{grid-template-columns:1fr}
 .storage-card{min-height:0}
@@ -655,7 +737,9 @@ transform:rotate(90deg);
 margin:4px auto}
 .space-card{align-self:auto}
 .why-band,.storage-section,.process-section,.use-cases,.integration-section,.faq-section{padding:78px 0}
+.cli-section{padding:78px 0}
 .why-band h2,.section-heading h2,.integration-section h2,.final-cta h2{font-size:39px}
+.cli-copy h2{font-size:44px}
 .why-copy p{font-size:15px}
 .storage-grid{margin-top:37px}
 .storage-card{padding:19px}
@@ -672,6 +756,8 @@ width:67%}
 .integration-grid{gap:36px}
 .integration-line{grid-template-columns:59px 1fr}
 .integration-line small{grid-column:2}
+.cli-quickstart{padding:15px}
+.cli-quickstart pre{font-size:9px}
 .final-cta{width:100%;
 margin-bottom:0;
 border-radius:0;
