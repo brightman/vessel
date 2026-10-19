@@ -1,0 +1,28 @@
+PODS:
+  - BRBluetoothLib (3.0.0)
+  - BRRecorderCore (3.0.0):
+    - BRBluetoothLib (= 3.0.0)
+    - BRRecorderOpus (= 1.6.1)
+  - BRRecorderOpus (1.6.1)
+
+DEPENDENCIES:
+  - BRBluetoothLib (from `../../../br_flutter_plugin_ble/ios/.native-sdk/BRBluetoothLib`)
+  - BRRecorderCore (from `../../../br_flutter_plugin_ble/ios`)
+  - BRRecorderOpus (from `../../../br_flutter_plugin_ble/ios/.native-sdk/Opus`)
+
+EXTERNAL SOURCES:
+  BRBluetoothLib:
+    :path: "../../../br_flutter_plugin_ble/ios/.native-sdk/BRBluetoothLib"
+  BRRecorderCore:
+    :path: "../../../br_flutter_plugin_ble/ios"
+  BRRecorderOpus:
+    :path: "../../../br_flutter_plugin_ble/ios/.native-sdk/Opus"
+
+SPEC CHECKSUMS:
+  BRBluetoothLib: 01d60e5fa792e018210a396a563bc30ac2e07b9d
+  BRRecorderCore: b8469215e0f2813b97d804ed8e9edf05aaf41afa
+  BRRecorderOpus: 0dacdba74a3b0262f723c30c730bba72bc52bebb
+
+PODFILE CHECKSUM: bb977cc6813b77ff1f234fa59cf92967b04d1e20
+
+COCOAPODS: 1.16.2

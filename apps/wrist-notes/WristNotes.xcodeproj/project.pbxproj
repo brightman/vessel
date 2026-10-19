@@ -7,94 +7,109 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01137B799982023CEEFE72FE /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997F5A25525157C3A7D2FC07 /* VoiceNote.swift */; };
-		07455965617C98994F7FF3EC /* DayRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75F82B6E9E6B0B033FA41CA /* DayRecord.swift */; };
-		0ACAE39437102AA3253AC74E /* DaybookRetrieval.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3413483DE4335D65D38DBB5 /* DaybookRetrieval.swift */; };
-		12199592D0010A3E2A8A9B63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCFDBFA6F0E95497AF4E40E4 /* Foundation.framework */; };
-		19208312F2BBE82C3BF2726A /* DaybookVoiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1E2201E8F0C6C24F0C82DD /* DaybookVoiceDetailView.swift */; };
-		20F1C5405F8F6EB13D6C290C /* DaybookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 886473AD436B811416FCDC0B /* DaybookView.swift */; };
-		20F80FEE3C484EBF11512EE6 /* OnDeviceSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7739038AFB46A8F9ACF50269 /* OnDeviceSummarizer.swift */; };
-		21EBE7A49641BE744A5D958B /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600435366C3A304A34EE2CC3 /* PhotoDetailView.swift */; };
-		2B38F9A44E168B02BCC9FBED /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B546C682CFA3D0D6528A6154 /* Localizable.xcstrings */; };
-		30DE392D4BB70285B5622AAB /* AISettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29E83BB1E83F579448F55AC9 /* AISettingsModel.swift */; };
-		36D968247C908A7376EB21A6 /* WhisperModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91D82140F793E1AE31465F15 /* WhisperModelStore.swift */; };
-		37843C3E7B917995038AC82D /* DaybookReminderPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B2422768CB18AB66768BEA /* DaybookReminderPersistence.swift */; };
-		38DD16A93CB9C939B5803DF9 /* WhisperModels.json in Resources */ = {isa = PBXBuildFile; fileRef = 0F6011A3B3402B8D136692C9 /* WhisperModels.json */; };
-		3A28AC0296987DA8192BC78F /* DaybookSuggestionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018B7C979D1FE56C4A63F326 /* DaybookSuggestionStore.swift */; };
-		40C3C2C7732E67D6BCC77B5B /* DaybookAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46CCF87F5B2C654F54A99407 /* DaybookAnswerService.swift */; };
-		42D8250A3C8E3ED79DADC70A /* KeychainSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E31D8CF744DCDFDCDFDB82E /* KeychainSecretStore.swift */; };
-		4EF0D439E3DAFFFC131FED70 /* AppleSpeechReservationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FDF138B3F1DCD442921F06A /* AppleSpeechReservationCoordinator.swift */; };
-		535A55E9203D689D958530D2 /* LocalTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2DCDDD5277452BE063FAC1 /* LocalTranscriptionService.swift */; };
-		567488BFA2B246D44701D0DF /* DaybookReminderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811993D50B3711A8EF6EA6B0 /* DaybookReminderStore.swift */; };
-		57E5750051F3DF5FEAE224F3 /* AIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4036EE87BFCE0464FCC4F84 /* AIConfiguration.swift */; };
-		587A48AA80ECCD5BE55A3BB4 /* OfflineWhisperTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2918FF8AC8E9E28884A664A7 /* OfflineWhisperTokenizer.swift */; };
-		5930DC6F05B659DFDC0FE374 /* PhotoRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 883485C6CAFB83DCD6ED99DF /* PhotoRepository.swift */; };
-		59432FFC4E39C01C53BC531A /* LiveTranscriptionResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0E942BD557E3A3A631DE06 /* LiveTranscriptionResources.swift */; };
-		627A70E3ACDF477C2911B78F /* PhoneWatchStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EBCA05289BF7CB2AACE188D /* PhoneWatchStatus.swift */; };
-		6B77A61E2051081CC7F62ED9 /* DaybookAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DBCC18FDF8C98A153C1E3CC /* DaybookAssistantView.swift */; };
-		7060AF86AAD9083322B6B991 /* WatchRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5897695C6E752CC0FA792B /* WatchRecorder.swift */; };
-		73CFE84A943A3AFB4B3C7966 /* PhoneRecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3B3E205B80D56ACCC45848 /* PhoneRecordingView.swift */; };
-		742F69D8469E3B036065648F /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAF6289AF4862152C403EA6 /* OnDeviceTranscriber.swift */; };
-		7973D54D62E6CBE2A533A828 /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95260E31FE02CAAA40528EC9 /* RecordingFormat.swift */; };
-		7C8DDA1B058BBB7CF4EFD9A0 /* TranscriptionConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90ED3C2D7825B13D459C62E /* TranscriptionConfiguration.swift */; };
-		846AA6F9B224F4CB3A2EDB45 /* WatchConnectivityStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120D75F0FB692CDD976835A9 /* WatchConnectivityStatus.swift */; };
-		85B2A9121443CADB615CFEDC /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B771535178AF1ED98DD256 /* NoteDetailView.swift */; };
-		87434EC8373FEAAADE05C225 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 636F2E6538DC3788BE55AEC9 /* Assets.xcassets */; };
-		897A12FA0044AF6CF84A5F5D /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997F5A25525157C3A7D2FC07 /* VoiceNote.swift */; };
-		8BF46B848AEFAEC84B737559 /* DaybookCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C6EC89C84AD52B9FB6BD72 /* DaybookCalendarView.swift */; };
-		92D3427EC8277BB160FCF7A5 /* PhotoLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C16EB9F16C7B3F431F25A173 /* PhotoLibraryModel.swift */; };
-		9322D31985492FB80DA53D05 /* TranscriptionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4885DD95BDCA7FE95765FB4A /* TranscriptionSettingsView.swift */; };
-		98CADFEF1CF79943A8D3C5A2 /* PhotoMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E0221D7D37574666A7D70 /* PhotoMoment.swift */; };
-		9C95A87BED123D5E13924550 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3D561BE3EE5DD448C64857C3 /* WhisperKit */; };
-		9DFF02BF429CF344E2CFD956 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ED9D32B2007397B2CE19EC9 /* AppSettings.swift */; };
-		A2C276DAFC5779A0C1AAC064 /* NotesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B94B1C77AD64BC94356B115 /* NotesStyle.swift */; };
-		A3002848B31E2AC876754B9A /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 80E1828CBCF12AB7FAF15A37 /* Hub */; };
-		A8DEB3D5FB2A158C485C23FC /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AD82A1CCB7ED79EF3852224 /* AudioPlayback.swift */; };
-		AE665D9E9105CA5616435D77 /* NoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000AC1D5587D30452770FB68 /* NoteRepository.swift */; };
-		B7ABEBD62DD338DC727F44F0 /* DaybookReminderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E7A78B1B774452826C4D13 /* DaybookReminderViews.swift */; };
-		BCB4C642F2090816C167731E /* TranscriptionSettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA1A0903756AE5074767958 /* TranscriptionSettingsModel.swift */; };
-		BFBD85115FC966D2846D789C /* WristNotesWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 08EF4EBAA5C0EBFBEFBAB3A7 /* WristNotesWatch.app */; };
-		C030387EBB8E6DB01BC62202 /* CustomAISummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FF49EDD7931E4AD98B9EEF /* CustomAISummarizer.swift */; };
-		C0A4C145BD29B3A08CC48473 /* RecordingButtonInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B17B76A59C7FD652631F628 /* RecordingButtonInteraction.swift */; };
-		C20BB0D973AD482942E949B8 /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95260E31FE02CAAA40528EC9 /* RecordingFormat.swift */; };
-		CBCA29B234FCE4C492BACA82 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 045775742520168387A3EEB3 /* Tokenizers */; };
-		CC5B264DD16781518DBB7241 /* WatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D6BFE4695D81427FD3FCBA2 /* WatchContentView.swift */; };
-		CF7CDFC864087B61ECAB592A /* DaybookAssistantModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB95B85F9484E0632D1EA37 /* DaybookAssistantModel.swift */; };
-		D148CEACBE89CCFBD674BFB7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98713A65F3982D477AD62657 /* Assets.xcassets */; };
-		D7F85687EE1D7EADC3793F72 /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53AEDE62F88F05F32AD51574 /* NotesListView.swift */; };
-		D870121318636D8B9D12CF27 /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C36C539EB7F7C93BFEBB4EC /* PhoneConnectivity.swift */; };
-		D9283F8540B37067B0A87678 /* Lucide-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = B7A58A8A59383234112257D3 /* Lucide-LICENSE.txt */; };
-		DA85911C8F87046469B4B0DF /* DaybookComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8E12F466F6A6598DB89B2D /* DaybookComponents.swift */; };
-		DB9406B611BF59FF266A270E /* DaybookStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A42A6E45956CD4B161E06F0 /* DaybookStyle.swift */; };
-		E13DC8CFC3B347D54EEE3DD0 /* NotesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A27FF823E81DF232A08F372A /* NotesModel.swift */; };
-		E28DB5C1EC56E36BFD270561 /* AppleSpeechResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862D6D0D1844CC49772E7ABC /* AppleSpeechResources.swift */; };
-		E35801CED6E7DF782E1AB451 /* WristNotesWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC9CDA2DB8713EFFA833E310 /* WristNotesWatchApp.swift */; };
-		E9EF384B3EA1312CC8746BB0 /* PhotoCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1AB6B225501CBBD8F022748 /* PhotoCaptureView.swift */; };
-		E9F0FC51C078AE8377ACE950 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AE1775FC2F317B721AC49B5 /* Foundation.framework */; };
-		ED5E668805F75C932F1111E7 /* WristNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369F80C0C087A89CDD106B04 /* WristNotesApp.swift */; };
-		F53BCC791D4566684DBFDB56 /* PhoneRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C21A8833588A5EED8D66723 /* PhoneRecorder.swift */; };
-		F8CCFEBABB612147199900EB /* DaybookPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533FBD28B9AF78381593754F /* DaybookPreferences.swift */; };
-		FADC720D50722FD3EC824B50 /* SettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9132A27A6D058BA1F48E5455 /* SettingsViews.swift */; };
+		00CD4A44E107E989896B6896 /* DaybookReminderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C065BB5FFDDBF3929DF6190 /* DaybookReminderViews.swift */; };
+		08A69D91607DF787BDA6ECBF /* WhisperModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */; };
+		125B5EE33663A211278CE038 /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ACB38203F7C6467364BD577 /* VoiceNote.swift */; };
+		1422A3A6A09F34F861393BF7 /* LiveTranscriptionResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DB29EE3811EA7095D94BCE /* LiveTranscriptionResources.swift */; };
+		178A7C410C0316BECF32B14A /* DaybookAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBE3DD07FB039FB11CE3334 /* DaybookAnswerService.swift */; };
+		1A1A5C316739385AD6CE7F2A /* PhotoMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B918843DFB158EEDC1EB1EA /* PhotoMoment.swift */; };
+		212CD106C95C61E25423135A /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = DA94D87CCE53A4352E7E3DE4 /* WhisperKit */; };
+		2200857EDDD049D703F6DE00 /* PhotoRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E23E7A9462D7E8A0299CE36 /* PhotoRepository.swift */; };
+		28E65C02612EE29B45EF85A8 /* DaybookComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503433E2EE63542C0E66EAC1 /* DaybookComponents.swift */; };
+		28EED20B00BC9F748652C780 /* DaybookVoiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2786517210589F5B1AA6FE /* DaybookVoiceDetailView.swift */; };
+		2B9ADC53FCB53400E40A7AD0 /* TranscriptionSettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5EDC285F65257259F14C67 /* TranscriptionSettingsModel.swift */; };
+		2C072903F42D7CABFDC66408 /* PhotoCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B393685B627C5CC16FC391 /* PhotoCaptureView.swift */; };
+		2D03490CD9A90B7008C6822F /* DayRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9E23E7FC109EC79ADDB6477 /* DayRecord.swift */; };
+		2D51A5983D720739DAD59F22 /* Pods_WristNotes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A299FE3E12A69E9EB8FCF92 /* Pods_WristNotes.framework */; };
+		35845FD63EB5A67572742C9B /* TranscriptionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0545B5E718C83BA2F0775683 /* TranscriptionSettingsView.swift */; };
+		35AE59B10CCB0B00FF3F5FB6 /* PhoneWatchStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F37D5E23CBC9DA45C513488A /* PhoneWatchStatus.swift */; };
+		42E608DD0BC7811769D96C21 /* AppleSpeechResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109AA63A6C546FF6C4C5E2C /* AppleSpeechResources.swift */; };
+		43E241680F949A934E007615 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC7B75E52F950A9ABD337D3A /* Foundation.framework */; };
+		4538E6DB688A2CFC7C1DFE55 /* KeychainSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF9763E4081275003F89560 /* KeychainSecretStore.swift */; };
+		467C2DB82783E6111233426F /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ACB38203F7C6467364BD577 /* VoiceNote.swift */; };
+		4A2B8810ABDDB668CA815F74 /* RingTransferStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120E4D2025DADBDEF4ED7583 /* RingTransferStore.swift */; };
+		4E16DAED36302CFE628FA810 /* DaybookReminderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3002704ECEB953152496B /* DaybookReminderStore.swift */; };
+		52E28CFCAA14E461810CBA28 /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D5715BEF4E41B970BC5026 /* RecordingFormat.swift */; };
+		5CCAD0105D87D2E3115036EA /* DaybookReminderPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6986327427864F298443612A /* DaybookReminderPersistence.swift */; };
+		648A706E2ED11D793544F54B /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B128CB57A0F166A935F1D1 /* NotesListView.swift */; };
+		65112B512AFB23BC13619A7D /* NotesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFB106527F7622B9EEBB495 /* NotesStyle.swift */; };
+		65399CD4F10E3C2CB05763A7 /* SettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34F895E3EE841C94745AC4C /* SettingsViews.swift */; };
+		682F8F4233386A9F9FDDD4E8 /* sdk-opus-16k-mono.bin in Resources */ = {isa = PBXBuildFile; fileRef = 280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */; };
+		6A0356C56EF7AB11FC0AF4B7 /* Pods_RingIntegrationTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */; };
+		6A23A0B27FB2AD4D1041B3C5 /* OfflineWhisperTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5947EBBF144CB7B8D2C01571 /* OfflineWhisperTokenizer.swift */; };
+		7E33BB924BB1655F4C6C06DB /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6B1886AAE87D0E35474ED3 /* PhoneConnectivity.swift */; };
+		801F0B3AB1DF5D1F261BB990 /* DaybookPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376FDDC2ACFE631C13E0F2AF /* DaybookPreferences.swift */; };
+		824A7EA2683AC45868F71396 /* WatchConnectivityStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F247FDE3EECF6D3A3F9E92ED /* WatchConnectivityStatus.swift */; };
+		8C09623B6DBA69E048AFA1CA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87E7DDBAF306B6365A15B62A /* Foundation.framework */; };
+		8D646B284E045F5FAEC105C5 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */; };
+		8DE591EBCE83408470F919DE /* DaybookAssistantModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A27EF497F43520D58FD8551 /* DaybookAssistantModel.swift */; };
+		903A6F569E0C3B730E5C3BA9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC7B75E52F950A9ABD337D3A /* Foundation.framework */; };
+		903F709AD2655EC49B85C4EA /* TranscriptionConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068B6E16015601618238A785 /* TranscriptionConfiguration.swift */; };
+		96BBE26DCCAE0D2B1389FB19 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524D904D38BCE2095808028B /* NoteDetailView.swift */; };
+		9AAD47AD7155AD2C59417AEC /* DaybookCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34F337910EF81F0E992258E /* DaybookCalendarView.swift */; };
+		9FAF1AE485F73D825EBF92BC /* RingHardwareViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FFD8BF985A43DA323B42011 /* RingHardwareViews.swift */; };
+		A12F48029071A763A473A537 /* CustomAISummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90D9081E3FE638375CF54E4C /* CustomAISummarizer.swift */; };
+		A1766A711B1FF16A0478C944 /* LocalTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655A8EC1CB10A33A0A59857 /* LocalTranscriptionService.swift */; };
+		A3D8EAEB75A549F5A9F24DBF /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 27C19C41829C22601A422B43 /* Localizable.xcstrings */; };
+		AE415A8030978700D8226704 /* DaybookRetrieval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BB3B4123869E92E2BD124B /* DaybookRetrieval.swift */; };
+		B2600F0A6B4239A5AC598E22 /* PhotoLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87F72E2C07F60D2242FD940 /* PhotoLibraryModel.swift */; };
+		B42A93C4075D8E52176CD948 /* OnDeviceSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C47C8BF5DD82CB7A0C601C4 /* OnDeviceSummarizer.swift */; };
+		B4AAF320A0FE754A43053B90 /* WristNotesWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E16CE1FC1363C78541AF24 /* WristNotesWatchApp.swift */; };
+		B55D7DEF51496824BC4937E9 /* WatchRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7E70D050137A8E5132CC55 /* WatchRecorder.swift */; };
+		BCA69F856D442908BE5D80B6 /* NotesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03506D8057CD7F28A6B0FFD6 /* NotesModel.swift */; };
+		BF3B925C6ED1EC5BE2170EE9 /* AppleSpeechReservationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EE40A9E0C58159711DCE89 /* AppleSpeechReservationCoordinator.swift */; };
+		BFA057AFA5A2EFAC6AA982AD /* WristNotesWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */; };
+		C37142D73DF660DE44073117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 652DF9A66DC222E7A723AC92 /* Assets.xcassets */; };
+		C42E88942F2FD77B1B22A942 /* RecordingButtonInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC479805B8E9D3D08CFF87FC /* RecordingButtonInteraction.swift */; };
+		CC4A5E85349E707948A4B654 /* PhoneRecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23BC435EC7787D5129E0461E /* PhoneRecordingView.swift */; };
+		D398B202BD7B77081074A190 /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D5715BEF4E41B970BC5026 /* RecordingFormat.swift */; };
+		D45EA180B97CFA9217DD6877 /* Lucide-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8B07A1BBA5F8FB91DF516FE9 /* Lucide-LICENSE.txt */; };
+		D488B645BC6F03B8B51C4DC8 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 7AA68BDAD28418DCAABAC868 /* Tokenizers */; };
+		D8E52EACC55B3FD2679C5D45 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7CD3F88FF60BDB724647EF /* AppSettings.swift */; };
+		DB743308109E33A6CB2FAD78 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 851E353F90324B76A1C2E2D7 /* Assets.xcassets */; };
+		DC8398E5713D948943F187C6 /* AIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BDD61CED4E5EC7D0FFDBAAC /* AIConfiguration.swift */; };
+		DEA7FFF2BBE3BCE03CED4B94 /* WhisperModels.json in Resources */ = {isa = PBXBuildFile; fileRef = 08301C6B02531923091C75EE /* WhisperModels.json */; };
+		DEEC12B5F656BBE77C1E6D4A /* DaybookStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7927F4B170EC7C4557B48023 /* DaybookStyle.swift */; };
+		E1C4DE76873CFE4A2129D3F6 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 832851432F9CE36FADEC14B9 /* Hub */; };
+		E6508556BF3E5B955F272E15 /* NoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873E38517898BADBAFE9917 /* NoteRepository.swift */; };
+		EA501FDC477D42D3352347E3 /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85070FCFC1375D60B6CE77ED /* PhotoDetailView.swift */; };
+		EC6D9F5660DA1471C18F829B /* DaybookAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6221E470C5B2C6DDAFA31AC8 /* DaybookAssistantView.swift */; };
+		EF4AF588880C6620EE658A0F /* RingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D10EA2963814A65831FA57 /* RingIntegrationTests.swift */; };
+		EFCE52A8CCAE48E833DD6C04 /* DaybookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1236B02755A16885C124C5B /* DaybookView.swift */; };
+		F3141EF272E6739822D74A53 /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F42656FC8229CB0B7BCF1D /* AudioPlayback.swift */; };
+		F3C0E0ABDBFD33369BD6713B /* DaybookSuggestionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14198B1C1D0EC1C980416FC1 /* DaybookSuggestionStore.swift */; };
+		F660BEB4E525208C1CDF17CC /* WristNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D5603D47DE141D923B722B /* WristNotesApp.swift */; };
+		F81191088553A5701C2C69FC /* AISettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400AB265E71D128408904284 /* AISettingsModel.swift */; };
+		FC597E1A3D5207C2B2362D88 /* WatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B4B4595673DE7B6D41A034 /* WatchContentView.swift */; };
+		FF2FD7D4795EEA784CDD811D /* EurekaRingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB95961CAF0899CF936F6210 /* EurekaRingModel.swift */; };
+		FF74065563307F04D2BB9953 /* PhoneRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E26E18F85A0360819674FB /* PhoneRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		9EC12379E136E823FC581090 /* PBXContainerItemProxy */ = {
+		195F69F7EEA0A37F73B06357 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F09998FCED8A60A8CC6E785C /* Project object */;
+			containerPortal = D914D8F69314D6406DB2332A /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 56489DEDCA1779D9734292AA;
+			remoteGlobalIDString = D96FEEF2721496E3FE1F42E5;
 			remoteInfo = WristNotesWatch;
+		};
+		3521AA70F18C10C6B49D3865 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D914D8F69314D6406DB2332A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EBD457350296330A077B9C6D;
+			remoteInfo = WristNotes;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		CEB7722A7649F3882944589F /* Embed Watch Content */ = {
+		444E0331A23472D0E1ABC438 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = Watch;
 			dstSubfolderSpec = 1;
 			files = (
-				BFBD85115FC966D2846D789C /* WristNotesWatch.app in Embed Watch Content */,
+				BFA057AFA5A2EFAC6AA982AD /* WristNotesWatch.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -102,243 +117,315 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		000AC1D5587D30452770FB68 /* NoteRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteRepository.swift; sourceTree = "<group>"; };
-		018B7C979D1FE56C4A63F326 /* DaybookSuggestionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookSuggestionStore.swift; sourceTree = "<group>"; };
-		08EF4EBAA5C0EBFBEFBAB3A7 /* WristNotesWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotesWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C2DCDDD5277452BE063FAC1 /* LocalTranscriptionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalTranscriptionService.swift; sourceTree = "<group>"; };
-		0E31D8CF744DCDFDCDFDB82E /* KeychainSecretStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainSecretStore.swift; sourceTree = "<group>"; };
-		0F6011A3B3402B8D136692C9 /* WhisperModels.json */ = {isa = PBXFileReference; includeInIndex = 1; path = WhisperModels.json; sourceTree = "<group>"; };
-		120D75F0FB692CDD976835A9 /* WatchConnectivityStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchConnectivityStatus.swift; sourceTree = "<group>"; };
-		1AD82A1CCB7ED79EF3852224 /* AudioPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioPlayback.swift; sourceTree = "<group>"; };
-		1FA1A0903756AE5074767958 /* TranscriptionSettingsModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionSettingsModel.swift; sourceTree = "<group>"; };
-		28B2422768CB18AB66768BEA /* DaybookReminderPersistence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderPersistence.swift; sourceTree = "<group>"; };
-		2918FF8AC8E9E28884A664A7 /* OfflineWhisperTokenizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OfflineWhisperTokenizer.swift; sourceTree = "<group>"; };
-		29E83BB1E83F579448F55AC9 /* AISettingsModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AISettingsModel.swift; sourceTree = "<group>"; };
-		2AE1775FC2F317B721AC49B5 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		369F80C0C087A89CDD106B04 /* WristNotesApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesApp.swift; sourceTree = "<group>"; };
-		39E7A78B1B774452826C4D13 /* DaybookReminderViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderViews.swift; sourceTree = "<group>"; };
-		3B0E942BD557E3A3A631DE06 /* LiveTranscriptionResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveTranscriptionResources.swift; sourceTree = "<group>"; };
-		3E3E0221D7D37574666A7D70 /* PhotoMoment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoMoment.swift; sourceTree = "<group>"; };
-		46CCF87F5B2C654F54A99407 /* DaybookAnswerService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAnswerService.swift; sourceTree = "<group>"; };
-		4885DD95BDCA7FE95765FB4A /* TranscriptionSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionSettingsView.swift; sourceTree = "<group>"; };
-		4EBCA05289BF7CB2AACE188D /* PhoneWatchStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneWatchStatus.swift; sourceTree = "<group>"; };
-		533FBD28B9AF78381593754F /* DaybookPreferences.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookPreferences.swift; sourceTree = "<group>"; };
-		53AEDE62F88F05F32AD51574 /* NotesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
-		5DBCC18FDF8C98A153C1E3CC /* DaybookAssistantView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAssistantView.swift; sourceTree = "<group>"; };
-		600435366C3A304A34EE2CC3 /* PhotoDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
-		636F2E6538DC3788BE55AEC9 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		6B6BADF7D57E913F096ED308 /* WristNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6D6BFE4695D81427FD3FCBA2 /* WatchContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
-		7739038AFB46A8F9ACF50269 /* OnDeviceSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceSummarizer.swift; sourceTree = "<group>"; };
-		7BB95B85F9484E0632D1EA37 /* DaybookAssistantModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAssistantModel.swift; sourceTree = "<group>"; };
-		7C5897695C6E752CC0FA792B /* WatchRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
-		7FDF138B3F1DCD442921F06A /* AppleSpeechReservationCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechReservationCoordinator.swift; sourceTree = "<group>"; };
-		811993D50B3711A8EF6EA6B0 /* DaybookReminderStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderStore.swift; sourceTree = "<group>"; };
-		862D6D0D1844CC49772E7ABC /* AppleSpeechResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechResources.swift; sourceTree = "<group>"; };
-		883485C6CAFB83DCD6ED99DF /* PhotoRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoRepository.swift; sourceTree = "<group>"; };
-		886473AD436B811416FCDC0B /* DaybookView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookView.swift; sourceTree = "<group>"; };
-		8B17B76A59C7FD652631F628 /* RecordingButtonInteraction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingButtonInteraction.swift; sourceTree = "<group>"; };
-		8C21A8833588A5EED8D66723 /* PhoneRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecorder.swift; sourceTree = "<group>"; };
-		8C36C539EB7F7C93BFEBB4EC /* PhoneConnectivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneConnectivity.swift; sourceTree = "<group>"; };
-		8ED9D32B2007397B2CE19EC9 /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		9132A27A6D058BA1F48E5455 /* SettingsViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViews.swift; sourceTree = "<group>"; };
-		91D82140F793E1AE31465F15 /* WhisperModelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
-		95260E31FE02CAAA40528EC9 /* RecordingFormat.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingFormat.swift; sourceTree = "<group>"; };
-		98713A65F3982D477AD62657 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		997F5A25525157C3A7D2FC07 /* VoiceNote.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
-		9A42A6E45956CD4B161E06F0 /* DaybookStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookStyle.swift; sourceTree = "<group>"; };
-		9B94B1C77AD64BC94356B115 /* NotesStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesStyle.swift; sourceTree = "<group>"; };
-		9D1E2201E8F0C6C24F0C82DD /* DaybookVoiceDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookVoiceDetailView.swift; sourceTree = "<group>"; };
-		A27FF823E81DF232A08F372A /* NotesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesModel.swift; sourceTree = "<group>"; };
-		B546C682CFA3D0D6528A6154 /* Localizable.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		B75F82B6E9E6B0B033FA41CA /* DayRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayRecord.swift; sourceTree = "<group>"; };
-		B7A58A8A59383234112257D3 /* Lucide-LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; path = "Lucide-LICENSE.txt"; sourceTree = "<group>"; };
-		B90ED3C2D7825B13D459C62E /* TranscriptionConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionConfiguration.swift; sourceTree = "<group>"; };
-		BA3B3E205B80D56ACCC45848 /* PhoneRecordingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecordingView.swift; sourceTree = "<group>"; };
-		BC9CDA2DB8713EFFA833E310 /* WristNotesWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesWatchApp.swift; sourceTree = "<group>"; };
-		BCFDBFA6F0E95497AF4E40E4 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		C16EB9F16C7B3F431F25A173 /* PhotoLibraryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoLibraryModel.swift; sourceTree = "<group>"; };
-		C5C6EC89C84AD52B9FB6BD72 /* DaybookCalendarView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookCalendarView.swift; sourceTree = "<group>"; };
-		CBAF6289AF4862152C403EA6 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
-		D1AB6B225501CBBD8F022748 /* PhotoCaptureView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoCaptureView.swift; sourceTree = "<group>"; };
-		D3413483DE4335D65D38DBB5 /* DaybookRetrieval.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookRetrieval.swift; sourceTree = "<group>"; };
-		D4036EE87BFCE0464FCC4F84 /* AIConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIConfiguration.swift; sourceTree = "<group>"; };
-		DF8E12F466F6A6598DB89B2D /* DaybookComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookComponents.swift; sourceTree = "<group>"; };
-		E2FF49EDD7931E4AD98B9EEF /* CustomAISummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomAISummarizer.swift; sourceTree = "<group>"; };
-		F3B771535178AF1ED98DD256 /* NoteDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		03506D8057CD7F28A6B0FFD6 /* NotesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesModel.swift; sourceTree = "<group>"; };
+		0545B5E718C83BA2F0775683 /* TranscriptionSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionSettingsView.swift; sourceTree = "<group>"; };
+		05BB3B4123869E92E2BD124B /* DaybookRetrieval.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookRetrieval.swift; sourceTree = "<group>"; };
+		068B6E16015601618238A785 /* TranscriptionConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionConfiguration.swift; sourceTree = "<group>"; };
+		08120ACD1FD5D5F8F19242FA /* Pods-WristNotes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WristNotes.debug.xcconfig"; path = "Target Support Files/Pods-WristNotes/Pods-WristNotes.debug.xcconfig"; sourceTree = "<group>"; };
+		08301C6B02531923091C75EE /* WhisperModels.json */ = {isa = PBXFileReference; includeInIndex = 1; path = WhisperModels.json; sourceTree = "<group>"; };
+		0ACB38203F7C6467364BD577 /* VoiceNote.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
+		106128F861E36EEE3228E766 /* RingIntegrationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RingIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		11AD948370EF7B4245D9AB6F /* Pods-WristNotes.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WristNotes.release.xcconfig"; path = "Target Support Files/Pods-WristNotes/Pods-WristNotes.release.xcconfig"; sourceTree = "<group>"; };
+		120E4D2025DADBDEF4ED7583 /* RingTransferStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingTransferStore.swift; sourceTree = "<group>"; };
+		14198B1C1D0EC1C980416FC1 /* DaybookSuggestionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookSuggestionStore.swift; sourceTree = "<group>"; };
+		1BDD61CED4E5EC7D0FFDBAAC /* AIConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIConfiguration.swift; sourceTree = "<group>"; };
+		1DFB106527F7622B9EEBB495 /* NotesStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesStyle.swift; sourceTree = "<group>"; };
+		20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotesWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		23BC435EC7787D5129E0461E /* PhoneRecordingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecordingView.swift; sourceTree = "<group>"; };
+		27C19C41829C22601A422B43 /* Localizable.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		27E26E18F85A0360819674FB /* PhoneRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecorder.swift; sourceTree = "<group>"; };
+		280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */ = {isa = PBXFileReference; includeInIndex = 1; name = "sdk-opus-16k-mono.bin"; path = "Fixtures/sdk-opus-16k-mono.bin"; sourceTree = "<group>"; };
+		29D10EA2963814A65831FA57 /* RingIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingIntegrationTests.swift; sourceTree = "<group>"; };
+		2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
+		31D5603D47DE141D923B722B /* WristNotesApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesApp.swift; sourceTree = "<group>"; };
+		33D5715BEF4E41B970BC5026 /* RecordingFormat.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingFormat.swift; sourceTree = "<group>"; };
+		376FDDC2ACFE631C13E0F2AF /* DaybookPreferences.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookPreferences.swift; sourceTree = "<group>"; };
+		3E23E7A9462D7E8A0299CE36 /* PhotoRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoRepository.swift; sourceTree = "<group>"; };
+		400AB265E71D128408904284 /* AISettingsModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AISettingsModel.swift; sourceTree = "<group>"; };
+		45E3002704ECEB953152496B /* DaybookReminderStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderStore.swift; sourceTree = "<group>"; };
+		49569FAD0882AF622EEF8BA7 /* WiseNote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WiseNote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BB21791711C937043F3244F /* Pods-RingIntegrationTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RingIntegrationTests.debug.xcconfig"; path = "Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests.debug.xcconfig"; sourceTree = "<group>"; };
+		503433E2EE63542C0E66EAC1 /* DaybookComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookComponents.swift; sourceTree = "<group>"; };
+		524D904D38BCE2095808028B /* NoteDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		5947EBBF144CB7B8D2C01571 /* OfflineWhisperTokenizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OfflineWhisperTokenizer.swift; sourceTree = "<group>"; };
+		5A27EF497F43520D58FD8551 /* DaybookAssistantModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAssistantModel.swift; sourceTree = "<group>"; };
+		6221E470C5B2C6DDAFA31AC8 /* DaybookAssistantView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAssistantView.swift; sourceTree = "<group>"; };
+		652DF9A66DC222E7A723AC92 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		68B393685B627C5CC16FC391 /* PhotoCaptureView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoCaptureView.swift; sourceTree = "<group>"; };
+		6986327427864F298443612A /* DaybookReminderPersistence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderPersistence.swift; sourceTree = "<group>"; };
+		6B918843DFB158EEDC1EB1EA /* PhotoMoment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoMoment.swift; sourceTree = "<group>"; };
+		6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RingIntegrationTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F7E70D050137A8E5132CC55 /* WatchRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
+		7109AA63A6C546FF6C4C5E2C /* AppleSpeechResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechResources.swift; sourceTree = "<group>"; };
+		72B4B4595673DE7B6D41A034 /* WatchContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
+		7927F4B170EC7C4557B48023 /* DaybookStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookStyle.swift; sourceTree = "<group>"; };
+		7A299FE3E12A69E9EB8FCF92 /* Pods_WristNotes.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WristNotes.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C065BB5FFDDBF3929DF6190 /* DaybookReminderViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderViews.swift; sourceTree = "<group>"; };
+		7C7CD3F88FF60BDB724647EF /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		83DB29EE3811EA7095D94BCE /* LiveTranscriptionResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveTranscriptionResources.swift; sourceTree = "<group>"; };
+		85070FCFC1375D60B6CE77ED /* PhotoDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
+		851E353F90324B76A1C2E2D7 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		87E7DDBAF306B6365A15B62A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		8B07A1BBA5F8FB91DF516FE9 /* Lucide-LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; path = "Lucide-LICENSE.txt"; sourceTree = "<group>"; };
+		8BF9763E4081275003F89560 /* KeychainSecretStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainSecretStore.swift; sourceTree = "<group>"; };
+		8C47C8BF5DD82CB7A0C601C4 /* OnDeviceSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceSummarizer.swift; sourceTree = "<group>"; };
+		90D9081E3FE638375CF54E4C /* CustomAISummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomAISummarizer.swift; sourceTree = "<group>"; };
+		9FFD8BF985A43DA323B42011 /* RingHardwareViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingHardwareViews.swift; sourceTree = "<group>"; };
+		A34F337910EF81F0E992258E /* DaybookCalendarView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookCalendarView.swift; sourceTree = "<group>"; };
+		A34F895E3EE841C94745AC4C /* SettingsViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViews.swift; sourceTree = "<group>"; };
+		A3B128CB57A0F166A935F1D1 /* NotesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
+		A873E38517898BADBAFE9917 /* NoteRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteRepository.swift; sourceTree = "<group>"; };
+		B1236B02755A16885C124C5B /* DaybookView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookView.swift; sourceTree = "<group>"; };
+		B3E16CE1FC1363C78541AF24 /* WristNotesWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesWatchApp.swift; sourceTree = "<group>"; };
+		B87F72E2C07F60D2242FD940 /* PhotoLibraryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoLibraryModel.swift; sourceTree = "<group>"; };
+		B9E23E7FC109EC79ADDB6477 /* DayRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayRecord.swift; sourceTree = "<group>"; };
+		BA5EDC285F65257259F14C67 /* TranscriptionSettingsModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionSettingsModel.swift; sourceTree = "<group>"; };
+		BC7B75E52F950A9ABD337D3A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		CB2786517210589F5B1AA6FE /* DaybookVoiceDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookVoiceDetailView.swift; sourceTree = "<group>"; };
+		CB6B1886AAE87D0E35474ED3 /* PhoneConnectivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneConnectivity.swift; sourceTree = "<group>"; };
+		CB95961CAF0899CF936F6210 /* EurekaRingModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EurekaRingModel.swift; sourceTree = "<group>"; };
+		CEBE3DD07FB039FB11CE3334 /* DaybookAnswerService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAnswerService.swift; sourceTree = "<group>"; };
+		D1F42656FC8229CB0B7BCF1D /* AudioPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioPlayback.swift; sourceTree = "<group>"; };
+		D566461CF282865616A5E805 /* Pods-RingIntegrationTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RingIntegrationTests.release.xcconfig"; path = "Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests.release.xcconfig"; sourceTree = "<group>"; };
+		D7EE40A9E0C58159711DCE89 /* AppleSpeechReservationCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechReservationCoordinator.swift; sourceTree = "<group>"; };
+		DC479805B8E9D3D08CFF87FC /* RecordingButtonInteraction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingButtonInteraction.swift; sourceTree = "<group>"; };
+		E655A8EC1CB10A33A0A59857 /* LocalTranscriptionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalTranscriptionService.swift; sourceTree = "<group>"; };
+		E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
+		F247FDE3EECF6D3A3F9E92ED /* WatchConnectivityStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchConnectivityStatus.swift; sourceTree = "<group>"; };
+		F37D5E23CBC9DA45C513488A /* PhoneWatchStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneWatchStatus.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1EBD3C7F8277EFBCC5F318E9 /* Frameworks */ = {
+		096F26B6FBB248A26F760B88 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12199592D0010A3E2A8A9B63 /* Foundation.framework in Frameworks */,
-				9C95A87BED123D5E13924550 /* WhisperKit in Frameworks */,
-				A3002848B31E2AC876754B9A /* Hub in Frameworks */,
-				CBCA29B234FCE4C492BACA82 /* Tokenizers in Frameworks */,
+				43E241680F949A934E007615 /* Foundation.framework in Frameworks */,
+				212CD106C95C61E25423135A /* WhisperKit in Frameworks */,
+				E1C4DE76873CFE4A2129D3F6 /* Hub in Frameworks */,
+				D488B645BC6F03B8B51C4DC8 /* Tokenizers in Frameworks */,
+				2D51A5983D720739DAD59F22 /* Pods_WristNotes.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		E284A142FDA09805241DD6BE /* Frameworks */ = {
+		44CA11770A3991976C77D210 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9F0FC51C078AE8377ACE950 /* Foundation.framework in Frameworks */,
+				903A6F569E0C3B730E5C3BA9 /* Foundation.framework in Frameworks */,
+				6A0356C56EF7AB11FC0AF4B7 /* Pods_RingIntegrationTests.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C64295262880A6E9571647 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8C09623B6DBA69E048AFA1CA /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1A15075BE94C740E467A8C26 /* iOS */ = {
+		220BB250533AE01035CC7067 /* watchOS */ = {
 			isa = PBXGroup;
 			children = (
-				BCFDBFA6F0E95497AF4E40E4 /* Foundation.framework */,
+				87E7DDBAF306B6365A15B62A /* Foundation.framework */,
 			);
-			name = iOS;
+			name = watchOS;
 			sourceTree = "<group>";
 		};
-		227DDC40C2485BFB21248B66 /* Products */ = {
+		2977B435F4A857F2E567D3DE /* iPhone */ = {
 			isa = PBXGroup;
 			children = (
-				6B6BADF7D57E913F096ED308 /* WristNotes.app */,
-				08EF4EBAA5C0EBFBEFBAB3A7 /* WristNotesWatch.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		4C9901988958D94BC7111D30 /* iPhone */ = {
-			isa = PBXGroup;
-			children = (
-				369F80C0C087A89CDD106B04 /* WristNotesApp.swift */,
-				53AEDE62F88F05F32AD51574 /* NotesListView.swift */,
-				F3B771535178AF1ED98DD256 /* NoteDetailView.swift */,
-				A27FF823E81DF232A08F372A /* NotesModel.swift */,
-				000AC1D5587D30452770FB68 /* NoteRepository.swift */,
-				8C36C539EB7F7C93BFEBB4EC /* PhoneConnectivity.swift */,
-				CBAF6289AF4862152C403EA6 /* OnDeviceTranscriber.swift */,
-				7739038AFB46A8F9ACF50269 /* OnDeviceSummarizer.swift */,
-				9B94B1C77AD64BC94356B115 /* NotesStyle.swift */,
-				1AD82A1CCB7ED79EF3852224 /* AudioPlayback.swift */,
-				D4036EE87BFCE0464FCC4F84 /* AIConfiguration.swift */,
-				8ED9D32B2007397B2CE19EC9 /* AppSettings.swift */,
-				0E31D8CF744DCDFDCDFDB82E /* KeychainSecretStore.swift */,
-				E2FF49EDD7931E4AD98B9EEF /* CustomAISummarizer.swift */,
-				29E83BB1E83F579448F55AC9 /* AISettingsModel.swift */,
-				4EBCA05289BF7CB2AACE188D /* PhoneWatchStatus.swift */,
-				9132A27A6D058BA1F48E5455 /* SettingsViews.swift */,
-				B90ED3C2D7825B13D459C62E /* TranscriptionConfiguration.swift */,
-				1FA1A0903756AE5074767958 /* TranscriptionSettingsModel.swift */,
-				4885DD95BDCA7FE95765FB4A /* TranscriptionSettingsView.swift */,
-				862D6D0D1844CC49772E7ABC /* AppleSpeechResources.swift */,
-				7FDF138B3F1DCD442921F06A /* AppleSpeechReservationCoordinator.swift */,
-				91D82140F793E1AE31465F15 /* WhisperModelStore.swift */,
-				3B0E942BD557E3A3A631DE06 /* LiveTranscriptionResources.swift */,
-				0C2DCDDD5277452BE063FAC1 /* LocalTranscriptionService.swift */,
-				2918FF8AC8E9E28884A664A7 /* OfflineWhisperTokenizer.swift */,
-				9A42A6E45956CD4B161E06F0 /* DaybookStyle.swift */,
-				C5C6EC89C84AD52B9FB6BD72 /* DaybookCalendarView.swift */,
-				9D1E2201E8F0C6C24F0C82DD /* DaybookVoiceDetailView.swift */,
-				B75F82B6E9E6B0B033FA41CA /* DayRecord.swift */,
-				46CCF87F5B2C654F54A99407 /* DaybookAnswerService.swift */,
-				7BB95B85F9484E0632D1EA37 /* DaybookAssistantModel.swift */,
-				5DBCC18FDF8C98A153C1E3CC /* DaybookAssistantView.swift */,
-				DF8E12F466F6A6598DB89B2D /* DaybookComponents.swift */,
-				533FBD28B9AF78381593754F /* DaybookPreferences.swift */,
-				28B2422768CB18AB66768BEA /* DaybookReminderPersistence.swift */,
-				811993D50B3711A8EF6EA6B0 /* DaybookReminderStore.swift */,
-				39E7A78B1B774452826C4D13 /* DaybookReminderViews.swift */,
-				D3413483DE4335D65D38DBB5 /* DaybookRetrieval.swift */,
-				018B7C979D1FE56C4A63F326 /* DaybookSuggestionStore.swift */,
-				886473AD436B811416FCDC0B /* DaybookView.swift */,
-				8C21A8833588A5EED8D66723 /* PhoneRecorder.swift */,
-				BA3B3E205B80D56ACCC45848 /* PhoneRecordingView.swift */,
-				D1AB6B225501CBBD8F022748 /* PhotoCaptureView.swift */,
-				600435366C3A304A34EE2CC3 /* PhotoDetailView.swift */,
-				C16EB9F16C7B3F431F25A173 /* PhotoLibraryModel.swift */,
-				3E3E0221D7D37574666A7D70 /* PhotoMoment.swift */,
-				883485C6CAFB83DCD6ED99DF /* PhotoRepository.swift */,
-				98713A65F3982D477AD62657 /* Assets.xcassets */,
-				0F6011A3B3402B8D136692C9 /* WhisperModels.json */,
-				B7A58A8A59383234112257D3 /* Lucide-LICENSE.txt */,
-				B546C682CFA3D0D6528A6154 /* Localizable.xcstrings */,
+				31D5603D47DE141D923B722B /* WristNotesApp.swift */,
+				A3B128CB57A0F166A935F1D1 /* NotesListView.swift */,
+				524D904D38BCE2095808028B /* NoteDetailView.swift */,
+				03506D8057CD7F28A6B0FFD6 /* NotesModel.swift */,
+				A873E38517898BADBAFE9917 /* NoteRepository.swift */,
+				CB6B1886AAE87D0E35474ED3 /* PhoneConnectivity.swift */,
+				E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */,
+				120E4D2025DADBDEF4ED7583 /* RingTransferStore.swift */,
+				CB95961CAF0899CF936F6210 /* EurekaRingModel.swift */,
+				9FFD8BF985A43DA323B42011 /* RingHardwareViews.swift */,
+				8C47C8BF5DD82CB7A0C601C4 /* OnDeviceSummarizer.swift */,
+				1DFB106527F7622B9EEBB495 /* NotesStyle.swift */,
+				D1F42656FC8229CB0B7BCF1D /* AudioPlayback.swift */,
+				1BDD61CED4E5EC7D0FFDBAAC /* AIConfiguration.swift */,
+				7C7CD3F88FF60BDB724647EF /* AppSettings.swift */,
+				8BF9763E4081275003F89560 /* KeychainSecretStore.swift */,
+				90D9081E3FE638375CF54E4C /* CustomAISummarizer.swift */,
+				400AB265E71D128408904284 /* AISettingsModel.swift */,
+				F37D5E23CBC9DA45C513488A /* PhoneWatchStatus.swift */,
+				A34F895E3EE841C94745AC4C /* SettingsViews.swift */,
+				068B6E16015601618238A785 /* TranscriptionConfiguration.swift */,
+				BA5EDC285F65257259F14C67 /* TranscriptionSettingsModel.swift */,
+				0545B5E718C83BA2F0775683 /* TranscriptionSettingsView.swift */,
+				7109AA63A6C546FF6C4C5E2C /* AppleSpeechResources.swift */,
+				D7EE40A9E0C58159711DCE89 /* AppleSpeechReservationCoordinator.swift */,
+				2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */,
+				83DB29EE3811EA7095D94BCE /* LiveTranscriptionResources.swift */,
+				E655A8EC1CB10A33A0A59857 /* LocalTranscriptionService.swift */,
+				5947EBBF144CB7B8D2C01571 /* OfflineWhisperTokenizer.swift */,
+				7927F4B170EC7C4557B48023 /* DaybookStyle.swift */,
+				A34F337910EF81F0E992258E /* DaybookCalendarView.swift */,
+				CB2786517210589F5B1AA6FE /* DaybookVoiceDetailView.swift */,
+				B9E23E7FC109EC79ADDB6477 /* DayRecord.swift */,
+				CEBE3DD07FB039FB11CE3334 /* DaybookAnswerService.swift */,
+				5A27EF497F43520D58FD8551 /* DaybookAssistantModel.swift */,
+				6221E470C5B2C6DDAFA31AC8 /* DaybookAssistantView.swift */,
+				503433E2EE63542C0E66EAC1 /* DaybookComponents.swift */,
+				376FDDC2ACFE631C13E0F2AF /* DaybookPreferences.swift */,
+				6986327427864F298443612A /* DaybookReminderPersistence.swift */,
+				45E3002704ECEB953152496B /* DaybookReminderStore.swift */,
+				7C065BB5FFDDBF3929DF6190 /* DaybookReminderViews.swift */,
+				05BB3B4123869E92E2BD124B /* DaybookRetrieval.swift */,
+				14198B1C1D0EC1C980416FC1 /* DaybookSuggestionStore.swift */,
+				B1236B02755A16885C124C5B /* DaybookView.swift */,
+				27E26E18F85A0360819674FB /* PhoneRecorder.swift */,
+				23BC435EC7787D5129E0461E /* PhoneRecordingView.swift */,
+				68B393685B627C5CC16FC391 /* PhotoCaptureView.swift */,
+				85070FCFC1375D60B6CE77ED /* PhotoDetailView.swift */,
+				B87F72E2C07F60D2242FD940 /* PhotoLibraryModel.swift */,
+				6B918843DFB158EEDC1EB1EA /* PhotoMoment.swift */,
+				3E23E7A9462D7E8A0299CE36 /* PhotoRepository.swift */,
+				851E353F90324B76A1C2E2D7 /* Assets.xcassets */,
+				08301C6B02531923091C75EE /* WhisperModels.json */,
+				8B07A1BBA5F8FB91DF516FE9 /* Lucide-LICENSE.txt */,
+				27C19C41829C22601A422B43 /* Localizable.xcstrings */,
 			);
 			name = iPhone;
 			path = iPhone;
 			sourceTree = "<group>";
 		};
-		6A792FAE8B9698127FC94495 /* Frameworks */ = {
+		2E10586B37BC7BA7243A1DB9 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
-				1A15075BE94C740E467A8C26 /* iOS */,
-				D2C7843A5835846145405349 /* watchOS */,
+				BC7B75E52F950A9ABD337D3A /* Foundation.framework */,
 			);
-			name = Frameworks;
+			name = iOS;
 			sourceTree = "<group>";
 		};
-		870B9E397CC2E368108EC509 = {
+		53EFB0D791B8E3E75F8BB720 = {
 			isa = PBXGroup;
 			children = (
-				227DDC40C2485BFB21248B66 /* Products */,
-				6A792FAE8B9698127FC94495 /* Frameworks */,
-				EC49FD555460BDB718CF5A5F /* Sources */,
+				EB7369BE3CFAC969FA40609E /* Products */,
+				9C6C45FD5E74B161195FD852 /* Frameworks */,
+				6D6EB5A74A4BAC79145EB641 /* Sources */,
+				563DB10750CFD4703DFC0DBD /* Tests */,
+				C02FE4A73168F7E3210FD00E /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
-		C2C80F064541C597705D7959 /* Shared */ = {
+		563DB10750CFD4703DFC0DBD /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				997F5A25525157C3A7D2FC07 /* VoiceNote.swift */,
-				95260E31FE02CAAA40528EC9 /* RecordingFormat.swift */,
+				29D10EA2963814A65831FA57 /* RingIntegrationTests.swift */,
+				280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */,
 			);
-			name = Shared;
-			path = Shared;
+			name = Tests;
+			path = Tests;
 			sourceTree = "<group>";
 		};
-		D2C7843A5835846145405349 /* watchOS */ = {
+		6D6EB5A74A4BAC79145EB641 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				2AE1775FC2F317B721AC49B5 /* Foundation.framework */,
-			);
-			name = watchOS;
-			sourceTree = "<group>";
-		};
-		E7853FE6A2668E60AA602165 /* Watch */ = {
-			isa = PBXGroup;
-			children = (
-				BC9CDA2DB8713EFFA833E310 /* WristNotesWatchApp.swift */,
-				6D6BFE4695D81427FD3FCBA2 /* WatchContentView.swift */,
-				7C5897695C6E752CC0FA792B /* WatchRecorder.swift */,
-				120D75F0FB692CDD976835A9 /* WatchConnectivityStatus.swift */,
-				8B17B76A59C7FD652631F628 /* RecordingButtonInteraction.swift */,
-				636F2E6538DC3788BE55AEC9 /* Assets.xcassets */,
-			);
-			name = Watch;
-			path = Watch;
-			sourceTree = "<group>";
-		};
-		EC49FD555460BDB718CF5A5F /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				C2C80F064541C597705D7959 /* Shared */,
-				4C9901988958D94BC7111D30 /* iPhone */,
-				E7853FE6A2668E60AA602165 /* Watch */,
+				F241E799AF98F2A5529CE1D1 /* Shared */,
+				2977B435F4A857F2E567D3DE /* iPhone */,
+				998E94B7ADFDC8233B717782 /* Watch */,
 			);
 			name = Sources;
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		998E94B7ADFDC8233B717782 /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				B3E16CE1FC1363C78541AF24 /* WristNotesWatchApp.swift */,
+				72B4B4595673DE7B6D41A034 /* WatchContentView.swift */,
+				6F7E70D050137A8E5132CC55 /* WatchRecorder.swift */,
+				F247FDE3EECF6D3A3F9E92ED /* WatchConnectivityStatus.swift */,
+				DC479805B8E9D3D08CFF87FC /* RecordingButtonInteraction.swift */,
+				652DF9A66DC222E7A723AC92 /* Assets.xcassets */,
+			);
+			name = Watch;
+			path = Watch;
+			sourceTree = "<group>";
+		};
+		9C6C45FD5E74B161195FD852 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2E10586B37BC7BA7243A1DB9 /* iOS */,
+				220BB250533AE01035CC7067 /* watchOS */,
+				6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */,
+				7A299FE3E12A69E9EB8FCF92 /* Pods_WristNotes.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C02FE4A73168F7E3210FD00E /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				D566461CF282865616A5E805 /* Pods-RingIntegrationTests.release.xcconfig */,
+				4BB21791711C937043F3244F /* Pods-RingIntegrationTests.debug.xcconfig */,
+				11AD948370EF7B4245D9AB6F /* Pods-WristNotes.release.xcconfig */,
+				08120ACD1FD5D5F8F19242FA /* Pods-WristNotes.debug.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		EB7369BE3CFAC969FA40609E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				49569FAD0882AF622EEF8BA7 /* WiseNote.app */,
+				20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */,
+				106128F861E36EEE3228E766 /* RingIntegrationTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F241E799AF98F2A5529CE1D1 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				0ACB38203F7C6467364BD577 /* VoiceNote.swift */,
+				33D5715BEF4E41B970BC5026 /* RecordingFormat.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		56489DEDCA1779D9734292AA /* WristNotesWatch */ = {
+		1F54B4BAFBB7B4C0ACD24C07 /* RingIntegrationTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 611AA367336E90D44795AD57 /* Build configuration list for PBXNativeTarget "WristNotesWatch" */;
+			buildConfigurationList = C283631970ED11C92625DB1B /* Build configuration list for PBXNativeTarget "RingIntegrationTests" */;
 			buildPhases = (
-				04E7FE41D22F8C46B99CBCAD /* Sources */,
-				E284A142FDA09805241DD6BE /* Frameworks */,
-				34978F9C596EBA3D617BDB42 /* Resources */,
+				7EA46524FB71E42FEDC65E59 /* [CP] Check Pods Manifest.lock */,
+				9D0A2034CD3CD49F02BE7D1D /* Sources */,
+				44CA11770A3991976C77D210 /* Frameworks */,
+				39900F4DB29FA6DC6A0DD52A /* Resources */,
+				6F17AD45364DA76B8F03038F /* [CP] Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				97CBCCBFF0A66AFD681FFF4C /* PBXTargetDependency */,
+			);
+			name = RingIntegrationTests;
+			productName = RingIntegrationTests;
+			productReference = 106128F861E36EEE3228E766 /* RingIntegrationTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D96FEEF2721496E3FE1F42E5 /* WristNotesWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B9FEDEDC11D5D4261B3CB8D /* Build configuration list for PBXNativeTarget "WristNotesWatch" */;
+			buildPhases = (
+				44F59C2D5DB794745AFCB3A8 /* Sources */,
+				B0C64295262880A6E9571647 /* Frameworks */,
+				31C777292C652E053211C877 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -346,43 +433,45 @@
 			);
 			name = WristNotesWatch;
 			productName = WristNotesWatch;
-			productReference = 08EF4EBAA5C0EBFBEFBAB3A7 /* WristNotesWatch.app */;
+			productReference = 20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
-		8F1E5FCA5EAEC6C0EB28D8AD /* WristNotes */ = {
+		EBD457350296330A077B9C6D /* WristNotes */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C2818158F20A51A18E9A7EC1 /* Build configuration list for PBXNativeTarget "WristNotes" */;
+			buildConfigurationList = 52112C0AED6B8C757415F065 /* Build configuration list for PBXNativeTarget "WristNotes" */;
 			buildPhases = (
-				B38E87D6A55004D349FF417A /* Sources */,
-				1EBD3C7F8277EFBCC5F318E9 /* Frameworks */,
-				BFB13976ACAD431734E02EC6 /* Resources */,
-				CEB7722A7649F3882944589F /* Embed Watch Content */,
+				399C6E79C88681F9BB554BED /* [CP] Check Pods Manifest.lock */,
+				2C6269A75297595368C81BFA /* Sources */,
+				096F26B6FBB248A26F760B88 /* Frameworks */,
+				27A4466C36AA65F80DC2A03D /* Resources */,
+				444E0331A23472D0E1ABC438 /* Embed Watch Content */,
+				47D924D987D28B32CA27FA64 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				7273848F78F6585A692E123C /* PBXTargetDependency */,
+				E734F7BD2B6B52D48886B938 /* PBXTargetDependency */,
 			);
 			name = WristNotes;
 			packageProductDependencies = (
-				3D561BE3EE5DD448C64857C3 /* WhisperKit */,
-				80E1828CBCF12AB7FAF15A37 /* Hub */,
-				045775742520168387A3EEB3 /* Tokenizers */,
+				DA94D87CCE53A4352E7E3DE4 /* WhisperKit */,
+				832851432F9CE36FADEC14B9 /* Hub */,
+				7AA68BDAD28418DCAABAC868 /* Tokenizers */,
 			);
 			productName = WristNotes;
-			productReference = 6B6BADF7D57E913F096ED308 /* WristNotes.app */;
+			productReference = 49569FAD0882AF622EEF8BA7 /* WiseNote.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		F09998FCED8A60A8CC6E785C /* Project object */ = {
+		D914D8F69314D6406DB2332A /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 2630;
 			};
-			buildConfigurationList = 020E062112BDFA14AAE39D34 /* Build configuration list for PBXProject "WristNotes" */;
+			buildConfigurationList = 26911F6FA9F23B84408BD325 /* Build configuration list for PBXProject "WristNotes" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -390,176 +479,239 @@
 				en,
 				Base,
 			);
-			mainGroup = 870B9E397CC2E368108EC509;
+			mainGroup = 53EFB0D791B8E3E75F8BB720;
 			minimizedProjectReferenceProxies = 0;
 			packageReferences = (
-				BC9A0B6CC2FCAF768B495423 /* XCRemoteSwiftPackageReference "WhisperKit" */,
-				EEDD53D990C6F1C616483D5F /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				611B8D85A30E55303B11634E /* XCRemoteSwiftPackageReference "WhisperKit" */,
+				22315AA59BAB239853B9622F /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
-			preferredProjectObjectVersion = 77;
-			productRefGroup = 227DDC40C2485BFB21248B66 /* Products */;
+			preferredProjectObjectVersion = 100;
+			productRefGroup = EB7369BE3CFAC969FA40609E /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8F1E5FCA5EAEC6C0EB28D8AD /* WristNotes */,
-				56489DEDCA1779D9734292AA /* WristNotesWatch */,
+				EBD457350296330A077B9C6D /* WristNotes */,
+				D96FEEF2721496E3FE1F42E5 /* WristNotesWatch */,
+				1F54B4BAFBB7B4C0ACD24C07 /* RingIntegrationTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		34978F9C596EBA3D617BDB42 /* Resources */ = {
+		27A4466C36AA65F80DC2A03D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87434EC8373FEAAADE05C225 /* Assets.xcassets in Resources */,
+				DB743308109E33A6CB2FAD78 /* Assets.xcassets in Resources */,
+				DEA7FFF2BBE3BCE03CED4B94 /* WhisperModels.json in Resources */,
+				D45EA180B97CFA9217DD6877 /* Lucide-LICENSE.txt in Resources */,
+				A3D8EAEB75A549F5A9F24DBF /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BFB13976ACAD431734E02EC6 /* Resources */ = {
+		31C777292C652E053211C877 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D148CEACBE89CCFBD674BFB7 /* Assets.xcassets in Resources */,
-				38DD16A93CB9C939B5803DF9 /* WhisperModels.json in Resources */,
-				D9283F8540B37067B0A87678 /* Lucide-LICENSE.txt in Resources */,
-				2B38F9A44E168B02BCC9FBED /* Localizable.xcstrings in Resources */,
+				C37142D73DF660DE44073117 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		39900F4DB29FA6DC6A0DD52A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				682F8F4233386A9F9FDDD4E8 /* sdk-opus-16k-mono.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		399C6E79C88681F9BB554BED /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-WristNotes-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		47D924D987D28B32CA27FA64 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/BRRecorderOpus/BRRecorderOpusNotices.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderOpusNotices.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		6F17AD45364DA76B8F03038F /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/BRRecorderOpus/BRRecorderOpusNotices.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderOpusNotices.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		7EA46524FB71E42FEDC65E59 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RingIntegrationTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
-		04E7FE41D22F8C46B99CBCAD /* Sources */ = {
+		2C6269A75297595368C81BFA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01137B799982023CEEFE72FE /* VoiceNote.swift in Sources */,
-				7973D54D62E6CBE2A533A828 /* RecordingFormat.swift in Sources */,
-				E35801CED6E7DF782E1AB451 /* WristNotesWatchApp.swift in Sources */,
-				CC5B264DD16781518DBB7241 /* WatchContentView.swift in Sources */,
-				7060AF86AAD9083322B6B991 /* WatchRecorder.swift in Sources */,
-				846AA6F9B224F4CB3A2EDB45 /* WatchConnectivityStatus.swift in Sources */,
-				C0A4C145BD29B3A08CC48473 /* RecordingButtonInteraction.swift in Sources */,
+				467C2DB82783E6111233426F /* VoiceNote.swift in Sources */,
+				52E28CFCAA14E461810CBA28 /* RecordingFormat.swift in Sources */,
+				F660BEB4E525208C1CDF17CC /* WristNotesApp.swift in Sources */,
+				648A706E2ED11D793544F54B /* NotesListView.swift in Sources */,
+				96BBE26DCCAE0D2B1389FB19 /* NoteDetailView.swift in Sources */,
+				BCA69F856D442908BE5D80B6 /* NotesModel.swift in Sources */,
+				E6508556BF3E5B955F272E15 /* NoteRepository.swift in Sources */,
+				7E33BB924BB1655F4C6C06DB /* PhoneConnectivity.swift in Sources */,
+				8D646B284E045F5FAEC105C5 /* OnDeviceTranscriber.swift in Sources */,
+				4A2B8810ABDDB668CA815F74 /* RingTransferStore.swift in Sources */,
+				FF2FD7D4795EEA784CDD811D /* EurekaRingModel.swift in Sources */,
+				9FAF1AE485F73D825EBF92BC /* RingHardwareViews.swift in Sources */,
+				B42A93C4075D8E52176CD948 /* OnDeviceSummarizer.swift in Sources */,
+				65112B512AFB23BC13619A7D /* NotesStyle.swift in Sources */,
+				F3141EF272E6739822D74A53 /* AudioPlayback.swift in Sources */,
+				DC8398E5713D948943F187C6 /* AIConfiguration.swift in Sources */,
+				D8E52EACC55B3FD2679C5D45 /* AppSettings.swift in Sources */,
+				4538E6DB688A2CFC7C1DFE55 /* KeychainSecretStore.swift in Sources */,
+				A12F48029071A763A473A537 /* CustomAISummarizer.swift in Sources */,
+				F81191088553A5701C2C69FC /* AISettingsModel.swift in Sources */,
+				35AE59B10CCB0B00FF3F5FB6 /* PhoneWatchStatus.swift in Sources */,
+				65399CD4F10E3C2CB05763A7 /* SettingsViews.swift in Sources */,
+				903F709AD2655EC49B85C4EA /* TranscriptionConfiguration.swift in Sources */,
+				2B9ADC53FCB53400E40A7AD0 /* TranscriptionSettingsModel.swift in Sources */,
+				35845FD63EB5A67572742C9B /* TranscriptionSettingsView.swift in Sources */,
+				42E608DD0BC7811769D96C21 /* AppleSpeechResources.swift in Sources */,
+				BF3B925C6ED1EC5BE2170EE9 /* AppleSpeechReservationCoordinator.swift in Sources */,
+				08A69D91607DF787BDA6ECBF /* WhisperModelStore.swift in Sources */,
+				1422A3A6A09F34F861393BF7 /* LiveTranscriptionResources.swift in Sources */,
+				A1766A711B1FF16A0478C944 /* LocalTranscriptionService.swift in Sources */,
+				6A23A0B27FB2AD4D1041B3C5 /* OfflineWhisperTokenizer.swift in Sources */,
+				DEEC12B5F656BBE77C1E6D4A /* DaybookStyle.swift in Sources */,
+				9AAD47AD7155AD2C59417AEC /* DaybookCalendarView.swift in Sources */,
+				28EED20B00BC9F748652C780 /* DaybookVoiceDetailView.swift in Sources */,
+				2D03490CD9A90B7008C6822F /* DayRecord.swift in Sources */,
+				178A7C410C0316BECF32B14A /* DaybookAnswerService.swift in Sources */,
+				8DE591EBCE83408470F919DE /* DaybookAssistantModel.swift in Sources */,
+				EC6D9F5660DA1471C18F829B /* DaybookAssistantView.swift in Sources */,
+				28E65C02612EE29B45EF85A8 /* DaybookComponents.swift in Sources */,
+				801F0B3AB1DF5D1F261BB990 /* DaybookPreferences.swift in Sources */,
+				5CCAD0105D87D2E3115036EA /* DaybookReminderPersistence.swift in Sources */,
+				4E16DAED36302CFE628FA810 /* DaybookReminderStore.swift in Sources */,
+				00CD4A44E107E989896B6896 /* DaybookReminderViews.swift in Sources */,
+				AE415A8030978700D8226704 /* DaybookRetrieval.swift in Sources */,
+				F3C0E0ABDBFD33369BD6713B /* DaybookSuggestionStore.swift in Sources */,
+				EFCE52A8CCAE48E833DD6C04 /* DaybookView.swift in Sources */,
+				FF74065563307F04D2BB9953 /* PhoneRecorder.swift in Sources */,
+				CC4A5E85349E707948A4B654 /* PhoneRecordingView.swift in Sources */,
+				2C072903F42D7CABFDC66408 /* PhotoCaptureView.swift in Sources */,
+				EA501FDC477D42D3352347E3 /* PhotoDetailView.swift in Sources */,
+				B2600F0A6B4239A5AC598E22 /* PhotoLibraryModel.swift in Sources */,
+				1A1A5C316739385AD6CE7F2A /* PhotoMoment.swift in Sources */,
+				2200857EDDD049D703F6DE00 /* PhotoRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B38E87D6A55004D349FF417A /* Sources */ = {
+		44F59C2D5DB794745AFCB3A8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				897A12FA0044AF6CF84A5F5D /* VoiceNote.swift in Sources */,
-				C20BB0D973AD482942E949B8 /* RecordingFormat.swift in Sources */,
-				ED5E668805F75C932F1111E7 /* WristNotesApp.swift in Sources */,
-				D7F85687EE1D7EADC3793F72 /* NotesListView.swift in Sources */,
-				85B2A9121443CADB615CFEDC /* NoteDetailView.swift in Sources */,
-				E13DC8CFC3B347D54EEE3DD0 /* NotesModel.swift in Sources */,
-				AE665D9E9105CA5616435D77 /* NoteRepository.swift in Sources */,
-				D870121318636D8B9D12CF27 /* PhoneConnectivity.swift in Sources */,
-				742F69D8469E3B036065648F /* OnDeviceTranscriber.swift in Sources */,
-				20F80FEE3C484EBF11512EE6 /* OnDeviceSummarizer.swift in Sources */,
-				A2C276DAFC5779A0C1AAC064 /* NotesStyle.swift in Sources */,
-				A8DEB3D5FB2A158C485C23FC /* AudioPlayback.swift in Sources */,
-				57E5750051F3DF5FEAE224F3 /* AIConfiguration.swift in Sources */,
-				9DFF02BF429CF344E2CFD956 /* AppSettings.swift in Sources */,
-				42D8250A3C8E3ED79DADC70A /* KeychainSecretStore.swift in Sources */,
-				C030387EBB8E6DB01BC62202 /* CustomAISummarizer.swift in Sources */,
-				30DE392D4BB70285B5622AAB /* AISettingsModel.swift in Sources */,
-				627A70E3ACDF477C2911B78F /* PhoneWatchStatus.swift in Sources */,
-				FADC720D50722FD3EC824B50 /* SettingsViews.swift in Sources */,
-				7C8DDA1B058BBB7CF4EFD9A0 /* TranscriptionConfiguration.swift in Sources */,
-				BCB4C642F2090816C167731E /* TranscriptionSettingsModel.swift in Sources */,
-				9322D31985492FB80DA53D05 /* TranscriptionSettingsView.swift in Sources */,
-				E28DB5C1EC56E36BFD270561 /* AppleSpeechResources.swift in Sources */,
-				4EF0D439E3DAFFFC131FED70 /* AppleSpeechReservationCoordinator.swift in Sources */,
-				36D968247C908A7376EB21A6 /* WhisperModelStore.swift in Sources */,
-				59432FFC4E39C01C53BC531A /* LiveTranscriptionResources.swift in Sources */,
-				535A55E9203D689D958530D2 /* LocalTranscriptionService.swift in Sources */,
-				587A48AA80ECCD5BE55A3BB4 /* OfflineWhisperTokenizer.swift in Sources */,
-				DB9406B611BF59FF266A270E /* DaybookStyle.swift in Sources */,
-				8BF46B848AEFAEC84B737559 /* DaybookCalendarView.swift in Sources */,
-				19208312F2BBE82C3BF2726A /* DaybookVoiceDetailView.swift in Sources */,
-				07455965617C98994F7FF3EC /* DayRecord.swift in Sources */,
-				40C3C2C7732E67D6BCC77B5B /* DaybookAnswerService.swift in Sources */,
-				CF7CDFC864087B61ECAB592A /* DaybookAssistantModel.swift in Sources */,
-				6B77A61E2051081CC7F62ED9 /* DaybookAssistantView.swift in Sources */,
-				DA85911C8F87046469B4B0DF /* DaybookComponents.swift in Sources */,
-				F8CCFEBABB612147199900EB /* DaybookPreferences.swift in Sources */,
-				37843C3E7B917995038AC82D /* DaybookReminderPersistence.swift in Sources */,
-				567488BFA2B246D44701D0DF /* DaybookReminderStore.swift in Sources */,
-				B7ABEBD62DD338DC727F44F0 /* DaybookReminderViews.swift in Sources */,
-				0ACAE39437102AA3253AC74E /* DaybookRetrieval.swift in Sources */,
-				3A28AC0296987DA8192BC78F /* DaybookSuggestionStore.swift in Sources */,
-				20F1C5405F8F6EB13D6C290C /* DaybookView.swift in Sources */,
-				F53BCC791D4566684DBFDB56 /* PhoneRecorder.swift in Sources */,
-				73CFE84A943A3AFB4B3C7966 /* PhoneRecordingView.swift in Sources */,
-				E9EF384B3EA1312CC8746BB0 /* PhotoCaptureView.swift in Sources */,
-				21EBE7A49641BE744A5D958B /* PhotoDetailView.swift in Sources */,
-				92D3427EC8277BB160FCF7A5 /* PhotoLibraryModel.swift in Sources */,
-				98CADFEF1CF79943A8D3C5A2 /* PhotoMoment.swift in Sources */,
-				5930DC6F05B659DFDC0FE374 /* PhotoRepository.swift in Sources */,
+				125B5EE33663A211278CE038 /* VoiceNote.swift in Sources */,
+				D398B202BD7B77081074A190 /* RecordingFormat.swift in Sources */,
+				B4AAF320A0FE754A43053B90 /* WristNotesWatchApp.swift in Sources */,
+				FC597E1A3D5207C2B2362D88 /* WatchContentView.swift in Sources */,
+				B55D7DEF51496824BC4937E9 /* WatchRecorder.swift in Sources */,
+				824A7EA2683AC45868F71396 /* WatchConnectivityStatus.swift in Sources */,
+				C42E88942F2FD77B1B22A942 /* RecordingButtonInteraction.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D0A2034CD3CD49F02BE7D1D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF4AF588880C6620EE658A0F /* RingIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		7273848F78F6585A692E123C /* PBXTargetDependency */ = {
+		97CBCCBFF0A66AFD681FFF4C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = WristNotes;
+			target = EBD457350296330A077B9C6D /* WristNotes */;
+			targetProxy = 3521AA70F18C10C6B49D3865 /* PBXContainerItemProxy */;
+		};
+		E734F7BD2B6B52D48886B938 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = WristNotesWatch;
-			target = 56489DEDCA1779D9734292AA /* WristNotesWatch */;
-			targetProxy = 9EC12379E136E823FC581090 /* PBXContainerItemProxy */;
+			target = D96FEEF2721496E3FE1F42E5 /* WristNotesWatch */;
+			targetProxy = 195F69F7EEA0A37F73B06357 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		2B6396E37A27436CCDCDDC7E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = S56V68L4NP;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Sources/Watch/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.watchkitapp;
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 10.0;
-			};
-			name = Release;
-		};
-		35DA534D01F01BA43638C662 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = S56V68L4NP;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Sources/iPhone/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = WiseNote;
-				INFOPLIST_KEY_CFBundleName = WiseNote;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
-				PRODUCT_NAME = WiseNote;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		39B39DE5013670358C7AFB39 /* Release */ = {
+		22883C75C434CA04794B7CDB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -613,7 +765,22 @@
 			};
 			name = Release;
 		};
-		454FEBAE3EA11029D040A852 /* Debug */ = {
+		2BCE54FAC97350EF2460676E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4BB21791711C937043F3244F /* Pods-RingIntegrationTests.debug.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote";
+			};
+			name = Debug;
+		};
+		5C5E0C9B0646E6809637FE76 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -631,33 +798,7 @@
 			};
 			name = Debug;
 		};
-		48A558B4D3CC792D710C33F7 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = S56V68L4NP;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Sources/iPhone/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = WiseNote;
-				INFOPLIST_KEY_CFBundleName = WiseNote;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
-				PRODUCT_NAME = WiseNote;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		757A593621A7A9DC398C4108 /* Debug */ = {
+		8F5C3F591C07AC59D00DBBCE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -718,32 +859,131 @@
 			};
 			name = Debug;
 		};
+		954A3F8CA09B11D0D430EFE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D566461CF282865616A5E805 /* Pods-RingIntegrationTests.release.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9C7B33CF4FDCC8EB28FFE1D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 11AD948370EF7B4245D9AB6F /* Pods-WristNotes.release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = S56V68L4NP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/iPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WiseNote;
+				INFOPLIST_KEY_CFBundleName = WiseNote;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
+				PRODUCT_NAME = WiseNote;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A63090A6C385CB261061B92F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = S56V68L4NP;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Watch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		FC2292DE2A2011A712A28839 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 08120ACD1FD5D5F8F19242FA /* Pods-WristNotes.debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = S56V68L4NP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/iPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WiseNote;
+				INFOPLIST_KEY_CFBundleName = WiseNote;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
+				PRODUCT_NAME = WiseNote;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		020E062112BDFA14AAE39D34 /* Build configuration list for PBXProject "WristNotes" */ = {
+		26911F6FA9F23B84408BD325 /* Build configuration list for PBXProject "WristNotes" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				757A593621A7A9DC398C4108 /* Debug */,
-				39B39DE5013670358C7AFB39 /* Release */,
+				8F5C3F591C07AC59D00DBBCE /* Debug */,
+				22883C75C434CA04794B7CDB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		611AA367336E90D44795AD57 /* Build configuration list for PBXNativeTarget "WristNotesWatch" */ = {
+		52112C0AED6B8C757415F065 /* Build configuration list for PBXNativeTarget "WristNotes" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				2B6396E37A27436CCDCDDC7E /* Release */,
-				454FEBAE3EA11029D040A852 /* Debug */,
+				9C7B33CF4FDCC8EB28FFE1D5 /* Release */,
+				FC2292DE2A2011A712A28839 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C2818158F20A51A18E9A7EC1 /* Build configuration list for PBXNativeTarget "WristNotes" */ = {
+		7B9FEDEDC11D5D4261B3CB8D /* Build configuration list for PBXNativeTarget "WristNotesWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				35DA534D01F01BA43638C662 /* Release */,
-				48A558B4D3CC792D710C33F7 /* Debug */,
+				A63090A6C385CB261061B92F /* Release */,
+				5C5E0C9B0646E6809637FE76 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C283631970ED11C92625DB1B /* Build configuration list for PBXNativeTarget "RingIntegrationTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				954A3F8CA09B11D0D430EFE5 /* Release */,
+				2BCE54FAC97350EF2460676E /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -751,15 +991,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		BC9A0B6CC2FCAF768B495423 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
-			requirement = {
-				kind = exactVersion;
-				version = 0.15.0;
-			};
-		};
-		EEDD53D990C6F1C616483D5F /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+		22315AA59BAB239853B9622F /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-transformers.git";
 			requirement = {
@@ -767,25 +999,33 @@
 				version = 1.1.2;
 			};
 		};
+		611B8D85A30E55303B11634E /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.15.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		045775742520168387A3EEB3 /* Tokenizers */ = {
+		7AA68BDAD28418DCAABAC868 /* Tokenizers */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = EEDD53D990C6F1C616483D5F /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			package = 22315AA59BAB239853B9622F /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Tokenizers;
 		};
-		3D561BE3EE5DD448C64857C3 /* WhisperKit */ = {
+		832851432F9CE36FADEC14B9 /* Hub */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BC9A0B6CC2FCAF768B495423 /* XCRemoteSwiftPackageReference "WhisperKit" */;
-			productName = WhisperKit;
-		};
-		80E1828CBCF12AB7FAF15A37 /* Hub */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = EEDD53D990C6F1C616483D5F /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			package = 22315AA59BAB239853B9622F /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Hub;
+		};
+		DA94D87CCE53A4352E7E3DE4 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 611B8D85A30E55303B11634E /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = F09998FCED8A60A8CC6E785C /* Project object */;
+	rootObject = D914D8F69314D6406DB2332A /* Project object */;
 }

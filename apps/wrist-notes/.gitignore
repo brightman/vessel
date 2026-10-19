@@ -23,3 +23,7 @@ build/
 __pycache__/
 *.pyc
 .venv/
+
+# Native Ring dependencies
+Pods/
+**/xcuserdata/

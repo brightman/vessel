@@ -60,6 +60,13 @@ enum ProcessingState: String, Codable {
     case failed
 }
 
+struct RecordingOrigin: Codable, Equatable {
+    let device: String
+    let deviceID: String
+    let fileName: String
+    let recordingTimeIsEstimated: Bool
+}
+
 struct VoiceNote: Codable, Identifiable, Equatable {
     let id: UUID
     let kind: RecordingKind
@@ -72,6 +79,8 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var transcriptionState: ProcessingState
     var summaryState: ProcessingState
     var processingMessage: String?
+    var origin: RecordingOrigin?
+    var usesLocalThoughtAI: Bool { kind == .thought && origin?.device == "EurekaRing" }
 
     init(id: UUID, kind: RecordingKind, capturedAt: Date, duration: TimeInterval) {
         self.id = id
@@ -88,6 +97,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
         self.transcriptionState = .pending
         self.summaryState = .pending
         self.processingMessage = nil
+        self.origin = nil
     }
 
     mutating func applyEdit(title: String, transcript: String) {

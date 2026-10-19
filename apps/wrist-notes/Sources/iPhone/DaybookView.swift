@@ -10,7 +10,7 @@ private struct DaybookReminderDraft: Hashable {
     let initialDate: Date?
 }
 private enum DaybookSheet: Hashable, Identifiable {
-    case capture, photo, date, watch, transcription, aiSettings, preferences, reminders
+    case capture, photo, date, watch, hardware, ring, transcription, aiSettings, preferences, reminders
     case record(UUID), evidence(UUID), reminder(DaybookReminderDraft), source(String)
     var id: Self { self }
 }
@@ -24,6 +24,7 @@ private enum DaybookFilter: String, CaseIterable {
 struct DaybookView: View {
     @EnvironmentObject private var model: NotesModel
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var ring: EurekaRingModel
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var photos = PhotoLibraryModel()
     @StateObject private var recorder = PhoneRecorder()
@@ -145,20 +146,20 @@ struct DaybookView: View {
                 guard scenePhase == .active else { return }; clockNow = now; synchronizeSuggestions(now: now)
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { model.refreshWatchStatus(); synchronizeSuggestions(); Task { await reminders.refreshAuthorization() } }
+                if phase == .active { model.refreshWatchStatus(); synchronizeSuggestions(); Task { await reminders.refreshAuthorization(); await ring.foreground() } }
             }
     }
 
     private var header: some View {
         HStack {
-            Button { model.refreshWatchStatus(); present(.watch) } label: {
+            Button { model.refreshWatchStatus(); present(.hardware) } label: {
                 HStack(spacing: 7) {
-                    Circle().fill(model.watchStatus.isConnected ? DaybookStyle.green : DaybookStyle.secondary).frame(width: 5, height: 5)
-                    DaybookIcon("Watch", size: 21)
-                    Text(model.watchStatus.isConnected ? "已连接" : "未连接").font(.system(size: 11, weight: .medium))
+                    Circle().fill(model.watchStatus.isConnected || ring.isConnected ? DaybookStyle.green : DaybookStyle.secondary).frame(width: 5, height: 5)
+                    DaybookIcon(ring.isConnected ? "Ring" : "Watch", size: 21)
+                    Text(ring.isRecording ? "Ring 录音中" : connectedHardwareCount == 0 ? "连接硬件" : "\(connectedHardwareCount) 台已连接").font(.system(size: 11, weight: .medium))
                 }.padding(.leading, 10).padding(.trailing, 12).frame(height: 40)
                     .background(DaybookStyle.white, in: Capsule()).overlay(Capsule().stroke(DaybookStyle.line, lineWidth: 1))
-            }.accessibilityLabel("查看 Apple Watch 连接状态")
+            }.accessibilityLabel("查看录音硬件连接状态")
             Spacer()
             HStack(spacing: 4) {
                 Button { focusSearchOnAppear = true; page = .library; searchFocused = true } label: { DaybookIcon("Search", size: 21).frame(width: 40, height: 40) }.accessibilityLabel("搜索记录")
@@ -166,6 +167,7 @@ struct DaybookView: View {
             }.padding(.horizontal, 3).background(DaybookStyle.white, in: Capsule()).overlay(Capsule().stroke(DaybookStyle.line, lineWidth: 1))
         }.padding(.horizontal, 23).padding(.top, 8).padding(.bottom, 10)
     }
+    private var connectedHardwareCount: Int { (model.watchStatus.isConnected ? 1 : 0) + (ring.isConnected ? 1 : 0) }
     private var dayPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             DaybookDateHeading(date: selectedDate, hasRecords: !dayRecords.isEmpty, onDate: { present(.date) }).padding(.bottom, 20)
@@ -351,6 +353,7 @@ struct DaybookView: View {
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(18).background(DaybookStyle.blueSoft, in: RoundedRectangle(cornerRadius: 18)).padding(.bottom, 14)
             sourceRow("Apple Watch", subtitle: "语音与闪念", icon: "Watch", status: model.watchStatus.isConnected ? "已连接" : "未连接") { present(.watch) }
+            sourceRow("EurekaRing", subtitle: "录音与蓝牙同步", icon: "Ring", status: ring.connectionLabel) { present(.ring) }
             sourceRow("Apple 健康", subtitle: "活动、步数与睡眠", icon: "Heart", status: "未接入") { present(.source("Apple 健康")) }
             sourceRow("日历", subtitle: "为记录补充日程背景", icon: "CalendarDays", status: "未接入") { present(.source("日历")) }
             sourceRow("地点", subtitle: "为片段留下一点位置线索", icon: "MapPin", status: "未接入") { present(.source("地点")) }
@@ -436,6 +439,8 @@ struct DaybookView: View {
             }
         case .evidence(let id): evidenceSheet(id)
         case .watch: watchSheet
+        case .hardware: DaybookHardwareView(watch: model.watchStatus, openWatch: { present(.watch) }, openRing: { present(.ring) }, onClose: { sheet = nil })
+        case .ring: EurekaRingDetailView(onBack: { present(.hardware) }, onClose: { sheet = nil }, phoneIsRecording: recorder.isRecording || recorder.requestingPermission)
         case .transcription: TranscriptionSettingsView(settings: settings)
         case .aiSettings: AISettingsView(settings: settings)
         case .preferences: DaybookPreferencesView(preferences: preferences, reminders: reminders, onOpenRecord: openRecord, sourceTitle: sourceTitle)

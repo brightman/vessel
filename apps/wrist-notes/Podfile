@@ -1,0 +1,26 @@
+source 'https://cdn.cocoapods.org/'
+
+platform :ios, '26.0'
+project 'WristNotes.xcodeproj'
+use_frameworks! :linkage => :static
+
+target 'WristNotes' do
+  pod 'BRRecorderCore', :path => '../../../br_flutter_plugin_ble/ios'
+  # Pinned source-only checkouts prepared by bootstrap_recorder_core.sh.
+  # This avoids fetching the SDK repositories' unrelated binary/demo assets.
+  pod 'BRBluetoothLib', :path => '../../../br_flutter_plugin_ble/ios/.native-sdk/BRBluetoothLib'
+  pod 'BRRecorderOpus', :path => '../../../br_flutter_plugin_ble/ios/.native-sdk/Opus'
+  target 'RingIntegrationTests' do
+    inherit! :search_paths
+    pod 'BRRecorderOpus', :path => '../../../br_flutter_plugin_ble/ios/.native-sdk/Opus'
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+    end
+  end
+end

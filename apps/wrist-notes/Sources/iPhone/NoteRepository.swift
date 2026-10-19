@@ -24,7 +24,8 @@ final class NoteRepository {
     }
 
     @discardableResult
-    func importRecording(id: UUID, from source: URL, kind: RecordingKind, capturedAt: Date, duration: TimeInterval) throws -> VoiceNote {
+    func importRecording(id: UUID, from source: URL, kind: RecordingKind, capturedAt: Date, duration: TimeInterval,
+                         origin: RecordingOrigin? = nil) throws -> VoiceNote {
         if let existing = notes.first(where: { $0.id == id }) {
             let destination = audioURL(for: existing)
             if !FileManager.default.fileExists(atPath: destination.path) {
@@ -32,7 +33,8 @@ final class NoteRepository {
             }
             return existing
         }
-        let note = VoiceNote(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
+        var note = VoiceNote(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
+        note.origin = origin
         let destination = audioURL(for: note)
         let copied = !FileManager.default.fileExists(atPath: destination.path)
         if copied { try FileManager.default.copyItem(at: source, to: destination) }
