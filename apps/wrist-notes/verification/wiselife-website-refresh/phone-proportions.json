@@ -1,0 +1,99 @@
+{
+  "results": [
+    {
+      "viewport": [
+        1440,
+        900
+      ],
+      "phone": [
+        364.109375,
+        788
+      ],
+      "ratio": 0.4620677347715736,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        1440,
+        768
+      ],
+      "phone": [
+        330,
+        714.140625
+      ],
+      "ratio": 0.4620938628158845,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        1024,
+        768
+      ],
+      "phone": [
+        330,
+        714.140625
+      ],
+      "ratio": 0.4620938628158845,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        768,
+        1024
+      ],
+      "phone": [
+        390,
+        844
+      ],
+      "ratio": 0.46208530805687204,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        600,
+        800
+      ],
+      "phone": [
+        330,
+        714.140625
+      ],
+      "ratio": 0.4620938628158845,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "phone": [
+        390,
+        786
+      ],
+      "ratio": 0.4961832061068702,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        320,
+        640
+      ],
+      "phone": [
+        320,
+        582
+      ],
+      "ratio": 0.5498281786941581,
+      "overflow": false
+    }
+  ],
+  "dialog": {
+    "phone": [
+      609,
+      921
+    ],
+    "sheet": [
+      609,
+      921
+    ]
+  },
+  "errors": []
+}

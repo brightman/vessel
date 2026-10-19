@@ -1,0 +1,50 @@
+[
+  {
+    "file": "wiselife-icon-120.png",
+    "size": [
+      120,
+      120
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "wiselife-icon-60.png",
+    "size": [
+      60,
+      60
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "wiselife-icon-180.png",
+    "size": [
+      180,
+      180
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "wiselife-icon-1024.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "wiselife-icon-512.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "wiselife-icon-preview.png",
+    "size": [
+      768,
+      768
+    ],
+    "mode": "RGB"
+  }
+]

@@ -506,8 +506,8 @@
       const updated = translate(node.nodeValue);
       if (updated !== node.nodeValue) node.nodeValue = updated;
     }
-    root.querySelectorAll?.('[aria-label], [placeholder], [title]').forEach(element => {
-      for (const name of ['aria-label', 'placeholder', 'title']) {
+    root.querySelectorAll?.('[aria-label], [placeholder], [title], [alt]').forEach(element => {
+      for (const name of ['aria-label', 'placeholder', 'title', 'alt']) {
         const old = element.getAttribute(name);
         if (old !== null) {
           const updated = translate(old);
@@ -517,7 +517,7 @@
     });
     document.documentElement.lang = language === 'zh-Hans' ? 'zh-CN' : language;
     document.title = document.body.classList.contains('wiselife-site')
-      ? (language === 'en' ? 'WiseLife · See your day more clearly' : language === 'ja' ? 'WiseLife · 毎日を、もっとクリアに' : 'WiseLife · 把一天，看得更清楚')
+      ? (language === 'en' ? 'WiseLife · Capture with ease. Understand your day.' : language === 'ja' ? 'WiseLife · 気軽に記録。毎日、自分を知る。' : 'WiseLife · 轻松记录，每天更懂自己')
       : (language === 'en' ? 'WiseLife · My Day' : language === 'ja' ? 'WiseLife · 私の一日' : 'WiseLife · 我的一天');
     picker.value = language;
   };

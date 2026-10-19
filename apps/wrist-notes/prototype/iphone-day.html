@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#fafbfc">
-  <title>WiseLife · 把一天，看得更清楚</title>
-  <meta name="description" content="WiseLife 用语音与图片留住生活，让端上 AI 帮你回顾、洞察与行动。支持 Apple Watch，自主选择数据存储与 AI 模型。">
+  <title>WiseLife · 轻松记录，每天更懂自己</title>
+  <meta name="description" content="用 Apple Watch 或 EurekaRing 轻松记录，让 AI 回顾每天、给出建议。纯端模式下，数据与 AI 都留在 iPhone。US$9.9，一次付费、终身使用，也可接入自己的 AI。">
   <link rel="stylesheet" href="daybook.css">
   <link rel="stylesheet" href="daybook-ai.css">
   <link rel="stylesheet" href="daybook-capture-settings.css">
   <link rel="stylesheet" href="daybook-theme.css">
   <link rel="stylesheet" href="daybook-hardware.css">
   <link rel="stylesheet" href="wiselife-site.css">
+  <link rel="stylesheet" href="wiselife-story.css">
 </head>
 <body class="wiselife-site">
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><symbol id="i-Ring" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="9"></ellipse><ellipse cx="12" cy="12" rx="4.5" ry="6.5"></ellipse><path d="m6.8 5.2 2.1 2M15.1 16.8l2.1 2"></path></symbol></defs></svg>
@@ -20,22 +21,78 @@
   <a class="site-skip" href="#product">跳到产品体验</a>
   <header class="site-header">
     <div class="site-nav-wrap">
-      <a class="wordmark" href="#product" aria-label="WiseLife 首页"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg></span>WiseLife</a>
+      <a class="wordmark" href="#welcome" aria-label="WiseLife 首页"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg></span>WiseLife</a>
       <nav class="site-nav" aria-label="官网导航">
         <a href="#product" aria-current="location">产品体验</a>
         <a href="#hardware">随身硬件</a>
         <a href="#ownership">数据与 AI</a>
       </nav>
-      <a class="site-nav-cta" href="#ownership">由你掌握<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a>
+      <a class="site-nav-cta" href="#product">亲手体验<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a>
     </div>
   </header>
   <main class="site-main">
+  <section id="welcome" class="welcome-screen site-screen" aria-labelledby="welcomeTitle">
+    <div class="welcome-grid site-container">
+      <div class="welcome-copy">
+        <p class="site-eyebrow">你的随身生活记录</p>
+        <h1 id="welcomeTitle">轻松记录，<br><span>每天更懂自己。</span></h1>
+        <p class="welcome-description">随时说一句，留住眼前的想法。<br>让 AI 回顾每天的记录，给出建议。<br>纯端模式下，数据与 AI 都留在手机。</p>
+        <div class="welcome-actions"><a class="site-button" href="#product">亲手体验<svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg></a><button class="site-film-link" data-play-film><svg class="icon" aria-hidden="true"><use href="#i-Play"></use></svg><span>看一段产品演示</span></button></div>
+        <ul class="welcome-promises"><li><svg class="icon" aria-hidden="true"><use href="#i-Watch"></use></svg>Apple Watch · EurekaRing</li><li><svg class="icon" aria-hidden="true"><use href="#i-ShieldCheck"></use></svg>纯端 AI · 本机存储</li></ul>
+        <a class="welcome-price" href="#pricing"><strong>US$9.9</strong><span>一次付费，终身使用</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg></a>
+      </div>
+      <figure class="welcome-visual">
+        <img class="welcome-photo" src="assets/wiselife/morning-walk.webp" alt="晨光穿过林间步道，适合边走边整理思绪" width="1600" height="1000" fetchpriority="high">
+        <img class="welcome-phone" src="assets/wiselife/day-overview.webp" alt="WiseLife 一天概览，展示语音、活动与今日洞察的示例界面" width="390" height="844">
+        <img class="welcome-watch" src="assets/apple-watch-se.png" alt="Apple Watch SE" width="516" height="616">
+        <figcaption>随身记录，回到 iPhone 慢慢整理。</figcaption>
+      </figure>
+    </div>
+  </section>
+  <section id="moments" class="moments-screen site-screen" aria-labelledby="momentsHeading">
+    <div class="site-container moments-layout">
+      <div class="moments-copy">
+        <p class="site-eyebrow">生活里的小片刻</p>
+        <h2 id="momentsHeading">有些话，<br>以后还想再听一遍。</h2>
+        <p class="section-description">减少记录负担，让 AI 从每天的数据里，帮你看见值得关注的事。</p>
+        <div class="story-tabs" role="tablist" aria-label="选择使用场景" aria-orientation="vertical">
+          <button id="storyThought" role="tab" aria-selected="true" aria-controls="thoughtPanel" data-story="thought"><svg class="icon" aria-hidden="true"><use href="#i-Lightbulb"></use></svg><span><strong>路上的闪念</strong><small>想到的时候，就说下来。</small></span><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button>
+          <button id="storyConversation" role="tab" aria-selected="false" aria-controls="conversationPanel" tabindex="-1" data-story="conversation"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg><span><strong>讨论后的重点</strong><small>留下原话，也留下下一步。</small></span><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button>
+          <button id="storyReflection" role="tab" aria-selected="false" aria-controls="reflectionPanel" tabindex="-1" data-story="reflection"><svg class="icon" aria-hidden="true"><use href="#i-MessageCircle"></use></svg><span><strong>晚一点的回顾</strong><small>带着问题，回到自己的记录。</small></span><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button>
+        </div>
+      </div>
+      <div class="story-stage">
+        <article id="thoughtPanel" class="story-panel" role="tabpanel" aria-labelledby="storyThought" tabindex="0">
+          <div class="story-screen"><img src="assets/wiselife/thought-transcript.webp" alt="WiseLife 全文标签页，保留录音对应的原始文字" width="390" height="844" loading="lazy"></div>
+          <div class="story-caption"><span class="site-eyebrow">随手录下</span><h3>先留下，<br>不用现在就整理。</h3><p>轻点开始录音，继续手头的事；长按说一句，随手留下闪念。回到手机，再慢慢整理。</p><button class="site-text-link" data-site-record="thought-morning">打开一条语音记录<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button></div>
+        </article>
+        <article id="conversationPanel" class="story-panel" role="tabpanel" aria-labelledby="storyConversation" tabindex="0" hidden>
+          <div class="story-screen"><img src="assets/wiselife/note-summary.webp" alt="WiseLife 录音总结，与全文标签并列" width="390" height="844" loading="lazy"></div>
+          <div class="story-caption"><span class="site-eyebrow">抓住重点</span><h3>那次讨论，<br>最后决定了什么？</h3><p>先看总结，需要细节时切回全文。每次回顾，都能找到原来的那句话。</p><button class="site-text-link" data-site-record="review">查看总结与全文<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button></div>
+        </article>
+        <article id="reflectionPanel" class="story-panel" role="tabpanel" aria-labelledby="storyReflection" tabindex="0" hidden>
+          <div class="story-screen"><img src="assets/wiselife/ai-answer.webp" alt="WiseLife AI 回答示例，下方附有可回看的来源记录" width="390" height="844" loading="lazy"></div>
+          <div class="story-caption"><span class="site-eyebrow">有依据地追问</span><h3>今天，<br>什么值得继续？</h3><p>选一天，问一个问题。沿着回答中的来源回看，再为想做的事设个提醒。</p><button class="site-text-link" data-demo-view="ai">问问我的一天<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button></div>
+        </article>
+        <p class="story-disclosure">画面来自 WiseLife 交互原型，使用示例记录。</p>
+      </div>
+    </div>
+  </section>
+  <section id="walkthrough" class="film-screen site-screen" aria-labelledby="filmTitle">
+    <div class="site-container">
+      <div class="film-heading"><div><p class="site-eyebrow">看看它怎么用</p><h2 id="filmTitle">从一条记录，<br>到一个清楚的下一步。</h2></div><p>回看、读全文、问 AI、找到来源。<br>一段原型操作，把过程讲清楚。</p></div>
+      <div class="film-frame"><video id="productFilm" controls playsinline preload="none" poster="assets/wiselife/film-poster.webp" aria-label="WiseLife 产品操作演示"><source src="assets/wiselife/wiselife-walkthrough.mp4" type="video/mp4"><track kind="captions" src="assets/wiselife/walkthrough-zh.vtt" srclang="zh" label="中文" default><track kind="captions" src="assets/wiselife/walkthrough-en.vtt" srclang="en" label="English"><track kind="captions" src="assets/wiselife/walkthrough-ja.vtt" srclang="ja" label="日本語">你的浏览器暂不支持视频播放。</video><button class="film-start" id="filmStart" data-play-film><svg class="icon" aria-hidden="true"><use href="#i-Play"></use></svg><span>播放产品演示</span></button></div>
+      <div class="film-bottom"><div class="film-chapters" role="group" aria-label="选择演示片段"><button data-film-time="0">回看一天</button><button data-film-time="6">总结与全文</button><button data-film-time="15">AI 与来源</button><button data-film-time="24">连接硬件</button></div><p>原型实录，无声视频，可打开字幕。</p></div>
+      <p class="film-error" id="filmError" role="status" hidden>视频暂时无法播放，请直接体验下方原型。</p>
+    </div>
+  </section>
+
   <section id="product" class="site-screen product-screen" aria-labelledby="productTitle">
   <div class="design-stage">
     <aside class="design-note">
-      <p class="design-kicker">A LITTLE MORE AWARE.</p>
-      <h1 id="productTitle">把一天，<br>看得更清楚。</h1>
-      <p class="design-description">留住随口说出的想法，<br>也看见生活里的节奏。<br>从今天的记录，找到明天的一小步。</p>
+      <p class="design-kicker">现在，轮到你了</p>
+      <h2 class="product-demo-title" id="productTitle">亲手试试。<br>从一条记录开始。</h2>
+      <p class="design-description">点开一条语音，切换总结与全文。<br>问问 AI，沿着来源回看，<br>或连接一款随身设备。</p>
       <div class="site-hero-actions"><button class="site-button" data-demo-view="ai">问问我的一天<svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg></button><a class="site-text-link" href="#hardware">认识随身设备</a></div>
       <div class="design-footer"><span class="concept-tag">交互概念 · 示例数据</span><p>试着问问 AI，或设一个提醒。<br>所有操作仅在原型内演示。</p></div>
     </aside>
@@ -150,7 +207,7 @@
     <div class="site-container">
       <div class="site-section-heading">
         <h2 id="hardwareTitle">灵感来到时，<br>抬手就能留下。</h2>
-        <p>从腕间到指间，让记录自然融入生活。<br>回到 iPhone，把随手留下的片刻连成线索。</p>
+        <p>Apple Watch 与 EurekaRing，选择你习惯的记录方式。<br>已有兼容设备，就无需再买一台专用录音设备。</p>
       </div>
       <div class="hardware-grid">
         <article class="hardware-card watch-hardware">
@@ -170,11 +227,11 @@
         <article class="hardware-card ring-hardware">
           <div class="hardware-image ring-image"><img src="assets/eureka-ring.webp" alt="EurekaRing 黑色智能戒指官方产品图" width="1448" height="1086" loading="lazy" decoding="async"></div>
           <div class="hardware-copy">
-            <div class="hardware-title"><h3>EurekaRing</h3><span class="hardware-status upcoming">即将支持</span></div>
+            <div class="hardware-title"><h3>EurekaRing</h3><span class="hardware-status">已支持</span></div>
             <p class="hardware-description">把交互戴在指间。用声音表达，用触控发起，用触觉接收回应，让灵感有一个更轻盈的入口。</p>
             <div class="hardware-capabilities"><span>语音输入</span><span>7 种触控手势</span><span>3 种触觉反馈</span></div>
-            <div class="hardware-links"><a class="site-text-link" href="https://eurekamind.ai/products/eureka-ring" target="_blank" rel="noopener noreferrer">探索 EurekaRing<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a></div>
-            <p class="hardware-footnote">产品尚待上市，WiseLife 接入规划中。硬件能力以 EurekaMind 官方发布为准。</p>
+            <div class="hardware-links"><button class="site-text-link" data-demo-hardware="ring">体验连接状态<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button><a class="site-text-link" href="https://eurekamind.ai/products/eureka-ring" target="_blank" rel="noopener noreferrer">探索 EurekaRing<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a></div>
+            <p class="hardware-footnote">已接入 WiseLife。录音汇入 iPhone，与其他记录一起回顾。</p>
           </div>
         </article>
       </div>
@@ -184,25 +241,51 @@
     <div class="site-container">
       <div class="site-section-heading ownership-heading">
         <h2 id="ownershipTitle">你的生活。<br>你的数据，你的 AI。</h2>
-        <p>记录得越贴近生活，选择权就越应该在你手里。</p>
+        <p>记录留在手机，AI 可以在本机运行。真正拥有自己的数据和选择权。</p>
       </div>
       <div class="ownership-grid">
         <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-NotebookPen"></use></svg><h3>数据，纯端存储。</h3><p>语音、图片、文字与总结保存在本机。从第一条记录开始，无需 WiseLife 云账户。</p><span class="feature-detail">留在你的 iPhone</span></article>
-        <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-Activity"></use></svg><h3>AI，可以在端上。</h3><p>用系统语音模型或 Whisper 转写，以可用的端上模型生成总结。下载模型后，本地处理无需 API Key。</p><span class="feature-detail">取决于设备、系统与语言支持</span></article>
-        <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-SlidersHorizontal"></use></svg><h3>云与模型，自己选。</h3><p>使用自己的 AI Key，连接兼容 OpenAI 或 Anthropic 的模型服务。自有云存储也在计划中。</p><span class="feature-detail">自定义 AI 已支持 · 自有云存储即将支持</span></article>
+        <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-Activity"></use></svg><h3>AI，也在手机上。</h3><p>用系统语音模型或 Whisper 转写，以可用的端上模型生成总结。下载模型后，本地处理无需 API Key。</p><span class="feature-detail">取决于设备、系统与语言支持</span></article>
+        <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-SlidersHorizontal"></use></svg><h3>接入自己的 AI。</h3><p>也可使用自己的模型地址和 Key，连接兼容 OpenAI 或 Anthropic 的 AI 服务。由你决定是否发送相关文字。</p><span class="feature-detail">可选接入 · 服务费用由提供方收取</span></article>
         <article class="ownership-feature"><svg class="icon" aria-hidden="true"><use href="#i-ShieldCheck"></use></svg><h3>隐私，由你掌握。</h3><p>录音由你主动开始，AI 的数据范围由你选择。是否使用云端、交给哪一个服务，都由你决定。</p><span class="feature-detail">你的记录，为你所用</span></article>
       </div>
       <div class="data-choice" aria-label="数据处理方式说明">
-        <div class="data-choice-top"><h3>数据怎么走，看得清楚。</h3><div class="data-choice-toggle" role="group" aria-label="切换数据处理方式"><button type="button" data-data-mode="local" aria-pressed="true">纯端模式</button><button type="button" data-data-mode="cloud" aria-pressed="false">自选云端</button></div></div>
+        <div class="data-choice-top"><h3>数据怎么走，看得清楚。</h3><div class="data-choice-toggle" role="group" aria-label="切换数据处理方式"><button type="button" data-data-mode="local" aria-pressed="true">纯端模式</button><button type="button" data-data-mode="cloud" aria-pressed="false">自选外部 AI</button></div></div>
         <div class="data-mode-panel" id="localDataMode"><div class="data-route"><span>你的记录</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><span>iPhone 端上模型</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><strong>本机笔记与总结</strong></div><p>使用已下载且受支持的本地模型，记录与 AI 处理都在设备上完成。</p></div>
-        <div class="data-mode-panel" id="cloudDataMode" hidden><div class="data-route"><span>选中的内容</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><span>你配置的 AI 服务</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><strong>结果保存回本机</strong></div><p>启用云端 AI 后，待处理内容会发送至你配置的服务，适用该服务的数据政策。自有云存储即将支持。</p></div>
+        <div class="data-mode-panel" id="cloudDataMode" hidden><div class="data-route"><span>选中的内容</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><span>你配置的 AI 服务</span><svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg><strong>结果保存回本机</strong></div><p>仅在你主动选择外部 AI 时，相关文字才会发送至你配置的服务，并适用其数据政策。原始录音与笔记仍保存在本机。</p></div>
         <button type="button" class="site-text-link" data-demo-view="data">在原型中查看模型设置<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button>
       </div>
     </div>
   </section>
+
+  <section id="questions" class="questions-screen" aria-labelledby="questionsTitle">
+    <div class="site-container questions-layout">
+      <div><p class="site-eyebrow">开始之前</p><h2 id="questionsTitle">你可能还想知道。</h2><p class="section-description">设备、模型和数据，说明白再开始。</p></div>
+      <div class="site-faq">
+        <details><summary>需要额外购买录音硬件吗？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>WiseLife 已支持 Apple Watch 和 EurekaRing。已有兼容硬件与 iPhone，就无需另购专用录音设备；硬件本身不包含在 App 售价中。</p><a href="#hardware" class="site-text-link">查看支持的设备</a></details>
+        <details><summary>不联网，也能转写和总结吗？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>录音与笔记保存在本机。支持的语音模型下载后可以离线转写；本地总结需要设备、系统、语言及模型均可用。你也可以配置自己的云端 AI。</p></details>
+        <details><summary>我的录音会上传到哪里？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>手表录音传回你的 iPhone，笔记优先保存在本机。选择云端 AI 时，确认后将相关文字发送至你配置的服务；页面中的纯端模式不依赖自建服务器。</p></details>
+        <details><summary>AI 的回答能找到依据吗？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>可以从回答的来源链接回到记录。当前按所选日期检索你允许的内容；没有足够记录时，会说明信息不足。</p></details>
+        <details><summary>会一直录音，或者自动判断情绪吗？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>录音由你主动开始和结束。健康与活动是可选的数据来源；WiseLife 不据单次心率或一天的记录判断情绪，也不提供健康诊断。</p></details>
+        <details><summary>现在能下载吗？会产生哪些费用？<svg class="icon" aria-hidden="true"><use href="#i-Plus"></use></svg></summary><p>WiseLife 定价 US$9.9，一次付费、终身使用，无需订阅。本地模型调用不产生云端 AI 请求费用；自选外部 AI 的服务费用由提供方另行收取。当前可体验原型，正式发布后提供购买入口。</p></details>
+      </div>
+    </div>
+  </section>
+  <section id="pricing" class="closing-screen" aria-labelledby="closingTitle">
+    <div class="site-container">
+      <p class="site-eyebrow">一次购买，长期拥有</p>
+      <h2 id="closingTitle">你的数据，你的 AI。</h2>
+      <p class="lifetime-price"><span>US$</span><strong>9.9</strong></p>
+      <p class="lifetime-promise">一次付费，终身使用。无需订阅。</p>
+      <p class="pricing-description">随手记录，AI 每日回顾，数据留在自己手中。</p>
+      <div class="closing-actions"><a class="site-button" href="#product">开始体验<svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg></a><button class="site-text-link" data-play-film>再看一遍演示</button></div>
+      <p class="pricing-note">当前可体验原型，正式发布后提供购买入口。<br>自选外部 AI 的服务费用由提供方另行收取。</p>
+    </div>
+  </section>
   </main>
-  <footer class="site-footer"><a class="wordmark" href="#product">WiseLife</a><p>把值得记住的，留给自己。</p></footer>
+  <footer class="site-footer"><a class="wordmark" href="#welcome">WiseLife</a><div class="footer-links"><a href="#questions">常见问题</a><a href="#ownership">数据与 AI</a><a href="https://unsplash.com/photos/pathway-between-green-trees-during-daytime-aZRU_SAUnmA" target="_blank" rel="noopener noreferrer">摄影：Ilse / Unsplash</a></div><p>把值得记住的，留给自己。</p></footer>
   <script src="wiselife-site-locales.js"></script>
+  <script src="wiselife-story-locales.js"></script>
   <script src="daybook-ai.js"></script>
   <script src="daybook-model-catalog.js"></script>
   <script src="daybook-model-settings.js"></script>
@@ -211,5 +294,6 @@
   <script src="daybook.js"></script>
   <script src="daybook-locales.js"></script>
   <script src="wiselife-site.js"></script>
+  <script src="wiselife-story.js"></script>
 </body>
 </html>

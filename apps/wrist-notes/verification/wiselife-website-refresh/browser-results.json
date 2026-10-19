@@ -1,0 +1,236 @@
+{
+  "checks": [
+    "No video autoplay",
+    "Scenario tabs support arrows, Home, End and one visible panel",
+    "Scenario links open matching notes with summary/transcript tabs",
+    "Reflection opens embedded AI",
+    "Ring CTA and independent simultaneous hardware connection states",
+    "Local/cloud data explanation switch",
+    "All six FAQ accordions work with keyboard",
+    "Video playback, seeking and Chinese captions",
+    "Video pauses when scrolled off screen",
+    "Language/theme controls and English captions",
+    "Japanese captions",
+    "24 language/theme/width combinations without page overflow; reduced motion has no running animations",
+    "No runtime or HTTP resource errors"
+  ],
+  "matrix": [
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "zh-CN",
+      "appearance": "light",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "zh-CN",
+      "appearance": "light",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "zh-CN",
+      "appearance": "light",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "zh-CN",
+      "appearance": "light",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "zh-CN",
+      "appearance": "dark",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "zh-CN",
+      "appearance": "dark",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "zh-CN",
+      "appearance": "dark",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "zh-CN",
+      "appearance": "dark",
+      "title": "轻松记录，每天更懂自己。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "en",
+      "appearance": "light",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "en",
+      "appearance": "light",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "en",
+      "appearance": "light",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "en",
+      "appearance": "light",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "en",
+      "appearance": "dark",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "en",
+      "appearance": "dark",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "en",
+      "appearance": "dark",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "en",
+      "appearance": "dark",
+      "title": "Capture with ease.Understand your day.",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "ja",
+      "appearance": "light",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "ja",
+      "appearance": "light",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "ja",
+      "appearance": "light",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "ja",
+      "appearance": "light",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "lang": "ja",
+      "appearance": "dark",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "lang": "ja",
+      "appearance": "dark",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "lang": "ja",
+      "appearance": "dark",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "lang": "ja",
+      "appearance": "dark",
+      "title": "気軽に記録。毎日、自分を知る。",
+      "overflow": [],
+      "animations": 0
+    }
+  ],
+  "errors": []
+}
