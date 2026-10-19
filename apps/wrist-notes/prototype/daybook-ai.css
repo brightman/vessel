@@ -1,4 +1,4 @@
-/* WiseNote AI — same quiet palette as the daily timeline. */
+/* WiseLife AI — same quiet palette as the daily timeline. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .ai-page-heading,.ai-identity,.ai-context-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ai-page-heading{margin:4px 0 18px}.ai-identity{justify-content:flex-start;gap:10px}.ai-mark{display:grid;place-items:center;border-radius:15px;background:var(--blue-soft);color:var(--accent);width:40px;height:40px}

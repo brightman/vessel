@@ -1,0 +1,26 @@
+/* Hardware management uses the existing Watch status sheet and color tokens. */
+.hardware-pill-icons{display:flex;align-items:center;gap:3px}
+.hardware-pill-icons .icon{width:19px;height:19px}
+.device-list{border-top:1px solid var(--line)}
+.device-row{display:flex;align-items:center;gap:14px;text-align:left;width:100%;padding:21px 0;border-bottom:1px solid var(--line)}
+.device-avatar{display:grid;place-items:center;flex-shrink:0;width:52px;height:62px;border-radius:17px;background:var(--blue-soft);color:var(--accent)}
+.device-avatar .icon{width:29px;height:29px}
+.device-row-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:7px}
+.device-row-copy>strong{font-size:14px;font-weight:550}
+.device-description{font-size:10px;color:var(--secondary);line-height:1.6}
+.device-row>.icon{width:16px;height:16px;color:var(--secondary)}
+.device-state{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:var(--secondary);line-height:1.6}
+.device-state .status-dot{background:var(--muted);flex-shrink:0}
+.device-state.is-connected{color:var(--green)}
+.device-state.is-connected .status-dot{background:var(--green)}
+.device-back{display:flex;align-items:center;gap:4px;padding:8px 0;margin-bottom:4px;font-size:11px;color:var(--secondary)}
+.device-back .icon{width:15px;height:15px}
+.watch-copy>.device-state{margin-bottom:10px}
+.watch-status-large.device-offline{color:var(--secondary)}
+.device-facts{background:var(--paper)}
+.device-facts strong{font-weight:550;font-variant-numeric:tabular-nums}
+.device-facts strong span{color:inherit}
+.hardware-multiple-hint,.hardware-retention{font-size:11px;line-height:1.8;color:var(--secondary);margin:19px 0}
+.hardware-retention{text-align:center;margin:12px 0 0}
+.hardware-demo-note{margin-bottom:0}
+#hardwareList{margin-bottom:28px}

@@ -7,7 +7,6 @@
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const TODAY = 19, NOW = 16.5;
   const sources = {
-    watch:{name:'Apple Watch',icon:'Watch',enabled:true,description:'录音、闪念与同步状态',scope:'由你按下录音按钮开始，结束后传到 iPhone。'},
     health:{name:'Apple 健康',icon:'Heart',enabled:true,description:'步数、活动与睡眠',scope:'只读取你授权的步数、活动和睡眠，用来整理当天节奏。'},
     calendar:{name:'日历',icon:'CalendarDays',enabled:false,description:'为一天加上日程背景',scope:'读取所选日历的时间和标题，帮助你回顾一天的安排。'},
     places:{name:'地点',icon:'MapPin',enabled:false,description:'为片段补充地点，可随时关闭',scope:'为记录添加地点。你可以单独选择授权范围，也可以随时暂停。'}
@@ -31,7 +30,7 @@
   ];
   const filters = [{id:'all',title:'全部'},{id:'audio',title:'语音'},{id:'image',title:'图片'},{id:'thought',title:'闪念'},{id:'life',title:'生活'}];
   const state = {day:TODAY,view:'today',filter:'all',query:'',plans:new Set(),dismissed:new Set(),recordingAt:null};
-  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings;
+  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings,hardware;
   const dayRecords = () => records.filter(r=>r.day===state.day).sort((a,b)=>b.start-a.start);
   const audioRecord = r => r.kind==='voice'||r.kind==='thought';
   function formatDuration(seconds) {const m=Math.floor(seconds/60),s=seconds%60;return m?`${m} 分${s?` ${s} 秒`:'钟'}`:`${s} 秒`;}
@@ -93,9 +92,6 @@
   function renderSources() {
     renderMetrics();
     $('sourceList').innerHTML=Object.entries(sources).map(([id,s])=>`<div class="source-row">${icon(s.icon)}<div class="source-copy"><strong>${s.name}</strong><p>${s.description}<br>${s.enabled?'示例已连接':'尚未连接'}</p></div><button class="switch" role="switch" aria-checked="${s.enabled}" aria-label="${s.enabled?'暂停':'连接'}${s.name}" data-source="${id}"></button></div>`).join('');
-    $('watchButton').classList.toggle('disconnected',!sources.watch.enabled);
-    $('watchLabel').textContent=sources.watch.enabled?'已连接':'已暂停';
-    $('watchButton').setAttribute('aria-label',sources.watch.enabled?'查看 Apple Watch 连接状态':'查看已暂停的 Apple Watch');
     ai?.render();
   }
   function renderDay() {
@@ -162,10 +158,6 @@
     if(!state.recordingAt)return;const duration=Math.max(1,Math.floor((Date.now()-state.recordingAt)/1000));clearInterval(recordingTimer);state.recordingAt=null;$('recordingBanner').hidden=true;
     records.push({id:`recording-${Date.now()}`,day:TODAY,kind:'voice',start:NOW,end:Math.min(24,NOW+duration/3600),time:'16:30',duration,title:'刚刚的语音记录（演示）',preview:'这是一段计时演示，没有实际音频或转写。',source:'iPhone · 演示',summary:'此条目展示录音保存后的界面，未生成真实总结。',text:'没有录制真实音频，因此没有转写文本。',tags:['演示录音']});resetToToday();toast('计时演示已保存，未录制真实声音。');
   }
-  function openWatch(){
-    const connected=sources.watch.enabled;
-    openSheet('手表状态',`<div class="watch-status-large">${icon('Watch')}</div><div class="watch-copy"><h3>Apple Watch SE</h3><p>${connected?'示例已连接，录音按需开始。':'示例连接已暂停，历史记录仍可回看。'}</p></div><div class="watch-facts"><div><span>上次同步</span><strong>${connected?'16:28':'已暂停'}</strong></div><div><span>手表电量</span><strong>68%（示例）</strong></div><div><span>待同步录音</span><strong>0 条</strong></div></div><button class="primary-button wide" data-source="watch">${icon(connected?'Pause':'Link2')}${connected?'暂停示例连接':'恢复示例连接'}</button><p class="source-footnote">此页只演示状态，不操作真实手表。</p>`);
-  }
   function openSource(id){
     const source=sources[id];
     if(source.enabled){source.enabled=false;renderSources();closeSheet();toast(`${source.name}示例连接已暂停，历史记录保留。`);return;}
@@ -173,6 +165,7 @@
   }
   document.addEventListener('click',event=>{
     const b=event.target.closest('button');if(!b)return;
+    if(hardware?.handleClick(b))return;
     if(b.dataset.view){showView(b.dataset.view);return;}
     if(b.dataset.day){const returnView=state.view==='ai'?'ai':'today';state.day=Number(b.dataset.day);state.filter='all';state.query='';$('searchInput').value='';closeSheet();renderDay();showView(returnView);return;}
     if(b.dataset.record){openRecord(b.dataset.record);return;}
@@ -185,7 +178,7 @@
     if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').textContent=activeRecord[b.dataset.detailTab];$('recordContent').setAttribute('aria-labelledby',b.id);return;}
     if(b.dataset.source){openSource(b.dataset.source);return;}
     if(b.dataset.connectSource){sources[b.dataset.connectSource].enabled=true;renderSources();closeSheet();toast('示例来源已连接，未读取真实数据。');return;}
-    const actions={watchButton:openWatch,dateButton:openCalendar,searchButton:()=>showView('library',{focusSearch:true}),settingsButton:()=>showView('data'),allMomentsButton:()=>showView('library'),captureButton:openCapture,closeSheet,captureImagesButton:()=>photos.openCapture(),asrSettingsButton:()=>modelSettings.openASR(),aiModelSettingsButton:()=>modelSettings.openAI(),startRecordingButton:startRecording,finishRecording,playButton:togglePlayback,clearDayButton:()=>{state.day=17;state.filter='all';state.query='';$('searchInput').value='';renderDay();showView('today');}};
+    const actions={watchButton:()=>hardware.open(),dateButton:openCalendar,searchButton:()=>showView('library',{focusSearch:true}),settingsButton:()=>showView('data'),allMomentsButton:()=>showView('library'),captureButton:openCapture,closeSheet,captureImagesButton:()=>photos.openCapture(),asrSettingsButton:()=>modelSettings.openASR(),aiModelSettingsButton:()=>modelSettings.openAI(),startRecordingButton:startRecording,finishRecording,playButton:togglePlayback,clearDayButton:()=>{state.day=17;state.filter='all';state.query='';$('searchInput').value='';renderDay();showView('today');}};
     actions[b.id]?.();
   });
   $('searchInput').addEventListener('input',event=>{state.query=event.target.value;renderRecordLists();});
@@ -202,6 +195,7 @@
   window.addEventListener('resize',positionSheet);
   window.addEventListener('pagehide',()=>{stopPlayback();clearInterval(recordingTimer);clearTimeout(toastTimer);});
   const sharedUI={$,esc,icon,toast,openSheet,closeSheet};
+  hardware=window.createDaybookHardware(sharedUI);
   photos=window.createDaybookPhotos({...sharedUI,onSave:record=>{records.push({...record,day:TODAY,start:NOW,end:NOW,time:'16:30',duration:0});closeSheet();resetToToday();toast('图片已留在今天，刷新后清空。');}});
   modelSettings=window.createDaybookModelSettings(sharedUI);
   ai=window.createDaybookAI({

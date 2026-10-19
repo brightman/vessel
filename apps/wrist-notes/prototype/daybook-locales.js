@@ -463,6 +463,10 @@
     "管理这条主动建议": "この提案を管理",
     "给反复想到的事，留一点时间。": "繰り返し考えることに、少し時間を使いましょう。"
   };
+  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookHardwareCopy ?? [])]) {
+    translations[zh] = en;
+    japanese[zh] = ja;
+  }
   const reverseEnglish = Object.fromEntries(Object.entries(translations).map(([zh, en]) => [en, zh]));
   const reverseJapanese = Object.fromEntries(Object.entries(japanese).map(([zh, ja]) => [ja, zh]));
   const picker = document.getElementById('interfaceLanguage');
@@ -512,7 +516,9 @@
       }
     });
     document.documentElement.lang = language === 'zh-Hans' ? 'zh-CN' : language;
-    document.title = language === 'en' ? 'WiseNote · My Day' : language === 'ja' ? 'WiseNote · 私の一日' : 'WiseNote · 我的一天';
+    document.title = document.body.classList.contains('wiselife-site')
+      ? (language === 'en' ? 'WiseLife · See your day more clearly' : language === 'ja' ? 'WiseLife · 毎日を、もっとクリアに' : 'WiseLife · 把一天，看得更清楚')
+      : (language === 'en' ? 'WiseLife · My Day' : language === 'ja' ? 'WiseLife · 私の一日' : 'WiseLife · 我的一天');
     picker.value = language;
   };
   picker.addEventListener('change', () => {
