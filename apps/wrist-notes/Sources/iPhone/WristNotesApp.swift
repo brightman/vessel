@@ -4,6 +4,7 @@ import UIKit
 @main
 struct WristNotesApp: App {
     @StateObject private var model = NotesModel()
+    @StateObject private var ring = EurekaRingModel()
 
     init() {
 #if DEBUG
@@ -16,6 +17,8 @@ struct WristNotesApp: App {
             DaybookView()
                 .environmentObject(model)
                 .environmentObject(model.settings)
+                .environmentObject(ring)
+                .task { ring.configure(notes: model); await ring.foreground() }
         }
     }
 }

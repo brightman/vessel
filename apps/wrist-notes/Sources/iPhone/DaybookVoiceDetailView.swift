@@ -19,9 +19,17 @@ struct DaybookVoiceDetailView: View {
         DaybookSheetLayout(title: model.note(id)?.title ?? "语音记录", onClose: { dismiss() }) {
             if let note = model.note(id) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("\(RecordingFormat.date(note.capturedAt)) · 语音记录 · \(RecordingFormat.duration(note.duration))")
+                    Text("\(RecordingFormat.date(note.capturedAt)) · \(note.kind == .thought ? "闪念" : "语音记录") · \(RecordingFormat.duration(note.duration))")
                         .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
                         .padding(.bottom, 18)
+                    if let origin = note.origin {
+                        Text("来自 \(origin.device)\(origin.recordingTimeIsEstimated ? " · 录制时间缺失，按同步时间显示" : "")")
+                            .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
+                    }
+                    if note.usesLocalThoughtAI {
+                        Text("闪念在 iPhone 本地转写，并由 Apple 本地模型整理。模型暂不可用时可先回听、查看全文，稍后重试。")
+                            .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
+                    }
                     player
                     tabs.padding(.top, 20).padding(.bottom, 20)
                     content(note)
@@ -122,7 +130,7 @@ struct DaybookVoiceDetailView: View {
             if pending {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.mini)
-                    Text(isSummary ? "正在使用 \(model.summaryModels[id] ?? settings.ai.label) 生成总结…" : "正在转写录音…")
+                    Text(isSummary ? "正在使用 \(model.summaryModels[id] ?? model.summaryConfiguration(for: note).label) 生成总结…" : "正在转写录音…")
                 }.font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
             }
             Text(text.isEmpty ? (isSummary ? "还没有总结。可以根据转写全文生成。" : "还没有转写文字。可以开始转写，或在编辑页面补充。") : text)
@@ -139,7 +147,7 @@ struct DaybookVoiceDetailView: View {
             HStack(spacing: 18) {
                 Button(isSummary ? (text.isEmpty ? "生成总结" : "重新生成") : (text.isEmpty ? "开始转写" : "重新转写")) {
                     if isSummary {
-                        if settings.ai.mode == .custom { confirmRemoteSummary = true }
+                        if model.summaryConfiguration(for: note).mode == .custom { confirmRemoteSummary = true }
                         else { Task { await model.summarize(id) } }
                     } else { Task { await model.transcribe(id) } }
                 }

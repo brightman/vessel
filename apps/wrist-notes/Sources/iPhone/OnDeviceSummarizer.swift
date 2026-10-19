@@ -14,7 +14,7 @@ enum SummaryFailure: LocalizedError {
 }
 
 struct OnDeviceSummarizer {
-    func summarize(_ transcript: String) async throws -> String {
+    func summarize(_ transcript: String, kind: RecordingKind = .long) async throws -> String {
         let content = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { throw SummaryFailure.emptyTranscript }
         guard case .available = SystemLanguageModel.default.availability else { throw SummaryFailure.unavailable }
@@ -37,8 +37,11 @@ struct OnDeviceSummarizer {
             layer = chunks(of: combined, length: 650)
         }
         let session = LanguageModelSession()
+        let instruction = kind == .thought
+            ? "请用简洁中文整理这条语音闪念，保留核心想法、明确提及的细节和待办。没有待办就不要添加，不要猜测意图，不要扩写为会议纪要："
+            : "请用中文为以下语音笔记写简短总结，列出要点和明确提及的行动项，不添加原文没有的内容："
         let reply = try await session.respond(
-            to: "请用中文为以下语音笔记写简短总结，列出要点和明确提及的行动项，不添加原文没有的内容：\n\(layer[0])",
+            to: "\(instruction)\n\(layer[0])",
             options: GenerationOptions(maximumResponseTokens: 384)
         )
         return reply.content

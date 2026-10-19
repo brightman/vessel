@@ -8,33 +8,46 @@ final class NotesModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var watchStatus = PhoneWatchStatus()
     @Published private(set) var summaryModels: [UUID: String] = [:]
-    let settings = AppSettings()
+    let settings: AppSettings
 
     private var repository: NoteRepository?
     private var connectivity: PhoneConnectivity?
     private var activeTranscriptions: Set<UUID> = []
-    private let transcriber = LocalTranscriptionService()
+    private let transcribeAudio: (URL, TranscriptionConfiguration) async throws -> String
+    private let summarizeOnDevice: (String, RecordingKind) async throws -> String
 
-    init() {
+    init(repository suppliedRepository: NoteRepository? = nil, settings: AppSettings? = nil, connectWatch: Bool = true,
+         transcribe: ((URL, TranscriptionConfiguration) async throws -> String)? = nil,
+         summarizeLocally: ((String, RecordingKind) async throws -> String)? = nil) {
+        self.settings = settings ?? AppSettings()
+        let transcriber = LocalTranscriptionService()
+        transcribeAudio = transcribe ?? { try await transcriber.transcribe(fileURL: $0, configuration: $1) }
+        summarizeOnDevice = summarizeLocally ?? { try await OnDeviceSummarizer().summarize($0, kind: $1) }
         do {
             let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("VoiceNotes", isDirectory: true)
-            let repository = try NoteRepository(root: root)
-            let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
-            let connectivity = try PhoneConnectivity(inbox: inbox)
+            let repository = try suppliedRepository ?? NoteRepository(root: root)
             self.repository = repository
-            self.connectivity = connectivity
             self.notes = repository.notes.sorted { $0.capturedAt > $1.capturedAt }
-            connectivity.onReceive = { [weak self] metadata, audio in
-                Task { @MainActor [weak self] in self?.receive(metadata, audio: audio) }
+            if connectWatch {
+                let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+                let connectivity = try PhoneConnectivity(inbox: inbox)
+                self.connectivity = connectivity
+                connectivity.onReceive = { [weak self] metadata, audio in
+                    Task { @MainActor [weak self] in self?.receive(metadata, audio: audio) }
+                }
+                connectivity.onStatusChange = { [weak self] status in
+                    Task { @MainActor [weak self] in self?.watchStatus = status }
+                }
+                connectivity.refreshStatus()
+                connectivity.drainInbox()
             }
-            connectivity.onStatusChange = { [weak self] status in
-                Task { @MainActor [weak self] in self?.watchStatus = status }
-            }
-            connectivity.refreshStatus()
-            connectivity.drainInbox()
             for note in notes where note.transcriptionState == .pending || note.transcriptionState == .running {
                 Task { await self.transcribe(note.id) }
+            }
+            for note in notes where note.usesLocalThoughtAI && note.transcriptionState == .ready &&
+                (note.summaryState == .pending || note.summaryState == .running) {
+                Task { await self.summarize(note.id) }
             }
         } catch {
             errorMessage = "无法打开本地笔记：\(error.localizedDescription)"
@@ -106,12 +119,13 @@ final class NotesModel: ObservableObject {
         defer { activeTranscriptions.remove(id) }
         edit(id) { $0.transcriptionState = .running; $0.processingMessage = nil }
         do {
-            let text = try await transcriber.transcribe(fileURL: file, configuration: configuration)
+            let text = try await transcribeAudio(file, configuration)
             edit(id) {
                 if $0.transcript == transcriptBeforeRun { $0.applyEdit(title: $0.title, transcript: text) }
                 $0.transcriptionState = .ready
                 $0.processingMessage = nil
             }
+            if note(id)?.usesLocalThoughtAI == true, note(id)?.summary.isEmpty == true { await summarize(id) }
         } catch {
             edit(id) {
                 $0.transcriptionState = error is TranscriptionFailure ? .unavailable : .failed
@@ -120,18 +134,30 @@ final class NotesModel: ObservableObject {
         }
     }
 
+    /// Ring files join the same durable local library and local ASR queue as Watch recordings.
+    func saveRingRecording(job: RingTransferJob, fileURL: URL, duration: TimeInterval) throws {
+        guard let repository else { throw BRLocalRecordingError.libraryUnavailable }
+        let isNew = !repository.notes.contains { $0.id == job.id }
+        _ = try repository.importRecording(id: job.id, from: fileURL, kind: job.recordingKind,
+            capturedAt: job.capturedAt, duration: duration,
+            origin: RecordingOrigin(device: "EurekaRing", deviceID: job.deviceID, fileName: job.file.name,
+                recordingTimeIsEstimated: job.file.recordedAt == nil))
+        refresh()
+        if isNew { Task { await self.transcribe(job.id) } }
+    }
+
     func summarize(_ id: UUID) async {
         guard let note = note(id), summaryModels[id] == nil else { return }
         let text = note.transcript
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let configuration = settings.ai
+        let configuration = summaryConfiguration(for: note)
         summaryModels[id] = configuration.label
         defer { summaryModels[id] = nil }
         edit(id) { $0.summaryState = .running; $0.processingMessage = nil }
         do {
             let summary: String
             if configuration.mode == .local {
-                summary = try await OnDeviceSummarizer().summarize(text)
+                summary = try await summarizeOnDevice(text, note.kind)
             } else {
                 summary = try await CustomAISummarizer().summarize(text, configuration: configuration, apiKey: settings.apiKey())
             }
@@ -148,6 +174,11 @@ final class NotesModel: ObservableObject {
                 $0.processingMessage = error.localizedDescription
             }
         }
+    }
+
+    func summaryConfiguration(for note: VoiceNote) -> AIConfiguration {
+        // Hardware flash ideas always stay local, even when other notes use a custom service.
+        note.usesLocalThoughtAI ? AIConfiguration() : settings.ai
     }
 
     private func receive(_ metadata: IncomingRecording, audio: URL) {
@@ -178,4 +209,9 @@ final class NotesModel: ObservableObject {
     private func refresh() {
         notes = repository?.notes.sorted { $0.capturedAt > $1.capturedAt } ?? []
     }
+}
+
+private enum BRLocalRecordingError: LocalizedError {
+    case libraryUnavailable
+    var errorDescription: String? { "本地笔记尚未打开，请重启后重试。" }
 }

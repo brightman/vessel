@@ -25,6 +25,7 @@ watch = sources.new_group('Watch', 'Watch')
 shared_files = %w[VoiceNote.swift RecordingFormat.swift].map { |name| shared.new_file(name) }
 phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
                  NoteRepository.swift PhoneConnectivity.swift OnDeviceTranscriber.swift
+                 RingTransferStore.swift EurekaRingModel.swift RingHardwareViews.swift
                  OnDeviceSummarizer.swift NotesStyle.swift AudioPlayback.swift
                  AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift
                  CustomAISummarizer.swift AISettingsModel.swift PhoneWatchStatus.swift SettingsViews.swift
@@ -35,6 +36,7 @@ watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.s
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
 phone_target = project.new_target(:application, 'WristNotes', :ios, '26.0')
+phone_target.product_reference.path = 'WiseNote.app'
 shared_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 phone_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 if File.directory?(File.join(root, 'Sources/iPhone/Assets.xcassets'))
@@ -108,5 +110,20 @@ copy_phase.dst_subfolder_spec = '1'
 copy_phase.dst_path = 'Watch'
 copy_phase.add_file_reference(watch_target.product_reference)
 
+test_target = project.new_target(:unit_test_bundle, 'RingIntegrationTests', :ios, '26.0')
+tests_group = project.main_group.new_group('Tests', 'Tests')
+test_target.source_build_phase.add_file_reference(tests_group.new_file('RingIntegrationTests.swift'))
+test_target.resources_build_phase.add_file_reference(tests_group.new_file('Fixtures/sdk-opus-16k-mono.bin'))
+test_target.add_dependency(phone_target)
+test_target.build_configurations.each do |configuration|
+  configuration.build_settings['SWIFT_VERSION'] = '5.0'
+  configuration.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote.RingIntegrationTests'
+  configuration.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
+  configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote'
+  configuration.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
+end
 project.save
+scheme = Xcodeproj::XCScheme.new
+scheme.configure_with_targets(phone_target, test_target, launch_target: true)
+scheme.save_as(project_path, 'WristNotes', true)
 puts project_path

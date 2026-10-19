@@ -28,6 +28,9 @@ struct DaybookAnswerService: DaybookAnswering {
             result = try await CustomAISummarizer().answer(question: prepared.question, context: prepared.context,
                                                           configuration: configuration, apiKey: apiKey)
         } else {
+            guard #available(iOS 26.0, macOS 26.0, *) else {
+                throw DaybookAnswerFailure.unavailable("此系统版本不支持 Apple 本地模型。")
+            }
             let model = SystemLanguageModel.default
             switch model.availability {
             case .available: break

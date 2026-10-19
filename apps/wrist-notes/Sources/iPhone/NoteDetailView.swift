@@ -152,7 +152,7 @@ struct NoteDetailView: View {
                 Spacer()
                 Button(model.summaryModels[id] != nil ? "生成中…" : (note.summary.isEmpty ? "生成总结" : "重新生成")) {
                     save()
-                    if settings.ai.mode == .custom { confirmRemoteSummary = true }
+                    if model.summaryConfiguration(for: note).mode == .custom { confirmRemoteSummary = true }
                     else { Task { await model.summarize(id) } }
                 }
                 .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.summaryModels[id] != nil)
@@ -160,7 +160,7 @@ struct NoteDetailView: View {
             .font(.system(size: 13, weight: .medium))
             VStack(alignment: .leading, spacing: 12) {
                 if let modelName = model.summaryModels[id] { ProgressView("正在使用 \(modelName) 生成总结") }
-                Text(note.summary.isEmpty ? summaryHint : note.summary)
+                Text(note.summary.isEmpty ? summaryHint(note) : note.summary)
                     .font(.system(size: 14)).lineSpacing(5)
                     .foregroundStyle(note.summary.isEmpty ? Color.secondary : Color.primary)
                     .textSelection(.enabled)
@@ -174,8 +174,8 @@ struct NoteDetailView: View {
         }
     }
 
-    private var summaryHint: String {
-        settings.ai.mode == .local
+    private func summaryHint(_ note: VoiceNote) -> String {
+        model.summaryConfiguration(for: note).mode == .local
             ? "根据转写文本，在 iPhone 上生成总结。"
             : "生成总结时，将全文文本发送至你配置的服务，使用 \(settings.ai.label)。原始录音不发送。"
     }
