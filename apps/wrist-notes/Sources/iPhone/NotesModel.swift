@@ -1,0 +1,163 @@
+import Combine
+import AVFAudio
+import Foundation
+
+@MainActor
+final class NotesModel: ObservableObject {
+    @Published private(set) var notes: [VoiceNote] = []
+    @Published var errorMessage: String?
+    @Published private(set) var watchStatus = PhoneWatchStatus()
+    @Published private(set) var summaryModels: [UUID: String] = [:]
+    let settings = AppSettings()
+
+    private var repository: NoteRepository?
+    private var connectivity: PhoneConnectivity?
+    private var activeTranscriptions: Set<UUID> = []
+
+    init() {
+        do {
+            let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("VoiceNotes", isDirectory: true)
+            let repository = try NoteRepository(root: root)
+            let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+            let connectivity = try PhoneConnectivity(inbox: inbox)
+            self.repository = repository
+            self.connectivity = connectivity
+            self.notes = repository.notes.sorted { $0.capturedAt > $1.capturedAt }
+            connectivity.onReceive = { [weak self] metadata, audio in
+                Task { @MainActor [weak self] in self?.receive(metadata, audio: audio) }
+            }
+            connectivity.onStatusChange = { [weak self] status in
+                Task { @MainActor [weak self] in self?.watchStatus = status }
+            }
+            connectivity.refreshStatus()
+            connectivity.drainInbox()
+            for note in notes where note.transcriptionState == .pending || note.transcriptionState == .running {
+                Task { await self.transcribe(note.id) }
+            }
+        } catch {
+            errorMessage = "无法打开本地笔记：\(error.localizedDescription)"
+        }
+    }
+
+    func note(_ id: UUID) -> VoiceNote? { notes.first { $0.id == id } }
+    func refreshWatchStatus() { connectivity?.refreshStatus() }
+    func audioURL(_ id: UUID) -> URL? {
+        guard let repository, let note = note(id) else { return nil }
+        return repository.audioURL(for: note)
+    }
+
+    func save(id: UUID, title: String, transcript: String) {
+        edit(id) { $0.applyEdit(title: title, transcript: transcript) }
+    }
+
+    func delete(_ id: UUID) {
+        do {
+            try repository?.delete(id: id)
+            refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func importAudioFile(_ source: URL) async {
+        guard let repository else { return }
+        let access = source.startAccessingSecurityScopedResource()
+        defer { if access { source.stopAccessingSecurityScopedResource() } }
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a")
+        do {
+            try FileManager.default.copyItem(at: source, to: temporary)
+            let file = try AVAudioFile(forReading: temporary)
+            let duration = Double(file.length) / file.processingFormat.sampleRate
+            let note = try repository.importRecording(
+                id: UUID(), from: temporary, kind: .long, capturedAt: .now, duration: duration
+            )
+            try repository.update(id: note.id) {
+                $0.title = source.deletingPathExtension().lastPathComponent
+            }
+            refresh()
+            await transcribe(note.id)
+        } catch {
+            try? FileManager.default.removeItem(at: temporary)
+            errorMessage = "导入录音失败：\(error.localizedDescription)"
+        }
+    }
+
+    func transcribe(_ id: UUID) async {
+        guard !activeTranscriptions.contains(id), let file = audioURL(id) else { return }
+        let transcriptBeforeRun = note(id)?.transcript ?? ""
+        activeTranscriptions.insert(id)
+        defer { activeTranscriptions.remove(id) }
+        edit(id) { $0.transcriptionState = .running; $0.processingMessage = nil }
+        do {
+            let text = try await OnDeviceTranscriber().transcribe(fileURL: file, locale: Locale(identifier: settings.localeIdentifier))
+            edit(id) {
+                if $0.transcript == transcriptBeforeRun { $0.applyEdit(title: $0.title, transcript: text) }
+                $0.transcriptionState = .ready
+                $0.processingMessage = nil
+            }
+        } catch {
+            edit(id) {
+                $0.transcriptionState = error is TranscriptionFailure ? .unavailable : .failed
+                $0.processingMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func summarize(_ id: UUID) async {
+        guard let note = note(id), summaryModels[id] == nil else { return }
+        let text = note.transcript
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let configuration = settings.ai
+        summaryModels[id] = configuration.label
+        defer { summaryModels[id] = nil }
+        edit(id) { $0.summaryState = .running; $0.processingMessage = nil }
+        do {
+            let summary: String
+            if configuration.mode == .local {
+                summary = try await OnDeviceSummarizer().summarize(text)
+            } else {
+                summary = try await CustomAISummarizer().summarize(text, configuration: configuration, apiKey: settings.apiKey())
+            }
+            edit(id) {
+                guard $0.transcript == text else { return }
+                $0.summary = summary
+                $0.summaryState = .ready
+                $0.processingMessage = nil
+            }
+        } catch {
+            edit(id) {
+                guard $0.transcript == text else { return }
+                $0.summaryState = error is SummaryFailure ? .unavailable : .failed
+                $0.processingMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func receive(_ metadata: IncomingRecording, audio: URL) {
+        guard let repository else { return }
+        do {
+            let isNewRecording = !repository.notes.contains { $0.id == metadata.id }
+            _ = try repository.importRecording(
+                id: metadata.id, from: audio, kind: metadata.kind,
+                capturedAt: metadata.capturedAt, duration: metadata.duration
+            )
+            // A duplicate transfer leaves its inbox copy untouched; the durable copy is already indexed.
+            if FileManager.default.fileExists(atPath: audio.path) {
+                try? FileManager.default.removeItem(at: audio)
+            }
+            refresh()
+            connectivity?.acknowledge(metadata.id)
+            if isNewRecording { Task { await self.transcribe(metadata.id) } }
+        } catch { errorMessage = "录音接收失败：\(error.localizedDescription)" }
+    }
+
+    private func edit(_ id: UUID, _ change: (inout VoiceNote) -> Void) {
+        do {
+            try repository?.update(id: id, change)
+            refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func refresh() {
+        notes = repository?.notes.sorted { $0.capturedAt > $1.capturedAt } ?? []
+    }
+}

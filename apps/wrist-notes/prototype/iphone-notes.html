@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080809">
+  <title>WristNotes · iPhone 语音笔记界面</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --canvas: #080809;
+      --text: #f7f7f8;
+      --secondary: #a1a1aa;
+      --muted: #8e8e96;
+      --card: #1b1b1e;
+      --field: #202023;
+      --border: #2b2b30;
+      --selected: #353539;
+      --hover: #303035;
+      --accent: #ff555d;
+      --green: #40d77c;
+      --green-bg: #183625;
+      --warning: #f4b96f;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --canvas: #f5f5f7;
+      --text: #1c1c1e;
+      --secondary: #62626b;
+      --muted: #707079;
+      --card: #ffffff;
+      --field: #e9e9ed;
+      --border: #e0e0e5;
+      --selected: #ffffff;
+      --hover: #dedee4;
+      --accent: #c41e29;
+      --green: #178541;
+      --green-bg: #e2f3e7;
+      --warning: #916014;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: #171719;
+      color: #f7f7f8;
+    }
+    button, input, textarea { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #f52b35; outline-offset: 3px; }
+    .preview { display: grid; justify-items: center; gap: 20px; padding: 26px 16px; }
+    .phone {
+      position: relative;
+      width: min(430px, calc(100vw - 24px));
+      height: min(920px, calc(100dvh - 80px));
+      min-height: 610px;
+      padding: 9px;
+      border-radius: 58px;
+      background: linear-gradient(135deg, #4a4a50, #111113 32%, #34343a 70%, #0d0d0e);
+      border: 1px solid #5c5c62;
+      box-shadow: 0 35px 85px #000a, inset 0 0 0 2px #28282c;
+    }
+    .phone::before, .phone::after {
+      content: "";
+      position: absolute;
+      left: -4px;
+      width: 3px;
+      background: #4b4b50;
+      border-radius: 3px 0 0 3px;
+    }
+    .phone::before { top: 163px; height: 33px; }
+    .phone::after { top: 225px; height: 72px; }
+    .screen {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 49px;
+      background: var(--canvas);
+      color: var(--text);
+    }
+    .island {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 11px;
+      width: 121px;
+      height: 30px;
+      transform: translateX(-50%);
+      background: #000;
+      border-radius: 18px;
+    }
+    .status {
+      height: 61px;
+      padding: 17px 28px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: 670;
+      font-variant-numeric: tabular-nums;
+    }
+    .status-icons { display: flex; align-items: center; gap: 6px; padding-top: 2px; }
+    .status-icons svg { display: block; }
+    .view { height: calc(100% - 61px); display: flex; flex-direction: column; }
+    .view.hidden { display: none; }
+    .home-indicator {
+      position: absolute;
+      z-index: 6;
+      bottom: 8px;
+      left: 50%;
+      width: 136px;
+      height: 5px;
+      border-radius: 8px;
+      transform: translateX(-50%);
+      background: var(--text);
+      pointer-events: none;
+    }
+
+    .list-toolbar {
+      padding: 9px 24px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .eyebrow { color: var(--secondary); font-size: 12px; font-weight: 620; letter-spacing: .025em; }
+    .toolbar-actions { display: flex; gap: 8px; }
+    .icon-button {
+      width: 39px;
+      height: 39px;
+      border: 0;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--field);
+      color: var(--text);
+    }
+    .icon-button:hover { background: var(--hover); }
+    .icon-button svg { width: 18px; height: 18px; }
+    .title-row { padding: 7px 24px 20px; }
+    h1 { margin: 0; font-size: 34px; font-weight: 760; letter-spacing: -.055em; line-height: 1.15; }
+    .title-row p { margin: 9px 0 0; color: var(--secondary); font-size: 13px; }
+    .search-wrap { margin: 0 22px 19px; position: relative; }
+    .search-wrap svg { position: absolute; left: 13px; top: 12px; width: 17px; height: 17px; color: var(--secondary); }
+    .search {
+      display: block;
+      width: 100%;
+      height: 42px;
+      border: 0;
+      border-radius: 12px;
+      padding: 0 15px 0 39px;
+      color: var(--text);
+      background: var(--field);
+      outline: none;
+      font-size: 15px;
+    }
+    .search::placeholder { color: var(--secondary); }
+    .section-heading { padding: 0 24px 10px; display: flex; align-items: center; justify-content: space-between; }
+    .section-heading h2 { margin: 0; font-size: 19px; letter-spacing: -.025em; }
+    .section-heading span { color: var(--secondary); font-size: 13px; font-variant-numeric: tabular-nums; }
+    .notes-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 14px 38px; overscroll-behavior: contain; }
+    .notes-scroll::-webkit-scrollbar, .detail-scroll::-webkit-scrollbar { display: none; }
+    .note-row { position: relative; min-height: 124px; overflow: hidden; margin-bottom: 8px; border-radius: 17px; touch-action: pan-y; }
+    .row-delete {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 78px;
+      border: 0; border-radius: 0 17px 17px 0; color: #fff; background: #d82932; font-size: 14px; font-weight: 650;
+    }
+    .row-content {
+      position: relative; z-index: 1; width: 100%; min-height: 124px;
+      padding: 17px 17px 15px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 17px;
+      text-align: left; color: inherit; transition: transform .2s cubic-bezier(.2,.8,.2,1);
+      cursor: pointer; user-select: none;
+    }
+    .note-row.open .row-content { transform: translateX(-78px); }
+    .note-row.dragging .row-content { transition: none; }
+    .row-top, .row-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; font-weight: 680; letter-spacing: -.025em; }
+    .row-chevron { color: #77777d; font-size: 19px; font-weight: 400; }
+    .row-meta { justify-content: flex-start; margin-top: 9px; color: var(--secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .row-meta .dot { color: #58585d; }
+    .row-excerpt { margin-top: 10px; color: var(--secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .processing { color: var(--warning); }
+    .empty { margin: 60px 10px; color: var(--secondary); text-align: center; font-size: 14px; }
+    .detail-header { height: 52px; flex: 0 0 52px; padding: 0 17px; display: flex; align-items: center; justify-content: space-between; }
+    .text-button { border: 0; background: transparent; color: var(--accent); font-size: 16px; font-weight: 580; }
+    .back-button { display: flex; align-items: center; gap: 4px; padding: 8px 0; }
+    .back-button svg { width: 14px; height: 17px; }
+    .save-button { padding: 8px 5px; font-weight: 650; }
+    .detail-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 8px 22px 45px; overscroll-behavior: contain; }
+    .detail-kind { color: var(--secondary); font-size: 13px; font-weight: 620; }
+    .detail-title { width: 100%; margin-top: 6px; padding: 0; border: 0; background: transparent; color: var(--text); font-size: 30px; font-weight: 730; letter-spacing: -.045em; outline: none; }
+    .detail-date { margin-top: 7px; color: var(--secondary); font-size: 13px; }
+    .player-card { margin-top: 29px; padding: 19px 20px 17px; border-radius: 21px; background: var(--card); border: 1px solid var(--border); }
+    .player-label { color: var(--secondary); font-size: 12px; font-weight: 620; }
+    .waveform { height: 53px; display: flex; align-items: center; justify-content: center; gap: 2px; overflow: hidden; margin: 12px 0 7px; }
+    .waveform span { flex: 1 0 2px; max-width: 3px; min-height: 4px; border-radius: 5px; background: #69696f; }
+    .waveform span.played { background: #f52b35; }
+    .player-time { display: flex; justify-content: space-between; color: var(--secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .play-button { width: 62px; height: 62px; margin: 4px auto 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: #f52b35; color: white; }
+    .play-button svg { width: 26px; height: 26px; }
+    .play-button svg.hidden { display: none; }
+    .detail-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 25px;
+      padding: 4px;
+      border-radius: 13px;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+    .detail-tab {
+      min-height: 39px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--secondary);
+      font-size: 15px;
+      font-weight: 650;
+    }
+    .detail-tab[aria-selected="true"] { background: var(--selected); color: var(--text); box-shadow: 0 1px 4px #0005; }
+    .tab-panel { margin-top: 20px; }
+    .tab-panel[hidden] { display: none; }
+    .card-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .card-heading span { color: var(--secondary); font-size: 13px; font-weight: 570; }
+    .small-action { padding: 5px 0; border: 0; background: transparent; color: var(--accent); font-size: 13px; font-weight: 630; }
+    .small-action:disabled { opacity: .45; cursor: default; }
+    .transcript { display: block; width: 100%; min-height: 172px; resize: vertical; padding: 15px; border: 1px solid var(--border); border-radius: 17px; background: var(--card); color: var(--text); font-size: 15px; line-height: 1.6; outline: none; }
+    .transcript::placeholder { color: var(--secondary); }
+    .summary-box { min-height: 96px; padding: 16px; border: 1px solid var(--border); border-radius: 17px; background: var(--card); color: var(--text); font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+    .summary-box.placeholder { color: var(--secondary); }
+    .prototype-note { margin: 0; color: var(--secondary); font-size: 12px; text-align: center; }
+    .toast { position: absolute; z-index: 10; left: 50%; bottom: 43px; transform: translateX(-50%); padding: 8px 13px; border-radius: 12px; color: #fff; background: #3a3a40; white-space: nowrap; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .toast.visible { opacity: 1; }
+
+    .watch-status { color: var(--muted); position: relative; }
+    .watch-status.connected { color: var(--green); background: var(--green-bg); }
+    .watch-status svg { width: 21px; height: 24px; }
+    .watch-status::after { content: ""; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: currentColor; bottom: 7px; right: 7px; border: 2px solid var(--field); box-sizing: content-box; }
+    .watch-status.connected::after { border-color: var(--green-bg); }
+    .connection-popover { position: absolute; z-index: 8; top: 111px; right: 22px; width: 275px; padding: 17px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); box-shadow: 0 12px 38px #0005; }
+    .connection-popover strong { display: block; font-size: 15px; }
+    .connection-popover p { margin: 8px 0 0; color: var(--secondary); font-size: 13px; line-height: 1.55; }
+    .settings-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 8px 22px 44px; overscroll-behavior: contain; }
+    .settings-title { font-size: 32px; margin: 3px 0 9px; }
+    .page-intro { font-size: 13px; line-height: 1.6; color: var(--secondary); margin: 0 0 25px; }
+    .settings-group { margin: 24px 0; }
+    .settings-group h2 { font-size: 13px; font-weight: 550; margin: 0 0 10px 4px; color: var(--secondary); }
+    .settings-card { border: 1px solid var(--border); border-radius: 18px; background: var(--card); overflow: hidden; }
+    .appearance-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; border-radius: 14px; background: var(--field); }
+    .appearance-option { border: 0; border-radius: 10px; background: transparent; color: var(--secondary); padding: 11px 3px; font-size: 14px; font-weight: 600; display: grid; justify-items: center; gap: 8px; }
+    .appearance-option svg { width: 22px; height: 22px; }
+    .appearance-option[aria-pressed="true"] { color: var(--text); background: var(--selected); box-shadow: 0 1px 5px #0002; }
+    .settings-row { display: flex; align-items: center; gap: 13px; padding: 17px 15px; width: 100%; color: var(--text); border: 0; background: transparent; text-align: left; }
+    .settings-row + .settings-row { border-top: 1px solid var(--border); }
+    .settings-row:hover { background: var(--field); }
+    .row-icon { width: 33px; height: 33px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center; background: var(--field); color: var(--secondary); }
+    .row-icon svg { width: 20px; height: 20px; }
+    .settings-row-copy { min-width: 0; flex: 1; }
+    .settings-row-copy strong { display: block; font-size: 15px; font-weight: 600; }
+    .settings-row-copy small { display: block; margin-top: 5px; font-size: 12px; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .settings-footnote { color: var(--secondary); font-size: 12px; line-height: 1.6; margin: 10px 4px 0; }
+    .choice-card { display: flex; align-items: flex-start; gap: 12px; padding: 17px 14px; cursor: pointer; }
+    .choice-card + .choice-card { border-top: 1px solid var(--border); }
+    .choice-card input { flex-shrink: 0; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--accent); }
+    .choice-content { min-width: 0; flex: 1; }
+    .choice-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 15px; font-weight: 600; }
+    .choice-description { display: block; font-size: 12px; line-height: 1.55; color: var(--secondary); margin-top: 7px; }
+    .badge { display: inline-block; padding: 3px 6px; border-radius: 5px; font-size: 10px; font-weight: 600; color: var(--secondary); background: var(--field); white-space: nowrap; }
+    .badge.local { color: var(--green); background: var(--green-bg); }
+    .field-row { padding: 14px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .field-row + .field-row { border-top: 1px solid var(--border); }
+    .field-row label { font-size: 14px; }
+    .language-download { margin-top: 14px; padding: 16px; background: var(--field); border-radius: 14px; }
+    .language-download strong { display: block; font-size: 14px; }
+    .language-download p { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--secondary); }
+    .language-download progress { width: 100%; height: 6px; margin-top: 12px; accent-color: var(--accent); }
+    .language-download button { margin-top: 12px; background: var(--card); }
+    .language-download.ready strong { color: var(--green); }
+    select { font: inherit; font-size: 14px; border: 0; border-radius: 7px; padding: 7px; color: var(--text); background: var(--field); max-width: 60%; }
+    select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .model-info { margin: 14px 0 0; padding: 14px 15px; border-radius: 14px; background: var(--field); color: var(--secondary); font-size: 12px; line-height: 1.65; }
+    .model-info strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+    .config-field { display: block; padding: 14px 15px; }
+    .config-field + .config-field, .field-row + .config-field { border-top: 1px solid var(--border); }
+    .config-field > span { display: block; color: var(--secondary); font-size: 12px; margin-bottom: 9px; }
+    .config-field input { width: 100%; padding: 0; border: 0; background: transparent; color: var(--text); font-size: 16px; line-height: 1.5; border-radius: 2px; }
+    .config-field input::placeholder { color: var(--muted); }
+    .config-field input[aria-invalid="true"] { outline: 1px solid var(--accent); outline-offset: 4px; }
+    .test-button { width: 100%; padding: 14px; margin-top: 17px; border: 0; border-radius: 13px; background: var(--field); color: var(--accent); font-weight: 650; font-size: 15px; }
+    button:disabled { opacity: .45; cursor: default; }
+    .test-status { min-height: 22px; margin: 10px 3px 0; color: var(--secondary); font-size: 12px; line-height: 1.6; }
+    .test-status[data-state="success"] { color: var(--green); }
+    .test-status[data-state="error"] { color: var(--accent); }
+    .prototype-controls { max-width: 450px; color: #aaaab3; font-size: 12px; text-align: center; }
+    .prototype-controls summary { cursor: pointer; padding: 5px 12px; }
+    .demo-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; padding: 10px 0; }
+    .demo-controls label { display: flex; align-items: center; gap: 7px; }
+    .demo-controls select { max-width: none; font-size: 12px; color: #eee; background: #303034; }
+    .prototype-note { color: #a6a6ae; max-width: 440px; line-height: 1.6; }
+    .toast { max-width: calc(100% - 32px); white-space: normal; text-align: center; width: max-content; }
+
+    @media (max-width: 480px) {
+      .preview { padding: 8px 8px 16px; gap: 10px; }
+      .phone { width: calc(100vw - 16px); height: min(920px, calc(100dvh - 50px)); min-height: 550px; }
+      .prototype-note { max-width: 330px; line-height: 1.5; }
+    }
+    @media (prefers-reduced-motion: reduce) { .row-content, .toast { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <div class="phone" aria-label="iPhone 语音笔记原型">
+      <div class="screen">
+        <div class="island" aria-hidden="true"></div>
+        <div class="status" aria-hidden="true">
+          <span id="statusTime">9:41</span>
+          <span class="status-icons">
+            <svg width="18" height="13" viewBox="0 0 18 13" fill="currentColor"><rect x="1" y="8" width="3" height="4" rx=".5"/><rect x="5.5" y="6" width="3" height="6" rx=".5"/><rect x="10" y="4" width="3" height="8" rx=".5"/><rect x="14.5" y="1" width="3" height="11" rx=".5"/></svg>
+            <svg width="17" height="13" viewBox="0 0 17 13" fill="none"><path d="M1 4c4-3.8 11-3.8 15 0M4 7c2.4-2.3 6.6-2.3 9 0M7 10c.8-.8 2.2-.8 3 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <svg width="25" height="13" viewBox="0 0 25 13" fill="none"><rect x=".6" y=".8" width="21" height="11.4" rx="3" stroke="currentColor" stroke-width="1.2"/><rect x="2.6" y="2.8" width="16" height="7.4" rx="1.5" fill="currentColor"/><path d="M23 4.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+
+        <section id="listView" class="view" aria-label="语音笔记列表">
+          <div class="list-toolbar">
+            <span class="eyebrow">WATCH · IPHONE</span>
+            <div class="toolbar-actions">
+              <button id="watchStatusButton" class="icon-button watch-status connected" type="button" aria-label="Apple Watch 已连接" aria-expanded="false" aria-controls="connectionPopover" title="Apple Watch 已连接">
+                <svg viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="14" rx="4"/><path d="m8 7 1-5h6l1 5M8 21l1 5h6l1-5M21 12v4"/><path d="m9 14 2 2 4-4"/></svg>
+              </button>
+              <button id="settingsButton" class="icon-button" type="button" aria-label="设置" title="设置">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3-.6 2.5-2 .9-2.3-.7L2.2 10l1.8 1.8v2.3l-1.8 1.8 2.4 4.2 2.3-.7 2 .9.6 2.5h5l.6-2.5 2-.9 2.3.7 2.4-4.2-1.8-1.8v-2.3l1.8-1.8-2.4-4.2-2.3.7-2-.9L14.5 3Z" transform="translate(0 -1) scale(1 .95)"/><circle cx="12" cy="12" r="3.2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="title-row"><h1>语音笔记</h1><p>录音、转写与想法，都留在这里。</p></div>
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 5 5"/></svg>
+            <input id="searchInput" class="search" type="search" placeholder="搜索标题和转写" aria-label="搜索标题和转写">
+          </div>
+          <div class="section-heading"><h2>所有录音</h2><span id="noteCount"></span></div>
+          <div id="notesList" class="notes-scroll"></div>
+        </section>
+
+        <section id="detailView" class="view hidden" aria-label="语音笔记详情">
+          <div class="detail-header">
+            <button id="backButton" class="text-button back-button" type="button" aria-label="返回语音笔记列表"><svg viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m11 2-7 7 7 7"/></svg>语音笔记</button>
+            <button id="saveButton" class="text-button save-button" type="button">保存</button>
+          </div>
+          <div class="detail-scroll">
+            <div id="detailKind" class="detail-kind"></div>
+            <input id="titleInput" class="detail-title" aria-label="笔记标题">
+            <div id="detailDate" class="detail-date"></div>
+
+            <div class="player-card" aria-label="原始录音播放器">
+              <div class="player-label">原始录音</div>
+              <div id="waveform" class="waveform" aria-hidden="true"></div>
+              <div class="player-time"><span id="playedTime">00:00</span><span id="totalTime">00:00</span></div>
+              <button id="playButton" class="play-button" type="button" aria-label="播放录音">
+                <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3.8a1.2 1.2 0 0 1 1.8-1l12 8.1a1.3 1.3 0 0 1 0 2.2l-12 8.1a1.2 1.2 0 0 1-1.8-1V3.8Z"/></svg>
+                <svg id="pauseIcon" class="hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>
+              </button>
+            </div>
+
+            <div class="detail-tabs" role="tablist" aria-label="笔记内容">
+              <button id="summaryTab" class="detail-tab" type="button" role="tab" aria-controls="summaryPanel" aria-selected="true">总结</button>
+              <button id="transcriptTab" class="detail-tab" type="button" role="tab" aria-controls="transcriptPanel" aria-selected="false">全文</button>
+            </div>
+            <div id="summaryPanel" class="tab-panel" role="tabpanel" aria-labelledby="summaryTab">
+              <div class="card-heading"><span>内容概览</span><button id="summaryButton" class="small-action" type="button">生成总结</button></div>
+              <div id="summaryBox" class="summary-box placeholder">根据转写文本，在 iPhone 上生成总结。</div>
+            </div>
+            <div id="transcriptPanel" class="tab-panel" role="tabpanel" aria-labelledby="transcriptTab" hidden>
+              <div class="card-heading"><span>可编辑的转写文本</span><button id="retryButton" class="small-action" type="button">重新转写</button></div>
+              <textarea id="transcriptInput" class="transcript" placeholder="转写完成后会出现在这里，也可以直接编辑。" aria-label="转写文本"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="settingsView" class="view hidden" aria-label="设置">
+          <div class="detail-header">
+            <button id="settingsBackButton" class="text-button back-button" type="button"><svg viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m11 2-7 7 7 7"/></svg>语音笔记</button>
+          </div>
+          <div class="settings-scroll">
+            <h1 class="settings-title" tabindex="-1">设置</h1>
+            <p class="page-intro">让记录，按你的习惯来。</p>
+            <div class="settings-group">
+              <h2>外观</h2>
+              <div class="appearance-options" role="group" aria-label="外观">
+                <button class="appearance-option" type="button" data-appearance="dark" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.5 14.1A8.7 8.7 0 0 1 9.9 3.5 8.8 8.8 0 1 0 20.5 14.1Z"/></svg>深色</button>
+                <button class="appearance-option" type="button" data-appearance="light" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>浅色</button>
+                <button class="appearance-option" type="button" data-appearance="system" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></svg>跟随系统</button>
+              </div>
+            </div>
+            <div class="settings-group">
+              <h2>模型与语言</h2>
+              <div class="settings-card">
+                <button id="asrSettingsButton" class="settings-row" type="button">
+                  <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 10v4m4-8v12m5-15v18m5-15v12m4-8v4"/></svg></span>
+                  <span class="settings-row-copy"><strong>语音转文本</strong><small id="asrSelectionLabel">iPhone端上转写 · 普通话</small></span><span class="row-chevron" aria-hidden="true">›</span>
+                </button>
+                <button id="aiSettingsButton" class="settings-row" type="button">
+                  <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4Z"/></svg></span>
+                  <span class="settings-row-copy"><strong>AI 模型</strong><small id="aiSelectionLabel">Apple 本地模型</small></span><span class="row-chevron" aria-hidden="true">›</span>
+                </button>
+              </div>
+              <p class="settings-footnote">默认在 iPhone 上转写和总结。只有选择自定义 AI 后，笔记文本才会发送到你指定的服务。</p>
+            </div>
+            <div class="settings-group">
+              <h2>录音</h2>
+              <div class="settings-card"><button id="importButton" class="settings-row" type="button"><span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m0 0-4-4m4 4 4-4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span><span class="settings-row-copy"><strong>导入音频文件</strong><small>从“文件”添加已有录音</small></span><span class="row-chevron" aria-hidden="true">›</span></button></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="asrView" class="view hidden" aria-label="语音转文本设置">
+          <div class="detail-header">
+            <button id="asrBackButton" class="text-button back-button" type="button">‹ 设置</button>
+            <button id="saveASRButton" class="text-button save-button" type="button">保存</button>
+          </div>
+          <div class="settings-scroll">
+            <h1 class="settings-title" tabindex="-1">语音转文本</h1>
+            <p class="page-intro">选择转写模型，再设置语言与离线资源。</p>
+            <div class="settings-card" role="radiogroup" aria-label="转写模型">
+              <label class="choice-card"><input type="radio" name="asrModel" value="apple" checked><span class="choice-content"><span class="choice-heading">iPhone端上转写 <span class="badge local">推荐 · 本机</span></span><span class="choice-description">iPhone系统语音模型，无需API Key，支持单语言转写，按需下载系统语言包</span></span></label>
+              <label class="choice-card"><input type="radio" name="asrModel" value="whisper"><span class="choice-content"><span class="choice-heading">Whisper <span class="badge local">本机</span></span><span class="choice-description">下载多语言模型后离线转写。可指定语言或自动检测，无需逐语言下载。</span></span></label>
+            </div>
+            <div id="appleOptions" class="settings-group">
+              <h2>iPhone端上转写</h2>
+              <div class="settings-card">
+                <div class="field-row"><label for="appleLanguage">转写语言</label><select id="appleLanguage"></select></div>
+              </div>
+              <p class="settings-footnote">选择一种转写语言。已有系统语言资源可直接使用，缺少时在下方下载。</p>
+            </div>
+            <div id="whisperOptions" class="settings-group" hidden>
+              <h2>Whisper 模型</h2>
+              <div class="settings-card">
+                <div class="field-row"><label for="whisperSize">模型大小</label><select id="whisperSize"><option value="tiny">Tiny · 更轻量</option><option value="base" selected>Base · 均衡</option><option value="small">Small · 更高精度</option></select></div>
+                <div class="field-row"><label for="whisperLanguage">转写语言</label><select id="whisperLanguage"><option value="auto">自动检测</option></select></div>
+              </div>
+              <p class="settings-footnote">可自动检测或指定一种语言。Tiny / Base / Small 均使用多语言版本，下载一次即可供其支持的语言共用；切换语言无需重新下载。</p>
+              <p class="settings-footnote">模型越大，通常占用更多存储与内存。具体语言支持和识别质量取决于所用模型。</p>
+            </div>
+            <div id="languageDownload" class="language-download" aria-live="polite">
+              <strong id="languageDownloadTitle"></strong>
+              <p id="languageDownloadDescription"></p>
+              <progress id="languageDownloadProgress" max="100" value="0" aria-label="资源下载进度" hidden></progress>
+              <button id="downloadLanguageButton" class="test-button" type="button">下载语言包（演示）</button>
+            </div>
+            <p class="settings-footnote">资源就绪后可保存设置。资源状态及下载均为原型演示。</p>
+            <div id="asrInfo" class="model-info"><strong>音频留在本机</strong>语言包由系统管理，已有资源可直接复用。</div>
+          </div>
+        </section>
+
+        <section id="aiView" class="view hidden" aria-label="AI 模型设置">
+          <div class="detail-header">
+            <button id="aiBackButton" class="text-button back-button" type="button">‹ 设置</button>
+            <button id="saveAIButton" class="text-button save-button" type="button">保存</button>
+          </div>
+          <div class="settings-scroll">
+            <h1 class="settings-title" tabindex="-1">AI 模型</h1>
+            <p class="page-intro">用来提炼要点，生成笔记总结。</p>
+            <div class="settings-card" role="radiogroup" aria-label="AI 模型来源">
+              <label class="choice-card"><input type="radio" name="aiMode" value="local" checked><span class="choice-content"><span class="choice-heading">Apple 本地模型 <span class="badge local">本机</span></span><span class="choice-description">由 Apple Intelligence 提供。笔记文本在 iPhone 上处理，无需 API Key。</span></span></label>
+              <label class="choice-card"><input type="radio" name="aiMode" value="custom"><span class="choice-content"><span class="choice-heading">自定义模型 <span class="badge">自有服务</span></span><span class="choice-description">使用你的模型与 API Key，可选择 OpenAI 或 Anthropic 兼容接口。</span></span></label>
+            </div>
+            <div id="localAIInfo" class="model-info"><strong>需要 Apple Intelligence 可用</strong>请在系统设置中启用并下载模型。可用性还取决于设备、语言及地区；不可用时不会自动切换远程服务。</div>
+            <div id="customAIFields" hidden>
+              <div class="settings-group">
+                <h2>连接配置</h2>
+                <div class="settings-card">
+                  <div class="field-row"><label for="aiProtocol">API 接口兼容</label><select id="aiProtocol" aria-describedby="aiProtocolHint aiTestStatus"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+                  <label class="config-field"><span>模型名称</span><input id="aiModelName" type="text" placeholder="例如 my-model" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="aiTestStatus"></label>
+                  <label class="config-field"><span>服务地址 · Base URL</span><input id="aiBaseURL" type="url" placeholder="https://api.example.com/v1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="aiProtocolHint aiTestStatus"></label>
+                  <label class="config-field"><span>API Key</span><input id="aiAPIKey" type="password" placeholder="输入你的 API Key" autocomplete="off" spellcheck="false" aria-describedby="aiTestStatus"></label>
+                </div>
+                <p id="aiProtocolHint" class="settings-footnote" aria-live="polite">兼容 OpenAI Chat Completions。填写服务提供的 Base URL（通常以 /v1 结尾），不含末尾 /chat/completions。</p>
+                <p class="settings-footnote">总结时仅将笔记文本发送至此地址，原始录音不发送。先测试配置，再保存。</p>
+                <button id="testAIButton" class="test-button" type="button">模拟测试连接</button>
+                <p id="aiTestStatus" class="test-status" role="status" aria-live="polite">原型演示，不会连接服务。请使用虚构的 Key。</p>
+              </div>
+            </div>
+            <p class="settings-footnote">保存后用于下一次生成总结。</p>
+          </div>
+        </section>
+
+        <div id="connectionPopover" class="connection-popover" hidden>
+          <strong id="connectionTitle">Apple Watch 已连接</strong>
+          <p id="connectionDescription">可以接收手表录音。每条录音的传输状态请在手表列表中查看。</p>
+        </div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <div class="home-indicator" aria-hidden="true"></div>
+        <input id="audioInput" type="file" accept="audio/*" hidden>
+      </div>
+    </div>
+    <p class="prototype-note">交互原型 · 播放、模型和连接状态均为演示<br>配置仅保留在当前页面内存中，不发送音频、文本或 Key</p>
+    <details class="prototype-controls"><summary>演示控制</summary><div class="demo-controls"><label>手表状态<select id="demoWatchState"><option value="connected">已连接</option><option value="disconnected">未连接</option></select></label><label>资源下载<select id="demoLanguageDownloadResult"><option value="success">模拟成功</option><option value="network">模拟下载失败</option></select></label><label>连接测试结果<select id="demoTestResult"><option value="success">模拟成功</option><option value="auth">模拟 Key 错误</option><option value="network">模拟无法连接</option></select></label></div></details>
+  </main>
+
+  <script>
+    // Visual prototype only. All notes are in-memory demo data.
+    const notes = [
+      { id: 1, title: '晨间想法', kind: '语音闪念', date: '今天 08:46', seconds: 74, transcript: '今天想到可以把手表录音作为随手记录的入口。录完后自动传到手机，再把语音整理成可搜索的笔记。', summary: '• 用手表快速记录想法。\n• 录音传到手机后，整理为可搜索的语音笔记。', state: 'ready' },
+      { id: 2, title: '项目讨论', kind: '长录音', date: '昨天 19:32', seconds: 764, transcript: '讨论了第一版的范围：先完成手表长录音、录音传输、手机端转写和笔记管理。下周验证普通话长录音的识别质量。', summary: '', state: 'ready' },
+      { id: 3, title: '路上的灵感', kind: '语音闪念', date: '10月16日 14:08', seconds: 38, transcript: '笔记列表应该优先展示标题、录制时间和一小段转写内容，方便快速找到录音。', summary: '', state: 'ready' },
+      { id: 4, title: '会议备忘', kind: '长录音', date: '10月15日 10:12', seconds: 315, transcript: '', summary: '', state: 'pending' }
+    ];
+    const $ = id => document.getElementById(id);
+    let selectedId = null;
+    let language = 'zh-CN';
+    const settings = { appearance: 'dark', asr: 'apple', whisper: 'base', language: 'zh-CN', whisperLanguage: 'auto', ai: { mode: 'local', protocol: 'openai', model: '', url: '', key: '' } };
+    // Full SpeechTranscriber catalog observed on the development machine (30 locales).
+    // Native UI must enumerate supportedLocales on the actual iPhone, not hardcode this snapshot.
+    const recordingLanguages = [
+      { id: 'zh-CN', label: '普通话（中国大陆）' },
+      { id: 'zh-HK', label: '中文（中国香港）' },
+      { id: 'zh-TW', label: '中文（中国台湾）' },
+      { id: 'yue-CN', label: '粤语（中国大陆）' },
+      { id: 'en-US', label: '英语（美国）' },
+      { id: 'en-GB', label: '英语（英国）' },
+      { id: 'en-AU', label: '英语（澳大利亚）' },
+      { id: 'en-CA', label: '英语（加拿大）' },
+      { id: 'en-IE', label: '英语（爱尔兰）' },
+      { id: 'en-IN', label: '英语（印度）' },
+      { id: 'en-NZ', label: '英语（新西兰）' },
+      { id: 'en-SG', label: '英语（新加坡）' },
+      { id: 'en-ZA', label: '英语（南非）' },
+      { id: 'ja-JP', label: '日语（日本）' },
+      { id: 'ko-KR', label: '韩语（韩国）' },
+      { id: 'de-DE', label: '德语（德国）' },
+      { id: 'de-AT', label: '德语（奥地利）' },
+      { id: 'de-CH', label: '德语（瑞士）' },
+      { id: 'fr-FR', label: '法语（法国）' },
+      { id: 'fr-BE', label: '法语（比利时）' },
+      { id: 'fr-CA', label: '法语（加拿大）' },
+      { id: 'fr-CH', label: '法语（瑞士）' },
+      { id: 'es-ES', label: '西班牙语（西班牙）' },
+      { id: 'es-CL', label: '西班牙语（智利）' },
+      { id: 'es-MX', label: '西班牙语（墨西哥）' },
+      { id: 'es-US', label: '西班牙语（美国）' },
+      { id: 'it-IT', label: '意大利语（意大利）' },
+      { id: 'it-CH', label: '意大利语（瑞士）' },
+      { id: 'pt-BR', label: '葡萄牙语（巴西）' },
+      { id: 'pt-PT', label: '葡萄牙语（葡萄牙）' }
+    ];
+    // Original multilingual Tiny / Base / Small: 99 language tokens, separate from Apple's locales.
+    // Source: https://github.com/openai/whisper/blob/main/whisper/tokenizer.py
+    // The later yue token belongs to newer models and is not offered for these three sizes.
+    const whisperLanguageCodes = 'zh en de es ru ko fr ja pt tr pl ca nl ar sv it id hi fi vi he uk el ms cs ro da hu ta no th ur hr bg lt la mi ml cy sk te fa lv bn sr az sl kn et mk br eu is hy ne mn bs kk sq sw gl mr pa si km sn yo so af oc ka be tg sd gu am yi lo uz fo ht ps tk nn mt sa lb my bo tl mg as tt haw ln ha ba jw su'.split(' ');
+    const whisperLanguageNames = new Intl.DisplayNames(['zh-Hans'], { type: 'language' });
+    function whisperLanguageLabel(code) {
+      return code === 'auto' ? '自动检测' : whisperLanguageNames.of(code);
+    }
+    ['auto', ...whisperLanguageCodes].forEach(code => {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = whisperLanguageLabel(code);
+      if (code === 'auto') $('whisperLanguage').replaceChildren();
+      $('whisperLanguage').append(option);
+    });
+    let asrLanguageDraft = settings.language;
+    const downloadedSpeechResources = new Set(['apple:zh-CN', 'apple:en-US']);
+    let languageDownloadTimer = null;
+    let languageDownloadVersion = 0;
+    let languageDownloadPercent = 0;
+    let languageDownloadError = false;
+    const aiProtocols = {
+      openai: { label: 'OpenAI', name: 'OpenAI Chat Completions', example: 'https://api.example.com/v1', endpoint: '/chat/completions' },
+      anthropic: { label: 'Anthropic', name: 'Anthropic Messages', example: 'https://api.anthropic.com/v1', endpoint: '/messages' }
+    };
+    let aiTestState = 'idle';
+    let aiTestVersion = 0;
+    let playing = false;
+    let playSeconds = 0;
+    let playTimer = null;
+    let toastTimer = null;
+
+    const clock = new Date();
+    $('statusTime').textContent = `${String(clock.getHours()).padStart(2, '0')}:${String(clock.getMinutes()).padStart(2, '0')}`;
+    const duration = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    const selected = () => notes.find(note => note.id === selectedId);
+
+    function toast(message) {
+      const element = $('toast');
+      element.textContent = message;
+      element.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => element.classList.remove('visible'), 2200);
+    }
+
+    function renderList() {
+      const query = $('searchInput').value.trim().toLocaleLowerCase();
+      const visible = notes.filter(note => `${note.title} ${note.transcript}`.toLocaleLowerCase().includes(query));
+      $('noteCount').textContent = `${visible.length} 条`;
+      const list = $('notesList');
+      list.replaceChildren();
+      if (!visible.length) {
+        const empty = document.createElement('p');
+        empty.className = 'empty';
+        empty.textContent = query ? '没有找到相关笔记' : '还没有语音笔记';
+        list.append(empty);
+      }
+      for (const note of visible) {
+        const row = document.createElement('div');
+        row.className = 'note-row';
+        const remove = document.createElement('button');
+        remove.className = 'row-delete';
+        remove.type = 'button';
+        remove.textContent = '删除';
+        remove.setAttribute('aria-label', `删除${note.title}`);
+        remove.addEventListener('click', () => { notes.splice(notes.findIndex(item => item.id === note.id), 1); renderList(); toast('已删除笔记'); });
+        const content = document.createElement('button');
+        content.className = 'row-content';
+        content.type = 'button';
+        content.innerHTML = '<div class="row-top"><span class="row-title"></span><span class="row-chevron">›</span></div><div class="row-meta"><span class="row-date"></span><span class="dot">·</span><span class="row-kind"></span><span class="dot">·</span><span class="row-duration"></span></div><div class="row-excerpt"></div>';
+        content.querySelector('.row-title').textContent = note.title;
+        content.querySelector('.row-date').textContent = note.date;
+        content.querySelector('.row-kind').textContent = note.kind;
+        content.querySelector('.row-duration').textContent = duration(note.seconds);
+        const excerpt = content.querySelector('.row-excerpt');
+        excerpt.textContent = note.transcript || (note.state === 'pending' ? '等待端上转写' : '转写未完成，可重试');
+        if (!note.transcript) excerpt.classList.add('processing');
+        let startX = 0, startY = 0, dragged = false;
+        content.addEventListener('pointerdown', event => { startX = event.clientX; startY = event.clientY; dragged = false; });
+        content.addEventListener('pointermove', event => {
+          const dx = event.clientX - startX, dy = event.clientY - startY;
+          if (Math.abs(dx) < 7 || Math.abs(dy) > Math.abs(dx)) return;
+          dragged = true;
+          row.classList.add('dragging');
+          content.style.transform = `translateX(${Math.min(0, Math.max(-78, (row.classList.contains('open') ? -78 : 0) + dx))}px)`;
+        });
+        content.addEventListener('pointerup', event => {
+          row.classList.remove('dragging');
+          content.style.transform = '';
+          const dx = event.clientX - startX;
+          if (dx < -32) row.classList.add('open');
+          if (dx > 32) row.classList.remove('open');
+          if (dragged) setTimeout(() => { dragged = false; }, 0);
+        });
+        content.addEventListener('pointercancel', () => { row.classList.remove('dragging'); content.style.transform = ''; });
+        content.addEventListener('click', event => { if (dragged || row.classList.contains('open')) { event.preventDefault(); return; } openNote(note.id); });
+        content.addEventListener('keydown', event => {
+          if (event.key === 'ArrowLeft') { row.classList.add('open'); event.preventDefault(); }
+          if (event.key === 'ArrowRight' || event.key === 'Escape') { row.classList.remove('open'); event.preventDefault(); }
+        });
+        row.append(remove, content);
+        list.append(row);
+      }
+    }
+
+    function buildWaveform() {
+      const wave = $('waveform');
+      wave.replaceChildren();
+      for (let index = 0; index < 75; index++) {
+        const bar = document.createElement('span');
+        const height = 8 + Math.abs(Math.sin(index * 1.17) * Math.cos(index * .39)) * 35 + (index % 8) * 1.3;
+        bar.style.height = `${Math.round(height)}px`;
+        wave.append(bar);
+      }
+    }
+
+    function updatePlayer() {
+      const note = selected();
+      if (!note) return;
+      $('playedTime').textContent = duration(Math.min(playSeconds, note.seconds));
+      $('totalTime').textContent = duration(note.seconds);
+      $('playButton').setAttribute('aria-label', playing ? '暂停播放' : '播放录音');
+      $('playIcon').classList.toggle('hidden', playing);
+      $('pauseIcon').classList.toggle('hidden', !playing);
+      const played = Math.floor(playSeconds / Math.max(note.seconds, 1) * 75);
+      [...$('waveform').children].forEach((bar, index) => bar.classList.toggle('played', index < played));
+    }
+
+    function stopPlayer() {
+      playing = false;
+      clearInterval(playTimer);
+      playTimer = null;
+      playSeconds = 0;
+      updatePlayer();
+    }
+
+    function renderDetail() {
+      const note = selected();
+      if (!note) return;
+      $('detailKind').textContent = note.kind;
+      $('titleInput').value = note.title;
+      $('detailDate').textContent = `${note.date} · ${duration(note.seconds)}`;
+      $('transcriptInput').value = note.transcript;
+      $('summaryBox').textContent = note.summary || (settings.ai.mode === 'local' ? '根据转写文本，在 iPhone 上生成总结。' : '根据转写文本，使用已配置的 AI 模型生成总结。');
+      $('summaryBox').classList.toggle('placeholder', !note.summary);
+      $('summaryButton').textContent = note.summary ? '重新生成' : '生成总结';
+      $('summaryButton').disabled = !note.transcript.trim();
+      $('retryButton').textContent = note.state === 'pending' ? '开始转写' : '重新转写';
+      updatePlayer();
+    }
+
+    function showDetailTab(tab) {
+      const summary = tab === 'summary';
+      $('summaryTab').setAttribute('aria-selected', String(summary));
+      $('transcriptTab').setAttribute('aria-selected', String(!summary));
+      $('summaryPanel').hidden = !summary;
+      $('transcriptPanel').hidden = summary;
+    }
+
+    function saveNote() {
+      const note = selected();
+      if (!note) return;
+      const transcriptChanged = note.transcript !== $('transcriptInput').value;
+      note.title = $('titleInput').value.trim() || '未命名录音';
+      note.transcript = $('transcriptInput').value;
+      if (transcriptChanged) {
+        note.summary = '';
+        $('summaryBox').textContent = (settings.ai.mode === 'local' ? '根据转写文本，在 iPhone 上生成总结。' : '根据转写文本，使用已配置的 AI 模型生成总结。');
+        $('summaryBox').classList.add('placeholder');
+        $('summaryButton').textContent = '生成总结';
+      }
+      if (note.transcript.trim()) note.state = 'ready';
+      $('summaryButton').disabled = !note.transcript.trim();
+      renderList();
+      toast('已保存');
+    }
+
+    function openNote(id) {
+      selectedId = id;
+      stopPlayer();
+      buildWaveform();
+      renderDetail();
+      showDetailTab('summary');
+      $('listView').classList.add('hidden');
+      $('detailView').classList.remove('hidden');
+      document.querySelector('.detail-scroll').scrollTop = 0;
+    }
+
+    $('backButton').addEventListener('click', () => {
+      saveNote();
+      stopPlayer();
+      $('detailView').classList.add('hidden');
+      $('listView').classList.remove('hidden');
+      selectedId = null;
+    });
+    $('saveButton').addEventListener('click', saveNote);
+    $('summaryTab').addEventListener('click', () => {
+      if (!$('transcriptPanel').hidden) saveNote();
+      showDetailTab('summary');
+    });
+    $('transcriptTab').addEventListener('click', () => showDetailTab('transcript'));
+    $('searchInput').addEventListener('input', renderList);
+    $('transcriptInput').addEventListener('input', () => { $('summaryButton').disabled = !$('transcriptInput').value.trim(); });
+    $('playButton').addEventListener('click', () => {
+      const note = selected();
+      if (!note) return;
+      if (!playing && playSeconds >= note.seconds) playSeconds = 0;
+      playing = !playing;
+      if (playing) {
+        playTimer = setInterval(() => {
+          playSeconds = Math.min(playSeconds + 1, note.seconds);
+          if (playSeconds >= note.seconds) { clearInterval(playTimer); playTimer = null; playing = false; }
+          updatePlayer();
+        }, 1000);
+      } else { clearInterval(playTimer); playTimer = null; }
+      updatePlayer();
+    });
+    $('retryButton').addEventListener('click', () => {
+      const note = selected();
+      if (!note) return;
+      $('retryButton').disabled = true;
+      $('retryButton').textContent = '转写中…';
+      setTimeout(() => {
+        if (!notes.includes(note)) return;
+        note.transcript ||= '这是一段端上转写的演示文本。实际应用会读取录音文件并在 iPhone 上完成识别。';
+        note.state = 'ready';
+        if (selectedId === note.id) { $('transcriptInput').value = note.transcript; $('retryButton').textContent = '重新转写'; $('retryButton').disabled = false; $('summaryButton').disabled = false; }
+        renderList();
+        toast('转写演示已完成');
+      }, 850);
+    });
+    $('summaryButton').addEventListener('click', () => {
+      saveNote();
+      const note = selected();
+      if (!note || !note.transcript.trim()) return;
+      $('summaryButton').disabled = true;
+      $('summaryButton').textContent = '生成中…';
+      setTimeout(() => {
+        if (!notes.includes(note)) return;
+        note.summary = `• ${note.transcript.trim().slice(0, 62)}${note.transcript.trim().length > 62 ? '…' : ''}`;
+        if (selectedId === note.id) { renderDetail(); $('summaryButton').disabled = false; }
+        toast('总结演示已完成');
+      }, 850);
+    });
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view.id !== id));
+      $('connectionPopover').hidden = true;
+      $('watchStatusButton').setAttribute('aria-expanded', 'false');
+      const view = $(id);
+      const scroll = view.querySelector('.settings-scroll');
+      if (scroll) scroll.scrollTop = 0;
+      view.querySelector('h1')?.focus({ preventScroll: true });
+    }
+
+    const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+    function applyAppearance() {
+      const theme = settings.appearance === 'system' ? (systemTheme.matches ? 'dark' : 'light') : settings.appearance;
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#080809' : '#f5f5f7';
+      document.querySelectorAll('[data-appearance]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.appearance === settings.appearance)));
+    }
+    systemTheme.addEventListener('change', applyAppearance);
+    document.querySelectorAll('[data-appearance]').forEach(button => button.addEventListener('click', () => {
+      settings.appearance = button.dataset.appearance;
+      applyAppearance();
+    }));
+
+    function renderWatchStatus() {
+      const connected = $('demoWatchState').value === 'connected';
+      const title = `Apple Watch ${connected ? '已连接' : '未连接'}`;
+      $('watchStatusButton').classList.toggle('connected', connected);
+      $('watchStatusButton').setAttribute('aria-label', title);
+      $('watchStatusButton').title = title;
+      $('connectionTitle').textContent = title;
+      $('connectionDescription').textContent = connected
+        ? '可以接收手表录音。每条录音的传输状态请在手表列表中查看。'
+        : '录音保留在手表上，恢复连接后继续传输。请确认手表在附近且蓝牙已开启。';
+    }
+    $('demoWatchState').addEventListener('change', renderWatchStatus);
+    $('watchStatusButton').addEventListener('click', () => {
+      $('connectionPopover').hidden = !$('connectionPopover').hidden;
+      $('watchStatusButton').setAttribute('aria-expanded', String(!$('connectionPopover').hidden));
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('#watchStatusButton, #connectionPopover')) {
+        $('connectionPopover').hidden = true;
+        $('watchStatusButton').setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !$('connectionPopover').hidden) {
+        $('connectionPopover').hidden = true;
+        $('watchStatusButton').setAttribute('aria-expanded', 'false');
+        $('watchStatusButton').focus();
+      }
+    });
+    $('settingsButton').addEventListener('click', () => showView('settingsView'));
+    $('settingsBackButton').addEventListener('click', () => { showView('listView'); $('settingsButton').focus(); });
+
+    function renderSettingsLabels() {
+      const model = settings.asr === 'apple' ? 'iPhone端上转写' : `Whisper ${settings.whisper[0].toUpperCase() + settings.whisper.slice(1)}`;
+      const locale = settings.asr === 'apple' ? recordingLanguages.find(item => item.id === settings.language).label : whisperLanguageLabel(settings.whisperLanguage);
+      $('asrSelectionLabel').textContent = `${model} · ${locale}`;
+      $('aiSelectionLabel').textContent = settings.ai.mode === 'local' ? 'Apple 本地模型' : `${settings.ai.model} · ${aiProtocols[settings.ai.protocol].label}`;
+    }
+    function selectedSpeechResource() {
+      const whisper = document.querySelector('input[name="asrModel"]:checked').value === 'whisper';
+      const locale = recordingLanguages.find(item => item.id === asrLanguageDraft);
+      const size = $('whisperSize').value;
+      return {
+        key: whisper ? `whisper:${size}` : `apple:${locale.id}`,
+        name: whisper ? `Whisper ${size[0].toUpperCase() + size.slice(1)} 多语言模型` : `${locale.label}语言包`,
+        whisper
+      };
+    }
+    function cancelLanguageDownload() {
+      languageDownloadVersion++;
+      clearInterval(languageDownloadTimer);
+      languageDownloadTimer = null;
+      languageDownloadPercent = 0;
+      languageDownloadError = false;
+    }
+    function renderASROptions() {
+      cancelLanguageDownload();
+      const whisper = document.querySelector('input[name="asrModel"]:checked').value === 'whisper';
+      $('appleOptions').hidden = whisper;
+      $('whisperOptions').hidden = !whisper;
+      $('asrInfo').replaceChildren();
+      const title = document.createElement('strong');
+      title.textContent = '音频留在本机';
+      $('asrInfo').append(title, whisper ? 'Whisper 下载的是多语言模型，无需为每种语言单独下载。模型下载完成后可离线识别。' : '语言包由系统管理，已有资源可直接复用。');
+      renderRecordingLanguages();
+    }
+    function renderRecordingLanguages() {
+      $('appleLanguage').replaceChildren();
+      recordingLanguages.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.label;
+        $('appleLanguage').append(option);
+      });
+      $('appleLanguage').value = asrLanguageDraft;
+      renderLanguageDownload();
+    }
+    function renderLanguageDownload() {
+      const resource = selectedSpeechResource();
+      const ready = downloadedSpeechResources.has(resource.key);
+      const downloading = languageDownloadTimer !== null;
+      $('languageDownload').classList.toggle('ready', ready);
+      $('languageDownloadTitle').textContent = ready ? `${resource.name}已就绪`
+        : downloading ? `正在下载${resource.name} · ${languageDownloadPercent}%`
+        : languageDownloadError ? `${resource.name}下载失败` : `${resource.name}尚未下载`;
+      $('languageDownloadDescription').textContent = ready ? '可以离线转写。点击“保存”应用到新的转写任务（演示）。'
+        : downloading ? (resource.whisper ? '正在模拟下载，完成后可保存。切换语言可继续下载；切换模型或返回会取消。' : '正在模拟下载，完成后可保存。切换语言、模型或返回会取消本次模拟下载。')
+        : languageDownloadError ? '网络连接失败，请重试（演示）。'
+        : resource.whisper ? '首次使用需下载所选多语言模型，其支持的语言共用此模型，无需逐语言下载（演示）。'
+        : '使用此语言转写前，需要先下载语言包。点击下方按钮开始下载（演示）。';
+      $('languageDownloadProgress').hidden = !downloading;
+      $('languageDownloadProgress').value = languageDownloadPercent;
+      $('downloadLanguageButton').hidden = ready;
+      $('downloadLanguageButton').disabled = downloading;
+      $('downloadLanguageButton').textContent = downloading ? '正在下载…' : languageDownloadError ? '重新下载（演示）' : resource.whisper ? '下载多语言模型（演示）' : '下载语言包（演示）';
+      $('saveASRButton').disabled = !ready;
+    }
+    $('downloadLanguageButton').addEventListener('click', () => {
+      const resource = selectedSpeechResource();
+      if (downloadedSpeechResources.has(resource.key) || languageDownloadTimer !== null) return;
+      cancelLanguageDownload();
+      const version = languageDownloadVersion;
+      const outcome = $('demoLanguageDownloadResult').value;
+      languageDownloadTimer = setInterval(() => {
+        if (version !== languageDownloadVersion) return;
+        languageDownloadPercent = Math.min(100, languageDownloadPercent + 20);
+        if (languageDownloadPercent === 100) {
+          clearInterval(languageDownloadTimer);
+          languageDownloadTimer = null;
+          if (outcome === 'network') languageDownloadError = true;
+          else downloadedSpeechResources.add(resource.key);
+        }
+        renderLanguageDownload();
+      }, 250);
+      renderLanguageDownload();
+    });
+    $('asrSettingsButton').addEventListener('click', () => {
+      document.querySelectorAll('input[name="asrModel"]').forEach(input => input.checked = input.value === settings.asr);
+      $('whisperSize').value = settings.whisper;
+      $('whisperLanguage').value = settings.whisperLanguage;
+      asrLanguageDraft = settings.language;
+      renderASROptions();
+      showView('asrView');
+    });
+    document.querySelectorAll('input[name="asrModel"]').forEach(input => input.addEventListener('change', renderASROptions));
+    $('appleLanguage').addEventListener('change', () => {
+      cancelLanguageDownload();
+      asrLanguageDraft = $('appleLanguage').value;
+      renderLanguageDownload();
+    });
+    $('whisperSize').addEventListener('change', renderASROptions);
+    $('whisperLanguage').addEventListener('change', renderLanguageDownload);
+    $('asrBackButton').addEventListener('click', () => { cancelLanguageDownload(); showView('settingsView'); });
+    $('saveASRButton').addEventListener('click', () => {
+      if (!downloadedSpeechResources.has(selectedSpeechResource().key)) return;
+      settings.asr = document.querySelector('input[name="asrModel"]:checked').value;
+      settings.whisper = $('whisperSize').value;
+      settings.language = asrLanguageDraft;
+      settings.whisperLanguage = $('whisperLanguage').value;
+      language = settings.asr === 'apple' ? settings.language : settings.whisperLanguage;
+      renderSettingsLabels();
+      showView('settingsView');
+      toast('转写设置已保存（演示）');
+    });
+
+    function aiMode() { return document.querySelector('input[name="aiMode"]:checked').value; }
+    function setAITestStatus(state, message) {
+      aiTestState = state;
+      $('aiTestStatus').dataset.state = state;
+      $('aiTestStatus').textContent = message;
+      $('testAIButton').disabled = state === 'testing';
+      $('testAIButton').textContent = state === 'testing' ? '正在模拟测试…' : '模拟测试连接';
+      $('saveAIButton').disabled = aiMode() === 'custom' && state !== 'success';
+    }
+    function invalidateAITest() {
+      aiTestVersion++;
+      ['aiProtocol', 'aiModelName', 'aiBaseURL', 'aiAPIKey'].forEach(id => $(id).removeAttribute('aria-invalid'));
+      setAITestStatus('idle', '原型演示，不会连接服务。修改配置后需重新模拟测试。');
+    }
+    function renderAIMode() {
+      const custom = aiMode() === 'custom';
+      $('customAIFields').hidden = !custom;
+      $('localAIInfo').hidden = custom;
+      invalidateAITest();
+    }
+    function renderAIProtocol() {
+      const protocol = aiProtocols[$('aiProtocol').value];
+      $('aiBaseURL').placeholder = protocol.example;
+      $('aiProtocolHint').textContent = `兼容 ${protocol.name}。填写服务提供的 Base URL（通常以 /v1 结尾），不含末尾 ${protocol.endpoint}。`;
+    }
+    $('aiSettingsButton').addEventListener('click', () => {
+      document.querySelectorAll('input[name="aiMode"]').forEach(input => input.checked = input.value === settings.ai.mode);
+      $('aiProtocol').value = settings.ai.protocol;
+      $('aiModelName').value = settings.ai.model;
+      $('aiBaseURL').value = settings.ai.url;
+      $('aiAPIKey').value = settings.ai.key;
+      renderAIProtocol();
+      renderAIMode();
+      if (settings.ai.mode === 'custom') setAITestStatus('success', '已保存的演示配置 · 未验证真实服务');
+      showView('aiView');
+    });
+    document.querySelectorAll('input[name="aiMode"]').forEach(input => input.addEventListener('change', renderAIMode));
+    $('aiProtocol').addEventListener('change', () => { renderAIProtocol(); invalidateAITest(); });
+    ['aiModelName', 'aiBaseURL', 'aiAPIKey'].forEach(id => $(id).addEventListener('input', invalidateAITest));
+    $('demoTestResult').addEventListener('change', invalidateAITest);
+    function validateAI() {
+      const values = { mode: 'custom', protocol: $('aiProtocol').value, model: $('aiModelName').value.trim(), url: $('aiBaseURL').value.trim().replace(/\/+$/, ''), key: $('aiAPIKey').value.trim() };
+      function fail(id, message) {
+        $(id).setAttribute('aria-invalid', 'true');
+        setAITestStatus('error', message);
+        $(id).focus();
+        return null;
+      }
+      if (!Object.hasOwn(aiProtocols, values.protocol)) return fail('aiProtocol', '请选择 API 接口协议。');
+      if (!values.model) return fail('aiModelName', '请填写服务提供的模型名称。');
+      let url;
+      try { url = new URL(values.url); } catch { return fail('aiBaseURL', `请填写完整地址，例如 ${aiProtocols[values.protocol].example}。`); }
+      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+      if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) return fail('aiBaseURL', '请使用 HTTPS 地址；本机 localhost 可以使用 HTTP。');
+      if (url.username || url.password || url.search || url.hash) return fail('aiBaseURL', '地址中请勿包含账号、Key、查询参数或锚点。');
+      const endpoint = url.pathname.match(/\/(chat\/completions|messages)\/?$/i);
+      if (endpoint) return fail('aiBaseURL', `请填写 Base URL，去掉末尾的 ${endpoint[0]}。`);
+      if (!values.key) return fail('aiAPIKey', '请填写 API Key；原型请使用虚构内容。');
+      return values;
+    }
+    $('testAIButton').addEventListener('click', () => {
+      invalidateAITest();
+      if (!validateAI()) return;
+      const version = aiTestVersion;
+      const outcome = $('demoTestResult').value;
+      const protocolName = aiProtocols[$('aiProtocol').value].label;
+      setAITestStatus('testing', `正在演示 ${protocolName} 连接测试，请稍候…`);
+      setTimeout(() => {
+        if (version !== aiTestVersion || aiMode() !== 'custom') return;
+        if (outcome === 'auth') setAITestStatus('error', '模拟失败：API Key 无效，请检查后重试。');
+        else if (outcome === 'network') setAITestStatus('error', '模拟失败：无法连接服务，请检查地址后重试。');
+        else setAITestStatus('success', `${protocolName} 模拟测试通过，可以保存。未连接真实服务。`);
+      }, 900);
+    });
+    $('saveAIButton').addEventListener('click', () => {
+      if (aiMode() === 'custom') {
+        if (aiTestState !== 'success') return;
+        const values = validateAI();
+        if (!values) return;
+        settings.ai = values;
+      } else settings.ai = { ...settings.ai, mode: 'local' };
+      renderSettingsLabels();
+      showView('settingsView');
+      toast('AI 配置已保存（演示）');
+    });
+    $('aiBackButton').addEventListener('click', () => { invalidateAITest(); showView('settingsView'); });
+    applyAppearance();
+    renderWatchStatus();
+    renderSettingsLabels();
+    $('importButton').addEventListener('click', () => $('audioInput').click());
+    $('audioInput').addEventListener('change', event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      notes.unshift({ id: Date.now(), title: file.name.replace(/\.[^.]+$/, ''), kind: '导入录音', date: '刚刚', seconds: 0, transcript: '', summary: '', state: 'pending' });
+      event.target.value = '';
+      renderList();
+      showView('listView');
+      toast('已加入界面演示列表');
+    });
+    renderList();
+  </script>
+</body>
+</html>

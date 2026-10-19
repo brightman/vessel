@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "checks": [
+    "untested config cannot save",
+    "real URLSession connection test passed",
+    "configuration reload",
+    "iOS Keychain write and read",
+    "configured model result persisted on note",
+    "summary ready state",
+    "authentication error shown",
+    "failed draft does not replace saved model",
+    "switch back to local",
+    "local route finished"
+  ],
+  "request_contract_passed": true
+}

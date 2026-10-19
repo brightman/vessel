@@ -1,0 +1,600 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		24DFF5A699D85D2F269116A1 /* AIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DDE13B63A47A472A97957D7 /* AIConfiguration.swift */; };
+		2939EE456814DEF28FB40681 /* WatchRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187306CB83BE3AB6311E07E1 /* WatchRecorder.swift */; };
+		2B3B4513FD8E08D79991B9A9 /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0149169A6DCC209B7B90F7A6 /* RecordingFormat.swift */; };
+		30D45D1CE65495E29F3F4773 /* NoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07916B38C2C5EBF56D887FF6 /* NoteRepository.swift */; };
+		32196F9A59CA6F74443D0503 /* NotesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2517A094B4DF4EBC34C381B /* NotesModel.swift */; };
+		32C0B7EB0F82C4473ED04C19 /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC93A6E194B4549DD741CE9C /* AudioPlayback.swift */; };
+		3E896C9DD284A9006A0C781E /* WristNotesWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08ACE602FDBBDC15FAB983DD /* WristNotesWatchApp.swift */; };
+		521317AECFEB0F397AE0683E /* AISettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B6AB5E8E7322C7C4D85F628 /* AISettingsModel.swift */; };
+		52F83CC521D95ABED1CE1473 /* WatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F8BBC1714D613F9AD5F131 /* WatchContentView.swift */; };
+		56D963CCE1D7CFE52C4236CE /* WristNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C698619631F316073956ADFA /* WristNotesApp.swift */; };
+		5F95B556CC7EBAE795982A63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CFA8F96F4675CBB51A05572 /* Foundation.framework */; };
+		631745D2318947258FD83E75 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCD3634FDD86AF4BAC95BC4 /* NoteDetailView.swift */; };
+		64515B1F39559382722673AB /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929787990CD4A5443AF5CF46 /* OnDeviceTranscriber.swift */; };
+		6B16E0CFFE37CFC3C1A8D562 /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A755BEED4F2F918FC0671D20 /* NotesListView.swift */; };
+		6BA65C644773FD36F35F174C /* NotesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDBEA4471C18937107C4A4F2 /* NotesStyle.swift */; };
+		752A0D03D89C45CBE76CD761 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2D3A8580CC45C5A0426B12D /* Foundation.framework */; };
+		756820EA43F0A3143C5692FD /* SettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE014681079C684E29CE0ED6 /* SettingsViews.swift */; };
+		78EC71309AC2EC418D89E3D0 /* KeychainSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9298ADC401EC624533D4031B /* KeychainSecretStore.swift */; };
+		7C57901FA07FA0623C76172F /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B57FB64B2E52274F169BE57 /* AppSettings.swift */; };
+		819475AACB7945E95B6201EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CBE9A040B56DA5C644C7C0EE /* Assets.xcassets */; };
+		8D6CD318249D146138B74D2F /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0149169A6DCC209B7B90F7A6 /* RecordingFormat.swift */; };
+		9618311994A52D1267094D8D /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 591FED077EC6ADC07721D40D /* PhoneConnectivity.swift */; };
+		A37C7C31240997FB78DBA533 /* OnDeviceSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8678943813A25AC37E5ED8 /* OnDeviceSummarizer.swift */; };
+		C069E767395C9043E8DE30E2 /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AF5D5D9EFF5E5071603D62 /* VoiceNote.swift */; };
+		CEFF4413F0BDAB0EC573E6CB /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AF5D5D9EFF5E5071603D62 /* VoiceNote.swift */; };
+		DB01D3B26239BBB64412399E /* CustomAISummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57483AE6875C3E3DBDDEBAE /* CustomAISummarizer.swift */; };
+		DD7E49A725872B7FBF98E0A0 /* WatchConnectivityStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BCA9B9F29E43FC1991E0312 /* WatchConnectivityStatus.swift */; };
+		E5FC595FEEC6E30FCD2B209B /* PhoneWatchStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A54123E5105E0CC57FFACB /* PhoneWatchStatus.swift */; };
+		F09809FAFEF9C7768BDD482D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 921F5E7D76A93B2D723C0618 /* Assets.xcassets */; };
+		FCB357A11D8C637DE4550075 /* WristNotesWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 62FA8A072CDDE76BC8E803F5 /* WristNotesWatch.app */; };
+		FFC97CF2C5F683F8B98885A9 /* RecordingButtonInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECADAA6B929CE71498816B27 /* RecordingButtonInteraction.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0CE28F34A6DEBCCAAB5E1085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1CDBC835C21D78A256CF6D45 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2DC5EDD05F03B80DAB8267AA;
+			remoteInfo = WristNotesWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CC355545C17116BD85BB5090 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Watch;
+			dstSubfolderSpec = 1;
+			files = (
+				FCB357A11D8C637DE4550075 /* WristNotesWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0149169A6DCC209B7B90F7A6 /* RecordingFormat.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingFormat.swift; sourceTree = "<group>"; };
+		07916B38C2C5EBF56D887FF6 /* NoteRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteRepository.swift; sourceTree = "<group>"; };
+		08ACE602FDBBDC15FAB983DD /* WristNotesWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesWatchApp.swift; sourceTree = "<group>"; };
+		0B8678943813A25AC37E5ED8 /* OnDeviceSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceSummarizer.swift; sourceTree = "<group>"; };
+		0CFA8F96F4675CBB51A05572 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		187306CB83BE3AB6311E07E1 /* WatchRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
+		22AF5D5D9EFF5E5071603D62 /* VoiceNote.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
+		2B57FB64B2E52274F169BE57 /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		2DDE13B63A47A472A97957D7 /* AIConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIConfiguration.swift; sourceTree = "<group>"; };
+		4FCD3634FDD86AF4BAC95BC4 /* NoteDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		529FE1D488EC52584F760EE6 /* WristNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		546AC6C0038CB08DDC39DD94 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		591FED077EC6ADC07721D40D /* PhoneConnectivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneConnectivity.swift; sourceTree = "<group>"; };
+		62FA8A072CDDE76BC8E803F5 /* WristNotesWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotesWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B6AB5E8E7322C7C4D85F628 /* AISettingsModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AISettingsModel.swift; sourceTree = "<group>"; };
+		80F8BBC1714D613F9AD5F131 /* WatchContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
+		8BCA9B9F29E43FC1991E0312 /* WatchConnectivityStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchConnectivityStatus.swift; sourceTree = "<group>"; };
+		921F5E7D76A93B2D723C0618 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		929787990CD4A5443AF5CF46 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
+		9298ADC401EC624533D4031B /* KeychainSecretStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainSecretStore.swift; sourceTree = "<group>"; };
+		A2517A094B4DF4EBC34C381B /* NotesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesModel.swift; sourceTree = "<group>"; };
+		A755BEED4F2F918FC0671D20 /* NotesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
+		C698619631F316073956ADFA /* WristNotesApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesApp.swift; sourceTree = "<group>"; };
+		CBE9A040B56DA5C644C7C0EE /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DE014681079C684E29CE0ED6 /* SettingsViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViews.swift; sourceTree = "<group>"; };
+		E2D3A8580CC45C5A0426B12D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		E57483AE6875C3E3DBDDEBAE /* CustomAISummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomAISummarizer.swift; sourceTree = "<group>"; };
+		E6A54123E5105E0CC57FFACB /* PhoneWatchStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneWatchStatus.swift; sourceTree = "<group>"; };
+		ECADAA6B929CE71498816B27 /* RecordingButtonInteraction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingButtonInteraction.swift; sourceTree = "<group>"; };
+		EDBEA4471C18937107C4A4F2 /* NotesStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesStyle.swift; sourceTree = "<group>"; };
+		FC93A6E194B4549DD741CE9C /* AudioPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioPlayback.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		76E17A8F92DC29A9241EF704 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				752A0D03D89C45CBE76CD761 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF653442275886334396B670 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5F95B556CC7EBAE795982A63 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		364236067458AA833FBBC266 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				E2D3A8580CC45C5A0426B12D /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		3BF587173728EBF1A4745133 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				0CFA8F96F4675CBB51A05572 /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
+		5297722DB5B5BEE5F8009108 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				8CE5930420C5F4A37E22202A /* Shared */,
+				6F39BC79953E2E2DEC2ED039 /* iPhone */,
+				66DBA087262C4E5AF6D8FD09 /* Watch */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		66DBA087262C4E5AF6D8FD09 /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				08ACE602FDBBDC15FAB983DD /* WristNotesWatchApp.swift */,
+				80F8BBC1714D613F9AD5F131 /* WatchContentView.swift */,
+				187306CB83BE3AB6311E07E1 /* WatchRecorder.swift */,
+				8BCA9B9F29E43FC1991E0312 /* WatchConnectivityStatus.swift */,
+				ECADAA6B929CE71498816B27 /* RecordingButtonInteraction.swift */,
+				921F5E7D76A93B2D723C0618 /* Assets.xcassets */,
+			);
+			path = Watch;
+			sourceTree = "<group>";
+		};
+		6F39BC79953E2E2DEC2ED039 /* iPhone */ = {
+			isa = PBXGroup;
+			children = (
+				C698619631F316073956ADFA /* WristNotesApp.swift */,
+				A755BEED4F2F918FC0671D20 /* NotesListView.swift */,
+				4FCD3634FDD86AF4BAC95BC4 /* NoteDetailView.swift */,
+				A2517A094B4DF4EBC34C381B /* NotesModel.swift */,
+				07916B38C2C5EBF56D887FF6 /* NoteRepository.swift */,
+				591FED077EC6ADC07721D40D /* PhoneConnectivity.swift */,
+				929787990CD4A5443AF5CF46 /* OnDeviceTranscriber.swift */,
+				0B8678943813A25AC37E5ED8 /* OnDeviceSummarizer.swift */,
+				EDBEA4471C18937107C4A4F2 /* NotesStyle.swift */,
+				FC93A6E194B4549DD741CE9C /* AudioPlayback.swift */,
+				CBE9A040B56DA5C644C7C0EE /* Assets.xcassets */,
+				2DDE13B63A47A472A97957D7 /* AIConfiguration.swift */,
+				2B57FB64B2E52274F169BE57 /* AppSettings.swift */,
+				9298ADC401EC624533D4031B /* KeychainSecretStore.swift */,
+				E57483AE6875C3E3DBDDEBAE /* CustomAISummarizer.swift */,
+				6B6AB5E8E7322C7C4D85F628 /* AISettingsModel.swift */,
+				E6A54123E5105E0CC57FFACB /* PhoneWatchStatus.swift */,
+				DE014681079C684E29CE0ED6 /* SettingsViews.swift */,
+				546AC6C0038CB08DDC39DD94 /* Info.plist */,
+			);
+			path = iPhone;
+			sourceTree = "<group>";
+		};
+		8CE5930420C5F4A37E22202A /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				22AF5D5D9EFF5E5071603D62 /* VoiceNote.swift */,
+				0149169A6DCC209B7B90F7A6 /* RecordingFormat.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		8F1D559746CF7DE95F0E59B8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				529FE1D488EC52584F760EE6 /* WristNotes.app */,
+				62FA8A072CDDE76BC8E803F5 /* WristNotesWatch.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CED6A00817324BF8455B7C78 = {
+			isa = PBXGroup;
+			children = (
+				8F1D559746CF7DE95F0E59B8 /* Products */,
+				E10D756DE5BE0548E8D43E4B /* Frameworks */,
+				5297722DB5B5BEE5F8009108 /* Sources */,
+			);
+			sourceTree = "<group>";
+		};
+		E10D756DE5BE0548E8D43E4B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				364236067458AA833FBBC266 /* iOS */,
+				3BF587173728EBF1A4745133 /* watchOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		267F6994BC04456F2FD08077 /* WristNotes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 07DC5B682DB53D23D27CF795 /* Build configuration list for PBXNativeTarget "WristNotes" */;
+			buildPhases = (
+				4B3049ECAF2DFC55BD7F6B77 /* Sources */,
+				76E17A8F92DC29A9241EF704 /* Frameworks */,
+				B4F603728A6B5B37DD017484 /* Resources */,
+				CC355545C17116BD85BB5090 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A82A222B196D58E615365CD2 /* PBXTargetDependency */,
+			);
+			name = WristNotes;
+			productName = WristNotes;
+			productReference = 529FE1D488EC52584F760EE6 /* WristNotes.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2DC5EDD05F03B80DAB8267AA /* WristNotesWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 86AD44E43091C569AF0409CA /* Build configuration list for PBXNativeTarget "WristNotesWatch" */;
+			buildPhases = (
+				1A668C99A6BEE801D46459C4 /* Sources */,
+				CF653442275886334396B670 /* Frameworks */,
+				63627DC2796E567592EDED0F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WristNotesWatch;
+			productName = WristNotesWatch;
+			productReference = 62FA8A072CDDE76BC8E803F5 /* WristNotesWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1CDBC835C21D78A256CF6D45 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					267F6994BC04456F2FD08077 = {
+						DevelopmentTeam = 2CT372648C;
+						ProvisioningStyle = Automatic;
+					};
+					2DC5EDD05F03B80DAB8267AA = {
+						DevelopmentTeam = 2CT372648C;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 7E6AEE40D4E8D6A6E4626AE0 /* Build configuration list for PBXProject "WristNotes" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CED6A00817324BF8455B7C78;
+			productRefGroup = 8F1D559746CF7DE95F0E59B8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				267F6994BC04456F2FD08077 /* WristNotes */,
+				2DC5EDD05F03B80DAB8267AA /* WristNotesWatch */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		63627DC2796E567592EDED0F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F09809FAFEF9C7768BDD482D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B4F603728A6B5B37DD017484 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				819475AACB7945E95B6201EA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A668C99A6BEE801D46459C4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CEFF4413F0BDAB0EC573E6CB /* VoiceNote.swift in Sources */,
+				8D6CD318249D146138B74D2F /* RecordingFormat.swift in Sources */,
+				3E896C9DD284A9006A0C781E /* WristNotesWatchApp.swift in Sources */,
+				52F83CC521D95ABED1CE1473 /* WatchContentView.swift in Sources */,
+				2939EE456814DEF28FB40681 /* WatchRecorder.swift in Sources */,
+				DD7E49A725872B7FBF98E0A0 /* WatchConnectivityStatus.swift in Sources */,
+				FFC97CF2C5F683F8B98885A9 /* RecordingButtonInteraction.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B3049ECAF2DFC55BD7F6B77 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C069E767395C9043E8DE30E2 /* VoiceNote.swift in Sources */,
+				2B3B4513FD8E08D79991B9A9 /* RecordingFormat.swift in Sources */,
+				56D963CCE1D7CFE52C4236CE /* WristNotesApp.swift in Sources */,
+				6B16E0CFFE37CFC3C1A8D562 /* NotesListView.swift in Sources */,
+				631745D2318947258FD83E75 /* NoteDetailView.swift in Sources */,
+				32196F9A59CA6F74443D0503 /* NotesModel.swift in Sources */,
+				30D45D1CE65495E29F3F4773 /* NoteRepository.swift in Sources */,
+				9618311994A52D1267094D8D /* PhoneConnectivity.swift in Sources */,
+				64515B1F39559382722673AB /* OnDeviceTranscriber.swift in Sources */,
+				A37C7C31240997FB78DBA533 /* OnDeviceSummarizer.swift in Sources */,
+				6BA65C644773FD36F35F174C /* NotesStyle.swift in Sources */,
+				32C0B7EB0F82C4473ED04C19 /* AudioPlayback.swift in Sources */,
+				24DFF5A699D85D2F269116A1 /* AIConfiguration.swift in Sources */,
+				7C57901FA07FA0623C76172F /* AppSettings.swift in Sources */,
+				78EC71309AC2EC418D89E3D0 /* KeychainSecretStore.swift in Sources */,
+				DB01D3B26239BBB64412399E /* CustomAISummarizer.swift in Sources */,
+				521317AECFEB0F397AE0683E /* AISettingsModel.swift in Sources */,
+				E5FC595FEEC6E30FCD2B209B /* PhoneWatchStatus.swift in Sources */,
+				756820EA43F0A3143C5692FD /* SettingsViews.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A82A222B196D58E615365CD2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = WristNotesWatch;
+			target = 2DC5EDD05F03B80DAB8267AA /* WristNotesWatch */;
+			targetProxy = 0CE28F34A6DEBCCAAB5E1085 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1334B65A821920E4331B8EAF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2CT372648C;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Watch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		188441860B4EBCDF1B02E723 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2CT372648C;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Watch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		2873089C2299047DC81158EE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		2F8FE1CD10DAC32502FAEA21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2CT372648C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/iPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "语音笔记";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6A0EE7E94F842732AF36E9D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F33AE019C3A20BDCD1E83412 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2CT372648C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/iPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "语音笔记";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		07DC5B682DB53D23D27CF795 /* Build configuration list for PBXNativeTarget "WristNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2F8FE1CD10DAC32502FAEA21 /* Release */,
+				F33AE019C3A20BDCD1E83412 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7E6AEE40D4E8D6A6E4626AE0 /* Build configuration list for PBXProject "WristNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2873089C2299047DC81158EE /* Debug */,
+				6A0EE7E94F842732AF36E9D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		86AD44E43091C569AF0409CA /* Build configuration list for PBXNativeTarget "WristNotesWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				188441860B4EBCDF1B02E723 /* Release */,
+				1334B65A821920E4331B8EAF /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1CDBC835C21D78A256CF6D45 /* Project object */;
+}

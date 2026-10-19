@@ -1,0 +1,25 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local Xcode state and build products
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+*.xcarchive
+*.ipa
+*.dSYM/
+
+# Signing credentials
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+
+# Python helper caches
+__pycache__/
+*.pyc
+.venv/
