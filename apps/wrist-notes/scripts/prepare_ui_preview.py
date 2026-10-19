@@ -9,8 +9,8 @@ import tempfile
 
 source = Path(__file__).resolve().parents[1]
 root = Path(tempfile.mkdtemp(prefix="wristnotes-ui-preview-"))
-for name in ("Sources", "WristNotes.xcodeproj"):
-    shutil.copytree(source / name, root / name, ignore=shutil.ignore_patterns("xcuserdata"))
+for name in ("Sources", "WristNotes.xcodeproj", "Packages"):
+    shutil.copytree(source / name, root / name, ignore=shutil.ignore_patterns("xcuserdata", ".build", ".swiftpm"))
 project = root / "WristNotes.xcodeproj/project.pbxproj"
 project.write_text(project.read_text().replace("com.vessel.wristnotes", "com.vessel.wristnotes.preview"))
 info = root / "Sources/Watch/Info.plist"
@@ -35,7 +35,12 @@ settings_view.write_text(settings_view.read_text().replace(
 detail = root / "Sources/iPhone/NoteDetailView.swift"
 detail.write_text(detail.read_text().replace(
     "@State private var selectedTab: DetailTab = .summary",
-    '@State private var selectedTab: DetailTab = ProcessInfo.processInfo.environment["WN_PREVIEW_SCREEN"] == "transcript" ? .transcript : .summary'))
+    '@State private var selectedTab: DetailTab = ProcessInfo.processInfo.environment["WN_PREVIEW_SCREEN"] == "transcript" ? .transcript : (ProcessInfo.processInfo.environment["WN_PREVIEW_SCREEN"] == "analysis" ? .analysis : .summary)'))
+# Synthetic health data is restricted to this disposable copy. Never query the user's Health store in previews.
+preview_model = root / "Sources/iPhone/NotesModel.swift"
+preview_model.write_text(preview_model.read_text().replace(
+    'func refreshHeartRate(_ id: UUID) async {',
+    'func refreshHeartRate(_ id: UUID) async {\n        if ProcessInfo.processInfo.environment["WN_PREVIEW_HEART"] == "1" { return }'))
 (root / "Sources/iPhone/WristNotesApp.swift").write_text('''import SwiftUI
 import AVFAudio
 @main
@@ -58,6 +63,54 @@ struct WristNotesApp: App {
             notes.append(note)
         }
         try! JSONEncoder().encode(notes).write(to: root.appendingPathComponent("notes.json"))
+        if ProcessInfo.processInfo.environment["WN_PREVIEW_HEART"] == "1" {
+            let note = notes[0]
+            var timeline = NoteTimeline()
+            timeline.segmentTranscript = note.transcript
+            let offsets: [Double] = [5, 20, 40, 65]
+            let rates: [Double] = [70, 85, 75, 98]
+            timeline.points = zip(offsets, rates).map { offset, bpm -> HeartRatePoint in
+                let context: Int? = offset == 5 ? 1 : (offset == 20 ? 2 : nil)
+                return HeartRatePoint(id: UUID(), start: note.capturedAt.addingTimeInterval(offset),
+                    end: note.capturedAt.addingTimeInterval(offset + 1), bpm: bpm,
+                    sourceName: "Apple Watch（模拟数据）", sourceBundle: "fixture.watch", productType: "Watch7,18", deviceName: "Fixture",
+                    motionContext: context)
+            }
+            timeline.segments = [TranscriptSegment(start: 6, end: 18, text: "周五前确认预算。"),
+                TranscriptSegment(start: 25, end: 35, text: "第一版先验证录音同步。"),
+                TranscriptSegment(start: 45, end: 60, text: "下周复盘测试结果。")]
+            timeline.refreshedAt = .now
+            timeline.hrvPoints = [(-10.0, 18.0, 32.5), (22.0, 38.0, 41.0), (42.0, 90.0, 45.5)].map { lower, upper, value in
+                HRVPoint(id: UUID(), start: note.capturedAt.addingTimeInterval(lower), end: note.capturedAt.addingTimeInterval(upper),
+                    sdnnMilliseconds: value, sourceName: "Apple Watch（模拟数据）", sourceBundle: "fixture.watch", productType: "Watch7,18", deviceName: "Fixture")
+            }
+            timeline.hrvRefreshedAt = .now
+            let day = Calendar.current.dateInterval(of: .day, for: note.capturedAt)!
+            timeline.statesOfMind = [StateOfMindPoint(id: UUID(), date: note.capturedAt.addingTimeInterval(12),
+                kind: .momentaryEmotion, valence: -0.3, classification: 3, labels: [29], associations: [17],
+                sourceName: "Health（模拟数据）", sourceBundle: "fixture.health"),
+                StateOfMindPoint(id: UUID(), date: note.capturedAt.addingTimeInterval(30),
+                kind: .dailyMood, valence: 0, classification: 4, labels: [], associations: [],
+                sourceName: "Health（模拟数据）", sourceBundle: "fixture.health", dayStart: day.start, dayEnd: day.end,
+                timeZoneIdentifier: Calendar.current.timeZone.identifier)]
+            timeline.stateOfMindRefreshedAt = .now
+            if ProcessInfo.processInfo.environment["WN_PREVIEW_SPEAKERS"] == "1" {
+                var speakerNote = note
+                speakerNote.transcript = timeline.segments.map { $0.text }.joined()
+                notes[0] = speakerNote
+                try! JSONEncoder().encode(notes).write(to: root.appendingPathComponent("notes.json"))
+                timeline.segmentTranscript = speakerNote.transcript
+                timeline.words = timeline.segments
+                timeline.diarization = SpeakerDiarization.aligned(turns: [
+                    SpeakerTurn(start: 0, end: 20, speakerID: "fixture-a"),
+                    SpeakerTurn(start: 20, end: 40, speakerID: "fixture-b"),
+                    SpeakerTurn(start: 40, end: 74, speakerID: "fixture-a")], words: timeline.words,
+                    note: speakerNote, model: "合成预览（不代表模型效果）")
+                timeline.analysis = MeetingAnalysis(text: "旧的合成报告", model: "fixture", generatedAt: .now,
+                    inputRevision: timeline.revision, transcript: speakerNote.transcript, summary: speakerNote.summary)
+            }
+            try! NoteTimelineStore(root: root).save(timeline, id: note.id)
+        }
         // Silent PCM provides a real playable file; no microphone or user recording is used.
         let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
         let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16000)!
@@ -65,7 +118,11 @@ struct WristNotesApp: App {
         let destination = root.appendingPathComponent("Audio/\\(Self.sampleID.uuidString).m4a")
         let audio = try! AVAudioFile(forWriting: destination, settings: [AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1])
         for _ in 0..<74 { try! audio.write(from: buffer) }
-        let model = NotesModel()
+        let model = ProcessInfo.processInfo.environment["WN_MEETING_TEST_BASE_URL"] == nil
+            ? NotesModel() : NotesModel(settings: AppSettings(secrets: MeetingPreviewSecretStore()))
+        model.settings.heartRateEnabled = ProcessInfo.processInfo.environment["WN_PREVIEW_HEART"] == "1"
+        model.settings.hrvEnabled = ProcessInfo.processInfo.environment["WN_PREVIEW_HEART"] == "1"
+        model.settings.stateOfMindEnabled = ProcessInfo.processInfo.environment["WN_PREVIEW_HEART"] == "1"
         model.settings.appearance = ProcessInfo.processInfo.environment["WN_PREVIEW_THEME"] == "light" ? .light : .dark
         _model = StateObject(wrappedValue: model)
     }
@@ -91,6 +148,12 @@ struct WristNotesApp: App {
                 if ProcessInfo.processInfo.environment["WN_TEST_BASE_URL"] != nil {
                     await AIIntegrationPreview.run(model: model, noteID: Self.sampleID)
                 }
+                if ProcessInfo.processInfo.environment["WN_MEETING_TEST_BASE_URL"] != nil {
+                    await MeetingIntegrationPreview.run(model: model, noteID: Self.sampleID)
+                }
+                if ProcessInfo.processInfo.environment["WN_SPEAKER_TEST"] == "1" {
+                    await SpeakerIntegrationPreview.run(model: model, noteID: Self.sampleID)
+                }
             }
         }
     }
@@ -98,4 +161,6 @@ struct WristNotesApp: App {
 ''')
 with (root / "Sources/iPhone/WristNotesApp.swift").open("a") as app:
     app.write((source / "Tests/AIIntegrationPreview.swift").read_text())
+    app.write((source / "Tests/MeetingIntegrationPreview.swift").read_text())
+    app.write((source / "Tests/SpeakerIntegrationPreview.swift").read_text())
 print(json.dumps({"project": str(project.parent), "root": str(root)}))

@@ -20,6 +20,8 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
     private var startedAt: Date?
+    private var startUptime: TimeInterval?
+    private var interruptionObserver: NSObjectProtocol?
     private var currentID: UUID?
     private var currentKind: RecordingKind?
     private var queuedIDs: Set<UUID> = []
@@ -32,6 +34,15 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             .appendingPathComponent("Recordings", isDirectory: true)
         indexURL = directory.appendingPathComponent("pending.json")
         super.init()
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let value = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  AVAudioSession.InterruptionType(rawValue: value) == .began,
+                  self?.isRecording == true else { return }
+            self?.stop()
+            self?.message = "录音被系统中断，已保存现有内容"
+        }
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             if FileManager.default.fileExists(atPath: indexURL.path) {
@@ -76,9 +87,18 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 
     func stop() {
         guard isRecording, let id = currentID, let kind = currentKind, let startedAt else { return }
-        let duration = recorder?.currentTime ?? Date().timeIntervalSince(startedAt)
+        var duration = recorder?.currentTime ?? elapsed
+        let endedAt = Date()
+        let endUptime = ProcessInfo.processInfo.systemUptime
+        let fileURL = recorder?.url
         recorder?.delegate = nil
         recorder?.stop()
+        // currentTime may reset after an interruption; the finalized file owns the actual audio length.
+        if let fileURL, let file = try? AVAudioFile(forReading: fileURL), file.processingFormat.sampleRate > 0 {
+            duration = Double(file.length) / file.processingFormat.sampleRate
+        }
+        let clock = startUptime.map { RecordingClock(startedAt: startedAt, endedAt: endedAt,
+            startUptime: $0, endUptime: endUptime, audioDuration: duration) }
         recorder = nil
         timer?.invalidate()
         timer = nil
@@ -87,9 +107,11 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         currentID = nil
         currentKind = nil
         self.startedAt = nil
+        startUptime = nil
         thoughtPressActive = false
         WKInterfaceDevice.current().play(.stop)
-        let item = PendingRecording(id: id, kind: kind, capturedAt: startedAt, duration: duration)
+        var item = PendingRecording(id: id, kind: kind, capturedAt: startedAt, duration: duration)
+        item.recordingClock = clock
         pending.append(item)
         do {
             try persistPending()
@@ -133,6 +155,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         currentID = nil
         currentKind = nil
         startedAt = nil
+        startUptime = nil
         if let file { try? FileManager.default.removeItem(at: file) }
         WKInterfaceDevice.current().play(.failure)
         message = "已取消闪念"
@@ -170,13 +193,16 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             recorder = active
             currentID = id
             currentKind = kind
-            startedAt = .now
+            // Anchor audio zero to wall time, checked against monotonic elapsed time at stop.
+            let audioOffset = active.currentTime
+            startedAt = Date().addingTimeInterval(-audioOffset)
+            startUptime = ProcessInfo.processInfo.systemUptime - audioOffset
             isRecording = true
             WKInterfaceDevice.current().play(.start)
             message = nil
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-                guard let self, let startedAt = self.startedAt else { return }
-                self.elapsed = Date().timeIntervalSince(startedAt)
+                guard let self else { return }
+                self.elapsed = self.recorder?.currentTime ?? 0
             }
         } catch { recordingError = "录音启动失败：\(error.localizedDescription)" }
     }
@@ -219,12 +245,14 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             queuedIDs.insert(item.id)
             sendSimulatorRecording(item, file: file, session: session)
 #else
-            session.transferFile(file, metadata: [
+            var metadata: [String: Any] = [
                 "id": item.id.uuidString,
                 "kind": item.kind.rawValue,
                 "capturedAt": item.capturedAt,
                 "duration": item.duration
-            ])
+            ]
+            if let clock = item.recordingClock { metadata["recordingClock"] = try? JSONEncoder().encode(clock) }
+            session.transferFile(file, metadata: metadata)
             queuedIDs.insert(item.id)
             logger.notice("Queued recording file \(item.id.uuidString, privacy: .public)")
 #endif
@@ -240,7 +268,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             guard !chunks.isEmpty else { throw SimulatorTransferError.emptyFile }
 
             func sendChunk(_ index: Int) {
-                let message: [String: Any] = [
+                var message: [String: Any] = [
                     "type": "simulator-audio-chunk",
                     "id": item.id.uuidString,
                     "kind": item.kind.rawValue,
@@ -250,6 +278,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                     "chunkCount": chunks.count,
                     "audioChunk": chunks[index]
                 ]
+                if let clock = item.recordingClock { message["recordingClock"] = try? JSONEncoder().encode(clock) }
                 session.sendMessage(message, replyHandler: { [weak self] reply in
                     guard reply["accepted"] as? Bool == true else {
                         self?.finishSimulatorTransfer(item.id, error: SimulatorTransferError.rejected)
@@ -330,8 +359,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     }
 
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        if isRecording { stop() }
+        DispatchQueue.main.async { [weak self] in if self?.isRecording == true { self?.stop() } }
     }
+
+    deinit { if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) } }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         guard let raw = userInfo["ack"] as? String, let id = UUID(uuidString: raw) else { return }

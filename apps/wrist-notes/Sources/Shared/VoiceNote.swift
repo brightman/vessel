@@ -72,6 +72,8 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var transcriptionState: ProcessingState
     var summaryState: ProcessingState
     var processingMessage: String?
+    // Absent for imported audio and older/recovered recordings: their dates cannot be trusted for health alignment.
+    var recordingClock: RecordingClock?
 
     init(id: UUID, kind: RecordingKind, capturedAt: Date, duration: TimeInterval) {
         self.id = id
@@ -98,5 +100,23 @@ struct VoiceNote: Codable, Identifiable, Equatable {
         if transcriptionState != .running {
             transcriptionState = transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .pending : .ready
         }
+    }
+}
+
+struct RecordingClock: Codable, Equatable {
+    let startedAt: Date
+    let endedAt: Date
+    let startUptime: TimeInterval
+    let endUptime: TimeInterval
+    let audioDuration: TimeInterval
+
+    func canAlign(capturedAt: Date, duration: TimeInterval) -> Bool {
+        let wall = endedAt.timeIntervalSince(startedAt)
+        let monotonic = endUptime - startUptime
+        return [wall, monotonic, audioDuration, duration, startUptime, endUptime].allSatisfy(\.isFinite)
+            && duration > 0 && monotonic >= 0
+            && abs(startedAt.timeIntervalSince(capturedAt)) < 0.1
+            && abs(audioDuration - duration) < 0.1
+            && abs(wall - monotonic) < 2 && abs(monotonic - duration) < 2
     }
 }

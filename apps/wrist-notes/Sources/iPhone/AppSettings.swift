@@ -3,6 +3,18 @@ import Foundation
 
 @MainActor
 final class AppSettings: ObservableObject {
+    @Published var speakerDiarizationEnabled: Bool {
+        didSet { defaults.set(speakerDiarizationEnabled, forKey: "speakerDiarizationEnabled") }
+    }
+    @Published var stateOfMindEnabled: Bool {
+        didSet { defaults.set(stateOfMindEnabled, forKey: "stateOfMindEnabled") }
+    }
+    @Published var hrvEnabled: Bool {
+        didSet { defaults.set(hrvEnabled, forKey: "hrvEnabled") }
+    }
+    @Published var heartRateEnabled: Bool {
+        didSet { defaults.set(heartRateEnabled, forKey: "heartRateEnabled") }
+    }
     @Published var appearance: AppAppearance {
         didSet { defaults.set(appearance.rawValue, forKey: "appearance") }
     }
@@ -16,6 +28,10 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard, secrets: any SecretStore = KeychainSecretStore()) {
         self.defaults = defaults
         self.secrets = secrets
+        speakerDiarizationEnabled = defaults.bool(forKey: "speakerDiarizationEnabled")
+        stateOfMindEnabled = defaults.bool(forKey: "stateOfMindEnabled")
+        hrvEnabled = defaults.bool(forKey: "hrvEnabled")
+        heartRateEnabled = defaults.bool(forKey: "heartRateEnabled")
         appearance = AppAppearance(rawValue: defaults.string(forKey: "appearance") ?? "") ?? .dark
         localeIdentifier = defaults.string(forKey: "transcriptionLocale") ?? "zh-CN"
         ai = defaults.data(forKey: "aiConfiguration").flatMap { try? JSONDecoder().decode(AIConfiguration.self, from: $0) } ?? AIConfiguration()

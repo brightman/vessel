@@ -10,11 +10,13 @@ struct NoteDetailView: View {
     @State private var initialized = false
     @State private var selectedTab: DetailTab = .summary
     @State private var savedNotice = false
+    @State private var editingTranscript = false
     @StateObject private var playback = AudioPlayback()
 
     private enum DetailTab: String, CaseIterable {
         case summary = "总结"
         case transcript = "全文"
+        case analysis = "综合分析"
     }
 
     var body: some View {
@@ -33,10 +35,12 @@ struct NoteDetailView: View {
                                     .font(.system(size: 13)).foregroundStyle(Color.secondary)
                             }
                             playerCard.padding(.top, 29)
+                            HeartRateTimelineView(note: note, playback: playback).padding(.top, 16)
                             tabs.padding(.top, 25)
                             Group {
                                 if selectedTab == .summary { summaryPanel(note) }
-                                else { transcriptPanel(note) }
+                                else if selectedTab == .transcript { transcriptPanel(note) }
+                                else { MeetingAnalysisView(note: note, playback: playback) }
                             }
                             .padding(.top, 20)
                         }
@@ -53,6 +57,7 @@ struct NoteDetailView: View {
                         initialized = true
                     }
                     await playback.load(model.audioURL(id), fallbackDuration: note.duration)
+                    await model.openTimeline(id)
                 }
                 .onChange(of: note.transcript) { oldValue, newValue in
                     if transcript == oldValue { transcript = newValue }
@@ -103,6 +108,9 @@ struct NoteDetailView: View {
                 Text(RecordingFormat.duration(playback.duration))
             }
             .font(.system(size: 11).monospacedDigit()).foregroundStyle(Color.secondary)
+            Slider(value: Binding(get: { playback.position }, set: { playback.seek(to: $0) }),
+                   in: 0...max(playback.duration, 0.01))
+                .accessibilityLabel("录音播放位置")
             Button { playback.toggle() } label: {
                 Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 25)).foregroundStyle(.white)
@@ -175,7 +183,7 @@ struct NoteDetailView: View {
     private func transcriptPanel(_ note: VoiceNote) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("可编辑的转写文本").foregroundStyle(Color.secondary)
+                Text("转写全文").foregroundStyle(Color.secondary)
                 Spacer()
                 Button(note.transcriptionState == .running ? "转写中…" : "重新转写") {
                     save()
@@ -184,21 +192,33 @@ struct NoteDetailView: View {
                 .disabled(note.transcriptionState == .running)
             }
             .font(.system(size: 13, weight: .medium))
-            ZStack(alignment: .topLeading) {
-                if transcript.isEmpty {
-                    Text("转写完成后会出现在这里，也可以直接编辑。")
-                        .font(.system(size: 15)).foregroundStyle(.tertiary)
-                        .padding(.horizontal, 5).padding(.top, 8)
-                        .allowsHitTesting(false)
-                }
-                TextEditor(text: $transcript)
-                    .font(.system(size: 15)).lineSpacing(5)
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 172)
-                    .accessibilityLabel("转写文本")
+            Picker("全文显示", selection: $editingTranscript) {
+                Text("分段回听").tag(false)
+                Text("编辑全文").tag(true)
             }
-            .padding(10).background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(NotesStyle.border, lineWidth: 1))
+            .pickerStyle(.segmented)
+            .onChange(of: editingTranscript) { _, editing in if !editing { save() } }
+            if !editingTranscript {
+                SpeakerTranscriptView(note: note, playback: playback)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    if transcript.isEmpty {
+                        Text("转写完成后会出现在这里，也可以直接编辑。")
+                            .font(.system(size: 15)).foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5).padding(.top, 8)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $transcript)
+                        .font(.system(size: 15)).lineSpacing(5)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 172)
+                        .accessibilityLabel("转写文本")
+                }
+                .padding(10).background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
+                .overlay(RoundedRectangle(cornerRadius: 17).stroke(NotesStyle.border, lineWidth: 1))
+                Text("修改全文会清除原有时间对齐与发言人结果。重新转写会依据原始录音重建全文和时间戳。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if note.transcriptionState == .failed || note.transcriptionState == .unavailable {
                 Text(note.processingMessage ?? "转写暂不可用").font(.caption).foregroundStyle(.orange)
             }

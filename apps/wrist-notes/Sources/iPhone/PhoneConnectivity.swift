@@ -7,6 +7,7 @@ struct IncomingRecording: Codable {
     let kind: RecordingKind
     let capturedAt: Date
     let duration: TimeInterval
+    var recordingClock: RecordingClock? = nil
 }
 
 private struct SimulatorIncomingRecording {
@@ -102,7 +103,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             return
         }
 
-        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
+        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration,
+            recordingClock: (message["recordingClock"] as? Data).flatMap { try? JSONDecoder().decode(RecordingClock.self, from: $0) })
         var transfer: SimulatorIncomingRecording
         if index == 0 {
             transfer = SimulatorIncomingRecording(metadata: metadata, chunkCount: count)
@@ -110,7 +112,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                   existing.chunkCount == count,
                   existing.metadata.kind == kind,
                   existing.metadata.capturedAt == capturedAt,
-                  existing.metadata.duration == duration {
+                  existing.metadata.duration == duration,
+                  existing.metadata.recordingClock == metadata.recordingClock {
             transfer = existing
         } else {
             logger.error("Rejected out-of-order simulator audio chunk")
@@ -153,7 +156,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             logger.error("Rejected Watch file: transfer metadata is invalid")
             return
         }
-        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
+        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration,
+            recordingClock: (file.metadata?["recordingClock"] as? Data).flatMap { try? JSONDecoder().decode(RecordingClock.self, from: $0) })
         let audio = inbox.appendingPathComponent("\(id.uuidString).m4a")
         let sidecar = inbox.appendingPathComponent("\(id.uuidString).json")
         do {

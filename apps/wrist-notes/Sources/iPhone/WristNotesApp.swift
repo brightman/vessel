@@ -4,6 +4,7 @@ import UIKit
 @main
 struct WristNotesApp: App {
     @StateObject private var model = NotesModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
 #if DEBUG
@@ -16,6 +17,10 @@ struct WristNotesApp: App {
             NotesListView()
                 .environmentObject(model)
                 .environmentObject(model.settings)
+                .task { await model.refreshHeartRates() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { Task { await model.refreshHeartRates() } }
+                }
         }
     }
 }

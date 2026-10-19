@@ -1,0 +1,5 @@
+WristNotes local speaker diarization
+
+FluidAudio v0.17.7: Apache-2.0. https://github.com/FluidInference/FluidAudio/tree/v0.17.7
+
+Model assets: FluidInference/speaker-diarization-coreml at df2625ac79a7ac6b65ad868fee6d80f320da4232. Supported Community-1 artifact set under CC-BY-4.0. Attribution: pyannote (segmentation), WeSpeaker (speaker embedding), BUT Speech@FIT (VBx/PLDA), and Fluid Inference (modified Core ML conversions). The app does not modify or fine-tune the model assets. See Models-NOTICE.md, Models-README.md and Models-LICENSE for scope, source links, citations and license text. https://huggingface.co/FluidInference/speaker-diarization-coreml/tree/df2625ac79a7ac6b65ad868fee6d80f320da4232

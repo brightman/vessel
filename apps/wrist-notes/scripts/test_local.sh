@@ -5,6 +5,10 @@ output=$(mktemp -d /private/tmp/wristnotes-checks.XXXXXX)
 trap 'rm -rf "$output"' EXIT
 swiftc -module-cache-path "$output/cache" Sources/Shared/VoiceNote.swift Sources/iPhone/NoteRepository.swift Tests/NoteRepositorySmoke.swift -o "$output/store"
 "$output/store"
+swiftc -module-cache-path "$output/cache" Sources/Shared/VoiceNote.swift Sources/Shared/RecordingFormat.swift Sources/iPhone/SpeakerTimeline.swift Sources/iPhone/NoteTimeline.swift Tests/NoteTimelineSmoke.swift -o "$output/timeline"
+"$output/timeline"
+swiftc -module-cache-path "$output/cache" Sources/Shared/VoiceNote.swift Sources/Shared/RecordingFormat.swift Sources/iPhone/SpeakerTimeline.swift Tests/SpeakerTimelineSmoke.swift -o "$output/speaker"
+"$output/speaker"
 swiftc -module-cache-path "$output/cache" Sources/Shared/VoiceNote.swift Sources/Watch/WatchConnectivityStatus.swift Tests/WatchConnectivityStatusSmoke.swift -o "$output/connectivity"
 "$output/connectivity"
 swiftc -module-cache-path "$output/cache" Sources/Watch/RecordingButtonInteraction.swift Tests/RecordingButtonInteractionSmoke.swift -o "$output/gesture"

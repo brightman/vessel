@@ -6,6 +6,7 @@ struct PendingRecording: Codable, Identifiable {
     let capturedAt: Date
     let duration: TimeInterval
     var uploaded: Bool
+    var recordingClock: RecordingClock?
 
     init(id: UUID, kind: RecordingKind, capturedAt: Date, duration: TimeInterval, uploaded: Bool = false) {
         self.id = id
@@ -15,7 +16,7 @@ struct PendingRecording: Codable, Identifiable {
         self.uploaded = uploaded
     }
 
-    private enum CodingKeys: String, CodingKey { case id, kind, capturedAt, duration, uploaded }
+    private enum CodingKeys: String, CodingKey { case id, kind, capturedAt, duration, uploaded, recordingClock }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -24,6 +25,7 @@ struct PendingRecording: Codable, Identifiable {
         capturedAt = try values.decode(Date.self, forKey: .capturedAt)
         duration = try values.decode(TimeInterval.self, forKey: .duration)
         uploaded = try values.decodeIfPresent(Bool.self, forKey: .uploaded) ?? false
+        recordingClock = try values.decodeIfPresent(RecordingClock.self, forKey: .recordingClock)
     }
 }
 

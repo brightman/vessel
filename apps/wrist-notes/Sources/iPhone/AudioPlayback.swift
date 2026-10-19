@@ -37,6 +37,7 @@ final class AudioPlayback: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 player = try AVAudioPlayer(contentsOf: file)
                 player?.delegate = self
                 duration = player?.duration ?? duration
+                player?.currentTime = min(position, duration)
             }
             if position >= duration { player?.currentTime = 0; position = 0 }
             guard player?.play() == true else { error = "无法播放这段录音"; return }
@@ -59,6 +60,12 @@ final class AudioPlayback: NSObject, ObservableObject, AVAudioPlayerDelegate {
         player = nil
         isPlaying = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    func seek(to time: TimeInterval) {
+        guard time.isFinite else { return }
+        position = min(max(0, time), duration)
+        player?.currentTime = position
     }
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {

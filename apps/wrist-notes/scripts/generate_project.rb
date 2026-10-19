@@ -3,7 +3,7 @@ require 'xcodeproj'
 root = File.expand_path('..', __dir__)
 project_path = File.join(root, 'WristNotes.xcodeproj')
 existing_development_teams = {}
-if File.file?(project_path)
+if File.directory?(project_path)
   existing_project = Xcodeproj::Project.open(project_path)
   existing_project.targets.each do |target|
     team = target.build_configurations.map do |configuration|
@@ -27,13 +27,29 @@ phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift No
                  NoteRepository.swift PhoneConnectivity.swift OnDeviceTranscriber.swift
                  OnDeviceSummarizer.swift NotesStyle.swift AudioPlayback.swift
                  AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift
-                 CustomAISummarizer.swift AISettingsModel.swift PhoneWatchStatus.swift SettingsViews.swift].map { |name| phone.new_file(name) }
+                 CustomAISummarizer.swift AISettingsModel.swift PhoneWatchStatus.swift SettingsViews.swift
+                 NoteTimeline.swift HeartRateService.swift MeetingAnalyzer.swift MeetingInsightsView.swift
+                 SpeakerTimeline.swift LocalSpeakerDiarizer.swift SpeakerTranscriptView.swift].map { |name| phone.new_file(name) }
 watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
 phone_target = project.new_target(:application, 'WristNotes', :ios, '26.0')
+project.root_object.attributes['TargetAttributes'] = {
+  phone_target.uuid => { 'SystemCapabilities' => { 'com.apple.HealthKit' => { 'enabled' => 1 } } }
+}
+phone.new_file('WristNotes.entitlements')
 shared_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 phone_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
+diarization_package = project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+diarization_package.relative_path = 'Packages/WristNotesDiarization'
+project.root_object.package_references << diarization_package
+diarization_product = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+diarization_product.package = diarization_package
+diarization_product.product_name = 'WristNotesDiarization'
+phone_target.package_product_dependencies << diarization_product
+diarization_build = project.new(Xcodeproj::Project::Object::PBXBuildFile)
+diarization_build.product_ref = diarization_product
+phone_target.frameworks_build_phase.files << diarization_build
 if File.directory?(File.join(root, 'Sources/iPhone/Assets.xcassets'))
   phone_target.resources_build_phase.add_file_reference(phone.new_file('Assets.xcassets'))
 end
@@ -49,6 +65,7 @@ phone_target.build_configurations.each do |configuration|
   settings['TARGETED_DEVICE_FAMILY'] = '1'
   settings['IPHONEOS_DEPLOYMENT_TARGET'] = '26.0'
   settings['CODE_SIGN_STYLE'] = 'Automatic'
+  settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'
   settings['DEVELOPMENT_TEAM'] = existing_development_teams[phone_target.name] if
     existing_development_teams[phone_target.name]
 end

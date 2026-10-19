@@ -51,6 +51,10 @@ struct CustomAISummarizer {
             configuration: configuration, apiKey: apiKey)
     }
 
+    func analyze(_ material: String, instruction: String, configuration: AIConfiguration, apiKey: String) async throws -> String {
+        try await complete(material, instruction: instruction, configuration: configuration, apiKey: apiKey)
+    }
+
     private func complete(_ content: String, instruction: String, configuration: AIConfiguration, apiKey: String) async throws -> String {
         try Task.checkCancellation()
         let config = try configuration.validated(apiKey: apiKey)

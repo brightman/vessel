@@ -5,6 +5,7 @@ enum SettingsRoute: Hashable { case settings, transcription, ai }
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var model: NotesModel
     let importAudio: () -> Void
 
     var body: some View {
@@ -38,13 +39,39 @@ struct SettingsView: View {
                     }
                 }
                 .settingsCard()
-                SettingsFootnote(text: "默认在 iPhone 上转写和总结。只有选择自定义 AI 后，笔记文本才会发送到你指定的服务。")
+                SettingsFootnote(text: "默认在 iPhone 上转写和总结。自定义 AI 总结发送笔记文本；综合分析会在单独确认后发送本次接入的心率、活动状态、HRV 和本人心境记录。")
             }
             SettingsSection("录音") {
                 Button(action: importAudio) {
                     SettingsRow(symbol: "square.and.arrow.down", title: "导入音频文件", subtitle: "从“文件”添加已有录音")
                 }
                 .settingsCard()
+            }
+            SettingsSection("会议健康数据") {
+                Toggle("接入 Apple Watch 心率", isOn: Binding(
+                    get: { settings.heartRateEnabled },
+                    set: { enabled in Task { await model.setHeartRateEnabled(enabled) } }
+                ))
+                .disabled(model.requestingHealthAccess)
+                .padding(16).settingsCard()
+                Toggle("接入 HRV（SDNN）", isOn: Binding(
+                    get: { settings.hrvEnabled },
+                    set: { enabled in Task { await model.setHRVEnabled(enabled) } }
+                ))
+                .disabled(!settings.heartRateEnabled || model.requestingHealthAccess)
+                .padding(16).settingsCard()
+                Toggle("接入本人心境记录", isOn: Binding(
+                    get: { settings.stateOfMindEnabled },
+                    set: { enabled in Task { await model.setStateOfMindEnabled(enabled) } }
+                ))
+                .disabled(model.requestingHealthAccess)
+                .padding(16).settingsCard()
+                if model.requestingHealthAccess { ProgressView("正在申请健康数据访问…") }
+                SettingsFootnote(text: "从 iPhone 健康库回填手表的心率及 HRV，不开启体能训练，也不主动触发测量。HRV 用毫秒表示，是测量窗口的 SDNN；会议期间可能没有样本。跨会议边界的窗口会保留完整时间并标注。")
+                SettingsFootnote(text: "可单独关闭并清除 HRV，保留心率。关闭心率接入会同时清除本地心率、HRV 和综合分析，健康 App 的原始数据不受影响。")
+                SettingsFootnote(text: "心率样本自带的活动状态会一并读取；未知不代表没有活动，静止不代表专注。心境使用独立只读授权，可从健康 App 或手表正念 App 记录；当下感受按原时间展示，全天心情仅作同日背景。空结果不能区分未授权、未记录或未同步。")
+                SettingsFootnote(text: "心境接入可独立使用。关闭心境只清除本地心境及综合分析，保留心率和 HRV；关闭心率不关闭心境。不开启体能训练，不自动写入心境记录。")
+                SettingsFootnote(text: "综合分析使用所选 AI 模型。向自定义服务发送健康或心境记录前，每次都会确认服务地址和数据范围。")
             }
         }
     }
@@ -84,6 +111,15 @@ struct TranscriptionSettingsView: View {
                 }
                 .padding(16).settingsCard()
                 SettingsFootnote(text: "保存后用于新的转写任务，已有笔记保持原样。")
+            }
+            SettingsSection("发言人") {
+                Toggle("转写后自动区分发言人", isOn: $settings.speakerDiarizationEnabled)
+                    .padding(16).settingsCard()
+                SettingsFootnote(text: "使用 iPhone 本地模型，首次需要联网下载模型资源，录音不上传。也可在“全文 → 分段回听”点击“区分发言人”，开启后用于后续新转写。编号仅属于当前录音，可自行重命名；重叠或无法确定的声音标为待确认。")
+                DisclosureGroup("本地发言人模型与开源许可") {
+                    Text(LocalSpeakerDiarizer.modelNotices).font(.caption).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                }.font(.caption).padding(16).settingsCard()
             }
             SettingsInfo(title: "音频留在本机", text: "Apple 模型的语言与设备支持情况，以这台 iPhone 的检测结果为准。")
         }

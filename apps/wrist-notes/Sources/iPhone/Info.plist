@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSHealthShareUsageDescription</key>
+    <string>读取会议录音时段内的 Apple Watch 心率、采样时的活动状态、心率变异性（HRV SDNN）及本人心境记录；当下感受按记录时间展示，全天心情仅作背景，在你请求时结合转写和总结进行会议复盘。</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsLocalNetworking</key>
