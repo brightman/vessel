@@ -4,6 +4,19 @@ private func expect(_ value: @autoclosure () -> Bool, _ message: String) {
     guard value() else { fatalError(message) }
 }
 
+private func requestPayload(_ request: URLRequest) throws -> [String: Any] {
+    if let data = request.httpBody { return try JSONSerialization.jsonObject(with: data) as! [String: Any] }
+    let stream = request.httpBodyStream!
+    stream.open(); defer { stream.close() }
+    var body = Data(), buffer = [UInt8](repeating: 0, count: 2048)
+    while stream.hasBytesAvailable {
+        let count = stream.read(&buffer, maxLength: buffer.count)
+        if count <= 0 { break }
+        body.append(contentsOf: buffer.prefix(count))
+    }
+    return try JSONSerialization.jsonObject(with: body) as! [String: Any]
+}
+
 private final class MemorySecrets: SecretStore {
     var value = ""
     var failWrites = false
@@ -36,7 +49,14 @@ struct AISettingsSmoke {
         let normalized = try good.validated(apiKey: "fake-key")
         expect(normalized.model == "demo-model", "trim model")
         expect(normalized.endpoint.absoluteString == "https://example.com/v1/chat/completions", "append endpoint once")
-        for url in ["http://example.com/v1", "https://user:password@example.com/v1", "https://example.com/v1?key=x", "https://example.com/v1#x", "https://example.com/v1/chat/completions", "file:///tmp/model", "https://"] {
+        let legacy = try JSONDecoder().decode(AIConfiguration.self, from: Data(#"{"mode":"custom","model":"legacy-model","baseURL":"https://example.com/v1"}"#.utf8))
+        expect(legacy.apiProtocol == .openai, "legacy configuration defaults to OpenAI protocol")
+        expect(legacy.endpoint.absoluteString == "https://example.com/v1/chat/completions", "legacy configuration keeps OpenAI endpoint")
+        let anthropic = try JSONDecoder().decode(AIConfiguration.self, from: Data(#"{"mode":"custom","model":"claude-test","baseURL":"https://example.com/v1","apiProtocol":"anthropic"}"#.utf8))
+        expect(anthropic.endpoint.absoluteString == "https://example.com/v1/messages", "Anthropic configuration uses Messages endpoint")
+        let restoredAnthropic = try JSONDecoder().decode(AIConfiguration.self, from: JSONEncoder().encode(anthropic))
+        expect(restoredAnthropic == anthropic, "protocol survives configuration encoding")
+        for url in ["http://example.com/v1", "https://user:password@example.com/v1", "https://example.com/v1?key=x", "https://example.com/v1#x", "https://example.com/v1/chat/completions", "https://example.com/v1/messages/", "file:///tmp/model", "https://"] {
             do {
                 _ = try AIConfiguration(mode: .custom, model: "model", baseURL: url).validated(apiKey: "fake-key")
                 fatalError("accepted invalid address")
@@ -52,12 +72,20 @@ struct AISettingsSmoke {
         defaults.set("en-US", forKey: "transcriptionLocale")
         let secrets = MemorySecrets()
         let settings = AppSettings(defaults: defaults, secrets: secrets)
-        expect(settings.ai.mode == .local && settings.appearance == .dark, "local-first defaults")
+        expect(settings.ai.mode == .local && settings.appearance == .system, "local-first defaults follow system appearance")
         expect(settings.localeIdentifier == "en-US", "preserve existing locale")
-        settings.appearance = .system
+        expect(settings.interfaceLanguage == .chinese, "default interface language stays Chinese")
+        settings.interfaceLanguage = .english
+        expect(settings.localeIdentifier == "en-US", "interface language does not change transcription language")
+        settings.appearance = .dark
         try settings.saveAI(normalized, apiKey: "fake-key")
         let reloaded = AppSettings(defaults: defaults, secrets: secrets)
-        expect(reloaded.appearance == .system && reloaded.ai == normalized, "preferences survive relaunch")
+        expect(reloaded.appearance == .dark && reloaded.ai == normalized, "existing appearance and AI preferences survive relaunch")
+        expect(reloaded.interfaceLanguage == .english, "interface language survives relaunch")
+        reloaded.interfaceLanguage = .japanese
+        let japaneseReloaded = AppSettings(defaults: defaults, secrets: secrets)
+        expect(japaneseReloaded.interfaceLanguage == .japanese, "Japanese interface language survives relaunch")
+        expect(japaneseReloaded.localeIdentifier == "en-US", "Japanese interface leaves transcription language unchanged")
         let loadedKey = try reloaded.apiKey()
         expect(loadedKey == "fake-key", "secret is stored separately")
         let stored = String(data: defaults.data(forKey: "aiConfiguration")!, encoding: .utf8)!
@@ -75,21 +103,10 @@ struct AISettingsSmoke {
             expect(request.httpMethod == "POST", "chat request method")
             expect(request.url?.path == "/v1/chat/completions", "chat path")
             expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer fake-key", "credential header")
-            let data: Data
-            if let body = request.httpBody { data = body }
-            else {
-                let stream = request.httpBodyStream!
-                stream.open(); defer { stream.close() }
-                var body = Data(), buffer = [UInt8](repeating: 0, count: 2048)
-                while stream.hasBytesAvailable {
-                    let count = stream.read(&buffer, maxLength: buffer.count)
-                    if count <= 0 { break }
-                    body.append(contentsOf: buffer.prefix(count))
-                }
-                data = body
-            }
-            let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+            expect(request.value(forHTTPHeaderField: "x-api-key") == nil, "OpenAI uses only bearer authentication")
+            let payload = try requestPayload(request)
             expect(payload["model"] as? String == "demo-model", "selected model")
+            expect(payload["stream"] as? Bool == false, "OpenAI response is not streamed")
             let messages = payload["messages"] as! [[String: String]]
             expect(messages.first?["role"] == "system", "summary instructions separate from note")
             requests.append(messages.last!["content"]!)
@@ -102,15 +119,57 @@ struct AISettingsSmoke {
         let summary = try await client.summarize(transcript, configuration: normalized, apiKey: "fake-key")
         expect(summary == "总结结果", "extract chat content")
         expect(requests.dropLast().joined() == transcript, "all source text reaches chunk requests without truncation")
-        for (code, expected) in [(401, AIServiceError.authentication), (429, .rateLimited), (500, .http(500))] {
-            StubProtocol.handler = { _ in (code, Data("secret error body".utf8)) }
-            do { try await client.testConnection(configuration: normalized, apiKey: "fake-key"); fatalError("accepted failed HTTP") }
-            catch let error as AIServiceError { expect(error == expected, "classify HTTP error without body") }
+        requests = []
+        StubProtocol.handler = { request in
+            expect(request.httpMethod == "POST" && request.url?.path == "/v1/messages", "Anthropic Messages request")
+            expect(request.value(forHTTPHeaderField: "x-api-key") == "fake-key", "Anthropic key header")
+            expect(request.value(forHTTPHeaderField: "anthropic-version") == "2023-06-01", "Anthropic version header")
+            expect(request.value(forHTTPHeaderField: "Authorization") == nil, "Anthropic omits bearer authentication")
+            let payload = try requestPayload(request)
+            expect(payload["model"] as? String == "claude-test", "Anthropic selected model")
+            expect((payload["max_tokens"] as? Int ?? 0) > 0, "Anthropic bounds response tokens")
+            expect(payload["stream"] as? Bool == false, "Anthropic response is not streamed")
+            expect(!(payload["system"] as? String ?? "").isEmpty, "Anthropic instructions use top-level system")
+            let messages = payload["messages"] as! [[String: String]]
+            expect(messages.count == 1 && messages[0]["role"] == "user", "Anthropic system is not included as a message")
+            requests.append(messages[0]["content"]!)
+            return (200, Data(#"{"id":"msg_test","type":"message","role":"assistant","model":"claude-test","content":[{"type":"text","text":"第一段"},{"type":"text","text":"第二段"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":10}}"#.utf8))
+        }
+        try await client.testConnection(configuration: anthropic, apiKey: " fake-key ")
+        expect(requests == [CustomAISummarizer.testPrompt], "Anthropic connection test uses fixed probe")
+        requests = []
+        let anthropicSummary = try await client.summarize("需要总结的笔记", configuration: anthropic, apiKey: "fake-key")
+        expect(anthropicSummary == "第一段\n第二段", "combine Anthropic text blocks in order")
+        expect(requests == ["需要总结的笔记"], "Anthropic receives note only on summarize")
+        StubProtocol.handler = { _ in (200, Data(#"{"type":"message","role":"assistant","content":[{"type":"thinking","thinking":"private reasoning"},{"type":"text","text":"总结"}],"stop_reason":"stop_sequence"}"#.utf8)) }
+        let stoppedSummary = try await client.summarize("笔记", configuration: anthropic, apiKey: "fake-key")
+        expect(stoppedSummary == "总结", "Anthropic extracts text without exposing thinking blocks")
+        for configuration in [normalized, anthropic] {
+            for (code, expected) in [(302, AIServiceError.http(302)), (401, .authentication), (403, .authentication), (429, .rateLimited), (500, .http(500))] {
+                StubProtocol.handler = { _ in (code, Data("secret error body".utf8)) }
+                do { try await client.testConnection(configuration: configuration, apiKey: "fake-key"); fatalError("accepted failed HTTP") }
+                catch let error as AIServiceError { expect(error == expected, "classify HTTP error without body") }
+            }
         }
         for body in [#"{"choices":[]}"#, #"{"choices":[{"message":{"content":" "}}]}"#, #"{"choices":[{"message":{"content":"partial"},"finish_reason":"length"}]}"#] {
             StubProtocol.handler = { _ in (200, Data(body.utf8)) }
             do { try await client.testConnection(configuration: normalized, apiKey: "fake-key"); fatalError("accepted incomplete response") }
             catch is AIServiceError {}
+        }
+        for (body, expected) in [
+            (#"{"type":"error","error":{"type":"overloaded_error","message":"secret body"}}"#, AIServiceError.invalidResponse),
+            (#"{"type":"error","role":"assistant","content":[{"type":"text","text":"not a message"}],"stop_reason":"end_turn"}"#, .invalidResponse),
+            (#"{"type":"message","role":"assistant","content":[],"stop_reason":"end_turn"}"#, .invalidResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"text","text":" "}],"stop_reason":"end_turn"}"#, .invalidResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"text"}],"stop_reason":"end_turn"}"#, .invalidResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"tool_use","id":"tool_1","name":"unknown","input":{}}],"stop_reason":"tool_use"}"#, .incompleteResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"text","text":"partial"}],"stop_reason":"max_tokens"}"#, .incompleteResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"text","text":"partial"}],"stop_reason":"pause_turn"}"#, .incompleteResponse),
+            (#"{"type":"message","role":"assistant","content":[{"type":"text","text":"partial"}],"stop_reason":null}"#, .invalidResponse)
+        ] {
+            StubProtocol.handler = { _ in (200, Data(body.utf8)) }
+            do { try await client.testConnection(configuration: anthropic, apiKey: "fake-key"); fatalError("accepted invalid Anthropic response") }
+            catch let error as AIServiceError { expect(error == expected, "classify Anthropic response failure without body") }
         }
         StubProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
         do { try await client.testConnection(configuration: normalized, apiKey: "fake-key"); fatalError("accepted offline") }
@@ -136,6 +195,19 @@ struct AISettingsSmoke {
         expect(editor.canSave, "successful matching test permits save")
         try editor.save()
         expect(settings.ai.model == "newer", "saved configuration is used by settings")
+        editor.configuration.apiProtocol = .anthropic
+        expect(editor.state == .idle && !editor.canSave, "protocol change invalidates successful test")
+        editor.startTest()
+        while finish == nil { await Task.yield() }
+        editor.configuration.apiProtocol = .openai
+        finish?.resume(); finish = nil
+        await Task.yield()
+        expect(editor.state == .idle && !editor.canSave, "stale protocol test cannot validate another protocol")
+        editor.startTest()
+        while finish == nil { await Task.yield() }
+        finish?.resume(); finish = nil
+        while editor.state == .testing { await Task.yield() }
+        expect(editor.canSave, "test matching selected protocol permits save")
         editor.apiKey = "different-key"
         expect(!editor.canSave, "key change invalidates successful test")
         editor.configuration.mode = .local

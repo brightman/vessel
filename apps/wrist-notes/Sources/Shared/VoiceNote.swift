@@ -79,7 +79,10 @@ struct VoiceNote: Codable, Identifiable, Equatable {
         self.capturedAt = capturedAt
         self.duration = duration
         self.audioFilename = "\(id.uuidString).m4a"
-        self.title = "\(kind.label) · \(capturedAt.formatted(date: .abbreviated, time: .shortened))"
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月d日 HH:mm"
+        self.title = "\(kind.label) · \(formatter.string(from: capturedAt))"
         self.transcript = ""
         self.summary = ""
         self.transcriptionState = .pending

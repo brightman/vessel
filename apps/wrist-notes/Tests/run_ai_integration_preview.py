@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--device', required=True)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
-bundle = 'com.vessel.wristnotes.preview'
+bundle = 'cloud.karama.wisenote.preview'
 
 def simctl(*command, env=None):
     return subprocess.check_output(['xcrun', 'simctl', *command], env=env, text=True).strip()

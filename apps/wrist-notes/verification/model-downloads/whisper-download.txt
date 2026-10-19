@@ -1,0 +1,7 @@
+Catalog tiny: 22 files / 79400740 bytes
+Catalog base: 22 files / 149484796 bytes
+Catalog small: 22 files / 489252808 bytes
+Tiny download bytes complete; verifying installation
+Specified English: This is a local speech recognition test, the recording stays on this device.
+Automatic: This is a local speech recognition test, the recording stays on this device.
+PASS: pinned manifest, real download and checksums, persisted installation, explicit/auto offline local transcription, incomplete-file rejection

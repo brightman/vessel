@@ -1,0 +1,1 @@
+Prototype metric logic: connected, disconnected, live toggle refresh, actual attachment count, date isolation, empty day and reconnect passed. DOM is stubbed; this is not browser visual verification.

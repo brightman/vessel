@@ -13,7 +13,7 @@ struct WristNotesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NotesListView()
+            DaybookView()
                 .environmentObject(model)
                 .environmentObject(model.settings)
         }

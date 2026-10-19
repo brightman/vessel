@@ -3,7 +3,7 @@ require 'xcodeproj'
 root = File.expand_path('..', __dir__)
 project_path = File.join(root, 'WristNotes.xcodeproj')
 existing_development_teams = {}
-if File.file?(project_path)
+if File.directory?(project_path)
   existing_project = Xcodeproj::Project.open(project_path)
   existing_project.targets.each do |target|
     team = target.build_configurations.map do |configuration|
@@ -27,7 +27,10 @@ phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift No
                  NoteRepository.swift PhoneConnectivity.swift OnDeviceTranscriber.swift
                  OnDeviceSummarizer.swift NotesStyle.swift AudioPlayback.swift
                  AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift
-                 CustomAISummarizer.swift AISettingsModel.swift PhoneWatchStatus.swift SettingsViews.swift].map { |name| phone.new_file(name) }
+                 CustomAISummarizer.swift AISettingsModel.swift PhoneWatchStatus.swift SettingsViews.swift
+                 TranscriptionConfiguration.swift TranscriptionSettingsModel.swift TranscriptionSettingsView.swift
+                 AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift OfflineWhisperTokenizer.swift
+                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift DaybookReminderViews.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift].map { |name| phone.new_file(name) }
 watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
@@ -40,10 +43,14 @@ end
 phone_target.build_configurations.each do |configuration|
   settings = configuration.build_settings
   settings['SWIFT_VERSION'] = '5.0'
-  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.vessel.wristnotes'
+  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote'
+  settings['PRODUCT_NAME'] = 'WiseNote'
+  settings['MARKETING_VERSION'] = '1.0'
+  settings['CURRENT_PROJECT_VERSION'] = '1'
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
-  settings['INFOPLIST_KEY_CFBundleDisplayName'] = '语音笔记'
+  settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'WiseNote'
+  settings['INFOPLIST_KEY_CFBundleName'] = 'WiseNote'
   settings['INFOPLIST_KEY_UIApplicationSceneManifest_Generation'] = 'YES'
   settings['INFOPLIST_KEY_UILaunchScreen_Generation'] = 'YES'
   settings['TARGETED_DEVICE_FAMILY'] = '1'
@@ -51,6 +58,29 @@ phone_target.build_configurations.each do |configuration|
   settings['CODE_SIGN_STYLE'] = 'Automatic'
   settings['DEVELOPMENT_TEAM'] = existing_development_teams[phone_target.name] if
     existing_development_teams[phone_target.name]
+end
+
+phone_target.resources_build_phase.add_file_reference(phone.new_file('WhisperModels.json'))
+phone_target.resources_build_phase.add_file_reference(phone.new_file('Lucide-LICENSE.txt'))
+phone_target.resources_build_phase.add_file_reference(phone.new_file('Localizable.xcstrings'))
+# Pin reproducible versions; these dependencies are linked only into the iPhone application.
+[
+  ['https://github.com/argmaxinc/WhisperKit.git', '0.15.0', ['WhisperKit']],
+  ['https://github.com/huggingface/swift-transformers.git', '1.1.2', ['Hub', 'Tokenizers']]
+].each do |url, version, products|
+  package = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+  package.repositoryURL = url
+  package.requirement = { 'kind' => 'exactVersion', 'version' => version }
+  project.root_object.package_references << package
+  products.each do |name|
+    product = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+    product.package = package
+    product.product_name = name
+    phone_target.package_product_dependencies << product
+    build_file = project.new(Xcodeproj::Project::Object::PBXBuildFile)
+    build_file.product_ref = product
+    phone_target.frameworks_build_phase.files << build_file
+  end
 end
 
 watch_target = project.new_target(:application, 'WristNotesWatch', :watchos, '10.0')
@@ -62,7 +92,7 @@ end
 watch_target.build_configurations.each do |configuration|
   settings = configuration.build_settings
   settings['SWIFT_VERSION'] = '5.0'
-  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.vessel.wristnotes.watchkitapp'
+  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote.watchkitapp'
   settings['GENERATE_INFOPLIST_FILE'] = 'NO'
   settings['INFOPLIST_FILE'] = 'Sources/Watch/Info.plist'
   settings['TARGETED_DEVICE_FAMILY'] = '4'

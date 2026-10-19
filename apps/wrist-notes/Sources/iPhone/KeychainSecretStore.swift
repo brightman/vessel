@@ -9,7 +9,7 @@ protocol SecretStore {
 struct KeychainSecretStore: SecretStore {
     private var query: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "com.vessel.wristnotes") + ".ai",
+         kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "cloud.karama.wisenote") + ".ai",
          kSecAttrAccount as String: "custom-model-api-key"]
     }
 

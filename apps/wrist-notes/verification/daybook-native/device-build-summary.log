@@ -1,0 +1,4 @@
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/wrist-notes/WristNotes.xcodeproj -scheme WristNotes -configuration Debug -destination generic/platform=iOS -derivedDataPath /private/tmp/wisenote-daybook-derived -clonedSourcePackagesDirPath /private/tmp/wristnotes-model-packages CODE_SIGNING_ALLOWED=NO build
+2026-10-19 17:09:22.210 appintentsmetadataprocessor[84947:5629591] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-10-19 17:09:26.916 appintentsmetadataprocessor[84978:5629733] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+** BUILD SUCCEEDED **

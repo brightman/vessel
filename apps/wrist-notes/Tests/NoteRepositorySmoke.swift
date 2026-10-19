@@ -13,6 +13,7 @@ struct NoteRepositorySmoke {
             id: id, from: incoming, kind: .thought, capturedAt: Date(timeIntervalSince1970: 100), duration: 2
         )
         precondition(first.id == id)
+        precondition(first.title.contains("月") && first.title.contains("日"), "new automatic titles use Chinese dates regardless of device language")
         precondition(repository.notes.count == 1)
         precondition(FileManager.default.fileExists(atPath: repository.audioURL(for: first).path))
 
@@ -35,6 +36,27 @@ struct NoteRepositorySmoke {
         _ = try afterEdit.importRecording(id: id, from: replacement, kind: .thought, capturedAt: .now, duration: 2)
         let restoredAudio = try Data(contentsOf: afterEdit.audioURL(for: first))
         precondition(restoredAudio == Data([5, 6]), "a retransmission restores missing audio")
+
+        // Disk/index failure must leave a phone recording draft retryable, not move it away.
+        let index = root.appendingPathComponent("notes.json")
+        let savedIndex = try Data(contentsOf: index)
+        try FileManager.default.removeItem(at: index)
+        try FileManager.default.createDirectory(at: index, withIntermediateDirectories: true)
+        let retryID = UUID()
+        let draft = root.appendingPathComponent("phone-draft.m4a")
+        try Data([7, 8, 9]).write(to: draft)
+        do {
+            _ = try afterEdit.importRecording(id: retryID, from: draft, kind: .long, capturedAt: .now, duration: 3)
+            preconditionFailure("index write should fail")
+        } catch {}
+        precondition(FileManager.default.fileExists(atPath: draft.path), "failed import must restore its source")
+        precondition(!afterEdit.notes.contains { $0.id == retryID })
+        try FileManager.default.removeItem(at: index)
+        try savedIndex.write(to: index)
+        let retried = try afterEdit.importRecording(id: retryID, from: draft, kind: .long, capturedAt: .now, duration: 3)
+        precondition(retried.id == retryID)
+        let afterRetry = try NoteRepository(root: root)
+        precondition(afterRetry.notes.count == 2)
         print("NoteRepositorySmoke passed")
     }
 }

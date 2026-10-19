@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppAppearance: String, CaseIterable {
-    case dark, light, system
+    case light, dark, system
     var title: String {
         switch self { case .dark: "深色"; case .light: "浅色"; case .system: "跟随系统" }
     }
@@ -12,13 +12,29 @@ enum AppAppearance: String, CaseIterable {
 
 struct AIConfiguration: Codable, Equatable {
     enum Mode: String, Codable { case local, custom }
+    enum APIProtocol: String, Codable, CaseIterable {
+        case openai, anthropic
+
+        var title: String {
+            switch self { case .openai: "OpenAI Chat Completions"; case .anthropic: "Anthropic Messages" }
+        }
+        var endpointPath: String {
+            switch self { case .openai: "chat/completions"; case .anthropic: "messages" }
+        }
+        var baseURLHint: String {
+            switch self { case .openai: "https://api.openai.com/v1"; case .anthropic: "https://api.anthropic.com/v1" }
+        }
+    }
     var mode: Mode = .local
     var model = ""
     var baseURL = ""
+    var apiProtocol: APIProtocol = .openai
 
-    var label: String { mode == .local ? "Apple 本地模型" : model }
+    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol }
+
+    var label: String { mode == .local ? "Apple 本地模型" : "\(model) · \(apiProtocol == .openai ? "OpenAI" : "Anthropic")" }
     // Use only after validation, immediately before making a request.
-    var endpoint: URL { URL(string: baseURL)!.appendingPathComponent("chat/completions") }
+    var endpoint: URL { URL(string: baseURL)!.appendingPathComponent(apiProtocol.endpointPath) }
 
     func validated(apiKey: String) throws -> AIConfiguration {
         var value = self
@@ -38,14 +54,24 @@ struct AIConfiguration: Codable, Equatable {
         guard components.user == nil, components.password == nil, components.query == nil, components.fragment == nil else {
             throw AIServiceError.invalidConfiguration("地址中请勿包含账号、Key、查询参数或锚点。")
         }
-        guard !components.path.lowercased().hasSuffix("/chat/completions") else {
-            throw AIServiceError.invalidConfiguration("请填写 Base URL，去掉末尾的 /chat/completions。")
+        guard !["/chat/completions", "/messages"].contains(where: components.path.lowercased().hasSuffix) else {
+            throw AIServiceError.invalidConfiguration("请填写 Base URL，去掉末尾的 /chat/completions 或 /messages。")
         }
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty, !key.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else {
             throw AIServiceError.invalidConfiguration("请填写有效的 API Key。")
         }
         return value
+    }
+}
+
+extension AIConfiguration {
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        mode = try values.decode(Mode.self, forKey: .mode)
+        model = try values.decode(String.self, forKey: .model)
+        baseURL = try values.decode(String.self, forKey: .baseURL)
+        apiProtocol = try values.decodeIfPresent(APIProtocol.self, forKey: .apiProtocol) ?? .openai
     }
 }
 
@@ -60,7 +86,7 @@ enum AIServiceError: LocalizedError, Equatable {
         case .rateLimited: "服务请求过多或额度不足，请稍后重试。"
         case .network: "无法连接模型服务，请检查网络和服务地址。"
         case .timedOut: "模型服务响应超时，请稍后重试。"
-        case .invalidResponse: "服务未返回有效文本，请确认支持 Chat Completions 接口。"
+        case .invalidResponse: "服务未返回有效文本，请确认所选 API 接口兼容协议。"
         case .incompleteResponse: "模型未完整返回内容，请重试或更换模型。"
         case .summaryTooLong: "模型未能压缩长文本，请换用擅长总结的模型后重试。"
         case .http(let status): "模型服务返回 HTTP \(status)，请检查地址、模型名称及服务状态。"

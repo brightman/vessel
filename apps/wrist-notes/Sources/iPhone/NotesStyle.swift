@@ -8,6 +8,7 @@ enum NotesStyle {
     static let border = adaptive(dark: 0x2b2b30, light: 0xe0e0e5)
     static let selected = adaptive(dark: 0x353539, light: 0xffffff)
     static let red = adaptive(dark: 0xff555d, light: 0xc41e29)
+    static let accent = adaptive(dark: 0x91b4ed, light: 0x42689a)
     static let green = adaptive(dark: 0x40d77c, light: 0x178541)
     static let greenBackground = adaptive(dark: 0x183625, light: 0xe2f3e7)
     static let warning = adaptive(dark: 0xf4b96f, light: 0x916014)

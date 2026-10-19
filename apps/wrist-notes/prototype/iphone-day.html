@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fafbfc">
+  <title>WiseNote · 我的一天</title>
+  <link rel="stylesheet" href="daybook.css">
+  <link rel="stylesheet" href="daybook-ai.css">
+  <link rel="stylesheet" href="daybook-capture-settings.css">
+  <link rel="stylesheet" href="daybook-theme.css">
+</head>
+<body>
+  <!-- Icons: Lucide, ISC / MIT licenses in lucide-LICENSE.txt. Embedded from lucide-react. -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><symbol id="i-Watch" viewBox="0 0 24 24"><path d="M12 10v2.2l1.6 1"></path><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"></path><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"></path><circle cx="12" cy="12" r="6"></circle></symbol><symbol id="i-Search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></symbol><symbol id="i-Settings2" viewBox="0 0 24 24"><path d="M14 17H5"></path><path d="M19 7h-9"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></symbol><symbol id="i-CalendarDays" viewBox="0 0 24 24"><path d="M8 2v3"></path><path d="M16 2v3"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path><path d="M8 13h.01"></path><path d="M12 13h.01"></path><path d="M16 13h.01"></path><path d="M8 17h.01"></path><path d="M12 17h.01"></path><path d="M16 17h.01"></path></symbol><symbol id="i-ChevronLeft" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></symbol><symbol id="i-ChevronRight" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol><symbol id="i-ArrowUpRight" viewBox="0 0 24 24"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></symbol><symbol id="i-ArrowRight" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></symbol><symbol id="i-AudioLines" viewBox="0 0 24 24"><path d="M2 10v3"></path><path d="M6 6v11"></path><path d="M10 3v18"></path><path d="M14 8v7"></path><path d="M18 5v13"></path><path d="M22 10v3"></path></symbol><symbol id="i-Footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></symbol><symbol id="i-Moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></symbol><symbol id="i-Plus" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></symbol><symbol id="i-X" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></symbol><symbol id="i-Check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></symbol><symbol id="i-CheckCheck" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5"></path><path d="m22 10-7.5 7.5L13 16"></path></symbol><symbol id="i-Pause" viewBox="0 0 24 24"><rect x="14" y="3" width="5" height="18" rx="1"></rect><rect x="5" y="3" width="5" height="18" rx="1"></rect></symbol><symbol id="i-Play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></symbol><symbol id="i-Mic" viewBox="0 0 24 24"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></symbol><symbol id="i-Square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect></symbol><symbol id="i-SlidersHorizontal" viewBox="0 0 24 24"><path d="M10 5H3"></path><path d="M12 19H3"></path><path d="M14 3v4"></path><path d="M16 17v4"></path><path d="M21 12h-9"></path><path d="M21 19h-5"></path><path d="M21 5h-7"></path><path d="M8 10v4"></path><path d="M8 12H3"></path></symbol><symbol id="i-CircleHelp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></symbol><symbol id="i-ShieldCheck" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></symbol><symbol id="i-MapPin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></symbol><symbol id="i-NotebookPen" viewBox="0 0 24 24"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"></path><path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"></path></symbol><symbol id="i-Lightbulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></symbol><symbol id="i-Sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></symbol><symbol id="i-Link2" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"></path><path d="M15 7h2a5 5 0 1 1 0 10h-2"></path><line x1="8" x2="16" y1="12" y2="12"></line></symbol><symbol id="i-Unlink" viewBox="0 0 24 24"><path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"></path><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"></path><line x1="8" x2="8" y1="2" y2="5"></line><line x1="2" x2="5" y1="8" y2="8"></line><line x1="16" x2="16" y1="19" y2="22"></line><line x1="19" x2="22" y1="16" y2="16"></line></symbol><symbol id="i-RotateCcw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></symbol><symbol id="i-BatteryMedium" viewBox="0 0 24 24"><path d="M10 14v-4"></path><path d="M22 14v-4"></path><path d="M6 14v-4"></path><rect x="2" y="6" width="16" height="12" rx="2"></rect></symbol><symbol id="i-Wifi" viewBox="0 0 24 24"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></symbol><symbol id="i-Signal" viewBox="0 0 24 24"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></symbol><symbol id="i-BookOpen" viewBox="0 0 24 24"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></symbol><symbol id="i-Heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></symbol><symbol id="i-ChevronDown" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol><symbol id="i-Clock3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6h4"></path></symbol><symbol id="i-Circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></symbol><symbol id="i-Activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></symbol><symbol id="i-MessageCircle" viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"></path></symbol><symbol id="i-Bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></symbol><symbol id="i-BellOff" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742"></path><path d="m2 2 20 20"></path><path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05"></path></symbol><symbol id="i-ArrowUp" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></symbol><symbol id="i-Images" viewBox="0 0 24 24"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16"></path><path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2"></path><circle cx="13" cy="7" r="1" fill="currentColor"></circle><rect x="8" y="2" width="14" height="14" rx="2"></rect></symbol><symbol id="i-Camera" viewBox="0 0 24 24"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"></path><circle cx="12" cy="13" r="3"></circle></symbol><symbol id="i-ImagePlus" viewBox="0 0 24 24"><path d="M16 5h6"></path><path d="M19 2v6"></path><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"></path><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path><circle cx="9" cy="9" r="2"></circle></symbol></defs></svg>
+  <main class="design-stage">
+    <aside class="design-note">
+      <a class="wordmark" href="iphone-notes.html"><span class="brand-mark"><svg class="icon"><use href="#i-AudioLines"></use></svg></span> WiseNote</a>
+      <p class="design-kicker">A LITTLE MORE AWARE.</p>
+      <h1>把一天，<br>看得更清楚。</h1>
+      <p class="design-description">留住随口说出的想法，<br>也看见生活里的节奏。<br>从今天的记录，找到明天的一小步。</p>
+      <div class="design-annotation">
+        <span class="annotation-line"></span>
+        <p><strong>一条线索，连接一整天。</strong><br>声音、活动与睡眠在时间中相遇，<br>每条洞察都能回到原始记录。</p>
+      </div>
+      <div class="design-footer">
+        <span class="concept-tag">交互概念 · 示例数据</span>
+        <p>试着问问 AI，或设一个提醒。<br>所有操作仅在原型内演示。</p>
+        <a href="iphone-notes.html">查看原语音笔记原型 <span aria-hidden="true">↗</span></a>
+      </div>
+    </aside>
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="statusbar" aria-hidden="true"><span>16:30</span><div class="dynamic-island"></div><span class="system-icons"><svg class="icon"><use href="#i-Signal"></use></svg><svg class="icon"><use href="#i-Wifi"></use></svg><svg class="icon battery"><use href="#i-BatteryMedium"></use></svg></span></div>
+        <header class="toolbar">
+          <button class="watch-pill" id="watchButton" aria-label="查看 Apple Watch 连接状态"><span class="status-dot"></span><svg class="icon"><use href="#i-Watch"></use></svg><span id="watchLabel">已连接</span></button>
+          <span class="demo-label">示例数据</span>
+          <div class="toolbar-right"><button class="icon-button" id="searchButton" aria-label="搜索记录"><svg class="icon"><use href="#i-Search"></use></svg></button><button class="icon-button" id="settingsButton" aria-label="数据与设置"><svg class="icon"><use href="#i-Settings2"></use></svg></button></div>
+        </header>
+        <div class="screen-scroll" id="screenScroll">
+          <section id="todayView" class="app-view" aria-label="我的一天">
+            <div class="day-heading">
+              <div><div class="eyebrow"><span id="dayEyebrow">今天 · 星期一</span></div><h2 id="dayTitle">10月19日</h2><p id="daySubtitle">把值得记住的，留在今天。</p></div>
+              <button class="date-tile" id="dateButton" aria-label="选择查看日期"><span>十月</span><strong id="calendarNumber">19</strong><svg class="icon"><use href="#i-ChevronDown"></use></svg></button>
+            </div>
+            <section class="day-overview" aria-label="24 小时数据概览">
+              <div class="metrics" id="metrics"></div>
+              <div class="rhythm-header"><h3>一天的节奏</h3><span id="rhythmUntil">截至 16:30</span></div>
+              <div id="dayRhythm" class="rhythm"></div>
+              <div class="rhythm-axis" aria-hidden="true"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+              <p class="rhythm-caption" id="rhythmCaption">每一段，都是生活留下的线索。</p>
+            </section>
+            <section id="homeInsight" class="home-insight" aria-label="今日洞察"></section>
+            <div id="homeAI" aria-label="AI 的适时建议"></div>
+            <section class="moments-section" aria-labelledby="momentsTitle">
+              <div class="section-title"><h3 id="momentsTitle">今天的片段</h3><button class="text-button" id="allMomentsButton">查看全部 <svg class="icon"><use href="#i-ArrowUpRight"></use></svg></button></div>
+              <div class="filter-row" id="homeFilters" role="group" aria-label="记录类型"></div>
+              <div class="moment-list" id="homeMoments"></div>
+            </section>
+            <div class="end-note"><svg class="icon"><use href="#i-ShieldCheck"></use></svg>由你选择记录什么，也由你决定何时暂停。</div>
+          </section>
+          <section id="aiView" class="app-view ai-view" aria-label="WiseNote AI" hidden>
+            <div class="ai-page-heading">
+              <div class="ai-identity"><span class="ai-mark"><svg class="icon"><use href="#i-MessageCircle"></use></svg></span><div><h2>WiseNote AI</h2><p>懂你的记录，也听你说。</p></div></div>
+              <button class="icon-button" data-ai-action="preferences" aria-label="AI 偏好与提醒设置"><svg class="icon"><use href="#i-Settings2"></use></svg></button>
+            </div>
+            <div class="ai-context-row"><button id="aiContext" data-ai-action="date"></button><button class="text-button" data-ai-action="reminders"><svg class="icon"><use href="#i-Bell"></use></svg>提醒 <span id="aiReminderCount">0</span></button></div>
+            <div class="ai-welcome" id="aiWelcome"><div class="eyebrow">从你的生活里，找到答案</div><h3>今天，有什么<br>想一起理一理？</h3><p>回顾一段对话，串起几个想法，<br>或给接下来的一天留一点提醒。</p></div>
+            <div id="aiProactive"></div>
+            <div id="aiPrompts" class="ai-prompts" aria-label="可以这样问"></div>
+            <div id="aiConversation" class="ai-conversation" role="log" aria-label="AI 对话" aria-live="polite" aria-relevant="additions text"></div>
+            <p class="ai-demo-note">交互演示 · 回答来自预设示例，未连接真实 AI。</p>
+          </section>
+          <section id="insightsView" class="app-view" aria-label="洞察" hidden>
+            <div class="page-heading"><span class="eyebrow">从记录中发现</span><h2>更懂自己一点。</h2><p id="insightsContext">10月19日 · 把线索变成一个小行动。</p></div>
+            <div id="insightList"></div>
+            <section class="plans-section"><div class="section-title"><h3>明天的打算</h3><span class="subtle">从今天出发</span></div><div id="plansList"></div></section>
+            <div class="quiet-info"><svg class="icon"><use href="#i-CircleHelp"></use></svg><p>洞察来自你选择的记录。你可以查看依据，也可以告诉我们哪里不符合。</p></div>
+          </section>
+          <section id="libraryView" class="app-view" aria-label="全部记录" hidden>
+            <div class="page-heading"><span class="eyebrow">留住那些片刻</span><h2>我的记录</h2><p id="libraryDate">10月19日 · 7 条记录</p></div>
+            <label class="search-field"><svg class="icon"><use href="#i-Search"></use></svg><input id="searchInput" type="search" placeholder="搜索想法、片段或关键词" aria-label="搜索想法、片段或关键词"></label>
+            <div class="filter-row" id="libraryFilters" role="group" aria-label="筛选记录"></div>
+            <div class="moment-list" id="libraryMoments"></div>
+          </section>
+          <section id="dataView" class="app-view" aria-label="设置" hidden>
+            <div class="page-heading"><span class="eyebrow">按自己的方式记录</span><h2>设置</h2><p>选择模型、数据来源和 AI 提醒的节奏。</p></div>
+            <div class="daybook-preferences" aria-label="界面偏好">
+              <label class="daybook-language-row" for="appearance"><span>外观</span><select id="appearance" aria-label="外观"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
+              <label class="daybook-language-row" for="interfaceLanguage"><span>界面语言</span><select id="interfaceLanguage" aria-label="界面语言"><option value="en">English</option><option value="zh-Hans">中文</option><option value="ja">日本語</option></select></label>
+            </div>
+            <div class="section-title"><h3>语音与 AI</h3><span class="subtle">优先在本机处理</span></div>
+            <div class="model-settings-list">
+              <button class="capture-option" id="asrSettingsButton"><svg class="icon"><use href="#i-AudioLines"></use></svg><div><strong>语音转写模型</strong><p id="dayASRLabel">iPhone端上转写 · 普通话</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+              <button class="capture-option" id="aiModelSettingsButton"><svg class="icon"><use href="#i-MessageCircle"></use></svg><div><strong>AI 模型</strong><p id="dayAIModelLabel">Apple 本地模型</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+              <button class="capture-option" data-ai-action="preferences"><svg class="icon"><use href="#i-Bell"></use></svg><div><strong>AI 偏好与提醒</strong><p>主动建议、免打扰和数据范围</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+            </div>
+            <div class="section-title"><h3>数据来源</h3></div>
+            <div class="local-banner"><svg class="icon"><use href="#i-ShieldCheck"></use></svg><div><strong>从本机开始</strong><p>原型使用示例数据，不读取真实账户或设备。</p></div></div>
+            <div id="sourceList" class="source-list"></div>
+            <p class="source-footnote">暂停来源后，已有记录仍保留。这里的开关只演示连接状态；录音始终由你主动开始。</p>
+            <button class="plain-row" id="clearDayButton"><span><svg class="icon"><use href="#i-CalendarDays"></use></svg>看看没有记录的一天</span><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+            <a class="plain-row" href="iphone-notes.html"><span><svg class="icon"><use href="#i-AudioLines"></use></svg>原语音笔记与模型设置原型</span><svg class="icon"><use href="#i-ArrowUpRight"></use></svg></a>
+          </section>
+        </div>
+        <div id="aiComposerDock" class="ai-composer-dock" hidden>
+          <form id="aiChatForm" class="ai-composer">
+            <label class="sr-only" for="aiQuestion">问问自己的记录</label>
+            <textarea id="aiQuestion" rows="1" maxlength="600" placeholder="问问自己的记录…" required></textarea>
+            <button id="aiSend" type="submit" aria-label="发送问题"><svg class="icon"><use href="#i-ArrowUp"></use></svg></button>
+            <button id="aiStop" type="button" data-ai-action="stop" aria-label="停止回答" hidden><svg class="icon"><use href="#i-Square"></use></svg></button>
+          </form>
+          <span id="aiComposerHint">仅使用你允许的记录 · 示例回答</span>
+        </div>
+        <div class="recording-banner" id="recordingBanner" hidden><span class="recording-dot"></span><span>模拟录音中</span><strong id="recordingClock">00:00</strong><button id="finishRecording">结束并保存</button></div>
+        <nav class="bottom-nav" aria-label="主导航">
+          <button data-view="today" class="nav-item active" aria-current="page"><svg class="icon"><use href="#i-Sun"></use></svg><span>一天</span></button>
+          <button data-view="ai" class="nav-item"><svg class="icon"><use href="#i-MessageCircle"></use></svg><span>AI</span></button>
+          <button data-view="insights" class="nav-item"><svg class="icon"><use href="#i-Lightbulb"></use></svg><span>洞察</span></button>
+          <button id="captureButton" class="capture-button" aria-label="记录此刻"><svg class="icon"><use href="#i-Plus"></use></svg><span>记此刻</span></button>
+        </nav>
+        <div class="home-indicator" aria-hidden="true"></div>
+        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+        <dialog id="sheet" class="sheet" aria-labelledby="sheetTitle">
+          <div class="sheet-handle" aria-hidden="true"></div><div class="sheet-header"><h2 id="sheetTitle"></h2><button id="closeSheet" class="icon-button" aria-label="关闭"><svg class="icon"><use href="#i-X"></use></svg></button></div>
+          <div id="sheetBody" class="sheet-body"></div>
+        </dialog>
+      </div>
+    </div>
+    <aside class="design-index" aria-label="设计说明">
+      <div class="index-item"><span>01</span><h2>留住生活</h2><p>用 24 小时视角，<br>串起零散的声音与经历。</p></div>
+      <div class="index-item"><span>02</span><h2>随时问问 AI</h2><p>从自己的记录里找答案，<br>每条线索都能回到出处。</p></div>
+      <div class="index-item"><span>03</span><h2>在合适时刻提醒</h2><p>建议可以追问、稍后再看，<br>提醒的节奏，由你决定。</p></div>
+      <p class="index-caption">PERSONAL DAY COMPANION</p>
+    </aside>
+  </main>
+  <script src="daybook-ai.js"></script>
+  <script src="daybook-model-catalog.js"></script>
+  <script src="daybook-model-settings.js"></script>
+  <script src="daybook-photos.js"></script>
+  <script src="daybook.js"></script>
+  <script src="daybook-locales.js"></script>
+</body>
+</html>

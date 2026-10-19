@@ -1,0 +1,12 @@
+NoteRepositorySmoke passed
+Watch connectivity status smoke passed
+Recording button interaction: 8 scenarios passed
+Watch project source membership: passed
+Watch app icon resource: passed
+iPhone project source membership: passed
+Debug idle timer smoke passed
+Note editing: 5 scenarios passed
+AI settings: validation, persistence, request/response, errors, long text, test races and Watch status passed
+Transcription settings: migration, ready/save gate, failure/retry, shared language resource, stale completion, persistence passed
+Apple speech reservations: cancellation, shared leases, normalization, reuse, capacity eviction and serialization passed
+Whisper model store: failure/cancel resume, persistent verified cache, FIFO installs, corruption and incomplete-model checks passed

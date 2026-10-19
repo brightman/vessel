@@ -34,13 +34,18 @@ final class NoteRepository {
         }
         let note = VoiceNote(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
         let destination = audioURL(for: note)
-        if !FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.moveItem(at: source, to: destination)
-        }
+        let copied = !FileManager.default.fileExists(atPath: destination.path)
+        if copied { try FileManager.default.copyItem(at: source, to: destination) }
         var revised = notes
         revised.append(note)
-        try persist(revised)
+        do { try persist(revised) }
+        catch {
+            if copied { try? FileManager.default.removeItem(at: destination) }
+            throw error
+        }
         notes = revised
+        // Keep the caller's draft intact until both audio and the index are durable.
+        if copied { try? FileManager.default.removeItem(at: source) }
         return note
     }
 

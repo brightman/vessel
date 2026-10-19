@@ -6,7 +6,7 @@ import WatchConnectivity
 import WatchKit
 
 final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, WCSessionDelegate {
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.vessel.wristnotes.watchkitapp", category: "WatchConnectivity")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "cloud.karama.wisenote.watchkitapp", category: "WatchConnectivity")
     @Published private(set) var isRecording = false
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var pending: [PendingRecording] = []

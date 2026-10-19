@@ -13,6 +13,7 @@ final class NotesModel: ObservableObject {
     private var repository: NoteRepository?
     private var connectivity: PhoneConnectivity?
     private var activeTranscriptions: Set<UUID> = []
+    private let transcriber = LocalTranscriptionService()
 
     init() {
         do {
@@ -81,14 +82,31 @@ final class NotesModel: ObservableObject {
         }
     }
 
+    /// Commits audio before starting ASR so a failed transcription never loses the recording.
+    @discardableResult
+    func savePhoneRecording(id: UUID, fileURL: URL, capturedAt: Date, duration: TimeInterval) -> Bool {
+        guard let repository else { errorMessage = "本地笔记尚未打开，请重启后重试。"; return false }
+        do {
+            let note = try repository.importRecording(id: id, from: fileURL, kind: .long,
+                                                       capturedAt: capturedAt, duration: duration)
+            refresh()
+            Task { await self.transcribe(note.id) }
+            return true
+        } catch {
+            errorMessage = "录音保存未完成：\(error.localizedDescription)"
+            return false
+        }
+    }
+
     func transcribe(_ id: UUID) async {
         guard !activeTranscriptions.contains(id), let file = audioURL(id) else { return }
         let transcriptBeforeRun = note(id)?.transcript ?? ""
+        let configuration = settings.transcription
         activeTranscriptions.insert(id)
         defer { activeTranscriptions.remove(id) }
         edit(id) { $0.transcriptionState = .running; $0.processingMessage = nil }
         do {
-            let text = try await OnDeviceTranscriber().transcribe(fileURL: file, locale: Locale(identifier: settings.localeIdentifier))
+            let text = try await transcriber.transcribe(fileURL: file, configuration: configuration)
             edit(id) {
                 if $0.transcript == transcriptBeforeRun { $0.applyEdit(title: $0.title, transcript: text) }
                 $0.transcriptionState = .ready

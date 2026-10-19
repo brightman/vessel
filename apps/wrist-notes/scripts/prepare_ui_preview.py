@@ -12,9 +12,9 @@ root = Path(tempfile.mkdtemp(prefix="wristnotes-ui-preview-"))
 for name in ("Sources", "WristNotes.xcodeproj"):
     shutil.copytree(source / name, root / name, ignore=shutil.ignore_patterns("xcuserdata"))
 project = root / "WristNotes.xcodeproj/project.pbxproj"
-project.write_text(project.read_text().replace("com.vessel.wristnotes", "com.vessel.wristnotes.preview"))
+project.write_text(project.read_text().replace("cloud.karama.wisenote", "cloud.karama.wisenote.preview"))
 info = root / "Sources/Watch/Info.plist"
-info.write_text(info.read_text().replace("com.vessel.wristnotes", "com.vessel.wristnotes.preview"))
+info.write_text(info.read_text().replace("cloud.karama.wisenote", "cloud.karama.wisenote.preview"))
 for file in ("Sources/Watch/WatchRecorder.swift", "Sources/iPhone/PhoneConnectivity.swift"):
     path = root / file
     path.write_text(path.read_text().replace("if WCSession.isSupported() {", "if false {"))
@@ -26,6 +26,7 @@ settings_view.write_text(settings_view.read_text().replace(
         let draft = AISettingsModel(settings: settings)
         if ProcessInfo.processInfo.environment["WN_PREVIEW_SCREEN"] == "ai-custom" {
             draft.configuration.mode = .custom
+            draft.configuration.apiProtocol = .anthropic
             draft.configuration.model = "my-model"
             draft.configuration.baseURL = "https://api.example.com/v1"
         }
@@ -66,6 +67,9 @@ struct WristNotesApp: App {
         let audio = try! AVAudioFile(forWriting: destination, settings: [AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1])
         for _ in 0..<74 { try! audio.write(from: buffer) }
         let model = NotesModel()
+        if ProcessInfo.processInfo.environment["WN_PREVIEW_SCREEN"] == "asr-whisper" {
+            try! model.settings.saveTranscription(TranscriptionConfiguration(engine: .whisper, whisperSize: .tiny))
+        }
         model.settings.appearance = ProcessInfo.processInfo.environment["WN_PREVIEW_THEME"] == "light" ? .light : .dark
         _model = StateObject(wrappedValue: model)
     }
@@ -78,7 +82,7 @@ struct WristNotesApp: App {
                     NavigationStack {
                         switch screen {
                         case "settings": SettingsView {}
-                        case "asr": TranscriptionSettingsView(settings: model.settings)
+                        case "asr", "asr-whisper": TranscriptionSettingsView(settings: model.settings)
                         case "ai-local", "ai-custom": AISettingsView(settings: model.settings)
                         default: NoteDetailView(id: Self.sampleID)
                         }

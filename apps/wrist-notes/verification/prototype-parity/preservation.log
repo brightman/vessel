@@ -1,0 +1,10 @@
+Sources/Watch: all 8 baseline files unchanged
+Sources/Shared: all 2 baseline files unchanged
+Sources/iPhone/PhoneConnectivity.swift: unchanged
+Sources/iPhone/PhoneRecorder.swift: unchanged
+Sources/iPhone/NoteRepository.swift: unchanged
+Sources/iPhone/NotesModel.swift: unchanged
+Sources/iPhone/OnDeviceTranscriber.swift: unchanged
+Sources/iPhone/PhotoRepository.swift: unchanged
+Sources/iPhone/PhotoLibraryModel.swift: unchanged
+Ruby xcodeproj comparison: all existing WristNotes and WristNotesWatch build settings (including signing) unchanged.

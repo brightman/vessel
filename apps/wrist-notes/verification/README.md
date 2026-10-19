@@ -1,3 +1,7 @@
+> 2026-10-19 新增：原生模型设置、Apple / Whisper 下载与离线验证见 [model-downloads.md](model-downloads.md)。本页保留先前录音／传输验证记录。
+
+> 最新每日记录界面对齐与健康数据未授权时的首页统计，见 [prototype-parity.md](prototype-parity.md)。此页较早截图不代表本轮最终布局。
+
 # 原生界面核对 · 2026-10-18
 
 > **2026-10-19 更新：** 新的手表状态、设置、AI 模型配置与总结接入见 [settings.md](settings.md)。用户已反馈传输问题修复、真机 ASR 通过；下文传输和 ASR 的未验证说明属于 10 月 18 日的历史记录。

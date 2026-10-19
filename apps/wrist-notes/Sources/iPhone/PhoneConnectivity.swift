@@ -16,7 +16,7 @@ private struct SimulatorIncomingRecording {
 }
 
 final class PhoneConnectivity: NSObject, WCSessionDelegate {
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.vessel.wristnotes", category: "WatchConnectivity")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "cloud.karama.wisenote", category: "WatchConnectivity")
     private let inbox: URL
     private var simulatorTransfers: [UUID: SimulatorIncomingRecording] = [:]
     var onReceive: ((IncomingRecording, URL) -> Void)?

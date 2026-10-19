@@ -10,6 +10,7 @@ struct NoteDetailView: View {
     @State private var initialized = false
     @State private var selectedTab: DetailTab = .summary
     @State private var savedNotice = false
+    @State private var confirmRemoteSummary = false
     @StateObject private var playback = AudioPlayback()
 
     private enum DetailTab: String, CaseIterable {
@@ -63,6 +64,12 @@ struct NoteDetailView: View {
             }
         }
         .tint(NotesStyle.red)
+        .confirmationDialog("将这条记录的全文发送给自定义 AI？", isPresented: $confirmRemoteSummary, titleVisibility: .visible) {
+            Button("确认并生成总结") { Task { await model.summarize(id) } }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("使用 \(settings.ai.label)。将发送此条记录的转写全文，原始录音保留在本机。")
+        }
     }
 
     private var header: some View {
@@ -145,7 +152,8 @@ struct NoteDetailView: View {
                 Spacer()
                 Button(model.summaryModels[id] != nil ? "生成中…" : (note.summary.isEmpty ? "生成总结" : "重新生成")) {
                     save()
-                    Task { await model.summarize(id) }
+                    if settings.ai.mode == .custom { confirmRemoteSummary = true }
+                    else { Task { await model.summarize(id) } }
                 }
                 .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.summaryModels[id] != nil)
             }

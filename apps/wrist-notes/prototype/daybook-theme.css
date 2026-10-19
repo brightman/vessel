@@ -1,0 +1,59 @@
+/* The native app and prototype share the same muted graphite/blue dark palette. */
+.daybook-preferences{margin:0 0 26px;border-top:1px solid var(--line)}
+.daybook-preferences .daybook-language-row{margin:0}
+html[lang="ja"] .design-note h1{font-size:34px;letter-spacing:-1.5px;word-break:keep-all}
+:root[data-appearance="dark"]{
+  color-scheme:dark;
+  --ink:#e9edf1;--secondary:#a6b3bf;--muted:#9aabb9;--line:#303943;
+  --paper:#11171d;--accent:#9cbedb;--blue-soft:#202e3c;--green:#8ec6ac;
+  --red:#f08c93;--shadow:rgba(0,0,0,.35);
+}
+:root[data-appearance="dark"] body{background:#0b1116}
+:root[data-appearance="dark"] .phone-shell{background:linear-gradient(130deg,#3b4550,#171e25 48%,#303944);border-color:#55616a;box-shadow:0 28px 75px var(--shadow),inset 0 0 0 3px #26323d}
+:root[data-appearance="dark"] .phone-screen{border-color:#55616a}
+:root[data-appearance="dark"] .watch-pill,
+:root[data-appearance="dark"] .toolbar-right,
+:root[data-appearance="dark"] .date-tile,
+:root[data-appearance="dark"] .model-field input,
+:root[data-appearance="dark"] .model-field select,
+:root[data-appearance="dark"] .note-field input,
+:root[data-appearance="dark"] .note-field textarea,
+:root[data-appearance="dark"] .plan-option,
+:root[data-appearance="dark"] .ai-composer,
+:root[data-appearance="dark"] .ai-sources button,
+:root[data-appearance="dark"] .ai-settings-options button,
+:root[data-appearance="dark"] .ai-nudge-actions .secondary-button,
+:root[data-appearance="dark"] .daybook-language-row select{background:#1b232b;color:var(--ink);border-color:var(--line)}
+:root[data-appearance="dark"] .icon-button:hover,
+:root[data-appearance="dark"] .sheet-header .icon-button,
+:root[data-appearance="dark"] .filter,
+:root[data-appearance="dark"] .search-field,
+:root[data-appearance="dark"] .audio-player,
+:root[data-appearance="dark"] .detail-tabs{background:#27323d}
+:root[data-appearance="dark"] .filter[aria-pressed="true"]{background:#e9edf1;color:#11171d}
+:root[data-appearance="dark"] .brand-mark,
+:root[data-appearance="dark"] .capture-button,
+:root[data-appearance="dark"] .primary-button{color:#11171d}
+:root[data-appearance="dark"] .insight-card{background:linear-gradient(115deg,#202e3c,#192733);border-color:#303e4b}
+:root[data-appearance="dark"] .insight-card p,
+:root[data-appearance="dark"] .ai-nudge p,
+:root[data-appearance="dark"] .ai-answer p,
+:root[data-appearance="dark"] .photo-caption,
+:root[data-appearance="dark"] .detail-content,
+:root[data-appearance="dark"] .evidence blockquote{color:#c4cfd9}
+:root[data-appearance="dark"] .ai-nudge,
+:root[data-appearance="dark"] .watch-status-large{background:#1d2a36;border-color:#303e4b}
+:root[data-appearance="dark"] .ai-user-message,
+:root[data-appearance="dark"] .model-resource{background:#202e3c;color:var(--ink)}
+:root[data-appearance="dark"] .secondary-button{background:#26394a;color:var(--accent)}
+:root[data-appearance="dark"] .rhythm-track{background:repeating-linear-gradient(to right,transparent 0,transparent calc(25% - 1px),#303943 calc(25% - 1px),#303943 25%)}
+:root[data-appearance="dark"] .rhythm-track::before{background:#303943}
+:root[data-appearance="dark"] .bottom-nav,
+:root[data-appearance="dark"] .sheet,
+:root[data-appearance="dark"] .sheet-header,
+:root[data-appearance="dark"] .ai-composer-dock{background:var(--paper)}
+:root[data-appearance="dark"] .home-indicator{background:#e9edf1}
+:root[data-appearance="dark"] .demo-label,
+:root[data-appearance="dark"] .concept-tag{border-color:#3a4855;color:var(--secondary)}
+:root[data-appearance="dark"] .photo-original,
+:root[data-appearance="dark"] .photo-tile{background:#27323d}

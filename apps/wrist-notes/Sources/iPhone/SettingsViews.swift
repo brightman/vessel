@@ -5,17 +5,18 @@ enum SettingsRoute: Hashable { case settings, transcription, ai }
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
+    var showDaybookSettings = false
     let importAudio: () -> Void
 
     var body: some View {
-        SettingsPage(title: "设置", subtitle: "让记录，按你的习惯来。", backTitle: "语音笔记") {
+        SettingsPage(title: "设置", subtitle: "让记录，按你的习惯来。", backTitle: showDaybookSettings ? "我的一天" : "语音笔记") {
             SettingsSection("外观") {
                 HStack(spacing: 10) {
                     ForEach(AppAppearance.allCases, id: \.self) { appearance in
                         Button { settings.appearance = appearance } label: {
                             VStack(spacing: 12) {
                                 Image(systemName: appearance.symbol).font(.system(size: 24))
-                                Text(appearance.title).font(.system(size: 13, weight: .semibold))
+                                Text(LocalizedStringKey(appearance.title)).font(.system(size: 13, weight: .semibold))
                             }
                             .frame(maxWidth: .infinity).frame(height: 94)
                             .foregroundStyle(settings.appearance == appearance ? NotesStyle.red : .primary)
@@ -27,10 +28,16 @@ struct SettingsView: View {
                     }
                 }
             }
+            SettingsSection("界面语言") {
+                Picker("界面语言", selection: $settings.interfaceLanguage) {
+                    ForEach(AppLanguage.allCases) { language in Text(language.title).tag(language) }
+                }.pickerStyle(.segmented)
+                SettingsFootnote(text: "界面语言独立于语音转写语言。")
+            }
             SettingsSection("模型与语言") {
                 VStack(spacing: 0) {
                     NavigationLink(value: SettingsRoute.transcription) {
-                        SettingsRow(symbol: "waveform", title: "语音转文本", subtitle: settings.transcriptionLabel)
+                        SettingsRow(symbol: "waveform", title: "语音转写模型", subtitle: settings.transcriptionLabel)
                     }
                     Divider().overlay(NotesStyle.border)
                     NavigationLink(value: SettingsRoute.ai) {
@@ -38,7 +45,14 @@ struct SettingsView: View {
                     }
                 }
                 .settingsCard()
-                SettingsFootnote(text: "默认在 iPhone 上转写和总结。只有选择自定义 AI 后，笔记文本才会发送到你指定的服务。")
+                SettingsFootnote(text: "默认在 iPhone 上转写、总结和回答问题。自定义 AI 的问答会先展示所选文本，确认后发送到你指定的服务。")
+            }
+            if showDaybookSettings {
+                SettingsSection("我的 AI") {
+                    NavigationLink(value: DaybookRoute.preferences) {
+                        SettingsRow(symbol: "bell.badge", title: "AI 偏好与提醒", subtitle: "主动建议、免打扰与允许使用的数据")
+                    }.settingsCard()
+                }
             }
             SettingsSection("录音") {
                 Button(action: importAudio) {
@@ -46,46 +60,6 @@ struct SettingsView: View {
                 }
                 .settingsCard()
             }
-        }
-    }
-}
-
-struct TranscriptionSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @ObservedObject var settings: AppSettings
-    @State private var language: String
-
-    init(settings: AppSettings) {
-        self.settings = settings
-        _language = State(initialValue: settings.localeIdentifier)
-    }
-
-    var body: some View {
-        SettingsPage(title: "语音转文本", subtitle: "选择负责听懂录音的模型。", save: {
-            settings.localeIdentifier = language
-            dismiss()
-        }) {
-            VStack(spacing: 0) {
-                ModelChoice(title: "Apple 端上转写", badge: "推荐 · 本机", description: "使用 iPhone 系统语音模型，无需 API Key。首次使用可能需要下载语言资源。", selected: true) {}
-                Divider().overlay(NotesStyle.border)
-                ModelChoice(title: "Whisper", badge: "尚未接入", description: "Tiny / Base / Small 多语言模型暂不可用，当前使用 Apple 端上转写。", selected: false) {}
-                    .disabled(true).opacity(0.55)
-            }
-            .settingsCard()
-            SettingsSection("识别语言") {
-                HStack {
-                    Text("录音语言").font(.system(size: 15))
-                    Spacer()
-                    Picker("录音语言", selection: $language) {
-                        Text("普通话").tag("zh-CN")
-                        Text("English").tag("en-US")
-                    }
-                    .pickerStyle(.menu).labelsHidden()
-                }
-                .padding(16).settingsCard()
-                SettingsFootnote(text: "保存后用于新的转写任务，已有笔记保持原样。")
-            }
-            SettingsInfo(title: "音频留在本机", text: "Apple 模型的语言与设备支持情况，以这台 iPhone 的检测结果为准。")
         }
     }
 }
@@ -98,56 +72,67 @@ struct AISettingsView: View {
     init(settings: AppSettings) { _editor = StateObject(wrappedValue: AISettingsModel(settings: settings)) }
 
     var body: some View {
-        SettingsPage(title: "AI 模型", subtitle: "用来提炼要点，生成笔记总结。", canSave: editor.canSave, save: {
+        SettingsPage(title: "AI 模型", subtitle: "用于笔记总结、跨记录回顾与 AI 对话。", canSave: editor.canSave, save: {
             do { try editor.save(); dismiss() }
             catch { saveError = error.localizedDescription }
         }) {
             VStack(spacing: 0) {
-                ModelChoice(title: "Apple 本地模型", badge: "本机", description: "由 Apple Intelligence 提供。笔记文本在 iPhone 上处理，无需 API Key。", selected: editor.configuration.mode == .local) {
+                ModelChoice(title: "Apple 本地模型", badge: "本机",
+                            description: "由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。",
+                            selected: editor.configuration.mode == .local) {
                     editor.configuration.mode = .local
                 }
-                Divider().overlay(NotesStyle.border)
-                ModelChoice(title: "自定义模型", badge: "自有服务", description: "使用你的模型与 API Key，支持 OpenAI 兼容的 Chat Completions 接口。", selected: editor.configuration.mode == .custom) {
+                ModelChoice(title: "自定义模型", badge: "自有服务",
+                            description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
+                            selected: editor.configuration.mode == .custom) {
                     editor.configuration.mode = .custom
                 }
             }
-            .settingsCard()
             if editor.configuration.mode == .local {
-                SettingsInfo(title: localAvailabilityTitle, text: "请在系统设置中启用并下载 Apple Intelligence 模型。可用性还取决于设备、语言及地区；不可用时不会自动切换远程服务。")
+                SettingsInfo(title: localAvailabilityTitle,
+                             text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
+                    .padding(.top, 20)
             } else {
-                SettingsSection("连接配置") {
-                    VStack(spacing: 0) {
-                        configField("模型名称") {
-                            TextField("例如 my-model", text: $editor.configuration.model)
-                                .accessibilityLabel("模型名称")
-                        }
-                        Divider().overlay(NotesStyle.border)
-                        configField("服务地址 · Base URL") {
-                            TextField("https://api.example.com/v1", text: $editor.configuration.baseURL)
-                                .keyboardType(.URL).accessibilityLabel("Base URL")
-                        }
-                        Divider().overlay(NotesStyle.border)
-                        configField("API Key") {
-                            SecureField("输入你的 API Key", text: $editor.apiKey)
-                                .privacySensitive().accessibilityLabel("API Key")
-                        }
+                VStack(alignment: .leading, spacing: 18) {
+                    DaybookSettingsField("API 接口兼容") {
+                        Menu {
+                            Picker("API 接口兼容", selection: $editor.configuration.apiProtocol) {
+                                Text("OpenAI").tag(AIConfiguration.APIProtocol.openai)
+                                Text("Anthropic").tag(AIConfiguration.APIProtocol.anthropic)
+                            }
+                        } label: { DaybookSettingsMenuLabel(text: editor.configuration.apiProtocol.title) }
+                        .accessibilityLabel("API 接口兼容")
                     }
-                    .settingsCard()
-                    SettingsFootnote(text: "总结时仅将笔记文本发送至此地址，原始录音不发送。API Key 保存在本机钥匙串中。")
+                    DaybookSettingsField("模型名称") {
+                        TextField("例如 my-model", text: $editor.configuration.model)
+                            .accessibilityLabel("模型名称")
+                    }
+                    DaybookSettingsField("服务地址 · Base URL") {
+                        TextField(editor.configuration.apiProtocol.baseURLHint, text: $editor.configuration.baseURL)
+                            .keyboardType(.URL).accessibilityLabel("Base URL")
+                    }
+                    SettingsFootnote(text: "兼容 \(editor.configuration.apiProtocol.title)。填写 Base URL，不含末尾 /\(editor.configuration.apiProtocol.endpointPath)。")
+                        .padding(.top, -8)
+                    DaybookSettingsField("API Key") {
+                        SecureField("输入你的 API Key", text: $editor.apiKey)
+                            .privacySensitive().accessibilityLabel("API Key")
+                    }
+                    SettingsFootnote(text: "自定义模型会接收你允许用于本次任务的文本，原始录音与图片保留在本机。API Key 保存在本机钥匙串中。")
+                        .padding(.top, -6)
                     Button { editor.startTest() } label: {
-                        HStack(spacing: 9) {
-                            if editor.state == .testing { ProgressView().tint(NotesStyle.red) }
+                        HStack(spacing: 7) {
+                            if editor.state == .testing { ProgressView().controlSize(.small) }
                             Text(editor.state == .testing ? "正在测试连接…" : "测试连接")
-                                .font(.system(size: 15, weight: .semibold))
                         }
-                        .frame(maxWidth: .infinity).frame(height: 48)
-                        .background(NotesStyle.field, in: RoundedRectangle(cornerRadius: 13))
                     }
+                    .buttonStyle(DaybookSettingsButtonStyle())
                     .disabled(editor.state == .testing)
-                    testStatus
+                    testStatus.padding(.top, -7)
                 }
+                .padding(.top, 18)
             }
-            SettingsFootnote(text: "保存后用于下一次生成总结。返回会放弃未保存的修改。")
+            SettingsFootnote(text: "保存后用于下一次总结与问答。关闭会放弃未保存的修改。")
+                .padding(.top, 20)
         }
         .onDisappear { editor.invalidateTest() }
         .alert("配置未保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
@@ -158,35 +143,29 @@ struct AISettingsView: View {
     private var localAvailabilityTitle: String {
         if case .available = SystemLanguageModel.default.availability,
            SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple 本地模型可用" }
-        return "此设备的 Apple 本地模型暂不可用"
-    }
-
-    private func configField<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(size: 12)).foregroundStyle(Color.secondary)
-            content().font(.system(size: 15)).foregroundStyle(Color.primary)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                .submitLabel(.done)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading).padding(16)
+        return "需要 Apple Intelligence 可用"
     }
 
     private var testStatus: some View {
         Group {
             switch editor.state {
-            case .idle: Text("测试只发送固定测试文本。修改配置后需重新测试。").foregroundStyle(Color.secondary)
-            case .testing: Text("正在验证地址、API Key 和模型，请稍候…").foregroundStyle(Color.secondary)
-            case .success: Label("配置已验证，可以保存。", systemImage: "checkmark.circle.fill").foregroundStyle(NotesStyle.green)
-            case .failure(let message): Label(message, systemImage: "exclamationmark.circle").foregroundStyle(NotesStyle.warning)
+            case .idle: Text("测试只发送固定测试文本。修改配置后需重新测试。").foregroundStyle(DaybookStyle.secondary)
+            case .testing: Text("正在验证地址、API Key 和模型，请稍候…").foregroundStyle(DaybookStyle.secondary)
+            case .success:
+                HStack(spacing: 6) { DaybookIcon("Check", size: 13); Text("配置已验证，可以保存。") }
+                    .foregroundStyle(DaybookStyle.green)
+            case .failure(let message):
+                HStack(alignment: .top, spacing: 6) { DaybookIcon("CircleHelp", size: 13); Text(message) }
+                    .foregroundStyle(DaybookStyle.red)
             }
         }
-        .font(.system(size: 12)).lineSpacing(4)
-        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
+        .font(.system(size: 11)).lineSpacing(6)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }
 
-private struct SettingsPage<Content: View>: View {
+struct SettingsPage<Content: View>: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
     let subtitle: String
@@ -196,40 +175,33 @@ private struct SettingsPage<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button { dismiss() } label: { Label(backTitle, systemImage: "chevron.left") }
-                Spacer()
-                if let save { Button("保存", action: save).fontWeight(.semibold).disabled(!canSave) }
+        DaybookSheetLayout(title: title, onClose: { dismiss() }) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(LocalizedStringKey(subtitle)).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+                    .lineSpacing(8).padding(.top, 6).padding(.bottom, 20)
+                content
             }
-            .font(.system(size: 16)).padding(.horizontal, 17).frame(height: 52)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 9) {
-                        Text(title).font(.system(size: 32, weight: .bold)).accessibilityAddTraits(.isHeader)
-                        Text(subtitle).font(.system(size: 13)).foregroundStyle(Color.secondary)
-                    }
-                    content
-                }
-                .padding(.horizontal, 22).padding(.top, 8).padding(.bottom, 44)
-            }
-            .scrollDismissesKeyboard(.interactively)
         }
-        .background(NotesStyle.background)
-        .tint(NotesStyle.red)
-        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let save {
+                DaybookSettingsActions(cancel: { dismiss() }, save: save, canSave: canSave)
+                    .padding(.horizontal, 25).padding(.top, 15).padding(.bottom, 20)
+                    .background(DaybookStyle.paper)
+                    .overlay(alignment: .top) { Rectangle().fill(DaybookStyle.line).frame(height: 1).padding(.horizontal, 25) }
+            }
+        }
     }
 }
 
-private struct SettingsSection<Content: View>: View {
+struct SettingsSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
     init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(Color.secondary).padding(.leading, 4)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(LocalizedStringKey(title)).font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.ink)
             content
-        }
+        }.padding(.top, 24)
     }
 }
 
@@ -238,20 +210,20 @@ private struct SettingsRow: View {
     let title: String
     let subtitle: String
     var body: some View {
-        HStack(spacing: 13) {
-            Image(systemName: symbol).font(.system(size: 20)).frame(width: 28).foregroundStyle(Color.secondary)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
-                Text(subtitle).font(.system(size: 12)).foregroundStyle(Color.secondary).lineLimit(1)
+        HStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 17)).frame(width: 21).foregroundStyle(DaybookStyle.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(LocalizedStringKey(title)).font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+                Text(LocalizedStringKey(subtitle)).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(.tertiary)
+            DaybookIcon("ChevronRight", size: 17).foregroundStyle(DaybookStyle.secondary)
         }
-        .padding(.horizontal, 15).padding(.vertical, 18).contentShape(Rectangle())
+        .padding(.vertical, 16).contentShape(Rectangle())
     }
 }
 
-private struct ModelChoice: View {
+struct ModelChoice: View {
     let title: String
     let badge: String
     let description: String
@@ -259,47 +231,114 @@ private struct ModelChoice: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 20)).foregroundStyle(selected ? NotesStyle.red : .secondary)
-                VStack(alignment: .leading, spacing: 9) {
-                    HStack {
-                        Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
-                        Text(badge).font(.system(size: 10, weight: .medium)).foregroundStyle(Color.secondary)
-                            .padding(.horizontal, 6).padding(.vertical, 3).background(NotesStyle.field, in: Capsule())
-                    }
-                    Text(description).font(.system(size: 12)).foregroundStyle(Color.secondary).lineSpacing(4)
+            HStack(alignment: .top, spacing: 10) {
+                Circle().stroke(selected ? DaybookStyle.accent : DaybookStyle.secondary, lineWidth: 1)
+                    .background { if selected { Circle().fill(DaybookStyle.accent).padding(3) } }
+                    .frame(width: 13, height: 13).padding(.top, 4)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+                        .lineSpacing(7)
+                    Text(description).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                        .lineSpacing(7).fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(16).contentShape(Rectangle())
+            .padding(.vertical, 17).contentShape(Rectangle())
+            .overlay(alignment: .bottom) { Rectangle().fill(DaybookStyle.line).frame(height: 1) }
         }
         .buttonStyle(.plain).accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
-private struct SettingsFootnote: View {
-    let text: String
-    var body: some View { Text(text).font(.system(size: 12)).foregroundStyle(Color.secondary).lineSpacing(4).padding(.horizontal, 4) }
-}
-
-private struct SettingsInfo: View {
-    let title: String
+struct SettingsFootnote: View {
     let text: String
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title).font(.system(size: 13, weight: .semibold))
-            Text(text).font(.system(size: 12)).foregroundStyle(Color.secondary).lineSpacing(4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading).padding(15)
-        .background(NotesStyle.field, in: RoundedRectangle(cornerRadius: 14))
+        Text(LocalizedStringKey(text)).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+            .lineSpacing(7).fixedSize(horizontal: false, vertical: true)
     }
 }
 
-private extension View {
+struct SettingsInfo: View {
+    let title: String
+    let text: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            DaybookIcon("ShieldCheck", size: 18).foregroundStyle(DaybookStyle.accent)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .medium)).lineSpacing(7)
+                Text(LocalizedStringKey(text)).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(7)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(17)
+        .background(DaybookStyle.blueSoft, in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+struct DaybookSettingsField<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+    init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(LocalizedStringKey(title)).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+            content.font(.system(size: 16)).foregroundStyle(DaybookStyle.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.done)
+                .frame(maxWidth: .infinity, minHeight: 20, alignment: .leading)
+                .padding(12).background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 12))
+                .overlay { RoundedRectangle(cornerRadius: 12).stroke(DaybookStyle.accent.opacity(0.2), lineWidth: 1) }
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct DaybookSettingsMenuLabel: View {
+    let text: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(LocalizedStringKey(text)).frame(maxWidth: .infinity, alignment: .leading)
+            DaybookIcon("ChevronDown", size: 15).foregroundStyle(DaybookStyle.secondary)
+        }.contentShape(Rectangle())
+    }
+}
+
+struct DaybookSettingsButtonStyle: ButtonStyle {
+    var primary = false
+    @Environment(\.isEnabled) private var isEnabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.system(size: 12, weight: primary ? .medium : .regular))
+            .foregroundStyle(primary ? Color.white : DaybookStyle.accent)
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(primary ? DaybookStyle.accent : DaybookStyle.blueSoft, in: RoundedRectangle(cornerRadius: 14))
+            .opacity(!isEnabled ? 0.42 : configuration.isPressed ? 0.75 : 1)
+    }
+}
+
+struct DaybookSettingsActions: View {
+    let cancel: () -> Void
+    let save: () -> Void
+    var canSave = true
+    var saveTitle = "保存设置"
+    var isSaving = false
+    var canCancel = true
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: cancel) { Text("取消").frame(maxWidth: .infinity) }
+                .buttonStyle(DaybookSettingsButtonStyle()).disabled(!canCancel)
+            Button(action: save) {
+                HStack(spacing: 6) {
+                    if isSaving { ProgressView().controlSize(.small).tint(.white) }
+                    else { DaybookIcon("Check", size: 13) }
+                    Text(saveTitle)
+                }.frame(maxWidth: .infinity)
+            }
+            .buttonStyle(DaybookSettingsButtonStyle(primary: true)).disabled(!canSave)
+        }
+    }
+}
+
+extension View {
     func settingsCard() -> some View {
-        self.background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(NotesStyle.border, lineWidth: 1))
+        self.overlay(alignment: .bottom) { Rectangle().fill(DaybookStyle.line).frame(height: 1) }
             .buttonStyle(.plain)
     }
 }
