@@ -1,6 +1,6 @@
 # EurekaRing 原生本地接入 · 2026-10-19
 
-基于 `dev-card`，通过相邻 `br_flutter_plugin_ble` 的 `dev-300` 原生 SDK 接入。没有合并 `dev-healthdata`，没有引入 `br_app_services`。
+最初基于 `dev-card` 接入 `br_flutter_plugin_ble` 的原生 SDK。2026-10-20 按用户要求，在当前 `codex/vessel` 分支将依赖改为本仓库 `pods/br_flutter_plugin_ble` 中的本地二进制 Pod，来源为插件 `dev_sdk_pod` 分支。没有合并 `dev-healthdata`，没有引入 `br_app_services`。
 
 ## 页面和录音流程
 
@@ -38,6 +38,21 @@
 ## 已知 SDK 边界
 
 BRBluetoothLib 3.0.0 握手返回正在录音时，没有恢复 BleAudioManager 的活动录音上下文。App 据握手状态阻止同步／格式化，并提示在硬件上结束录音；结束后同步。不伪造文件名或虚假的录音开始事件。已连接后开始的 App／硬件录音使用正常停止流程。
+
+## 本地二进制 Pod 发布包
+
+- 发布目录为仓库根目录 `pods/br_flutter_plugin_ble`。默认 Native 子模块包含 BRBluetoothLib、BRRecorderCore、BRRecorderOpus 三个静态 XCFramework，提供真机 arm64 和模拟器 arm64/x86_64；Swift 模块名保持不变。
+- App 的 Podfile 只引用本仓库路径，不再引用相邻插件的 `.native-sdk`。使用方执行 `pod install --deployment` 即可安装原生依赖，不需要私有 SDK 源码下载权限或 Flutter。App 原有 Swift 包依赖按 Package.resolved 处理。
+- 导出工具位于插件仓库 `ios/package_native_pod.py`。SDK 原始源码和 Flutter Podspec 均未修改；发布包包含上游许可、隐私资源、来源版本与逐文件 SHA-256 manifest。
+- SDK 中模块名与枚举同名，导出使用 Swift 接口模块别名选项处理，并移除探针副本的已序列化模块，强制对三种架构的文本接口进行类型检查。集成测试继承宿主搜索路径，只显式链接 Opus 编码器，避免重复复制 XCFramework。
+- 校验命令：`python3 apps/wrist-notes/scripts/verify_ble_pod.py`。发布包需随代码一起提交；`apps/wrist-notes/Pods` 仍为生成目录，不提交。
+
+2026-10-20 的二进制包验证结果：
+
+- 79 个文件的 SHA-256、三个 XCFramework 的实际架构及 Swift 文本接口检查通过。导出时强制从文本接口编译的 arm64 真机、arm64 模拟器和 x86_64 模拟器探针均通过。
+- 切换二进制 Pod 后，30 项 Ring 集成测试全部通过（0 失败），结果为 `/private/tmp/wisenote-binary-pod-tests-v2.xcresult`；测试使用假设备和合成音频。
+- 仅复制 Vessel 的可提交 App 文件及根目录 Pod 包，在没有相邻 SDK 仓库、没有预装 Pods 的隔离目录执行 `pod install --deployment` 成功；随后完整 iPhone arm64 App 构建成功，使用 `CODE_SIGNING_ALLOWED=NO`。构建日志为 `/private/tmp/wisenote-binary-consumer-device.log`，原有 Swift 包沿用固定版本的本地缓存。
+- iPhone／Watch 工程源码成员及 Watch 图标资源检查通过。本次未安装到真机，也未重测真实 Ring 的蓝牙操作。
 
 ## 断线后的页面恢复
 

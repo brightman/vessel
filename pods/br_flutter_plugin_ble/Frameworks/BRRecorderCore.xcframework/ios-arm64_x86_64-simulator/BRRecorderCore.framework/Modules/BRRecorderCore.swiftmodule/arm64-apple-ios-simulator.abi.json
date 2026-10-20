@@ -1,0 +1,4402 @@
+{
+  "ABIRoot": {
+    "kind": "Root",
+    "name": "BRRecorderCore",
+    "printedName": "BRRecorderCore",
+    "children": [
+      {
+        "kind": "Import",
+        "name": "AVFAudio",
+        "printedName": "AVFAudio",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "Import",
+        "name": "BRRecorderOpus",
+        "printedName": "BRRecorderOpus",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRNormalizedAudio",
+        "printedName": "BRNormalizedAudio",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "url",
+            "printedName": "url",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore17BRNormalizedAudioV3url10Foundation3URLVvp",
+            "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV3url10Foundation3URLVvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "URL",
+                    "printedName": "Foundation.URL",
+                    "usr": "s:10Foundation3URLV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRNormalizedAudioV3url10Foundation3URLVvg",
+                "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV3url10Foundation3URLVvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "duration",
+            "printedName": "duration",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Double",
+                "printedName": "Swift.Double",
+                "usr": "s:Sd"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore17BRNormalizedAudioV8durationSdvp",
+            "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV8durationSdvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Double",
+                    "printedName": "Swift.Double",
+                    "usr": "s:Sd"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRNormalizedAudioV8durationSdvg",
+                "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV8durationSdvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(url:duration:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRNormalizedAudio",
+                "printedName": "BRRecorderCore.BRNormalizedAudio",
+                "usr": "s:14BRRecorderCore17BRNormalizedAudioV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Double",
+                "printedName": "Swift.Double",
+                "usr": "s:Sd"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore17BRNormalizedAudioV3url8durationAC10Foundation3URLV_Sdtcfc",
+            "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV3url8durationAC10Foundation3URLV_Sdtcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:14BRRecorderCore17BRNormalizedAudioV",
+        "mangledName": "$s14BRRecorderCore17BRNormalizedAudioV",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRAudioNormalizer",
+        "printedName": "BRAudioNormalizer",
+        "children": [
+          {
+            "kind": "Function",
+            "name": "normalize",
+            "printedName": "normalize(input:output:progress:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRNormalizedAudio",
+                "printedName": "BRRecorderCore.BRNormalizedAudio",
+                "usr": "s:14BRRecorderCore17BRNormalizedAudioV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(Swift.Double) -> ()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Double",
+                    "printedName": "Swift.Double",
+                    "usr": "s:Sd"
+                  }
+                ],
+                "hasDefaultArg": true
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRAudioNormalizerO9normalize5input6output8progressAA17BRNormalizedAudioV10Foundation3URLV_ALySdYbctYaKFZ",
+            "mangledName": "$s14BRRecorderCore17BRAudioNormalizerO9normalize5input6output8progressAA17BRNormalizedAudioV10Foundation3URLV_ALySdYbctYaKFZ",
+            "moduleName": "BRRecorderCore",
+            "static": true,
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Enum",
+        "usr": "s:14BRRecorderCore17BRAudioNormalizerO",
+        "mangledName": "$s14BRRecorderCore17BRAudioNormalizerO",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl",
+          "RawDocComment"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "BRBluetoothLib",
+        "printedName": "BRBluetoothLib",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderClient",
+        "printedName": "BRRecorderClient",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "onEvent",
+            "printedName": "onEvent",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Void",
+                        "printedName": "()"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvp",
+            "mangledName": "$s14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasInitialValue",
+              "Final",
+              "Custom",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                    "children": [
+                      {
+                        "kind": "TypeFunc",
+                        "name": "Function",
+                        "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Void",
+                            "printedName": "()"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "BRRecorderEvent",
+                            "printedName": "BRRecorderCore.BRRecorderEvent",
+                            "usr": "s:14BRRecorderCore0A5EventO"
+                          }
+                        ]
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvg",
+                "mangledName": "$s14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "declAttributes": [
+                  "Final"
+                ],
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                    "children": [
+                      {
+                        "kind": "TypeFunc",
+                        "name": "Function",
+                        "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Void",
+                            "printedName": "()"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "BRRecorderEvent",
+                            "printedName": "BRRecorderCore.BRRecorderEvent",
+                            "usr": "s:14BRRecorderCore0A5EventO"
+                          }
+                        ]
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvs",
+                "mangledName": "$s14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvs",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "declAttributes": [
+                  "Final"
+                ],
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvM",
+                "mangledName": "$s14BRRecorderCore0A6ClientC7onEventyAA0aE0OcSgvM",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "declAttributes": [
+                  "Final"
+                ],
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderClient",
+                "printedName": "BRRecorderCore.BRRecorderClient",
+                "usr": "s:14BRRecorderCore0A6ClientC"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A6ClientCACycfc",
+            "mangledName": "$s14BRRecorderCore0A6ClientCACycfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "initialize",
+            "printedName": "initialize()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC10initializeyyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC10initializeyyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "scan",
+            "printedName": "scan()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC4scanyyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC4scanyyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "stopScan",
+            "printedName": "stopScan()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC8stopScanyyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC8stopScanyyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "connect",
+            "printedName": "connect(device:appUUID:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC7connect6device7appUUIDAA0A7BindingVAA0A6DeviceV_SStYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC7connect6device7appUUIDAA0A7BindingVAA0A6DeviceV_SStYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "disconnect",
+            "printedName": "disconnect()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC10disconnectyyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC10disconnectyyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "syncTime",
+            "printedName": "syncTime()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC8syncTimeyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC8syncTimeyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "battery",
+            "printedName": "battery()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Int",
+                "printedName": "Swift.Int",
+                "usr": "s:Si"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC7batterySiyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC7batterySiyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "storageDescription",
+            "printedName": "storageDescription()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC18storageDescriptionSSyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC18storageDescriptionSSyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "isRecording",
+            "printedName": "isRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC11isRecordingSbyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC11isRecordingSbyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Var",
+            "name": "flashIdeaSupported",
+            "printedName": "flashIdeaSupported",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6ClientC18flashIdeaSupportedSbvp",
+            "mangledName": "$s14BRRecorderCore0A6ClientC18flashIdeaSupportedSbvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Final",
+              "Custom",
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6ClientC18flashIdeaSupportedSbvg",
+                "mangledName": "$s14BRRecorderCore0A6ClientC18flashIdeaSupportedSbvg",
+                "moduleName": "BRRecorderCore",
+                "declAttributes": [
+                  "Final"
+                ],
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Function",
+            "name": "isFlashIdeaRecording",
+            "printedName": "isFlashIdeaRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC20isFlashIdeaRecordingSbyF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC20isFlashIdeaRecordingSbyF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "startRecording",
+            "printedName": "startRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC14startRecordingyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC14startRecordingyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "stopRecording",
+            "printedName": "stopRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC13stopRecordingyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC13stopRecordingyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "listFiles",
+            "printedName": "listFiles()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFileList",
+                "printedName": "BRRecorderCore.BRRecorderFileList",
+                "usr": "s:14BRRecorderCore0A8FileListV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC9listFilesAA0A8FileListVyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC9listFilesAA0A8FileListVyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "openSync",
+            "printedName": "openSync()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC8openSyncyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC8openSyncyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "closeSync",
+            "printedName": "closeSync()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC9closeSyncyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC9closeSyncyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "transfer",
+            "printedName": "transfer(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC8transfery10Foundation3URLVAA0A4FileVYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC8transfery10Foundation3URLVAA0A4FileVYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "unbind",
+            "printedName": "unbind()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC6unbindyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC6unbindyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "format",
+            "printedName": "format()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6ClientC6formatyyYaKF",
+            "mangledName": "$s14BRRecorderCore0A6ClientC6formatyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "Custom",
+              "Final",
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:14BRRecorderCore0A6ClientC",
+        "mangledName": "$s14BRRecorderCore0A6ClientC",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "Final",
+          "AccessControl",
+          "Custom",
+          "RawDocComment"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "BRRecordingDevice",
+            "printedName": "BRRecordingDevice",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BRRecorderCore"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderDevice",
+        "printedName": "BRRecorderDevice",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "sn",
+            "printedName": "sn",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6DeviceV2snSSvp",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV2snSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6DeviceV2snSSvg",
+                "mangledName": "$s14BRRecorderCore0A6DeviceV2snSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "address",
+            "printedName": "address",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6DeviceV7addressSSvp",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV7addressSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6DeviceV7addressSSvg",
+                "mangledName": "$s14BRRecorderCore0A6DeviceV7addressSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "name",
+            "printedName": "name",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6DeviceV4nameSSvp",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV4nameSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6DeviceV4nameSSvg",
+                "mangledName": "$s14BRRecorderCore0A6DeviceV4nameSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "id",
+            "printedName": "id",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A6DeviceV2idSSvp",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV2idSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A6DeviceV2idSSvg",
+                "mangledName": "$s14BRRecorderCore0A6DeviceV2idSSvg",
+                "moduleName": "BRRecorderCore",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(sn:address:name:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A6DeviceV2sn7address4nameACSS_S2Stcfc",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV2sn7address4nameACSS_S2Stcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(from:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Decoder",
+                "printedName": "any Swift.Decoder",
+                "usr": "s:s7DecoderP"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A6DeviceV4fromACs7Decoder_p_tKcfc",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV4fromACs7Decoder_p_tKcfc",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "throwing": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "encode",
+            "printedName": "encode(to:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Encoder",
+                "printedName": "any Swift.Encoder",
+                "usr": "s:s7EncoderP"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6DeviceV6encode2toys7Encoder_p_tKF",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV6encode2toys7Encoder_p_tKF",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "==",
+            "printedName": "==(_:_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A6DeviceV2eeoiySbAC_ACtFZ",
+            "mangledName": "$s14BRRecorderCore0A6DeviceV2eeoiySbAC_ACtFZ",
+            "moduleName": "BRRecorderCore",
+            "static": true,
+            "implicit": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:14BRRecorderCore0A6DeviceV",
+        "mangledName": "$s14BRRecorderCore0A6DeviceV",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Identifiable",
+            "printedName": "Identifiable",
+            "children": [
+              {
+                "kind": "TypeWitness",
+                "name": "ID",
+                "printedName": "ID",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ]
+              }
+            ],
+            "usr": "s:s12IdentifiableP",
+            "mangledName": "$ss12IdentifiableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Decodable",
+            "printedName": "Decodable",
+            "usr": "s:Se",
+            "mangledName": "$sSe"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Encodable",
+            "printedName": "Encodable",
+            "usr": "s:SE",
+            "mangledName": "$sSE"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderBinding",
+        "printedName": "BRRecorderBinding",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "device",
+            "printedName": "device",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A7BindingV6deviceAA0A6DeviceVvp",
+            "mangledName": "$s14BRRecorderCore0A7BindingV6deviceAA0A6DeviceVvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderDevice",
+                    "printedName": "BRRecorderCore.BRRecorderDevice",
+                    "usr": "s:14BRRecorderCore0A6DeviceV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A7BindingV6deviceAA0A6DeviceVvg",
+                "mangledName": "$s14BRRecorderCore0A7BindingV6deviceAA0A6DeviceVvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "appUUID",
+            "printedName": "appUUID",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A7BindingV7appUUIDSSvp",
+            "mangledName": "$s14BRRecorderCore0A7BindingV7appUUIDSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A7BindingV7appUUIDSSvg",
+                "mangledName": "$s14BRRecorderCore0A7BindingV7appUUIDSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(device:appUUID:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A7BindingV6device7appUUIDAcA0A6DeviceV_SStcfc",
+            "mangledName": "$s14BRRecorderCore0A7BindingV6device7appUUIDAcA0A6DeviceV_SStcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(from:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Decoder",
+                "printedName": "any Swift.Decoder",
+                "usr": "s:s7DecoderP"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A7BindingV4fromACs7Decoder_p_tKcfc",
+            "mangledName": "$s14BRRecorderCore0A7BindingV4fromACs7Decoder_p_tKcfc",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "throwing": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "encode",
+            "printedName": "encode(to:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Encoder",
+                "printedName": "any Swift.Encoder",
+                "usr": "s:s7EncoderP"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A7BindingV6encode2toys7Encoder_p_tKF",
+            "mangledName": "$s14BRRecorderCore0A7BindingV6encode2toys7Encoder_p_tKF",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "==",
+            "printedName": "==(_:_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A7BindingV2eeoiySbAC_ACtFZ",
+            "mangledName": "$s14BRRecorderCore0A7BindingV2eeoiySbAC_ACtFZ",
+            "moduleName": "BRRecorderCore",
+            "static": true,
+            "implicit": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:14BRRecorderCore0A7BindingV",
+        "mangledName": "$s14BRRecorderCore0A7BindingV",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Decodable",
+            "printedName": "Decodable",
+            "usr": "s:Se",
+            "mangledName": "$sSe"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Encodable",
+            "printedName": "Encodable",
+            "usr": "s:SE",
+            "mangledName": "$sSE"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderFileKind",
+        "printedName": "BRRecorderFileKind",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "recording",
+            "printedName": "recording",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderFileKind.Type) -> BRRecorderCore.BRRecorderFileKind",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFileKind",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind",
+                    "usr": "s:14BRRecorderCore0A8FileKindO"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFileKind",
+                        "printedName": "BRRecorderCore.BRRecorderFileKind",
+                        "usr": "s:14BRRecorderCore0A8FileKindO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A8FileKindO9recordingyA2CmF",
+            "mangledName": "$s14BRRecorderCore0A8FileKindO9recordingyA2CmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "flashIdea",
+            "printedName": "flashIdea",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderFileKind.Type) -> BRRecorderCore.BRRecorderFileKind",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFileKind",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind",
+                    "usr": "s:14BRRecorderCore0A8FileKindO"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFileKind",
+                        "printedName": "BRRecorderCore.BRRecorderFileKind",
+                        "usr": "s:14BRRecorderCore0A8FileKindO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A8FileKindO9flashIdeayA2CmF",
+            "mangledName": "$s14BRRecorderCore0A8FileKindO9flashIdeayA2CmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(sdkFileType:fileName:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "BRRecorderCore.BRRecorderFileKind?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFileKind",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind",
+                    "usr": "s:14BRRecorderCore0A8FileKindO"
+                  }
+                ],
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "hasDefaultArg": true,
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A8FileKindO03sdkC4Type8fileNameACSgSS_SStcfc",
+            "mangledName": "$s14BRRecorderCore0A8FileKindO03sdkC4Type8fileNameACSgSS_SStcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(rawValue:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "BRRecorderCore.BRRecorderFileKind?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFileKind",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind",
+                    "usr": "s:14BRRecorderCore0A8FileKindO"
+                  }
+                ],
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A8FileKindO8rawValueACSgSS_tcfc",
+            "mangledName": "$s14BRRecorderCore0A8FileKindO8rawValueACSgSS_tcfc",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Var",
+            "name": "rawValue",
+            "printedName": "rawValue",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A8FileKindO8rawValueSSvp",
+            "mangledName": "$s14BRRecorderCore0A8FileKindO8rawValueSSvp",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A8FileKindO8rawValueSSvg",
+                "mangledName": "$s14BRRecorderCore0A8FileKindO8rawValueSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          }
+        ],
+        "declKind": "Enum",
+        "usr": "s:14BRRecorderCore0A8FileKindO",
+        "mangledName": "$s14BRRecorderCore0A8FileKindO",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "enumRawTypeName": "String",
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Hashable",
+            "printedName": "Hashable",
+            "usr": "s:SH",
+            "mangledName": "$sSH"
+          },
+          {
+            "kind": "Conformance",
+            "name": "RawRepresentable",
+            "printedName": "RawRepresentable",
+            "children": [
+              {
+                "kind": "TypeWitness",
+                "name": "RawValue",
+                "printedName": "RawValue",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ]
+              }
+            ],
+            "usr": "s:SY",
+            "mangledName": "$sSY"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Decodable",
+            "printedName": "Decodable",
+            "usr": "s:Se",
+            "mangledName": "$sSe"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Encodable",
+            "printedName": "Encodable",
+            "usr": "s:SE",
+            "mangledName": "$sSE"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderFile",
+        "printedName": "BRRecorderFile",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "name",
+            "printedName": "name",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV4nameSSvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV4nameSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV4nameSSvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV4nameSSvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "byteCount",
+            "printedName": "byteCount",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.Int64?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Int64",
+                    "printedName": "Swift.Int64",
+                    "usr": "s:s5Int64V"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV9byteCounts5Int64VSgvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV9byteCounts5Int64VSgvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.Int64?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Int64",
+                        "printedName": "Swift.Int64",
+                        "usr": "s:s5Int64V"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV9byteCounts5Int64VSgvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV9byteCounts5Int64VSgvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "recordedAt",
+            "printedName": "recordedAt",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Foundation.Date?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Date",
+                    "printedName": "Foundation.Date",
+                    "usr": "s:10Foundation4DateV"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV10recordedAt10Foundation4DateVSgvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV10recordedAt10Foundation4DateVSgvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Foundation.Date?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Date",
+                        "printedName": "Foundation.Date",
+                        "usr": "s:10Foundation4DateV"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV10recordedAt10Foundation4DateVSgvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV10recordedAt10Foundation4DateVSgvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "expectedDuration",
+            "printedName": "expectedDuration",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.Double?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Double",
+                    "printedName": "Swift.Double",
+                    "usr": "s:Sd"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV16expectedDurationSdSgvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV16expectedDurationSdSgvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.Double?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Double",
+                        "printedName": "Swift.Double",
+                        "usr": "s:Sd"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV16expectedDurationSdSgvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV16expectedDurationSdSgvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "kind",
+            "printedName": "kind",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFileKind",
+                "printedName": "BRRecorderCore.BRRecorderFileKind",
+                "usr": "s:14BRRecorderCore0A8FileKindO"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV4kindAA0aC4KindOvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV4kindAA0aC4KindOvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFileKind",
+                    "printedName": "BRRecorderCore.BRRecorderFileKind",
+                    "usr": "s:14BRRecorderCore0A8FileKindO"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV4kindAA0aC4KindOvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV4kindAA0aC4KindOvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "id",
+            "printedName": "id",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV2idSSvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV2idSSvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV2idSSvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV2idSSvg",
+                "moduleName": "BRRecorderCore",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(name:byteCount:recordedAt:expectedDuration:kind:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.Int64?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Int64",
+                    "printedName": "Swift.Int64",
+                    "usr": "s:s5Int64V"
+                  }
+                ],
+                "hasDefaultArg": true,
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Foundation.Date?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Date",
+                    "printedName": "Foundation.Date",
+                    "usr": "s:10Foundation4DateV"
+                  }
+                ],
+                "hasDefaultArg": true,
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.Double?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Double",
+                    "printedName": "Swift.Double",
+                    "usr": "s:Sd"
+                  }
+                ],
+                "hasDefaultArg": true,
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFileKind",
+                "printedName": "BRRecorderCore.BRRecorderFileKind",
+                "hasDefaultArg": true,
+                "usr": "s:14BRRecorderCore0A8FileKindO"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A4FileV4name9byteCount10recordedAt16expectedDuration4kindACSS_s5Int64VSg10Foundation4DateVSgSdSgAA0aC4KindOtcfc",
+            "mangledName": "$s14BRRecorderCore0A4FileV4name9byteCount10recordedAt16expectedDuration4kindACSS_s5Int64VSg10Foundation4DateVSgSdSgAA0aC4KindOtcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(from:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Decoder",
+                "printedName": "any Swift.Decoder",
+                "usr": "s:s7DecoderP"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A4FileV4fromACs7Decoder_p_tKcfc",
+            "mangledName": "$s14BRRecorderCore0A4FileV4fromACs7Decoder_p_tKcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "throwing": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Var",
+            "name": "hasSafeName",
+            "printedName": "hasSafeName",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A4FileV11hasSafeNameSbvp",
+            "mangledName": "$s14BRRecorderCore0A4FileV11hasSafeNameSbvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl",
+              "RawDocComment"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A4FileV11hasSafeNameSbvg",
+                "mangledName": "$s14BRRecorderCore0A4FileV11hasSafeNameSbvg",
+                "moduleName": "BRRecorderCore",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Function",
+            "name": "encode",
+            "printedName": "encode(to:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Encoder",
+                "printedName": "any Swift.Encoder",
+                "usr": "s:s7EncoderP"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A4FileV6encode2toys7Encoder_p_tKF",
+            "mangledName": "$s14BRRecorderCore0A4FileV6encode2toys7Encoder_p_tKF",
+            "moduleName": "BRRecorderCore",
+            "implicit": true,
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "==",
+            "printedName": "==(_:_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore0A4FileV2eeoiySbAC_ACtFZ",
+            "mangledName": "$s14BRRecorderCore0A4FileV2eeoiySbAC_ACtFZ",
+            "moduleName": "BRRecorderCore",
+            "static": true,
+            "implicit": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:14BRRecorderCore0A4FileV",
+        "mangledName": "$s14BRRecorderCore0A4FileV",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Identifiable",
+            "printedName": "Identifiable",
+            "children": [
+              {
+                "kind": "TypeWitness",
+                "name": "ID",
+                "printedName": "ID",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ]
+              }
+            ],
+            "usr": "s:s12IdentifiableP",
+            "mangledName": "$ss12IdentifiableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Decodable",
+            "printedName": "Decodable",
+            "usr": "s:Se",
+            "mangledName": "$sSe"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Encodable",
+            "printedName": "Encodable",
+            "usr": "s:SE",
+            "mangledName": "$sSE"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderFileList",
+        "printedName": "BRRecorderFileList",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "files",
+            "printedName": "files",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Array",
+                "printedName": "[BRRecorderCore.BRRecorderFile]",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFile",
+                    "printedName": "BRRecorderCore.BRRecorderFile",
+                    "usr": "s:14BRRecorderCore0A4FileV"
+                  }
+                ],
+                "usr": "s:Sa"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A8FileListV5filesSayAA0aC0VGvp",
+            "mangledName": "$s14BRRecorderCore0A8FileListV5filesSayAA0aC0VGvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Array",
+                    "printedName": "[BRRecorderCore.BRRecorderFile]",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFile",
+                        "printedName": "BRRecorderCore.BRRecorderFile",
+                        "usr": "s:14BRRecorderCore0A4FileV"
+                      }
+                    ],
+                    "usr": "s:Sa"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A8FileListV5filesSayAA0aC0VGvg",
+                "mangledName": "$s14BRRecorderCore0A8FileListV5filesSayAA0aC0VGvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isComplete",
+            "printedName": "isComplete",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A8FileListV10isCompleteSbvp",
+            "mangledName": "$s14BRRecorderCore0A8FileListV10isCompleteSbvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A8FileListV10isCompleteSbvg",
+                "mangledName": "$s14BRRecorderCore0A8FileListV10isCompleteSbvg",
+                "moduleName": "BRRecorderCore",
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(files:isComplete:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFileList",
+                "printedName": "BRRecorderCore.BRRecorderFileList",
+                "usr": "s:14BRRecorderCore0A8FileListV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Array",
+                "printedName": "[BRRecorderCore.BRRecorderFile]",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderFile",
+                    "printedName": "BRRecorderCore.BRRecorderFile",
+                    "usr": "s:14BRRecorderCore0A4FileV"
+                  }
+                ],
+                "usr": "s:Sa"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:14BRRecorderCore0A8FileListV5files10isCompleteACSayAA0aC0VG_Sbtcfc",
+            "mangledName": "$s14BRRecorderCore0A8FileListV5files10isCompleteACSayAA0aC0VG_Sbtcfc",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:14BRRecorderCore0A8FileListV",
+        "mangledName": "$s14BRRecorderCore0A8FileListV",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderFailure",
+        "printedName": "BRRecorderFailure",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "sdk",
+            "printedName": "sdk",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderFailure.Type) -> (Swift.String, Swift.String) -> BRRecorderCore.BRRecorderFailure",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.String, Swift.String) -> BRRecorderCore.BRRecorderFailure",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFailure",
+                        "printedName": "BRRecorderCore.BRRecorderFailure",
+                        "usr": "s:14BRRecorderCore0A7FailureO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Tuple",
+                        "printedName": "(code: Swift.String, message: Swift.String)",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "String",
+                            "printedName": "Swift.String",
+                            "usr": "s:SS"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "String",
+                            "printedName": "Swift.String",
+                            "usr": "s:SS"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderFailure.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFailure",
+                        "printedName": "BRRecorderCore.BRRecorderFailure",
+                        "usr": "s:14BRRecorderCore0A7FailureO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A7FailureO3sdkyACSS_SStcACmF",
+            "mangledName": "$s14BRRecorderCore0A7FailureO3sdkyACSS_SStcACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "invalidAudio",
+            "printedName": "invalidAudio",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderFailure.Type) -> (Swift.String) -> BRRecorderCore.BRRecorderFailure",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.String) -> BRRecorderCore.BRRecorderFailure",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFailure",
+                        "printedName": "BRRecorderCore.BRRecorderFailure",
+                        "usr": "s:14BRRecorderCore0A7FailureO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderFailure.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderFailure",
+                        "printedName": "BRRecorderCore.BRRecorderFailure",
+                        "usr": "s:14BRRecorderCore0A7FailureO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A7FailureO12invalidAudioyACSScACmF",
+            "mangledName": "$s14BRRecorderCore0A7FailureO12invalidAudioyACSScACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "errorDescription",
+            "printedName": "errorDescription",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.String?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore0A7FailureO16errorDescriptionSSSgvp",
+            "mangledName": "$s14BRRecorderCore0A7FailureO16errorDescriptionSSSgvp",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.String?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore0A7FailureO16errorDescriptionSSSgvg",
+                "mangledName": "$s14BRRecorderCore0A7FailureO16errorDescriptionSSSgvg",
+                "moduleName": "BRRecorderCore",
+                "accessorKind": "get"
+              }
+            ]
+          }
+        ],
+        "declKind": "Enum",
+        "usr": "s:14BRRecorderCore0A7FailureO",
+        "mangledName": "$s14BRRecorderCore0A7FailureO",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "LocalizedError",
+            "printedName": "LocalizedError",
+            "usr": "s:10Foundation14LocalizedErrorP",
+            "mangledName": "$s10Foundation14LocalizedErrorP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Error",
+            "printedName": "Error",
+            "usr": "s:s5ErrorP",
+            "mangledName": "$ss5ErrorP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecorderEvent",
+        "printedName": "BRRecorderEvent",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "discovered",
+            "printedName": "discovered",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> ([BRRecorderCore.BRRecorderDevice]) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "([BRRecorderCore.BRRecorderDevice]) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Array",
+                        "printedName": "[BRRecorderCore.BRRecorderDevice]",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "BRRecorderDevice",
+                            "printedName": "BRRecorderCore.BRRecorderDevice",
+                            "usr": "s:14BRRecorderCore0A6DeviceV"
+                          }
+                        ],
+                        "usr": "s:Sa"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO10discoveredyACSayAA0A6DeviceVGcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO10discoveredyACSayAA0A6DeviceVGcACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "connection",
+            "printedName": "connection",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Bool",
+                        "printedName": "Swift.Bool",
+                        "usr": "s:Sb"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO10connectionyACSbcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO10connectionyACSbcACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "bluetooth",
+            "printedName": "bluetooth",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (Swift.String) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.String) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO9bluetoothyACSScACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO9bluetoothyACSScACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "recordingStarted",
+            "printedName": "recordingStarted",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Bool",
+                        "printedName": "Swift.Bool",
+                        "usr": "s:Sb"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO16recordingStartedyACSbcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO16recordingStartedyACSbcACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "recordingStopped",
+            "printedName": "recordingStopped",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "BRRecorderEvent",
+                    "printedName": "BRRecorderCore.BRRecorderEvent",
+                    "usr": "s:14BRRecorderCore0A5EventO"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO16recordingStoppedyA2CmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO16recordingStoppedyA2CmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "flashIdeaStarted",
+            "printedName": "flashIdeaStarted",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.Bool) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Tuple",
+                        "printedName": "(success: Swift.Bool)",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Bool",
+                            "printedName": "Swift.Bool",
+                            "usr": "s:Sb"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO16flashIdeaStartedyACSb_tcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO16flashIdeaStartedyACSb_tcACmF",
+            "moduleName": "BRRecorderCore"
+          },
+          {
+            "kind": "Var",
+            "name": "flashIdeaEnded",
+            "printedName": "flashIdeaEnded",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (BRRecorderCore.BRRecorderFile?, Foundation.URL?) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(BRRecorderCore.BRRecorderFile?, Foundation.URL?) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Tuple",
+                        "printedName": "(file: BRRecorderCore.BRRecorderFile?, audioURL: Foundation.URL?)",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Optional",
+                            "printedName": "BRRecorderCore.BRRecorderFile?",
+                            "children": [
+                              {
+                                "kind": "TypeNominal",
+                                "name": "BRRecorderFile",
+                                "printedName": "BRRecorderCore.BRRecorderFile",
+                                "usr": "s:14BRRecorderCore0A4FileV"
+                              }
+                            ],
+                            "usr": "s:Sq"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Optional",
+                            "printedName": "Foundation.URL?",
+                            "children": [
+                              {
+                                "kind": "TypeNominal",
+                                "name": "URL",
+                                "printedName": "Foundation.URL",
+                                "usr": "s:10Foundation3URLV"
+                              }
+                            ],
+                            "usr": "s:Sq"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO14flashIdeaEndedyAcA0A4FileVSg_10Foundation3URLVSgtcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO14flashIdeaEndedyAcA0A4FileVSg_10Foundation3URLVSgtcACmF",
+            "moduleName": "BRRecorderCore",
+            "declAttributes": [
+              "RawDocComment"
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "transferProgress",
+            "printedName": "transferProgress",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(BRRecorderCore.BRRecorderEvent.Type) -> (Swift.Int, Swift.String?) -> BRRecorderCore.BRRecorderEvent",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.Int, Swift.String?) -> BRRecorderCore.BRRecorderEvent",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Tuple",
+                        "printedName": "(received: Swift.Int, fileName: Swift.String?)",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Int",
+                            "printedName": "Swift.Int",
+                            "usr": "s:Si"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Optional",
+                            "printedName": "Swift.String?",
+                            "children": [
+                              {
+                                "kind": "TypeNominal",
+                                "name": "String",
+                                "printedName": "Swift.String",
+                                "usr": "s:SS"
+                              }
+                            ],
+                            "usr": "s:Sq"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "BRRecorderCore.BRRecorderEvent.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:14BRRecorderCore0A5EventO16transferProgressyACSi_SSSgtcACmF",
+            "mangledName": "$s14BRRecorderCore0A5EventO16transferProgressyACSi_SSSgtcACmF",
+            "moduleName": "BRRecorderCore"
+          }
+        ],
+        "declKind": "Enum",
+        "usr": "s:14BRRecorderCore0A5EventO",
+        "mangledName": "$s14BRRecorderCore0A5EventO",
+        "moduleName": "BRRecorderCore",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Sendable",
+            "printedName": "Sendable",
+            "usr": "s:s8SendableP",
+            "mangledName": "$ss8SendableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "SendableMetatype",
+            "printedName": "SendableMetatype",
+            "usr": "s:s16SendableMetatypeP",
+            "mangledName": "$ss16SendableMetatypeP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BRRecordingDevice",
+        "printedName": "BRRecordingDevice",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "onEvent",
+            "printedName": "onEvent",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Void",
+                        "printedName": "()"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BRRecorderEvent",
+                        "printedName": "BRRecorderCore.BRRecorderEvent",
+                        "usr": "s:14BRRecorderCore0A5EventO"
+                      }
+                    ]
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvp",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvp",
+            "moduleName": "BRRecorderCore",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                    "children": [
+                      {
+                        "kind": "TypeFunc",
+                        "name": "Function",
+                        "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Void",
+                            "printedName": "()"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "BRRecorderEvent",
+                            "printedName": "BRRecorderCore.BRRecorderEvent",
+                            "usr": "s:14BRRecorderCore0A5EventO"
+                          }
+                        ]
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvg",
+                "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvg",
+                "moduleName": "BRRecorderCore",
+                "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+                "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+                "protocolReq": true,
+                "reqNewWitnessTableEntry": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "((BRRecorderCore.BRRecorderEvent) -> ())?",
+                    "children": [
+                      {
+                        "kind": "TypeFunc",
+                        "name": "Function",
+                        "printedName": "(BRRecorderCore.BRRecorderEvent) -> ()",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Void",
+                            "printedName": "()"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "BRRecorderEvent",
+                            "printedName": "BRRecorderCore.BRRecorderEvent",
+                            "usr": "s:14BRRecorderCore0A5EventO"
+                          }
+                        ]
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvs",
+                "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvs",
+                "moduleName": "BRRecorderCore",
+                "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+                "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+                "protocolReq": true,
+                "reqNewWitnessTableEntry": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvM",
+                "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7onEventyAA0aF0OcSgvM",
+                "moduleName": "BRRecorderCore",
+                "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+                "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+                "protocolReq": true,
+                "implicit": true,
+                "reqNewWitnessTableEntry": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Function",
+            "name": "initialize",
+            "printedName": "initialize()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP10initializeyyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP10initializeyyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "scan",
+            "printedName": "scan()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP4scanyyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP4scanyyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "stopScan",
+            "printedName": "stopScan()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP8stopScanyyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP8stopScanyyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "connect",
+            "printedName": "connect(device:appUUID:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderBinding",
+                "printedName": "BRRecorderCore.BRRecorderBinding",
+                "usr": "s:14BRRecorderCore0A7BindingV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderDevice",
+                "printedName": "BRRecorderCore.BRRecorderDevice",
+                "usr": "s:14BRRecorderCore0A6DeviceV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP7connect6device7appUUIDAA0A7BindingVAA0aD0V_SStYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7connect6device7appUUIDAA0A7BindingVAA0aD0V_SStYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "disconnect",
+            "printedName": "disconnect()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP10disconnectyyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP10disconnectyyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "syncTime",
+            "printedName": "syncTime()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP8syncTimeyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP8syncTimeyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "battery",
+            "printedName": "battery()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Int",
+                "printedName": "Swift.Int",
+                "usr": "s:Si"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP7batterySiyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP7batterySiyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "storageDescription",
+            "printedName": "storageDescription()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP18storageDescriptionSSyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP18storageDescriptionSSyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "isRecording",
+            "printedName": "isRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP11isRecordingSbyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP11isRecordingSbyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Var",
+            "name": "flashIdeaSupported",
+            "printedName": "flashIdeaSupported",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP18flashIdeaSupportedSbvp",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP18flashIdeaSupportedSbvp",
+            "moduleName": "BRRecorderCore",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:14BRRecorderCore17BRRecordingDeviceP18flashIdeaSupportedSbvg",
+                "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP18flashIdeaSupportedSbvg",
+                "moduleName": "BRRecorderCore",
+                "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+                "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+                "protocolReq": true,
+                "reqNewWitnessTableEntry": true,
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Function",
+            "name": "isFlashIdeaRecording",
+            "printedName": "isFlashIdeaRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP20isFlashIdeaRecordingSbyF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP20isFlashIdeaRecordingSbyF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "startRecording",
+            "printedName": "startRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP14startRecordingyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP14startRecordingyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "stopRecording",
+            "printedName": "stopRecording()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP13stopRecordingyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP13stopRecordingyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "listFiles",
+            "printedName": "listFiles()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFileList",
+                "printedName": "BRRecorderCore.BRRecorderFileList",
+                "usr": "s:14BRRecorderCore0A8FileListV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP9listFilesAA0A8FileListVyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP9listFilesAA0A8FileListVyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "openSync",
+            "printedName": "openSync()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP8openSyncyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP8openSyncyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "closeSync",
+            "printedName": "closeSync()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP9closeSyncyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP9closeSyncyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "transfer",
+            "printedName": "transfer(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "BRRecorderFile",
+                "printedName": "BRRecorderCore.BRRecorderFile",
+                "usr": "s:14BRRecorderCore0A4FileV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP8transfery10Foundation3URLVAA0A4FileVYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP8transfery10Foundation3URLVAA0A4FileVYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "unbind",
+            "printedName": "unbind()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP6unbindyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP6unbindyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "format",
+            "printedName": "format()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:14BRRecorderCore17BRRecordingDeviceP6formatyyYaKF",
+            "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP6formatyyYaKF",
+            "moduleName": "BRRecorderCore",
+            "genericSig": "<τ_0_0 where τ_0_0 : BRRecorderCore.BRRecordingDevice>",
+            "sugared_genericSig": "<Self where Self : BRRecorderCore.BRRecordingDevice>",
+            "protocolReq": true,
+            "declAttributes": [
+              "Custom"
+            ],
+            "throwing": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Protocol",
+        "usr": "s:14BRRecorderCore17BRRecordingDeviceP",
+        "mangledName": "$s14BRRecorderCore17BRRecordingDeviceP",
+        "moduleName": "BRRecorderCore",
+        "genericSig": "<τ_0_0 : AnyObject>",
+        "sugared_genericSig": "<Self : AnyObject>",
+        "declAttributes": [
+          "AccessControl",
+          "Custom"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          }
+        ]
+      }
+    ],
+    "json_format_version": 8
+  },
+  "ConstValues": [
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5394,
+      "length": 2,
+      "value": "80"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5550,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5579,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5589,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5620,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 5678,
+      "length": 65,
+      "value": "\"设备音频不完整或帧长度不匹配，请重新同步。\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5781,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5831,
+      "length": 6,
+      "value": "16000"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 5839,
+      "length": 1,
+      "value": "1"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 5922,
+      "length": 35,
+      "value": "\"无法初始化 Opus 解码器。\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6162,
+      "length": 1,
+      "value": "8"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 6215,
+      "length": 6,
+      "value": "\"MARK\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 6256,
+      "length": 6,
+      "value": "\"OggS\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 6311,
+      "length": 10,
+      "value": "\"OpusHead\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 6385,
+      "length": 56,
+      "value": "\"设备音频头尚未正确处理，请重新同步。\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6487,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6570,
+      "length": 6,
+      "value": "16000"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6588,
+      "length": 1,
+      "value": "1"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "BooleanLiteral",
+      "offset": 6604,
+      "length": 5,
+      "value": "false"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6684,
+      "length": 4,
+      "value": "1920"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "BooleanLiteral",
+      "offset": 6840,
+      "length": 5,
+      "value": "false"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6915,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6925,
+      "length": 4,
+      "value": "1920"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 6962,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 7201,
+      "length": 50,
+      "value": "\"读取到不完整音频帧，请重新同步。\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7424,
+      "length": 4,
+      "value": "1920"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7430,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7474,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "StringLiteral",
+      "offset": 7520,
+      "length": 50,
+      "value": "\"设备音频帧校验失败，请重新同步。\""
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7684,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7712,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "IntegerLiteral",
+      "offset": 7767,
+      "length": 5,
+      "value": "32768"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRAudioNormalizer.swift",
+      "kind": "FloatLiteral",
+      "offset": 7887,
+      "length": 4,
+      "value": "0.99"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRRecorderClient.swift",
+      "kind": "BooleanLiteral",
+      "offset": 402,
+      "length": 5,
+      "value": "false"
+    },
+    {
+      "filePath": "\/Users\/admin\/baizhi\/eureka-ring\/br_flutter_plugin_ble\/ios\/RecorderCore\/BRRecorderModels.swift",
+      "kind": "StringLiteral",
+      "offset": 794,
+      "length": 2,
+      "value": "\"\""
+    }
+  ]
+}

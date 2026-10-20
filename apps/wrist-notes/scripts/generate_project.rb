@@ -121,6 +121,7 @@ test_target.build_configurations.each do |configuration|
   configuration.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote'
   configuration.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
+  configuration.build_settings['OTHER_LDFLAGS'] = '$(inherited) -framework BRRecorderOpus'
 end
 project.save
 scheme = Xcodeproj::XCScheme.new

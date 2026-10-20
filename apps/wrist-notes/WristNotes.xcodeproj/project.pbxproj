@@ -407,7 +407,6 @@
 				9D0A2034CD3CD49F02BE7D1D /* Sources */,
 				44CA11770A3991976C77D210 /* Frameworks */,
 				39900F4DB29FA6DC6A0DD52A /* Resources */,
-				6F17AD45364DA76B8F03038F /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -557,33 +556,17 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/BRRecorderOpus/BRRecorderOpusNotices.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/br_flutter_plugin_ble/BRRecorderSDKPrivacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/br_flutter_plugin_ble/BRRecorderOpusNotices.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderSDKPrivacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderOpusNotices.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		6F17AD45364DA76B8F03038F /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/BRRecorderOpus/BRRecorderOpusNotices.bundle",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderOpusNotices.bundle",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RingIntegrationTests/Pods-RingIntegrationTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		7EA46524FB71E42FEDC65E59 /* [CP] Check Pods Manifest.lock */ = {
@@ -773,6 +756,11 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					BRRecorderOpus,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -867,6 +855,11 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					BRRecorderOpus,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;

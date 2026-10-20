@@ -1,0 +1,1473 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+// swift-module-flags: -target arm64-apple-ios14.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name BRBluetoothLib -module-alias Module___BRBluetoothLib=BRBluetoothLib -module-alias Module____StringProcessing=_StringProcessing -module-alias Module____SwiftConcurrencyShims=_SwiftConcurrencyShims -module-alias Module____Concurrency=_Concurrency -module-alias Module___CoreBluetooth=CoreBluetooth -module-alias Module___UIKit=UIKit -module-alias Module___Network=Network -module-alias Module___NetworkExtension=NetworkExtension
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+@_exported import Module___BRBluetoothLib
+import Module___CoreBluetooth
+import Foundation
+import Module___Network
+import Module___NetworkExtension
+import Swift
+import Module___UIKit
+import Module____Concurrency
+import Module____StringProcessing
+import Module____SwiftConcurrencyShims
+@_hasMissingDesignatedInitializers final public class BleAudioManager : @unchecked Swift.Sendable {
+  final public var recordStatus: Module___BRBluetoothLib.RecordStatus {
+    get
+  }
+  final public var recordStatusFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.RecordStatus> {
+    get
+  }
+  final public var audioDataFlow: Module____Concurrency.AsyncStream<(Module___BRBluetoothLib.RecordStartInfo, Module___BRBluetoothLib.Packet)> {
+    get
+  }
+  final public var currentAudio: Module___BRBluetoothLib.CurrentAudio {
+    get
+    set
+  }
+  final public var recordDuration: Swift.Int64 {
+    get
+  }
+  final public var recordDurationFlow: Module____Concurrency.AsyncStream<Swift.Int64> {
+    get
+  }
+  final public func handleDevicePushOnRecordStart(packet: Module___BRBluetoothLib.Packet)
+  final public func handleDevicePushOnRecordStop(packet: Module___BRBluetoothLib.Packet)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func startRecording(startType: Swift.Int = 1) async -> Swift.Result<Module___BRBluetoothLib.RecordStartInfo, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func stopRecording(stopType: Swift.Int = 1) async -> Swift.Result<Module___BRBluetoothLib.RecordStopResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func pauseRecording() async -> Swift.Result<Swift.Bool, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func resumeRecording() async -> Swift.Result<Swift.Bool, any Swift.Error>
+  #endif
+  @objc deinit
+}
+public struct CurrentAudio : Swift.Equatable, Swift.Sendable {
+  public var startInfo: Module___BRBluetoothLib.RecordStartInfo?
+  public var meetingId: Swift.String?
+  public var images: [Foundation.URL]
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(startInfo: Module___BRBluetoothLib.RecordStartInfo? = nil, meetingId: Swift.String? = nil, images: [Foundation.URL] = [])
+  #endif
+  public static func == (a: Module___BRBluetoothLib.CurrentAudio, b: Module___BRBluetoothLib.CurrentAudio) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class BleAudioSyncManager : @unchecked Swift.Sendable {
+  final public var currentSyncInfo: Module___BRBluetoothLib.SyncingInfo {
+    get
+  }
+  final public var currentSyncInfoFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.SyncingInfo> {
+    get
+  }
+  final public var deviceDeleteFileFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.DeviceDeleteFileEvent> {
+    get
+  }
+  final public var isSyncMode: Swift.Bool {
+    get
+  }
+  final public func openSync() async -> Module___BRBluetoothLib.SyncModeResult
+  final public func closeSync() async -> Module___BRBluetoothLib.SyncModeResult
+  final public func onlyFetchFileList() async -> Module___BRBluetoothLib.FileListResult
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func startSyncOne(targetFile: Module___BRBluetoothLib.AudioFileInfo, outObserver: Module___BRBluetoothLib.FileSyncObserver? = nil) async -> Module___BRBluetoothLib.FileTransferResult
+  #endif
+  final public func deleteFiles(deleteType: Module___BRBluetoothLib.DeleteType, fileNames: [Swift.String]) async -> (Swift.Int, [Swift.String])
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func findAudioFileInfoByFileName(fileName: Swift.String) -> Module___BRBluetoothLib.AudioFileInfo?
+  #endif
+  @objc deinit
+}
+public struct BleAudioSyncManagerError : Foundation.LocalizedError, Swift.Sendable {
+  public let message: Swift.String
+  public let cause: (any Swift.Error)?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(message: Swift.String, cause: (any Swift.Error)? = nil)
+  #endif
+}
+public struct BlueConnectInfo : Swift.Equatable, Swift.Sendable {
+  public let sn: Swift.String
+  public let address: Swift.String
+  public var appUUID: Swift.String
+  public let way: Swift.Int
+  public init(sn: Swift.String = "", address: Swift.String, appUUID: Swift.String, way: Swift.Int = 0)
+  public static func == (a: Module___BRBluetoothLib.BlueConnectInfo, b: Module___BRBluetoothLib.BlueConnectInfo) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class BluePermissionManager : Swift.Sendable {
+  public init()
+  final public func needPermissions() -> [Swift.String]
+  final public func checkPermissions() -> Swift.Bool
+  final public func permissionStatus() -> Module___BRBluetoothLib.PermissionStatus
+  @objc deinit
+}
+@objc @_hasMissingDesignatedInitializers final public class BlueScanManager : ObjectiveC.NSObject, @unchecked Swift.Sendable {
+  public enum ScanEvent : Swift.Equatable, Swift.Sendable {
+    case deviceFound(result: Module___BRBluetoothLib.ScanResultInfo)
+    case error(code: Swift.Int, message: Swift.String)
+    case permissionDenied
+    case bluetoothDisabled
+    case scanning
+    case idle
+    public static func == (a: Module___BRBluetoothLib.BlueScanManager.ScanEvent, b: Module___BRBluetoothLib.BlueScanManager.ScanEvent) -> Swift.Bool
+  }
+  final public var scannedDevices: [Module___BRBluetoothLib.ScanResultInfo] {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  convenience public init(bluePermissionManager: Module___BRBluetoothLib.BluePermissionManager, delegate: @escaping @Sendable () -> (any Module___BRBluetoothLib.IDelegate)?)
+  #endif
+  final public var scanResultFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.BlueScanManager.ScanEvent> {
+    get
+  }
+  final public func startScan()
+  final public func stopScan(needClear: Swift.Bool = false)
+  @objc deinit
+}
+extension Module___BRBluetoothLib.BlueScanManager : Module___CoreBluetooth.CBCentralManagerDelegate {
+  @objc final public func centralManagerDidUpdateState(_ central: Module___CoreBluetooth.CBCentralManager)
+  @objc final public func centralManager(_ central: Module___CoreBluetooth.CBCentralManager, didDiscover peripheral: Module___CoreBluetooth.CBPeripheral, advertisementData: [Swift.String : Any], rssi RSSI: Foundation.NSNumber)
+}
+public enum BRBluetoothLib {
+  public static let name: Swift.String
+  public static let version: Swift.String
+}
+@_hasMissingDesignatedInitializers final public class BrBluetoothManager : @unchecked Swift.Sendable {
+  public static func getInstance() -> Module___BRBluetoothLib.BrBluetoothManager
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var delegate: (any Module___BRBluetoothLib.IDelegate)? {
+    get
+    set
+  }
+  #endif
+  final public let syncDirManager: Module___BRBluetoothLib.SyncDirManager
+  final public let bluePermissionManager: Module___BRBluetoothLib.BluePermissionManager
+  final public let wifiPermissionManager: Module___BRBluetoothLib.WifiPermissionManager
+  final public var blueScanManager: Module___BRBluetoothLib.BlueScanManager {
+    get
+  }
+  final public let classicBluetoothManager: Module___BRBluetoothLib.ClassicBluetoothManager
+  final public var phoneBluetoothManager: Module___BRBluetoothLib.PhoneBluetoothManager {
+    get
+  }
+  final public var deviceNormalManager: Module___BRBluetoothLib.DeviceNormalManager {
+    get
+  }
+  final public var bleAudioManager: Module___BRBluetoothLib.BleAudioManager {
+    get
+  }
+  final public var flashIdeaManager: Module___BRBluetoothLib.FlashIdeaManager {
+    get
+  }
+  final public var bleAudioSyncManager: Module___BRBluetoothLib.BleAudioSyncManager {
+    get
+  }
+  final public var fileMarkManager: Module___BRBluetoothLib.FileMarkManager {
+    get
+  }
+  final public var earphoneModeManager: Module___BRBluetoothLib.EarphoneModeManager {
+    get
+  }
+  final public var phoneWifiManager: Module___BRBluetoothLib.PhoneWifiManager {
+    get
+  }
+  final public var wifiSyncManager: Module___BRBluetoothLib.WifiAudioSyncManager {
+    get
+  }
+  final public var wifiOtaManager: Module___BRBluetoothLib.WifiOtaManager {
+    get
+  }
+  final public var wifiOtaDebugManager: Module___BRBluetoothLib.WifiOtaDebugManager {
+    get
+  }
+  public typealias LogSink = @Sendable (_ level: Module___BRBluetoothLib.SdkLogLevel, _ tag: Swift.String, _ message: Swift.String, _ error: (any Swift.Error)?) throws -> Swift.Void
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func initLog(sink: Module___BRBluetoothLib.BrBluetoothManager.LogSink?)
+  #endif
+  @objc deinit
+}
+final public class ClassicBluetoothManager : Swift.Sendable {
+  public init()
+  @Module____Concurrency.MainActor final public func openSystemBluetoothSettings() throws
+  @objc deinit
+}
+public struct CommandCode : Swift.RawRepresentable, Swift.Equatable, Swift.Hashable, Swift.Sendable {
+  public let rawValue: Swift.UInt16
+  public init(rawValue: Swift.UInt16)
+  public typealias RawValue = Swift.UInt16
+}
+public enum Commands {
+  public static let handshake: Module___BRBluetoothLib.CommandCode
+  public static let getSN: Module___BRBluetoothLib.CommandCode
+  public static let syncTime: Module___BRBluetoothLib.CommandCode
+  public static let unbind: Module___BRBluetoothLib.CommandCode
+  public static let getStorage: Module___BRBluetoothLib.CommandCode
+  public static let getBattery: Module___BRBluetoothLib.CommandCode
+  public static let openWifi: Module___BRBluetoothLib.CommandCode
+  public static let closeWifi: Module___BRBluetoothLib.CommandCode
+  public static let socketStatus: Module___BRBluetoothLib.CommandCode
+  public static let deleteFile: Module___BRBluetoothLib.CommandCode
+  public static let getDeviceInfo: Module___BRBluetoothLib.CommandCode
+  public static let formatDevice: Module___BRBluetoothLib.CommandCode
+  public static let heartbeat: Module___BRBluetoothLib.CommandCode
+  public static let micGainSet: Module___BRBluetoothLib.CommandCode
+  public static let micGainGet: Module___BRBluetoothLib.CommandCode
+  public static let autoShutdownSet: Module___BRBluetoothLib.CommandCode
+  public static let autoShutdownGet: Module___BRBluetoothLib.CommandCode
+  public static let switchStatusGet: Module___BRBluetoothLib.CommandCode
+  public static let storageDisableSet: Module___BRBluetoothLib.CommandCode
+  public static let storageDisableGet: Module___BRBluetoothLib.CommandCode
+  public static let wavDisableSet: Module___BRBluetoothLib.CommandCode
+  public static let wavDisableGet: Module___BRBluetoothLib.CommandCode
+  public static let recordStart: Module___BRBluetoothLib.CommandCode
+  public static let recordPause: Module___BRBluetoothLib.CommandCode
+  public static let recordResume: Module___BRBluetoothLib.CommandCode
+  public static let recordStop: Module___BRBluetoothLib.CommandCode
+  public static let syncStateNotify: Module___BRBluetoothLib.CommandCode
+  public static let getFileList: Module___BRBluetoothLib.CommandCode
+  public static let syncFileData: Module___BRBluetoothLib.CommandCode
+  public static let syncStopCRC: Module___BRBluetoothLib.CommandCode
+  public static let recordScreensaverSet: Module___BRBluetoothLib.CommandCode
+  public static let wifiResumeSync: Module___BRBluetoothLib.CommandCode
+  public static let recordScreensaverGet: Module___BRBluetoothLib.CommandCode
+  public static let otaStart: Module___BRBluetoothLib.CommandCode
+  public static let otaPackageStart: Module___BRBluetoothLib.CommandCode
+  public static let otaPackageData: Module___BRBluetoothLib.CommandCode
+  public static let otaPackageEnd: Module___BRBluetoothLib.CommandCode
+  public static let otaProgress: Module___BRBluetoothLib.CommandCode
+  public static let otaEnd: Module___BRBluetoothLib.CommandCode
+  public static let earphoneModeSet: Module___BRBluetoothLib.CommandCode
+  public static let earphoneScanReport: Module___BRBluetoothLib.CommandCode
+  public static let earphoneConnect: Module___BRBluetoothLib.CommandCode
+  public static let earphoneConnectionStatus: Module___BRBluetoothLib.CommandCode
+  public static let earphoneHistoryMac: Module___BRBluetoothLib.CommandCode
+  public static let earphoneClassicBluetoothName: Module___BRBluetoothLib.CommandCode
+  public static let flashIdeaStart: Module___BRBluetoothLib.CommandCode
+  public static let flashIdeaData: Module___BRBluetoothLib.CommandCode
+  public static let flashIdeaStop: Module___BRBluetoothLib.CommandCode
+  public static let fileMark: Module___BRBluetoothLib.CommandCode
+  public static func intToHexString(value: Swift.Int, minLength: Swift.Int = 4) -> Swift.String
+  public static func cmdToHexString(cmdH: Swift.UInt8, cmdL: Swift.UInt8) -> Swift.String
+}
+public struct ConnectedDeviceInfo : Swift.Equatable, Swift.Sendable {
+  public let deviceDetail: Module___BRBluetoothLib.DeviceDetailInfo
+  public let connectInfo: Module___BRBluetoothLib.BlueConnectInfo
+  public let flashIdeaSupported: Swift.Bool
+  public init(deviceDetail: Module___BRBluetoothLib.DeviceDetailInfo, connectInfo: Module___BRBluetoothLib.BlueConnectInfo, flashIdeaSupported: Swift.Bool)
+  public func toString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.ConnectedDeviceInfo, b: Module___BRBluetoothLib.ConnectedDeviceInfo) -> Swift.Bool
+}
+public enum BRCRC16 {
+  public static func compute(_ data: Foundation.Data, initialCrc: Swift.UInt16 = 0xFFFF) -> Swift.UInt16
+}
+public enum DeleteType : Swift.String, Swift.CaseIterable, Swift.Sendable {
+  case onlyDevice
+  case onlyPhone
+  case devicePhone
+  case phoneDevice
+  public var des: Swift.String {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias AllCases = [Module___BRBluetoothLib.DeleteType]
+  public typealias RawValue = Swift.String
+  nonisolated public static var allCases: [Module___BRBluetoothLib.DeleteType] {
+    get
+  }
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct DeviceDeleteFileEvent : Swift.Equatable, Swift.Sendable {
+  public let success: Swift.Bool
+  public let startInfo: Module___BRBluetoothLib.RecordStartInfo?
+  public let inferred: Swift.Bool
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(success: Swift.Bool, startInfo: Module___BRBluetoothLib.RecordStartInfo?, inferred: Swift.Bool = true)
+  #endif
+  public static func == (a: Module___BRBluetoothLib.DeviceDeleteFileEvent, b: Module___BRBluetoothLib.DeviceDeleteFileEvent) -> Swift.Bool
+}
+public enum DeviceNormalManagerError : Swift.Error, Foundation.LocalizedError, Swift.Equatable, Swift.Sendable {
+  case invalidMicGain
+  case insufficientResponseData(expected: Swift.Int, actual: Swift.Int)
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+  public static func == (a: Module___BRBluetoothLib.DeviceNormalManagerError, b: Module___BRBluetoothLib.DeviceNormalManagerError) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class DeviceNormalManager : Swift.Sendable {
+  final public var switchStateFlow: Module____Concurrency.AsyncStream<Swift.Int> {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func syncTime() async -> Swift.Result<Swift.String, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getBatteryLevel() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setMicGain(gain: Swift.Int) async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func unbindDevice(deleteAudio: Swift.Bool) async -> Swift.Result<Swift.Void, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getStorageCapacity() async -> Swift.Result<Module___BRBluetoothLib.StorageCapacityInfo, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func formatDevice() async -> Swift.Result<Swift.Bool, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getDeviceSN() async -> Swift.Result<Swift.String, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getMicGain() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setAutoShutdownTime(minutes: Swift.Int) async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getAutoShutdownTime() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getSwitchStatus() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setStorageDisable(disable: Swift.Bool) async -> Swift.Result<Swift.Bool, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getStorageDisableStatus() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setWavDisable(disable: Swift.Bool) async -> Swift.Result<Swift.Bool, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getWavDisableStatus() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getDeviceVersionInfo() async -> Swift.Result<Module___BRBluetoothLib.DeviceVersionInfo, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setRecordScreensaverTime(minutes: Swift.Int) async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getRecordScreensaverTime() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  @objc deinit
+}
+public struct EarphoneModeSetResult : Swift.Equatable, Swift.Sendable {
+  public let status1: Swift.Int?
+  public let status2: Swift.Int?
+  public let status3: Swift.Int?
+  public let executable: Swift.Bool
+  public let headsetActionDescription: Swift.String
+  public let phoneActionDescription: Swift.String
+  public let description: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(status1: Swift.Int?, status2: Swift.Int?, status3: Swift.Int?, executable: Swift.Bool, headsetActionDescription: Swift.String, phoneActionDescription: Swift.String, description: Swift.String)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func toMap() -> [Swift.String : Any?]
+  #endif
+  public static func fromPacket(packet: Module___BRBluetoothLib.Packet) -> Module___BRBluetoothLib.EarphoneModeSetResult
+  public static func == (a: Module___BRBluetoothLib.EarphoneModeSetResult, b: Module___BRBluetoothLib.EarphoneModeSetResult) -> Swift.Bool
+}
+public struct EarphoneScanResult : Swift.Equatable, Swift.Sendable {
+  public let status: Swift.Int
+  public let isScanning: Swift.Bool
+  public let name: Swift.String?
+  public let cod: Swift.Int?
+  public let rssi: Swift.Int?
+  public let mac: Swift.String?
+  public let description: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(status: Swift.Int, isScanning: Swift.Bool, name: Swift.String?, cod: Swift.Int?, rssi: Swift.Int?, mac: Swift.String?, description: Swift.String)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func toMap() -> [Swift.String : Any?]
+  #endif
+  public static func fromPacket(packet: Module___BRBluetoothLib.Packet) throws -> Module___BRBluetoothLib.EarphoneScanResult
+  public static func == (a: Module___BRBluetoothLib.EarphoneScanResult, b: Module___BRBluetoothLib.EarphoneScanResult) -> Swift.Bool
+}
+public struct EarphoneConnectionStatusResult : Swift.Equatable, Swift.Sendable {
+  public let status0: Swift.Int?
+  public let status1: Swift.Int?
+  public let status2: Swift.Int?
+  public let classicBluetoothDescription: Swift.String
+  public let headsetDescription: Swift.String
+  public let phoneDescription: Swift.String
+  public let isHeadsetConnected: Swift.Bool
+  public let description: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(status0: Swift.Int?, status1: Swift.Int?, status2: Swift.Int?, classicBluetoothDescription: Swift.String, headsetDescription: Swift.String, phoneDescription: Swift.String, isHeadsetConnected: Swift.Bool, description: Swift.String)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func toMap() -> [Swift.String : Any?]
+  #endif
+  public static func fromPacket(packet: Module___BRBluetoothLib.Packet) -> Module___BRBluetoothLib.EarphoneConnectionStatusResult
+  public static func == (a: Module___BRBluetoothLib.EarphoneConnectionStatusResult, b: Module___BRBluetoothLib.EarphoneConnectionStatusResult) -> Swift.Bool
+}
+public struct EarphoneConnectNotificationResult : Swift.Equatable, Swift.Sendable {
+  public let mac: Swift.String
+  public let acknowledged: Swift.Bool
+  public let description: Swift.String
+  public init(mac: Swift.String, acknowledged: Swift.Bool, description: Swift.String)
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func toMap() -> [Swift.String : Any?]
+  #endif
+  public static func == (a: Module___BRBluetoothLib.EarphoneConnectNotificationResult, b: Module___BRBluetoothLib.EarphoneConnectNotificationResult) -> Swift.Bool
+}
+public struct EarphoneHistoryMacResult : Swift.Equatable, Swift.Sendable {
+  public let action: Swift.Int
+  public let headsetMac: Swift.String?
+  public let phoneMac: Swift.String?
+  public let parseSuccess: Swift.Bool
+  public let description: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(action: Swift.Int, headsetMac: Swift.String?, phoneMac: Swift.String?, parseSuccess: Swift.Bool, description: Swift.String)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func toMap() -> [Swift.String : Any?]
+  #endif
+  public static func fromPacket(packet: Module___BRBluetoothLib.Packet, action: Swift.Int) -> Module___BRBluetoothLib.EarphoneHistoryMacResult
+  public static func == (a: Module___BRBluetoothLib.EarphoneHistoryMacResult, b: Module___BRBluetoothLib.EarphoneHistoryMacResult) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class EarphoneModeManager : Swift.Sendable {
+  final public var scanFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.EarphoneScanResult> {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var connectionStatus: Module___BRBluetoothLib.EarphoneConnectionStatusResult? {
+    get
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var connectionStatusFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.EarphoneConnectionStatusResult?> {
+    get
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func disableMode() async -> Swift.Result<Module___BRBluetoothLib.EarphoneModeSetResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func enableMode(headsetMac: Swift.String? = nil, phoneMac: Swift.String? = nil) async -> Swift.Result<Module___BRBluetoothLib.EarphoneModeSetResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func enableAndScan() async -> Swift.Result<Module___BRBluetoothLib.EarphoneModeSetResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func enableAndReconnect(headsetMac: Swift.String, phoneMac: Swift.String? = nil) async -> Swift.Result<Module___BRBluetoothLib.EarphoneModeSetResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func connectHeadset(mac: Swift.String, timeout: Foundation.TimeInterval = 30) async -> Swift.Result<Module___BRBluetoothLib.EarphoneConnectNotificationResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func queryConnectionStatus() async -> Swift.Result<Module___BRBluetoothLib.EarphoneConnectionStatusResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func queryHistoryMac() async -> Swift.Result<Module___BRBluetoothLib.EarphoneHistoryMacResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func clearHistoryMac() async -> Swift.Result<Module___BRBluetoothLib.EarphoneHistoryMacResult, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func queryClassicBluetoothName() async -> Swift.Result<Swift.String, any Swift.Error>
+  #endif
+  @objc deinit
+}
+public enum EarphoneModeManagerError : Swift.Error, Foundation.LocalizedError, Swift.Sendable {
+  case invalidArgument(message: Swift.String)
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+}
+public enum FileListResult : Swift.Sendable {
+  case success(files: [Module___BRBluetoothLib.AudioFileInfo], isComplete: Swift.Bool)
+  case error(Module___BRBluetoothLib.FileListError)
+}
+public enum FileListErrorCode : Swift.String, Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  case commandFailed
+  case deviceBusy
+  case deviceReportedError
+  case listWaitCancelled
+  case listWaitDisconnected
+  case listWaitFailed
+  case responseParseFailed
+  public var description: Swift.String {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct FileListError : Swift.Error, Foundation.LocalizedError, Swift.Sendable {
+  public let type: Module___BRBluetoothLib.SyncModeType
+  public let code: Module___BRBluetoothLib.FileListErrorCode
+  public let message: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+  public init(type: Module___BRBluetoothLib.SyncModeType, code: Module___BRBluetoothLib.FileListErrorCode, message: Swift.String)
+}
+public struct FileMarkEvent : Swift.Equatable, Swift.Sendable {
+  public let type: Swift.Int
+  public let time: Swift.Int64
+  public init(type: Swift.Int, time: Swift.Int64)
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.FileMarkEvent
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.FileMarkEvent
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.FileMarkEvent, b: Module___BRBluetoothLib.FileMarkEvent) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class FileMarkManager : @unchecked Swift.Sendable {
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var fileMarkState: Module___BRBluetoothLib.FileMarkResult? {
+    get
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var fileMarkStateFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.FileMarkResult?> {
+    get
+  }
+  #endif
+  final public func consumeCurrentMarks(startInfo: Module___BRBluetoothLib.RecordStartInfo) -> [Module___BRBluetoothLib.FileMarkEvent]
+  final public func clearCurrentMarks(startInfo: Module___BRBluetoothLib.RecordStartInfo)
+  @objc deinit
+}
+public struct FileMarkP6SyncInput : Swift.Equatable, Swift.Sendable {
+  public let tempFile: Foundation.URL
+  public let targetFile: Foundation.URL
+  public let syncFile: Foundation.URL
+  public let deviceFileCrc: Swift.Int
+  public let lastFrameIndex: Swift.Int
+  public let lastWrittenFrameIndex: Swift.Int
+  public let lastFrameCrc: Swift.Int
+  public let cumulativeCrcFull: Swift.Int
+  public let totalSizeFromList: Swift.Int64
+  public let path: Swift.String
+  public let fileName: Swift.String
+  public let syncType: Swift.Int
+  public init(tempFile: Foundation.URL, targetFile: Foundation.URL, syncFile: Foundation.URL, deviceFileCrc: Swift.Int, lastFrameIndex: Swift.Int, lastWrittenFrameIndex: Swift.Int, lastFrameCrc: Swift.Int, cumulativeCrcFull: Swift.Int, totalSizeFromList: Swift.Int64, path: Swift.String, fileName: Swift.String, syncType: Swift.Int)
+  public static func == (a: Module___BRBluetoothLib.FileMarkP6SyncInput, b: Module___BRBluetoothLib.FileMarkP6SyncInput) -> Swift.Bool
+}
+public struct FileMarkP6Group : Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  public let startEpochSeconds: Swift.Int64
+  public let endEpochSeconds: Swift.Int64
+  public let startTimeDisplay: Swift.String
+  public let endTimeDisplay: Swift.String
+  public let lineDisplay: Swift.String
+  public init(startEpochSeconds: Swift.Int64, endEpochSeconds: Swift.Int64, startTimeDisplay: Swift.String, endTimeDisplay: Swift.String, lineDisplay: Swift.String)
+  public static func fromBuffer(buf: Foundation.Data, offset: Swift.Int) -> Module___BRBluetoothLib.FileMarkP6Group
+  public func toJson() -> [Swift.String : Any]
+  public var description: Swift.String {
+    get
+  }
+  public static func == (a: Module___BRBluetoothLib.FileMarkP6Group, b: Module___BRBluetoothLib.FileMarkP6Group) -> Swift.Bool
+}
+public struct FileMarkP6RawMark : Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  public let type: Swift.String
+  public let epochSeconds: Swift.Int64
+  public let timeDisplay: Swift.String
+  public let lineDisplay: Swift.String
+  public init(type: Swift.String, epochSeconds: Swift.Int64, timeDisplay: Swift.String, lineDisplay: Swift.String)
+  public var description: Swift.String {
+    get
+  }
+  public static func == (a: Module___BRBluetoothLib.FileMarkP6RawMark, b: Module___BRBluetoothLib.FileMarkP6RawMark) -> Swift.Bool
+}
+extension Swift.Array where Element == Module___BRBluetoothLib.FileMarkP6Group {
+  public func toRawMarks() -> [Module___BRBluetoothLib.FileMarkP6RawMark]
+}
+public struct FileMarkP6OnDisk : Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  public let headerBytes: Swift.Int
+  public let num: Swift.Int
+  public let lenPerGroup: Swift.Int
+  public let groups: [Module___BRBluetoothLib.FileMarkP6Group]
+  public let rawHeader: Foundation.Data
+  public init(headerBytes: Swift.Int, num: Swift.Int, lenPerGroup: Swift.Int, groups: [Module___BRBluetoothLib.FileMarkP6Group], rawHeader: Foundation.Data)
+  public var rawHeaderHex: Swift.String {
+    get
+  }
+  public func toDisplayString() -> Swift.String
+  public var description: Swift.String {
+    get
+  }
+  public static let empty: Module___BRBluetoothLib.FileMarkP6OnDisk
+  public static func == (a: Module___BRBluetoothLib.FileMarkP6OnDisk, b: Module___BRBluetoothLib.FileMarkP6OnDisk) -> Swift.Bool
+}
+public enum FileMarkV6SyncPostResult : Swift.Sendable {
+  case success(mark: Module___BRBluetoothLib.FileMarkP6OnDisk, headerSkipBytes: Swift.Int, netPayloadBytes: Swift.Int64, localNetCrc: Swift.Int, finalLocalSync: Module___BRBluetoothLib.LocalSyncFile)
+  case crcMismatch(localNetCrc: Swift.Int, deviceFileCrc: Swift.Int)
+  case failure(error: any Swift.Error)
+}
+public struct FileMarkResult : Swift.CustomStringConvertible, Swift.Sendable {
+  public let startInfo: Module___BRBluetoothLib.RecordStartInfo?
+  public let fileMarkEvent: Module___BRBluetoothLib.FileMarkEvent?
+  public let errorCode: Swift.Int
+  public let error: (any Swift.Error)?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(startInfo: Module___BRBluetoothLib.RecordStartInfo? = nil, fileMarkEvent: Module___BRBluetoothLib.FileMarkEvent? = nil, errorCode: Swift.Int, error: (any Swift.Error)?)
+  #endif
+  public var description: Swift.String {
+    get
+  }
+}
+open class FileSyncObserver : @unchecked Swift.Sendable {
+  public init()
+  open func onStart(fileInfo: Module___BRBluetoothLib.AudioFileInfo, totalSize: Swift.Int64)
+  open func onProgress(fileInfo: Module___BRBluetoothLib.AudioFileInfo, receivedBytes: Swift.Int64, actualWrittenSize: Swift.Int64, totalSize: Swift.Int64, lastFrameIndex: Swift.Int, cumulativeCrc: Swift.Int)
+  open func onSyncSpeed(fileInfo: Module___BRBluetoothLib.AudioFileInfo, bytesPerSecond: Swift.Int64)
+  open func onSyncProgress(successCount: Swift.Int, totalCount: Swift.Int)
+  open func onFinish(fileInfo: Module___BRBluetoothLib.AudioFileInfo, deviceFileCrc: Swift.Int, fileMarkP6: Module___BRBluetoothLib.FileMarkP6OnDisk)
+  open func onError(fileInfo: Module___BRBluetoothLib.AudioFileInfo, error: any Swift.Error)
+  @objc deinit
+}
+public enum FileTransferResult : Swift.Sendable {
+  case success(targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo, fileMarkP6: Module___BRBluetoothLib.FileMarkP6OnDisk)
+  case error(targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo, error: Module___BRBluetoothLib.FileTransferError)
+}
+public enum FileTransferErrorCode : Swift.String, Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  case syncModeNotOpen
+  case fileAlreadySynced
+  case transferCancelled
+  case commandFailed
+  case localFileCheckFailed
+  case fileFinishFailed
+  public var description: Swift.String {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct FileTransferError : Swift.Error, Foundation.LocalizedError, Swift.Sendable {
+  public let type: Module___BRBluetoothLib.SyncModeType
+  public let code: Module___BRBluetoothLib.FileTransferErrorCode
+  public let message: Swift.String
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+  public init(type: Module___BRBluetoothLib.SyncModeType, code: Module___BRBluetoothLib.FileTransferErrorCode, message: Swift.String)
+}
+public struct FlashIdeaEndResult : Swift.CustomStringConvertible, Swift.Sendable {
+  public let info: Module___BRBluetoothLib.FlashIdeaStartInfo?
+  public let crc: Swift.Int?
+  public let errorCode: Swift.Int
+  public let error: (any Swift.Error)?
+  public let realTimeSyncResult: Module___BRBluetoothLib.RealTimeSyncResult?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(info: Module___BRBluetoothLib.FlashIdeaStartInfo? = nil, crc: Swift.Int? = nil, errorCode: Swift.Int, error: (any Swift.Error)?, realTimeSyncResult: Module___BRBluetoothLib.RealTimeSyncResult? = nil)
+  #endif
+  public var description: Swift.String {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers final public class FlashIdeaManager : @unchecked Swift.Sendable {
+  final public var flashIdeaStatus: Module___BRBluetoothLib.FlashIdeaStatus {
+    get
+  }
+  final public var flashIdeaStatusFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.FlashIdeaStatus> {
+    get
+  }
+  final public var flashIdeaDataFlow: Module____Concurrency.AsyncStream<(Module___BRBluetoothLib.FlashIdeaStartInfo, Module___BRBluetoothLib.Packet)> {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var currentFlashIdeaInfo: Module___BRBluetoothLib.FlashIdeaStartInfo? {
+    get
+  }
+  #endif
+  @objc deinit
+}
+public struct FlashIdeaStartResult : Swift.CustomStringConvertible, Swift.Sendable {
+  public let startInfo: Module___BRBluetoothLib.FlashIdeaStartInfo?
+  public let errorCode: Swift.Int
+  public let error: (any Swift.Error)?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(startInfo: Module___BRBluetoothLib.FlashIdeaStartInfo? = nil, errorCode: Swift.Int, error: (any Swift.Error)?)
+  #endif
+  public var description: Swift.String {
+    get
+  }
+}
+public enum FlashIdeaStatus : Swift.Equatable, Swift.Sendable {
+  case idle
+  case start(info: Module___BRBluetoothLib.FlashIdeaStartInfo)
+  case stop(crc: Swift.Int? = 0, info: Module___BRBluetoothLib.FlashIdeaStartInfo? = nil, realTimeSyncResult: Module___BRBluetoothLib.RealTimeSyncResult? = nil)
+  case error(message: Swift.String? = nil)
+  public static func == (a: Module___BRBluetoothLib.FlashIdeaStatus, b: Module___BRBluetoothLib.FlashIdeaStatus) -> Swift.Bool
+}
+public protocol IDelegate : AnyObject, Swift.Sendable {
+  func didUpdateConnectionState(isConnected: Swift.Bool)
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didDiscoverDevices(devices: [[Swift.String : Any?]])
+  #endif
+  func didReceiveSwitchStatusChange(status: Swift.String)
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didUpdateBleAudioSyncReceivedSize(receivedSize: Swift.Int, directory: Swift.String, fileInfo: [Swift.String : Any?]?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didDeviceStartRecording(success: Swift.Bool, info: Module___BRBluetoothLib.RecordStartInfo?, error: Swift.String?)
+  #endif
+  func didDeviceStopRecording(result: Module___BRBluetoothLib.RecordStopResult)
+  func didReceiveRecordingData(fileInfo: Module___BRBluetoothLib.RecordStartInfo, packet: Module___BRBluetoothLib.Packet)
+  func didUpdateBluetoothState(state: Module___BRBluetoothLib.PhoneBluetoothState)
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didUpdateClassicBluetoothDiscoveryResult(result: [Swift.String : Any?])
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didUpdateClassicBluetoothConnection(event: [Swift.String : Any?])
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didUpdateWifiAudioSyncReceivedSize(receivedSize: Swift.Int, directory: Swift.String, fileInfo: [Swift.String : Any?]?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func didWifiSocketDisconnect(msg: Swift.String?)
+  #endif
+  func didOtaResult(result: Module___BRBluetoothLib.OtaResult)
+  func didOnFlashIdeaStart(flashIdeaStartResult: Module___BRBluetoothLib.FlashIdeaStartResult)
+  func didOnFlashIdeaData(flashIdeaStartInfo: Module___BRBluetoothLib.FlashIdeaStartInfo, packet: Module___BRBluetoothLib.Packet)
+  func didOnFlashIdeaEnd(flashIdeaEndResult: Module___BRBluetoothLib.FlashIdeaEndResult)
+  func didSyncMark(result: Module___BRBluetoothLib.FileMarkResult)
+  func didReceiveDeviceDeleteFile(event: Module___BRBluetoothLib.DeviceDeleteFileEvent)
+  func didDiscoverEarphoneDevice(result: Module___BRBluetoothLib.EarphoneScanResult)
+  func didUpdateEarphoneConnectionStatus(result: Module___BRBluetoothLib.EarphoneConnectionStatusResult)
+}
+public struct LocalSyncFile : Swift.Equatable, Swift.Sendable {
+  public let path: Swift.String
+  public let fileName: Swift.String
+  public let syncType: Swift.Int
+  public let lastFrameIndex: Swift.Int
+  public let lastWrittenFrameIndex: Swift.Int
+  public let lastFrameCrc: Swift.Int
+  public let cumulativeCrc: Swift.Int
+  public let localFileCrc: Swift.Int
+  public let totalSize: Swift.Int64
+  public let totalReceiveSize: Swift.Int64
+  public let deviceFileCrc: Swift.Int
+  public init(path: Swift.String, fileName: Swift.String, syncType: Swift.Int, lastFrameIndex: Swift.Int, lastWrittenFrameIndex: Swift.Int = -1, lastFrameCrc: Swift.Int, cumulativeCrc: Swift.Int, localFileCrc: Swift.Int, totalSize: Swift.Int64, totalReceiveSize: Swift.Int64, deviceFileCrc: Swift.Int)
+  public static func fromJson(json: Swift.String) throws -> Module___BRBluetoothLib.LocalSyncFile
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.LocalSyncFile
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.LocalSyncFile, b: Module___BRBluetoothLib.LocalSyncFile) -> Swift.Bool
+}
+public enum OtaResult : Swift.Equatable, Swift.Sendable {
+  case idle
+  case fileCheckOk
+  case fileCheckNoFile
+  case fileCheckInvalidPath
+  case bleStateSuccess
+  case bleStateRecording
+  case bleStateBleSyncing
+  case bleStateWifiSyncing
+  case bleStateUnConnect
+  case deviceCheckOk(extra: Swift.String?)
+  case deviceCheckStorageFull
+  case deviceCheckLowBattery
+  case deviceCheckRecording
+  case deviceCheckFlashBusy
+  case deviceCheckOtaBusy
+  case deviceCheckNoNeedUpgrade
+  case deviceCheckSocketDisconnected
+  case deviceCheckOther(msg: Swift.String)
+  case transferSuccess
+  case transferFailDisconnected
+  case transferFailTimeout
+  case transferFailBleOrder
+  case transferFailBleLength
+  case transferFailBleCrc
+  case transferFailBleHeadTail
+  case transferFailWifiOrder
+  case transferFailWifiLength
+  case transferFailWifiCrc
+  case transferFailWifiHeadTail
+  case transferFailOther(msg: Swift.String)
+  case transferBleTransferStart
+  case transferWifiTransferStart
+  case transferBleUnNeed
+  case transferWifiUnNeed
+  case transiting(extra: Swift.String?)
+  case openWifiSuccess
+  case openWifiFailTimeout
+  case openWifiFailNoResponse
+  case openWifiFailOther(msg: Swift.String)
+  case upgradeSuccess
+  case upgradeBelFail
+  case upgradeWifiFail
+  case upgradeFailOther(msg: Swift.String)
+  case upgrading(extra: Swift.String?)
+  case forceStopSuccess
+  case forceStopNoNeed
+  case forceStopCanNot
+  case forceStopFail(msg: Swift.String)
+  public var code: Swift.Int {
+    get
+  }
+  public var msg: Swift.String {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var extra: Swift.String? {
+    get
+  }
+  #endif
+  public func toMap() -> [Swift.String : Any]
+  public static func == (a: Module___BRBluetoothLib.OtaResult, b: Module___BRBluetoothLib.OtaResult) -> Swift.Bool
+}
+public struct TransitingInfo : Swift.Equatable, Swift.Sendable {
+  public let type: Swift.Int
+  public let hasTransSize: Swift.Int64
+  public let totalSize: Swift.Int64
+  public init(type: Swift.Int, hasTransSize: Swift.Int64, totalSize: Swift.Int64)
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.TransitingInfo, b: Module___BRBluetoothLib.TransitingInfo) -> Swift.Bool
+}
+public struct UpgradingInfo : Swift.Equatable, Swift.Sendable {
+  public let type: Swift.Int
+  public let progress: Swift.Int
+  public init(type: Swift.Int, progress: Swift.Int)
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.UpgradingInfo, b: Module___BRBluetoothLib.UpgradingInfo) -> Swift.Bool
+}
+public struct UpgradeTarget : Swift.Equatable, Swift.Sendable {
+  public let reason: Swift.Int
+  public let des: Swift.String
+  public init(reason: Swift.Int, des: Swift.String)
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.UpgradeTarget
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.UpgradeTarget, b: Module___BRBluetoothLib.UpgradeTarget) -> Swift.Bool
+}
+public struct OtaFileInfo : Swift.Equatable, Swift.Sendable {
+  public let bleFile: Foundation.URL
+  public let wifiFile: Foundation.URL
+  public let startInfo: Module___BRBluetoothLib.WifiOtaStartInfo
+  public init(bleFile: Foundation.URL, wifiFile: Foundation.URL, startInfo: Module___BRBluetoothLib.WifiOtaStartInfo)
+  public static func == (a: Module___BRBluetoothLib.OtaFileInfo, b: Module___BRBluetoothLib.OtaFileInfo) -> Swift.Bool
+}
+public struct Packet : Swift.Hashable, Swift.Sendable, Swift.CustomStringConvertible {
+  public let type: Swift.UInt8
+  public let cmdL: Swift.UInt8
+  public let cmdH: Swift.UInt8
+  public let data: Foundation.Data
+  public let index: Swift.Int
+  public let sequence: Swift.Int
+  public let wifiCrc: Swift.Int
+  public let isAudioFrame: Swift.Bool
+  public let isWifiPacket: Swift.Bool
+  public var cmdId: Swift.Int {
+    get
+  }
+  public init(type: Swift.UInt8, cmdL: Swift.UInt8, cmdH: Swift.UInt8, data: Foundation.Data = Data(), index: Swift.Int = 0, sequence: Swift.Int = 0, wifiCrc: Swift.Int = 0, isAudioFrame: Swift.Bool = false, isWifiPacket: Swift.Bool = false)
+  public static func == (lhs: Module___BRBluetoothLib.Packet, rhs: Module___BRBluetoothLib.Packet) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var description: Swift.String {
+    get
+  }
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum PermissionStatus : Swift.Equatable, Swift.Sendable {
+  case unknown
+  case notDetermined
+  case authorized
+  case denied
+  case restricted
+  public static func == (a: Module___BRBluetoothLib.PermissionStatus, b: Module___BRBluetoothLib.PermissionStatus) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@objc @_hasMissingDesignatedInitializers final public class PhoneBluetoothManager : ObjectiveC.NSObject, @unchecked Swift.Sendable {
+  public enum ConnectionError : Swift.Equatable, Swift.Sendable {
+    case permissionDenied
+    case bluetoothDisabled
+    case invalidAddress(address: Swift.String)
+    case serviceDiscoveryFailed
+    case characteristicNotFound
+    case handshakeTimeout
+    case connectCanceled
+    case connectWaitTimeOut
+    case connectWaitError(message: Swift.String)
+    case gattConnectionFailed(status: Swift.Int, newStatus: Swift.Int)
+    case handshakeFailed(code: Swift.Int, message: Swift.String)
+    case parseError
+    public static func getErrorMessageOnConnectFail(error: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionError) -> Swift.String
+    public static func == (a: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionError, b: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionError) -> Swift.Bool
+  }
+  public enum ConnectionState : Swift.Equatable, Swift.Sendable {
+    case disconnected
+    case connecting
+    case gattConnected
+    case ready(info: Module___BRBluetoothLib.ConnectedDeviceInfo)
+    case failed(error: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionError)
+    public static func == (a: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionState, b: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionState) -> Swift.Bool
+  }
+  final public var phoneBlueStateFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.PhoneBluetoothState> {
+    get
+  }
+  final public var connectionStateFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionState> {
+    get
+  }
+  final public var flashIdeaSupported: Module____Concurrency.AsyncStream<Swift.Bool> {
+    get
+  }
+  final public var currentPhoneBlueState: Module___BRBluetoothLib.PhoneBluetoothState {
+    get
+  }
+  final public var currentConnectionState: Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionState {
+    get
+  }
+  final public var isFlashIdeaSupported: Swift.Bool {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var onRawDataReceived: (@Sendable (Foundation.Data) -> Swift.Void)? {
+    get
+    set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var onFlashIdeaRawDataReceived: (@Sendable (Foundation.Data) -> Swift.Void)? {
+    get
+    set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var synTime: (@Sendable () -> Swift.Void)? {
+    get
+    set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public var lastConnectedInfo: Module___BRBluetoothLib.ConnectedDeviceInfo? {
+    get
+  }
+  #endif
+  final public func clearInfo()
+  final public func connectWithCheck(sn: Swift.String, appUUID: Swift.String, cardMac: Swift.String) async -> Module___BRBluetoothLib.PhoneBluetoothManager.ConnectionState
+  final public func disconnect(needSetState: Swift.Bool = true)
+  final public func sendData(data: Foundation.Data) async -> Swift.Bool
+  final public func isConnected() -> Swift.Bool
+  final public func registerBluetoothStateReceiver()
+  @objc deinit
+}
+extension Module___BRBluetoothLib.PhoneBluetoothManager : Module___CoreBluetooth.CBCentralManagerDelegate {
+  @objc final public func centralManagerDidUpdateState(_ central: Module___CoreBluetooth.CBCentralManager)
+  @objc final public func centralManager(_ central: Module___CoreBluetooth.CBCentralManager, didConnect peripheral: Module___CoreBluetooth.CBPeripheral)
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func centralManager(_ central: Module___CoreBluetooth.CBCentralManager, didFailToConnect peripheral: Module___CoreBluetooth.CBPeripheral, error: (any Swift.Error)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func centralManager(_ central: Module___CoreBluetooth.CBCentralManager, didDisconnectPeripheral peripheral: Module___CoreBluetooth.CBPeripheral, error: (any Swift.Error)?)
+  #endif
+}
+extension Module___BRBluetoothLib.PhoneBluetoothManager : Module___CoreBluetooth.CBPeripheralDelegate {
+  @objc final public func peripheralIsReady(toSendWriteWithoutResponse peripheral: Module___CoreBluetooth.CBPeripheral)
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func peripheral(_ peripheral: Module___CoreBluetooth.CBPeripheral, didDiscoverServices error: (any Swift.Error)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func peripheral(_ peripheral: Module___CoreBluetooth.CBPeripheral, didDiscoverCharacteristicsFor service: Module___CoreBluetooth.CBService, error: (any Swift.Error)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func peripheral(_ peripheral: Module___CoreBluetooth.CBPeripheral, didUpdateNotificationStateFor characteristic: Module___CoreBluetooth.CBCharacteristic, error: (any Swift.Error)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public func peripheral(_ peripheral: Module___CoreBluetooth.CBPeripheral, didUpdateValueFor characteristic: Module___CoreBluetooth.CBCharacteristic, error: (any Swift.Error)?)
+  #endif
+  @objc final public func peripheral(_ peripheral: Module___CoreBluetooth.CBPeripheral, didModifyServices invalidatedServices: [Module___CoreBluetooth.CBService])
+}
+public enum PhoneBluetoothState : Swift.String, Swift.Sendable {
+  case unknown
+  case resetting
+  case unsupported
+  case unauthorized
+  case poweredOff
+  case poweredOn
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers final public class PhoneWifiManager : @unchecked Swift.Sendable {
+  public enum ConnectionError : Swift.Equatable, Swift.Sendable {
+    case permissionDenied
+    case wifiJoinCancelled
+    case invalidInfo
+    case openCommandError(code: Swift.Int)
+    case wifiConnectError(message: Swift.String)
+    case socketConnectError(message: Swift.String)
+    public static func getErrorMessageOnConnectFail(error: Module___BRBluetoothLib.PhoneWifiManager.ConnectionError) -> Swift.String
+    public static func == (a: Module___BRBluetoothLib.PhoneWifiManager.ConnectionError, b: Module___BRBluetoothLib.PhoneWifiManager.ConnectionError) -> Swift.Bool
+  }
+  public enum ConnectionState : Swift.Equatable, Swift.Sendable {
+    case disconnected
+    case openCommanding
+    case openCommandingSuccess
+    case wifiConnecting
+    case wifiConnected
+    case socketConnecting
+    case socketConnected
+    case ready
+    case failed(error: Module___BRBluetoothLib.PhoneWifiManager.ConnectionError)
+    public static func == (a: Module___BRBluetoothLib.PhoneWifiManager.ConnectionState, b: Module___BRBluetoothLib.PhoneWifiManager.ConnectionState) -> Swift.Bool
+  }
+  final public var wifiState: Module___BRBluetoothLib.PhoneWifiManager.ConnectionState {
+    get
+  }
+  final public var wifiStateFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.PhoneWifiManager.ConnectionState> {
+    get
+  }
+  final public func connect(ssid: Swift.String, password: Swift.String) async -> Module___BRBluetoothLib.PhoneWifiManager.ConnectionState
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func openWifi() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func closeWifi() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func closeWifiByWifiCommand() async -> Swift.Result<Swift.Int, any Swift.Error>
+  #endif
+  final public func disconnect(needState: Swift.Bool = true)
+  @objc deinit
+}
+public struct HandshakeDeviceInfo : Swift.Equatable, Swift.Sendable {
+  public let uuid: Swift.String
+  public init(uuid: Swift.String = "")
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.HandshakeDeviceInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.HandshakeDeviceInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.HandshakeDeviceInfo, b: Module___BRBluetoothLib.HandshakeDeviceInfo) -> Swift.Bool
+}
+public struct HandshakeAppInfo : Swift.Equatable, Swift.Sendable {
+  public let time: Swift.Int64
+  public let uuid: Swift.String
+  public init(time: Swift.Int64 = 0, uuid: Swift.String = "")
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.HandshakeAppInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.HandshakeAppInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.HandshakeAppInfo, b: Module___BRBluetoothLib.HandshakeAppInfo) -> Swift.Bool
+}
+public struct DeviceDetailInfo : Swift.Equatable, Swift.Sendable {
+  public let name: Swift.String
+  public let sn: Swift.String
+  public let uuid: Swift.String
+  public let brand: Swift.String
+  public let model: Swift.String
+  public let deviceVersion: Swift.String
+  public let isAudioRecorded: Swift.String
+  public let screen: Swift.String
+  public let wifiSsid: Swift.String
+  public init(name: Swift.String = "", sn: Swift.String = "", uuid: Swift.String = "", brand: Swift.String = "", model: Swift.String = "", deviceVersion: Swift.String = "", isAudioRecorded: Swift.String = "0", screen: Swift.String = "no", wifiSsid: Swift.String = "")
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.DeviceDetailInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.DeviceDetailInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.DeviceDetailInfo, b: Module___BRBluetoothLib.DeviceDetailInfo) -> Swift.Bool
+}
+public struct StorageCapacityInfo : Swift.Equatable, Swift.Sendable {
+  public let unit: Swift.String
+  public let totalCapacity: Swift.Int64
+  public let opusCapacity: Swift.Int64
+  public let wavCapacity: Swift.Int64
+  public let freeCapacity: Swift.Int64
+  public let otherCapacity: Swift.Int64
+  public init(unit: Swift.String = "KBytes", totalCapacity: Swift.Int64 = 0, opusCapacity: Swift.Int64 = 0, wavCapacity: Swift.Int64 = 0, freeCapacity: Swift.Int64 = 0, otherCapacity: Swift.Int64 = 0)
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.StorageCapacityInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.StorageCapacityInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.StorageCapacityInfo, b: Module___BRBluetoothLib.StorageCapacityInfo) -> Swift.Bool
+}
+public struct DeviceVersionInfo : Swift.Equatable, Swift.Sendable {
+  public let brand: Swift.String
+  public let model: Swift.String
+  public let deviceVersion: Swift.String
+  public let softwareVersion: Swift.Int
+  public let softwareVersionPatch: Swift.Int
+  public let wifiSoftwareVersion: Swift.Int
+  public let wifiSoftwareVersionPatch: Swift.Int
+  public let wifiSsid: Swift.String
+  public init(brand: Swift.String = "", model: Swift.String = "", deviceVersion: Swift.String = "", softwareVersion: Swift.Int = 0, softwareVersionPatch: Swift.Int = 0, wifiSoftwareVersion: Swift.Int = 0, wifiSoftwareVersionPatch: Swift.Int = 0, wifiSsid: Swift.String = "")
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.DeviceVersionInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.DeviceVersionInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.DeviceVersionInfo, b: Module___BRBluetoothLib.DeviceVersionInfo) -> Swift.Bool
+}
+public struct RecordStartInfo : Swift.Equatable, Swift.Sendable {
+  public let file: Swift.String
+  public let createTime: Swift.Int64
+  public let toggleSwitch: Swift.Int
+  public let fileType: Swift.String
+  public let error: Swift.String?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(file: Swift.String = "", createTime: Swift.Int64 = 0, toggleSwitch: Swift.Int = 0, fileType: Swift.String = "Normal", error: Swift.String? = nil)
+  #endif
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.RecordStartInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.RecordStartInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.RecordStartInfo, b: Module___BRBluetoothLib.RecordStartInfo) -> Swift.Bool
+}
+public struct AudioFileInfo : Swift.Equatable, Swift.Sendable {
+  public let file: Swift.String
+  public let size: Swift.Int64
+  public let createTime: Swift.Int64
+  public let durationMs: Swift.Int64
+  public let type: Swift.Int
+  public let index: Swift.Int
+  public let toggleSwitch: Swift.Int
+  public let fileType: Swift.String
+  public let deleteFlag: Swift.Int
+  public init(file: Swift.String = "", size: Swift.Int64 = 0, createTime: Swift.Int64 = 0, durationMs: Swift.Int64 = 0, type: Swift.Int = 0, index: Swift.Int = 0, toggleSwitch: Swift.Int = 0, fileType: Swift.String = "Normal", deleteFlag: Swift.Int = 0)
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.AudioFileInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.AudioFileInfo
+  public static func fromJsonStr(jsonStr: Swift.String) throws -> Module___BRBluetoothLib.AudioFileInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.AudioFileInfo, b: Module___BRBluetoothLib.AudioFileInfo) -> Swift.Bool
+}
+public struct AudioFileListResponse : Swift.Equatable, Swift.Sendable {
+  public let fileNum: Swift.Int
+  public let audioFileArray: [Module___BRBluetoothLib.AudioFileInfo]
+  public let error: Swift.String?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(fileNum: Swift.Int = 0, audioFileArray: [Module___BRBluetoothLib.AudioFileInfo] = [], error: Swift.String? = nil)
+  #endif
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.AudioFileListResponse
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.AudioFileListResponse
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.AudioFileListResponse, b: Module___BRBluetoothLib.AudioFileListResponse) -> Swift.Bool
+}
+public struct WifiOtaStartInfo : Swift.Equatable, Swift.Sendable {
+  public let bleFileSize: Swift.Int64
+  public let bleFileVersion: Swift.Int
+  public let bleFileVersionPatch: Swift.Int
+  public let wifiFileSize: Swift.Int64
+  public let wifiFileVersion: Swift.Int
+  public let wifiFileVersionPatch: Swift.Int
+  public init(bleFileSize: Swift.Int64 = 0, bleFileVersion: Swift.Int = 0, bleFileVersionPatch: Swift.Int = 0, wifiFileSize: Swift.Int64 = 0, wifiFileVersion: Swift.Int = 0, wifiFileVersionPatch: Swift.Int = 0)
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.WifiOtaStartInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.WifiOtaStartInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.WifiOtaStartInfo, b: Module___BRBluetoothLib.WifiOtaStartInfo) -> Swift.Bool
+}
+public struct WifiResumeInfo : Swift.Equatable, Swift.Sendable {
+  public let file: Swift.String
+  public let index: Swift.Int
+  public let crc: Swift.Int
+  public init(file: Swift.String = "", index: Swift.Int = 0, crc: Swift.Int = 0)
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.WifiResumeInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.WifiResumeInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public static func == (a: Module___BRBluetoothLib.WifiResumeInfo, b: Module___BRBluetoothLib.WifiResumeInfo) -> Swift.Bool
+}
+public struct FlashIdeaStartInfo : Swift.Equatable, Swift.Sendable {
+  public let file: Swift.String
+  public let createTime: Swift.Int64
+  public let error: Swift.String?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(file: Swift.String = "", createTime: Swift.Int64 = 0, error: Swift.String? = nil)
+  #endif
+  public static func fromBytes(bytes: Foundation.Data) throws -> Module___BRBluetoothLib.FlashIdeaStartInfo
+  public static func fromJson(json: [Swift.String : Any]) -> Module___BRBluetoothLib.FlashIdeaStartInfo
+  public func toJson() -> [Swift.String : Any]
+  public func toJsonString() -> Swift.String
+  public func toBytes() throws -> Foundation.Data
+  public func toRecordStartInfo() -> Module___BRBluetoothLib.RecordStartInfo
+  public static func == (a: Module___BRBluetoothLib.FlashIdeaStartInfo, b: Module___BRBluetoothLib.FlashIdeaStartInfo) -> Swift.Bool
+}
+public enum ProtocolParser {
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func parse(_ raw: Foundation.Data) -> Module___BRBluetoothLib.Packet?
+  #endif
+  public static func buildBleCommand(cmdId: Module___BRBluetoothLib.CommandCode, payload: Foundation.Data = Data()) -> Foundation.Data
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func buildWifiPacket(cmdId: Module___BRBluetoothLib.CommandCode, data: Foundation.Data = Data(), sequence: Swift.Int = 0) -> Foundation.Data?
+  #endif
+  public static func buildBleCommandLog(packet: Foundation.Data) -> Swift.String
+  public static func buildWifiPacketLog(packet: Foundation.Data) -> Swift.String
+}
+public struct RealTimeSyncResult : Swift.Equatable, Swift.Sendable, Swift.CustomStringConvertible {
+  public let filePath: Swift.String
+  public let fileName: Swift.String
+  public let deviceFileCrc: Swift.Int
+  public let receivedBytes: Swift.Int64
+  public init(filePath: Swift.String, fileName: Swift.String, deviceFileCrc: Swift.Int, receivedBytes: Swift.Int64)
+  public var description: Swift.String {
+    get
+  }
+  public static func == (a: Module___BRBluetoothLib.RealTimeSyncResult, b: Module___BRBluetoothLib.RealTimeSyncResult) -> Swift.Bool
+}
+public enum RecordStatus : Swift.Equatable, Swift.Sendable {
+  case initial
+  case start(info: Module___BRBluetoothLib.RecordStartInfo, startType: Swift.Int)
+  case pause
+  case resume
+  case stop(result: Module___BRBluetoothLib.RecordStopResult)
+  public static func isRecordingActive(status: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+  public static func isPaused(status: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+  public static func canSendStop(status: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+  public static func canSendPause(status: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+  public static func canSendResume(status: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+  public static func == (a: Module___BRBluetoothLib.RecordStatus, b: Module___BRBluetoothLib.RecordStatus) -> Swift.Bool
+}
+public struct RecordStopResult : Swift.Equatable, Swift.Sendable {
+  public let crc: Swift.Int
+  public let currentAudio: Module___BRBluetoothLib.CurrentAudio
+  public let stopType: Swift.Int
+  public let marks: [Module___BRBluetoothLib.FileMarkEvent]
+  public let realTimeSyncResult: Module___BRBluetoothLib.RealTimeSyncResult?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(crc: Swift.Int, currentAudio: Module___BRBluetoothLib.CurrentAudio, stopType: Swift.Int, marks: [Module___BRBluetoothLib.FileMarkEvent] = [], realTimeSyncResult: Module___BRBluetoothLib.RealTimeSyncResult? = nil)
+  #endif
+  public static func == (a: Module___BRBluetoothLib.RecordStopResult, b: Module___BRBluetoothLib.RecordStopResult) -> Swift.Bool
+}
+public struct ScanResultInfo : Swift.Equatable, Swift.Sendable {
+  public let cardMac: Swift.String
+  public let deviceName: Swift.String
+  public let sn: Swift.String
+  public init(cardMac: Swift.String, deviceName: Swift.String, sn: Swift.String)
+  public static func == (a: Module___BRBluetoothLib.ScanResultInfo, b: Module___BRBluetoothLib.ScanResultInfo) -> Swift.Bool
+}
+public enum SdkLogLevel : Swift.Sendable {
+  case debug
+  case info
+  case warn
+  case error
+  public static func == (a: Module___BRBluetoothLib.SdkLogLevel, b: Module___BRBluetoothLib.SdkLogLevel) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum SingleFinishResult : Swift.Sendable {
+  case success(Module___BRBluetoothLib.SingleFinishResult.Success)
+  case error(Module___BRBluetoothLib.SingleFinishResult.Error)
+  public struct Success : Swift.Equatable, Swift.Sendable {
+    public let targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo
+    public let fileMarkP6: Module___BRBluetoothLib.FileMarkP6OnDisk
+    public init(targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo, fileMarkP6: Module___BRBluetoothLib.FileMarkP6OnDisk)
+    public static func == (a: Module___BRBluetoothLib.SingleFinishResult.Success, b: Module___BRBluetoothLib.SingleFinishResult.Success) -> Swift.Bool
+  }
+  public struct Error : Swift.Sendable {
+    public let targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo?
+    public let error: any Swift.Error
+    #if compiler(>=5.3) && $NonescapableTypes
+    public init(targetAudioInfo: Module___BRBluetoothLib.AudioFileInfo?, error: any Swift.Error)
+    #endif
+  }
+}
+@_hasMissingDesignatedInitializers final public class SyncDirManager : @unchecked Swift.Sendable {
+  public static func getInstance() -> Module___BRBluetoothLib.SyncDirManager
+  final public func getSyncDirFile() -> Foundation.URL
+  final public func updateSyncBySn(sn: Swift.String)
+  @objc deinit
+}
+public struct SyncingInfo : Swift.Equatable, Swift.Sendable {
+  public let currentFile: Module___BRBluetoothLib.AudioFileInfo?
+  public let currentProgress: Swift.Float
+  public let currentIndex: Swift.Int
+  public let bytesPerSecond: Swift.Int64
+  public let total: Swift.Int
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(currentFile: Module___BRBluetoothLib.AudioFileInfo? = nil, currentProgress: Swift.Float = 0, currentIndex: Swift.Int = 0, bytesPerSecond: Swift.Int64 = 0, total: Swift.Int = 0)
+  #endif
+  public static func == (a: Module___BRBluetoothLib.SyncingInfo, b: Module___BRBluetoothLib.SyncingInfo) -> Swift.Bool
+}
+public struct SyncModeResult : Swift.Equatable, Swift.Sendable {
+  public let type: Module___BRBluetoothLib.SyncModeType
+  public let operation: Module___BRBluetoothLib.SyncModeOperation
+  public let result: Module___BRBluetoothLib.SyncModeResultStatus
+  public let message: Swift.String
+  public init(type: Module___BRBluetoothLib.SyncModeType, operation: Module___BRBluetoothLib.SyncModeOperation, result: Module___BRBluetoothLib.SyncModeResultStatus, message: Swift.String)
+  public func toString() -> Swift.String
+  public static func == (a: Module___BRBluetoothLib.SyncModeResult, b: Module___BRBluetoothLib.SyncModeResult) -> Swift.Bool
+}
+public enum SyncModeResultStatus : Swift.String, Swift.Equatable, Swift.Sendable {
+  case success
+  case failure
+  case inProgress
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public enum SyncModeType : Swift.String, Swift.Equatable, Swift.Sendable {
+  case ble
+  case wifi
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public enum SyncModeOperation : Swift.String, Swift.Equatable, Swift.Sendable {
+  case open
+  case close
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public enum SyncModeState : Swift.Equatable, Swift.Sendable {
+  case open
+  case closed
+  case openFailure
+  case closeFailure
+  case disconnect
+  public static func == (a: Module___BRBluetoothLib.SyncModeState, b: Module___BRBluetoothLib.SyncModeState) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum Utils {
+  public static func checkNeedSync(fileInfo: Module___BRBluetoothLib.AudioFileInfo, baseDir: Foundation.URL) -> Swift.Bool
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func checkNeedAppend(fileInfo: Module___BRBluetoothLib.AudioFileInfo, baseDir: Foundation.URL) -> Module___BRBluetoothLib.WifiResumeInfo?
+  #endif
+}
+@_hasMissingDesignatedInitializers final public class WifiAudioSyncManager : @unchecked Swift.Sendable {
+  final public var currentSyncInfo: Module___BRBluetoothLib.SyncingInfo {
+    get
+  }
+  final public var currentSyncInfoFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.SyncingInfo> {
+    get
+  }
+  final public var isSyncMode: Swift.Bool {
+    get
+  }
+  final public func openSync() async -> Module___BRBluetoothLib.SyncModeResult
+  final public func closeSync() async -> Module___BRBluetoothLib.SyncModeResult
+  final public func onlyFetchFileList() async -> Module___BRBluetoothLib.FileListResult
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func startSyncOne(targetFile: Module___BRBluetoothLib.AudioFileInfo, outObserver: Module___BRBluetoothLib.FileSyncObserver? = nil) async -> Module___BRBluetoothLib.FileTransferResult
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func findAudioFileInfoByFileName(fileName: Swift.String) -> Module___BRBluetoothLib.AudioFileInfo?
+  #endif
+  @objc deinit
+}
+public struct WifiAudioSyncManagerError : Foundation.LocalizedError, Swift.Sendable {
+  public let message: Swift.String
+  public let cause: (any Swift.Error)?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(message: Swift.String, cause: (any Swift.Error)? = nil)
+  #endif
+}
+@_hasMissingDesignatedInitializers final public class WifiOtaDebugManager : @unchecked Swift.Sendable {
+  final public var otaResult: Module___BRBluetoothLib.OtaResult {
+    get
+  }
+  final public var otaResultFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.OtaResult> {
+    get
+  }
+  final public func startOta(otaPath: Swift.String, test: Swift.Int = -1) async -> Module___BRBluetoothLib.OtaResult
+  final public func stopOta() async -> Module___BRBluetoothLib.OtaResult
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers final public class WifiOtaManager : @unchecked Swift.Sendable {
+  final public var otaResult: Module___BRBluetoothLib.OtaResult {
+    get
+  }
+  final public var otaResultFlow: Module____Concurrency.AsyncStream<Module___BRBluetoothLib.OtaResult> {
+    get
+  }
+  final public func startOta(otaPath: Swift.String) async -> Module___BRBluetoothLib.OtaResult
+  final public func stopOta() async -> Module___BRBluetoothLib.OtaResult
+  @objc deinit
+}
+final public class WifiPermissionManager : @unchecked Swift.Sendable {
+  public init()
+  final public func needPermissions() -> [Swift.String]
+  final public func checkPermissions() -> Swift.Bool
+  final public func permissionStatus() -> Module___BRBluetoothLib.PermissionStatus
+  final public func requestLocalNetworkPermission(url: Swift.String = "http://192.168.1.1")
+  @objc deinit
+}
+extension Module___BRBluetoothLib.DeleteType : Swift.Equatable {}
+extension Module___BRBluetoothLib.DeleteType : Swift.Hashable {}
+extension Module___BRBluetoothLib.DeleteType : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.FileListErrorCode : Swift.Hashable {}
+extension Module___BRBluetoothLib.FileListErrorCode : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.FileTransferErrorCode : Swift.Hashable {}
+extension Module___BRBluetoothLib.FileTransferErrorCode : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.PermissionStatus : Swift.Hashable {}
+extension Module___BRBluetoothLib.PhoneBluetoothState : Swift.Equatable {}
+extension Module___BRBluetoothLib.PhoneBluetoothState : Swift.Hashable {}
+extension Module___BRBluetoothLib.PhoneBluetoothState : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.SdkLogLevel : Swift.Equatable {}
+extension Module___BRBluetoothLib.SdkLogLevel : Swift.Hashable {}
+extension Module___BRBluetoothLib.SyncModeResultStatus : Swift.Hashable {}
+extension Module___BRBluetoothLib.SyncModeResultStatus : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.SyncModeType : Swift.Hashable {}
+extension Module___BRBluetoothLib.SyncModeType : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.SyncModeOperation : Swift.Hashable {}
+extension Module___BRBluetoothLib.SyncModeOperation : Swift.RawRepresentable {}
+extension Module___BRBluetoothLib.SyncModeState : Swift.Hashable {}

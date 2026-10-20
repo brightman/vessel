@@ -31,7 +31,7 @@ Watch 单按钮界面方案见 [`prototype/watch-recorder.html`](prototype/watch
 
 ## 打开与安装
 
-1. 在本目录运行 `sh ../../../br_flutter_plugin_ble/ios/bootstrap_recorder_core.sh`，再运行 `pod install`。用 Xcode 打开 `WristNotes.xcworkspace`，选择 `WristNotes` scheme。若重新运行 `ruby scripts/generate_project.rb`，之后需再次 `pod install`。
+1. 在本目录运行 `pod install --deployment`。Ring 原生 SDK 已随仓库放在 `../../pods/br_flutter_plugin_ble`，不需要相邻 SDK 仓库、源码准备脚本或 Flutter 环境。需安装 CocoaPods 1.16.2；Swift 包依赖按现有 Package.resolved 获取。用 Xcode 打开 `WristNotes.xcworkspace`，选择 `WristNotes` scheme。若重新运行 `ruby scripts/generate_project.rb`，之后需再次 `pod install --deployment`。
 2. 在 iPhone 和 Watch 两个 target 的 **Signing & Capabilities** 中选择自己的 Team。若 Bundle Identifier 被占用，一起修改 iPhone ID、Watch ID 与 Watch `Info.plist` 中的 `WKCompanionAppBundleIdentifier`，再运行 `ruby scripts/generate_project.rb` 前先同步修改生成脚本；重新生成工程会覆盖 Xcode 中直接改的项目设置。
 3. iPhone 解锁并信任 Mac，开启开发者模式；确认 Apple Watch 已与该 iPhone 配对，在 Xcode 的设备列表中可选。先在 iPhone 上运行 `WristNotes`，再确认手表 App 已安装。Xcode 若无法看到手表，检查配对、同一 Apple ID、蓝牙/Wi-Fi 和设备支持组件。
 4. 首次轻点手表红色按钮授权麦克风。闪念首次授权时，松开后再次按住按钮，触觉反馈后开始说话。
@@ -97,7 +97,7 @@ swiftc -module-cache-path /private/tmp/wristnotes-modulecache apps/wrist-notes/S
 
 音频经 SDK CRC 校验后，以 Opus → PCM → AAC/M4A（16 kHz、单声道、32 kbps）保存在现有 `VoiceNotes` 目录，进入原有播放和 Apple／Whisper 本地转写流程。没有上传、服务端会议创建或业务入库步骤。断开、解绑和格式化都保留手机已有笔记；格式化会单独确认并清空硬件全部录音。
 
-原生入口位于相邻 `br_flutter_plugin_ble/ios/RecorderCore`；只链接 BRBluetoothLib 3.0.0 和 BRRecorderOpus 1.6.1（官方 libopus 源码）。没有引入 Flutter、`br_app_services`、Wi-Fi 快传或打点页面。SDK 的现有 Wi-Fi 等代码作为原生库的一部分存在，本次流程不调用这些功能。
+原生依赖通过本仓库 `pods/br_flutter_plugin_ble` 的本地二进制 Pod 引用，包含 BRBluetoothLib 3.0.0、BRRecorderCore 3.0.0、BRRecorderOpus 1.6.1 三个静态 XCFramework。支持 iPhone arm64、模拟器 arm64/x86_64，原有 Swift 模块名保持不变。CocoaPods 生成的 `apps/wrist-notes/Pods` 仍不提交，提交的是根目录 `pods` 中的发布包；构建来源和 SHA-256 见包内 manifest。没有引入 Flutter、`br_app_services`、Wi-Fi 快传或打点页面。
 
 Ring 闪念由硬件触发，结束通知后自动同步。SDK 已通过 CRC 校验的实时文件复用同一恢复、转换和保存流程；实时数据缺失时从设备 BLE 补同步，离线闪念也支持补同步。闪念显示在现有“一天 → 闪念”分类，支持回听、编辑、搜索。音频自动在本地转写，再由 Apple 本地模型整理核心想法和明确待办。即使其他笔记选择自定义 AI，Ring 闪念的整理仍固定使用本地模型；模型暂不可用时保留录音和全文，提示重试，不回退到远程服务。SDK 未提供 App 开始／结束闪念的指令，需在硬件上操作。
 
