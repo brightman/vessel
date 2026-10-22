@@ -2,6 +2,7 @@ import Foundation
 
 // Only the inference boundary is replaced; real files, profile validation and model state are used.
 struct LocalTranscriptionService {
+    static let shared = LocalTranscriptionService()
     func enrollVoice(fileURL: URL) async throws -> VoiceProfile { throw VoiceIdentityError.invalidAudio }
 }
 

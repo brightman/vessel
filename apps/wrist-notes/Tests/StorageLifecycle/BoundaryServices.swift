@@ -2,7 +2,6 @@
 // Production NotesModel, connectivity, repositories, photo model and reminder store are compiled unchanged.
 import Foundation
 import Combine
-struct TranscriptionConfiguration {}
 struct AIConfiguration: Equatable {
     enum Mode { case local, custom, chatgpt }
     var mode = Mode.local
@@ -12,7 +11,7 @@ struct AIConfiguration: Equatable {
     var label: String { "inference disabled in lifecycle tests" }
 }
 @MainActor final class AppSettings {
-    var transcription = TranscriptionConfiguration()
+    @Published var transcription = TranscriptionConfiguration()
     var ai = AIConfiguration()
     @Published var aiRevision = 0
     @Published var requiresRemoteAIConfirmation = true
@@ -32,6 +31,13 @@ struct VoiceDiarizationOutput {
     init(enroll: ((URL) async throws -> VoiceProfile)? = nil) {}
 }
 struct LocalTranscriptionService {
+    static let shared = LocalTranscriptionService()
+    static var durableCalls = 0
+    func process(window: AudioProcessingWindow, configuration: TranscriptionConfiguration, stages: AudioInferenceStages,
+                 sourceDuration: Double?, priorSpans: [AudioTranscriptSpan], maximumCoreDuration: Double) async throws -> AudioInferenceDelta {
+        Self.durableCalls += 1
+        throw URLError(.unsupportedURL)
+    }
     func enrollVoice(fileURL: URL) async throws -> VoiceProfile { throw URLError(.unsupportedURL) }
     func transcribeWithSegments(fileURL: URL, configuration: TranscriptionConfiguration) async throws -> TranscriptionOutput { throw URLError(.unsupportedURL) }
     func diarizeWithIdentity(fileURL: URL, segments: [TranscriptSegment], profile: VoiceProfile?) async throws -> VoiceDiarizationOutput { throw URLError(.unsupportedURL) }
@@ -58,3 +64,5 @@ struct ChatGPTSummarizer {
     init(account: LifecycleChatGPT) {}
     func summarize(_ text: String, configuration: AIConfiguration, isCurrent: @MainActor () -> Bool) async throws -> String { throw SummaryFailure.unavailable }
 }
+
+@MainActor enum AudioCaptureActivity { static var activeIDs = Set<UUID>() }

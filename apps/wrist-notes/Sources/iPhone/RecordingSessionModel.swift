@@ -116,6 +116,19 @@ struct RecordingSessionDetail {
         }
     }
 
+    /// Complete requested evidence coverage is independent of the first library page or selected UI day.
+    func records(in scope: DateInterval, legacyIDs: Set<UUID>) async throws -> [DayRecord] {
+        try await worker.perform { repository in
+            var result: [RecordingSessionSummary] = [], offset = 0
+            while true {
+                let page = try repository.sessions(overlapping:scope.start,end:scope.end,limit:200,offset:offset)
+                result += page; offset += page.count
+                if page.count < 200 { break }
+            }
+            return RecordingSessionPresentation.records(result,legacyIDs:legacyIDs)
+        }
+    }
+
     func detail(_ id: UUID) async throws -> RecordingSessionDetail {
         try await worker.perform { repository in
             let session = try repository.session(id: id)
@@ -130,6 +143,7 @@ struct RecordingSessionDetail {
             try await worker.perform { try $0.deleteSession(id) }
             sessions.removeAll { $0.id == id }; daySessions.removeAll { $0.id == id }
             revision += 1; refresh()
+            NotificationCenter.default.post(name:RecordingChunkReceiver.didChange,object:nil,userInfo:["deletedSessionID":id])
             return true
         } catch { errorMessage = "删除未完成，请解锁后重试。"; return false }
     }

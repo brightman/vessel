@@ -10,7 +10,7 @@ struct DaybookEvidenceSnapshot: Codable, Equatable, Sendable {
 
     init(records: [DayRecord], dayStart: Date, dayEnd: Date, allowedKinds: Set<DayRecord.Kind>) {
         self.dayStart = dayStart; self.dayEnd = dayEnd; self.allowedKinds = allowedKinds
-        let scoped = records.compactMap { $0.recordingProjection(from: dayStart, to: dayEnd) }.filter { allowedKinds.contains($0.kind) }
+        let scoped = DayRecord.evidenceRecords(records, scope: DateInterval(start:dayStart,end:dayEnd)).filter { allowedKinds.contains($0.kind) }
             .sorted { $0.id.uuidString < $1.id.uuidString }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]

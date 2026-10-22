@@ -21,6 +21,8 @@ struct OnDeviceTranscriber {
     }
 
     func transcribeWithSegments(fileURL: URL, locale: Locale) async throws -> TranscriptionOutput {
+        let input = try AVAudioFile(forReading:fileURL)
+        guard input.length > 0, Double(input.length)/input.processingFormat.sampleRate <= 304.0000001 else { throw BoundedAudioError.invalidWindow }
         guard SpeechTranscriber.isAvailable else { throw TranscriptionFailure.deviceUnsupported }
         guard let supportedLocale = await SpeechTranscriber.supportedLocale(equivalentTo: locale) else {
             throw TranscriptionFailure.languageUnsupported

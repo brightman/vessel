@@ -14,6 +14,9 @@ final class NotesModel: ObservableObject {
     @Published private(set) var titleErrors: [UUID: String] = [:]
     let settings: AppSettings
     let voiceProfile: MyVoiceProfileModel
+    /// Installed by WiseLifeRuntime synchronously before startup recovery Tasks run.
+    var durableTranscription: ((VoiceNote, Bool) async -> Bool)?
+    var durableAudioDeleted: ((UUID) -> Void)?
 
     private var repository: NoteRepository?
     private var connectivity: PhoneConnectivity?
@@ -70,7 +73,7 @@ final class NotesModel: ObservableObject {
             .appendingPathComponent("VoiceNotes", isDirectory: true)
         self.openRepository = openRepository ?? { try suppliedRepository ?? NoteRepository(root: directory) }
         self.openConnectivity = connectWatch ? { try suppliedConnectivity ?? PhoneConnectivity(inbox: directory.appendingPathComponent("Inbox", isDirectory: true)) } : nil
-        let transcriber = LocalTranscriptionService()
+        let transcriber = LocalTranscriptionService.shared
         self.voiceProfile = voiceProfile ?? MyVoiceProfileModel(enroll: { try await transcriber.enrollVoice(fileURL: $0) })
         if let transcribeWithSegments { transcribeAudio = transcribeWithSegments }
         else if let transcribe { transcribeAudio = { .init(text: try await transcribe($0, $1)) } }
@@ -132,7 +135,7 @@ final class NotesModel: ObservableObject {
                 guard let self else { return }
                 defer { self.queuedRecovery.remove(note.id) }
                 guard let current = self.repository?.notes.first(where: { $0.id == note.id }) else { return }
-                if current.transcriptionState == .pending || current.transcriptionState == .running { await self.transcribe(note.id) }
+                if current.transcriptionState == .pending || current.transcriptionState == .running { await self.transcribe(note.id, automatic:true) }
                 else if current.transcriptionState == .ready && current.diarizationState == .running { await self.identifySpeakers(note.id) }
                 if let current = self.repository?.notes.first(where: { $0.id == note.id }), current.usesLocalThoughtAI && current.transcriptionState == .ready &&
                     (current.summaryState == .pending || current.summaryState == .running) { await self.summarize(note.id) }
@@ -191,6 +194,7 @@ final class NotesModel: ObservableObject {
     func delete(_ id: UUID) {
         do {
             try repository?.delete(id: id)
+            durableAudioDeleted?(id)
             refresh()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -221,7 +225,7 @@ final class NotesModel: ObservableObject {
                 $0.title = source.deletingPathExtension().lastPathComponent
             }
             refresh()
-            await transcribe(note.id)
+            await transcribe(note.id, automatic:true)
         } catch {
             try? FileManager.default.removeItem(at: temporary)
             errorMessage = "导入录音失败：\(error.localizedDescription)"
@@ -237,7 +241,7 @@ final class NotesModel: ObservableObject {
                                                        capturedAt: capturedAt, duration: duration,
                 origin: RecordingOrigin(device: "iPhone", deviceID: "", fileName: fileURL.lastPathComponent, recordingTimeIsEstimated: false), location: location)
             refresh()
-            Task { await self.transcribe(note.id) }
+            Task { await self.transcribe(note.id, automatic:true) }
             return true
         } catch {
             errorMessage = "录音保存未完成：\(error.localizedDescription)"
@@ -245,7 +249,8 @@ final class NotesModel: ObservableObject {
         }
     }
 
-    func transcribe(_ id: UUID) async {
+    func transcribe(_ id: UUID, automatic: Bool = false) async {
+        if let opening = note(id), let durableTranscription, await durableTranscription(opening,automatic) { return }
         guard !activeTranscriptions.contains(id), let file = audioURL(id) else { return }
         let revisionBeforeRun = note(id)?.transcriptRevision
         let configuration = settings.transcription
@@ -272,6 +277,22 @@ final class NotesModel: ObservableObject {
                 $0.processingMessage = error.localizedDescription
             }
         }
+    }
+
+    /// Projection is allowed only for the initial empty, unchanged legacy transcript.
+    @discardableResult
+    func applyDurableTranscription(_ id: UUID, output: TranscriptionOutput, expectedRevision: UUID?) -> Bool {
+        guard let opening = note(id), opening.transcriptRevision == expectedRevision,
+              opening.transcript.isEmpty, opening.transcriptionState != .ready else { return false }
+        var applied = false
+        let committed = edit(id) { note in
+            guard note.transcriptRevision == expectedRevision, note.transcript.isEmpty, note.transcriptionState != .ready else { return }
+            note.applyTranscription(output)
+            note.transcriptionState = .ready
+            note.processingMessage = nil
+            applied = true
+        }
+        return committed && applied
     }
 
     func identifySpeakers(_ id: UUID) async {
@@ -326,7 +347,7 @@ final class NotesModel: ObservableObject {
             origin: RecordingOrigin(device: "EurekaRing", deviceID: job.deviceID, fileName: job.file.name,
                 recordingTimeIsEstimated: job.file.recordedAt == nil))
         refresh()
-        if isNew { Task { await self.transcribe(job.id) } }
+        if isNew { Task { await self.transcribe(job.id, automatic:true) } }
     }
 #endif
 
@@ -436,18 +457,21 @@ final class NotesModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             persistenceFailures[id] = "处理结果未能保存，请检查可用存储空间后重试。\(error.localizedDescription)"
-            refresh()
+            // Publish the failure overlay without inventing a persisted source change.
+            // A later lifecycle/source wake can retry a failed durable projection.
+            refresh(notifyAudioSource:false)
             return false
         }
     }
 
-    private func refresh() {
+    private func refresh(notifyAudioSource: Bool = true) {
         guard let repository else { return }
         notes = repository.notes.sorted { $0.capturedAt > $1.capturedAt }
         for index in notes.indices {
             if let message = persistenceFailures[notes[index].id] { markWriteFailure(&notes[index], message: message) }
         }
         startTitleGeneration()
+        if notifyAudioSource { NotificationCenter.default.post(name:.init("WiseLife.AudioSourceDidChange"),object:nil) }
     }
 
     private func startTitleGeneration() { titleCoordinator.refresh() }

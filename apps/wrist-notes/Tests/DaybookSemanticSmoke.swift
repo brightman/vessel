@@ -32,19 +32,28 @@ struct FixtureEmbedding: DaybookEmbedding {
         let tailChunks = try db.query("SELECT snippet FROM semantic_chunks ORDER BY ordinal")
         precondition(tailChunks.contains { $0["snippet"]?.string?.contains("合同预算") == true }, "tail beyond 1800 characters must be indexed")
         precondition(tailResult.hits.first?.snippet.contains("合同预算") == true, "the best tail vector must be returned through public search")
+        var midnight = DayRecord(id:UUID(),capturedAt:day.addingTimeInterval(86390),kind:.voice,title:"whole",text:"deadline lunch",duration:30,intervals:[DateInterval(start:day.addingTimeInterval(86390),duration:30)])
+        midnight.contentProvenance = .init(segmentID:midnight.id,sourceID:UUID(),sourceKind:"session",sourceRevision:1,segmentRevision:1,configurationKey:"v1",contentSignature:"scope",sourceDate:midnight.capturedAt,ranges:[.init(chunkID:UUID(),startFrame:0,endFrame:300,sampleRate:10,sourceOffset:0)],transcript:[.init(start:1,end:5,text:"deadline"),.init(start:15,end:20,text:"lunch")])
+        let beforeMidnight = await index.search(query:"deadline",records:[midnight],dayStart:day,dayEnd:day.addingTimeInterval(86400),allowedKinds:[.voice])
+        precondition(beforeMidnight.hits.first?.snippet == "deadline","vector text excludes next day")
+        let afterMidnight = await index.search(query:"lunch",records:[midnight],dayStart:day.addingTimeInterval(86400),dayEnd:day.addingTimeInterval(172800),allowedKinds:[.voice])
+        precondition(afterMidnight.hits.first?.snippet == "lunch" && afterMidnight.keywords?.libraryIDs == [midnight.id],"same ID receives next date FTS and vector text")
+        precondition(!index.isCurrent(beforeMidnight),"scope change invalidates async generation")
+        let combinedScope = await index.search(query:"deadline",records:[midnight],dayStart:day,dayEnd:day.addingTimeInterval(172800),allowedKinds:[.voice])
+        precondition(combinedScope.hits.count == 1 && combinedScope.hits[0].snippet.contains("lunch"),"combined multi-day scope has one complete row")
         try await index.clear()
         let records = [denied, old, allowed]
         // Seed globally closer denied and historic vectors; the next scope must not lose the allowed candidate.
         _ = await index.search(query: "stress", records: records, dayStart: day, dayEnd: day.addingTimeInterval(86400), allowedKinds: [.voice, .image], limit: 1)
         _ = await index.search(query: "stress", records: records, dayStart: day.addingTimeInterval(-86400), dayEnd: day, allowedKinds: [.voice, .image], limit: 1)
         let globallyIndexed = try db.query("SELECT * FROM semantic_chunks")
-        precondition(globallyIndexed.count == 3)
+        precondition(globallyIndexed.count == 1, "explicit scope retains only its authoritative dated snapshot")
         let kindResult = await index.search(query: "stress录音", records: records, dayStart: day, dayEnd: day.addingTimeInterval(86400), allowedKinds: [.voice, .image], limit: 1)
         precondition(kindResult.hits.map(\.id) == [allowed.id], "requested source kind also filters before nearest limit")
         let result = await index.search(query: "stress", records: records, dayStart: day, dayEnd: day.addingTimeInterval(86400), allowedKinds: [.voice], limit: 1)
         precondition(result.hits.map(\.id) == [allowed.id], "date/permission filtering precedes real extension nearest selection")
         let rows = try db.query("SELECT vector, model_key FROM semantic_chunks")
-        precondition(rows.count == 2 && rows[0]["vector"]?.data?.count == 12, "Float32 vectors persist with compatible space only")
+        precondition(rows.count == 1 && rows[0]["vector"]?.data?.count == 12, "Float32 vectors persist with compatible space only")
         let initial = try db.query("SELECT fingerprint FROM semantic_records").first
         _ = await index.search(query: "stress", records: records, dayStart: day, dayEnd: day.addingTimeInterval(86400), allowedKinds: [.voice], limit: 1)
         let unchanged = try db.query("SELECT fingerprint FROM semantic_records").first
@@ -122,6 +131,7 @@ struct FixtureEmbedding: DaybookEmbedding {
         await libraryResume(day: day, record: allowed)
         await libraryRaces(day: day, record: allowed)
         try await clearRace(directory: directory, day: day, record: allowed, space: space)
+        try await durableLegacyIndexDeletion(directory:directory,day:day,space:space)
         print("Daybook semantic SQLite Vector: passed")
     }
 }
@@ -323,4 +333,27 @@ private func cancelRace(directory: URL, day: Date, record: DayRecord, space: Day
     let cancelled = await searching.value
     let rows = try db.query("SELECT * FROM semantic_chunks WHERE state='ready'")
     precondition(cancelled.hits.isEmpty && rows.isEmpty, "cancel during inference cannot write a late vector")
+}
+
+private func durableLegacyIndexDeletion(directory: URL, day: Date, space: DaybookEmbeddingSpace) async throws {
+    let db = try DaybookDatabase(url:directory.appendingPathComponent("durable-delete.sqlite3"))
+    let root = directory.appendingPathComponent("durable-delete-audio")
+    let notes = try NoteRepository(root:root,database:db)
+    let id = UUID(), incoming = root.appendingPathComponent("synthetic.m4a")
+    try Data([1,2,3]).write(to:incoming)
+    _ = try notes.importRecording(id:id,from:incoming,kind:.long,capturedAt:day,duration:10)
+    let segmentID = UUID()
+    var record = DayRecord(id:segmentID,capturedAt:day,kind:.voice,title:"deadline",text:"deadline pressure",duration:10,intervals:[DateInterval(start:day,duration:10)])
+    record.contentProvenance = .init(segmentID:segmentID,sourceID:id,sourceKind:"legacyNote",sourceRevision:1,segmentRevision:1,configurationKey:"fixture",contentSignature:"fixture",sourceDate:day,ranges:[.init(chunkID:id,startFrame:0,endFrame:100,sampleRate:10,sourceOffset:0)],transcript:[.init(start:0,end:10,text:"deadline pressure")])
+    let index = DaybookSemanticIndex(database:db,embedding:FixtureEmbedding(space:space,available:true))
+    let end = day.addingTimeInterval(86400)
+    let before = await index.search(query:"deadline",records:[record],dayStart:day,dayEnd:end,allowedKinds:[.voice],limit:20)
+    precondition(!before.hits.isEmpty && index.isCurrent(before))
+    try notes.delete(id:id)
+    precondition(!index.isCurrent(before),"durable repository deletion synchronously fences index generation")
+    // The caller deliberately still holds the pre-delete UI value.
+    let after = await index.search(query:"deadline",records:[record],dayStart:day,dayEnd:end,allowedKinds:[.voice],limit:20)
+    let vectors = try db.query("SELECT id FROM semantic_records"), keywords = try db.query("SELECT id FROM fulltext_records")
+    precondition(after.hits.isEmpty && after.keywords?.libraryIDs.isEmpty == true && vectors.isEmpty && keywords.isEmpty,"durable deletion reconciles vector/FTS and rejects stale source arrays")
+    print("Durable legacy deletion: vector/FTS generation and stale-input fence passed")
 }

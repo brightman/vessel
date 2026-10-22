@@ -40,7 +40,7 @@ enum DaybookSemanticResourceChange: Sendable {
         let scopeChanged = self.records != records || allowed != allowedKinds || day != start
         let intentChanged = self.query != query || day != start
         if scopeChanged || intentChanged { cancel() }
-        if (scopeChanged || intentChanged) && !resetInProgress { index?.invalidate(records: records, allowedKinds: allowedKinds) }
+        if (scopeChanged || intentChanged) && !resetInProgress { index?.invalidate(records: DayRecord.evidenceRecords(records,scope:Calendar.current.dateInterval(of:.day,for:date)!), allowedKinds: allowedKinds) }
         if intentChanged { waitingAfterClear = false }
         self.records = records; allowed = allowedKinds; day = start; self.query = query; self.active = active
         if resume { cancel(); waitingAfterClear = false }

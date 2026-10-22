@@ -2,6 +2,24 @@ import AVFAudio
 import Combine
 import Foundation
 
+/// Process-wide, read-only capture snapshot; attempt tokens reject duplicate/late release.
+/// Foundation-only bookkeeping is also used by isolated tests without opening the microphone.
+enum AudioCaptureActivity {
+    private static let lock = NSLock()
+    private static var identifiers = Set<UUID>()
+    static var activeIDs: Set<UUID> { lock.lock(); defer { lock.unlock() }; return identifiers }
+    static func begin() -> UUID {
+        let id = UUID()
+        lock.lock(); identifiers.insert(id); lock.unlock()
+        NotificationCenter.default.post(name:.init("WiseLife.AudioCaptureActivity"),object:nil,userInfo:["id":id,"active":true])
+        return id
+    }
+    static func end(_ id: UUID) {
+        lock.lock(); let existed = identifiers.remove(id) != nil; lock.unlock()
+        if existed { NotificationCenter.default.post(name:.init("WiseLife.AudioCaptureActivity"),object:nil,userInfo:["id":id,"active":false]) }
+    }
+}
+
 @MainActor
 final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, PhoneRecordingEngine {
     private static weak var microphoneOwner: PhoneRecorder?
@@ -9,6 +27,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     var onRecordingEnded: (() -> Void)?
     var onDraftUpdated: ((PhoneRecordingDraft) -> Void)?
     private var stagedDraft: PhoneRecordingDraft?
+    private var captureActivityID: UUID?
     @Published private(set) var isRecording = false
     @Published private(set) var requestingPermission = false
     @Published private(set) var duration: TimeInterval = 0
@@ -41,6 +60,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     deinit {
         if let interruption { NotificationCenter.default.removeObserver(interruption) }
         timer?.invalidate()
+        if let captureActivityID { AudioCaptureActivity.end(captureActivityID) }
     }
 
     func start(maximumDuration: TimeInterval? = nil, builtInMicrophoneOnly: Bool = false) async {
@@ -49,9 +69,13 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             errorMessage = "麦克风正在用于另一段录音，请先完成它。"; return
         }
         Self.microphoneOwner = self
+        let activityID = AudioCaptureActivity.begin()
+        captureActivityID = activityID
         version += 1; let request = version
         requestingPermission = true; errorMessage = nil
-        let allowed = await AVAudioApplication.requestRecordPermission()
+        let allowed = await withTaskCancellationHandler {
+            await AVAudioApplication.requestRecordPermission()
+        } onCancel: { AudioCaptureActivity.end(activityID) }
         guard request == version else { return }
         requestingPermission = false
         guard !Task.isCancelled else { releaseMicrophone(); return }
@@ -125,6 +149,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     }
 
     func stop() {
+        if requestingPermission { version += 1; requestingPermission = false; releaseMicrophone(); return }
         guard let recorder, isRecording else { return }
         captureLocation.cancel()
         duration = max(duration, recorder.currentTime)
@@ -179,7 +204,10 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             self.onRecordingEnded?()
         }
     }
-    private func releaseMicrophone() { if Self.microphoneOwner === self { Self.microphoneOwner = nil } }
+    private func releaseMicrophone() {
+        if Self.microphoneOwner === self { Self.microphoneOwner = nil }
+        if let captureActivityID { AudioCaptureActivity.end(captureActivityID); self.captureActivityID = nil }
+    }
     func startRecording(_ draft: PhoneRecordingDraft) async throws {
         guard !isRecording, !requestingPermission, self.draft == nil else {
             throw NSError(domain: "WiseLife.Recording", code: 2, userInfo: [NSLocalizedDescriptionKey: "请先完成当前录音。"])

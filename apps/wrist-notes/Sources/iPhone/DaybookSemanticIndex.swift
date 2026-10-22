@@ -24,6 +24,12 @@ private final class SemanticGeneration: @unchecked Sendable {
     private let lock = NSLock()
     private var generation: UInt64 = 0
     private var resources: UInt64 = 0
+    private var scope: String?
+    func begin(scope: String) -> UInt64 {
+        lock.lock(); defer { lock.unlock() }
+        if self.scope != scope { self.scope = scope; generation &+= 1 }
+        return generation
+    }
     func resourceRevision() -> UInt64 { lock.lock(); defer { lock.unlock() }; return resources }
     func invalidateResources() { lock.lock(); defer { lock.unlock() }; resources &+= 1; generation &+= 1 }
     func current() -> UInt64 { lock.lock(); defer { lock.unlock() }; return generation }
@@ -48,13 +54,22 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
     static let shared = DaybookSemanticIndex()
     private let generation = SemanticGeneration()
     private let worker: Worker
+    private var deletionObservation: NSObjectProtocol?
     init(database: DaybookDatabase? = nil, embedding: (any DaybookEmbedding)? = nil) {
         worker = Worker(database: database, embedding: embedding)
+        _ = LegacyAudioDeletionLedger.shared
+        deletionObservation = NotificationCenter.default.addObserver(forName:LegacyAudioDeletionLedger.notification,object:nil,queue:nil) { [weak self] note in
+            if let id = note.userInfo?["legacyNoteID"] as? UUID { LegacyAudioDeletionLedger.shared.record(id) }
+            // Synchronously fence in-flight writes, then clear both vector and fulltext projections.
+            self?.invalidate(records:[],allowedKinds:[])
+        }
     }
+    deinit { if let deletionObservation { NotificationCenter.default.removeObserver(deletionObservation) } }
     func search(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date,
                 allowedKinds: Set<DayRecord.Kind>, limit: Int = 20) async -> DaybookSemanticMatches {
-        let token = generation.current()
+        let records = LegacyAudioDeletionLedger.shared.filter(records)
         let evidence = DaybookEvidenceSnapshot(records: records, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
+        let token = generation.begin(scope:"\(dayStart.timeIntervalSinceReferenceDate)|\(dayEnd.timeIntervalSinceReferenceDate)|\(evidence.fingerprint)")
         do {
             let result = try await worker.search(query: query, records: records, dayStart: dayStart, dayEnd: dayEnd,
                                                  allowedKinds: allowedKinds, limit: limit, gate: generation, token: token)
@@ -68,6 +83,7 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
     func isCurrent(_ result: DaybookSemanticMatches) -> Bool { result.generation == generation.current() }
     /// Call synchronously when source/date/permissions change, before enqueueing reconciliation.
     func invalidate(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>) {
+        let records = LegacyAudioDeletionLedger.shared.filter(records)
         let token = generation.invalidate()
         Task { try? await worker.reconcile(records: records, allowedKinds: allowedKinds, gate: generation, token: token) }
     }
@@ -97,12 +113,13 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
             }
         }
         private func fingerprint(_ record: DayRecord) -> String {
-            let data = try! JSONEncoder().encode([DaybookTextChunks.version, record.id.uuidString, String(record.capturedAt.timeIntervalSinceReferenceDate), record.kind.rawValue, record.title, record.text])
+            let data = try! JSONEncoder().encode([DaybookTextChunks.version, record.id.uuidString, String(record.capturedAt.timeIntervalSinceReferenceDate), record.kind.rawValue, record.title, record.text, record.indexScopeIdentity])
             return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         }
         func reconcile(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>, gate: SemanticGeneration, token: UInt64) throws {
             let db = try db()
             try gate.write(token) { try schema(db) }
+            try gate.write(token) { try db.transaction { try DaybookFullTextIndex(database:db).synchronize(records) } }
             let current = Dictionary(records.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
             var removed: [String] = []
             for row in try db.query("SELECT id,fingerprint FROM semantic_records") {
@@ -140,6 +157,7 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
             try gate.check(token)
             let db = try db()
             var result = Result()
+            let records = DayRecord.evidenceRecords(records, scope: DateInterval(start:dayStart,end:dayEnd))
             let fulltext = try gate.write(token) { try DaybookFullTextIndex(database: db) }
             try gate.write(token) { try db.transaction { try fulltext.synchronize(records); try Task.checkCancellation() } }
             result.keywords = try fulltext.search(query: query, records: records, start: dayStart, end: dayEnd, allowed: allowedKinds)

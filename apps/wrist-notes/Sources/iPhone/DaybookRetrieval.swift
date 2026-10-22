@@ -81,6 +81,7 @@ struct DaybookRetrieval {
         let kind: DayRecord.Kind
         let snippet: String
         let truncated: Bool
+        var provenance: DayRecord.ContentProvenance? = nil
     }
 
     struct Prepared: Sendable {
@@ -189,7 +190,9 @@ struct DaybookRetrieval {
                 guard !excerpt.isEmpty else { break }
                 context += header + excerpt + "\n"
                 sources.append(Source(id: record.id, number: number, title: title, capturedAt: record.capturedAt,
-                                      kind: record.kind, snippet: excerpt, truncated: excerpt != text))
+                                      kind: record.kind, snippet: excerpt, truncated: excerpt != text, provenance: record.contentProvenance.map { value in
+                                          var result = value; result.transcript = []; return result
+                                      }))
             }
         }
         // History is intent only. Strip prior numeric citations so they cannot alias the fresh labels above.
@@ -246,7 +249,7 @@ struct DaybookRetrieval {
             (result.query == nil || result.query == query) && result.evidence.dayStart == dayStart && result.evidence.dayEnd == dayEnd &&
             result.evidence.isCurrent(records: records, allowedKinds: allowedKinds) ? result : nil
         }
-        let day = records.compactMap { $0.recordingProjection(from: dayStart, to: dayEnd) }
+        let day = DayRecord.evidenceRecords(records, scope: DateInterval(start:dayStart,end:dayEnd))
         let sqlKeywords = valid?.keywords.flatMap { $0.isCurrent(query: query, records: records) ? $0 : nil }
         let literal = day.filter { record in
             if let sqlKeywords { return sqlKeywords.libraryIDs.contains(record.id) }
@@ -299,7 +302,7 @@ struct DaybookRetrieval {
 
     private static func scoped(_ records: [DayRecord], from start: Date, to end: Date,
                                allowedKinds: Set<DayRecord.Kind>) -> [DayRecord] {
-        records.compactMap { $0.recordingProjection(from: start, to: end) }.filter { allowedKinds.contains($0.kind) }
+        DayRecord.evidenceRecords(records, scope: DateInterval(start:start,end:end)).filter { allowedKinds.contains($0.kind) }
             .sorted { $0.id.uuidString < $1.id.uuidString }
     }
 

@@ -103,6 +103,8 @@ struct DaybookRetrievalSmoke {
             preconditionFailure("Invalid explicit dates must not silently use the selected day")
         } catch is DaybookRetrieval.Failure { }
         #if DAYBOOK_ASSISTANT_MODEL_TESTS
+        try await requestedContentScopeTests()
+        try await durableSourceDeletionTests()
         try await remoteConfirmationPreferenceTests()
         try await historyReviewRegressions()
         try await historyRetentionTests()
@@ -118,6 +120,99 @@ struct DaybookRetrievalSmoke {
 }
 
 #if DAYBOOK_ASSISTANT_MODEL_TESTS
+@MainActor
+private func requestedContentScopeTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at:root) }
+    let suite = "ContentScope-\(UUID())"
+    let defaults = UserDefaults(suiteName:suite)!
+    defer { defaults.removePersistentDomain(forName:suite) }
+    let settings = AppSettings(defaults:defaults,secrets:DaybookTestSecrets())
+    let selected = Calendar.current.startOfDay(for:Date())
+    let target = Calendar.current.date(from:DateComponents(year:2001,month:1,day:1))!
+    let scopeStore = DaybookConversationStore(url:root.appendingPathComponent("history.json"))
+    let model = DaybookAssistantModel(store:scopeStore)
+    let rows = (0..<121).map { _ in DayRecord(id:UUID(),capturedAt:target,kind:.voice,title:"old",text:"scope",duration:1) }
+    var requested: DateInterval?
+    model.scopeLoader = { scope in requested = scope; return rows }
+    model.ask("2001-01-01 有多少条记录？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 { if model.answer != nil { break }; await Task.yield() }
+    precondition(requested?.start == target && model.prepared?.statistics.totalCount == 121,"explicit old date loads complete evidence independently of UI selection")
+    precondition(model.prepared?.isCurrent(records:model.recordsForEvidence([]),allowedKinds:[.voice]) == true,"loaded evidence stays current through UI base")
+    model.scopeLoader = { _ in throw URLError(.cannotLoadFromNetwork) }
+    model.ask("2001-01-01 有多少条记录？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 { if !model.isPending { break }; await Task.yield() }
+    precondition(model.errorMessage != nil,"incomplete scope reports failure rather than a complete empty day")
+    var continuation: CheckedContinuation<[DayRecord],Never>?
+    model.scopeLoader = { _ in await withCheckedContinuation { continuation = $0 } }
+    model.ask("2001-01-01 有多少条记录？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 { if continuation != nil { break }; await Task.yield() }
+    let pendingScope = try scopeStore.loadPage().turns.last
+    precondition(pendingScope?.completionState == .pending,"question persisted before scope read completes")
+    model.invalidateLoadedScope(); continuation?.resume(returning:rows)
+    for _ in 0..<100 { await Task.yield() }
+    precondition(model.prepared == nil && !model.isPending,"mutation rejects late scope load")
+    let sameSource = UUID()
+    var parent = DayRecord(id:sameSource,capturedAt:target,kind:.voice,title:"fallback",text:"old parent",duration:selected.timeIntervalSince(target)+10,intervals:[DateInterval(start:target,end:selected.addingTimeInterval(10))])
+    parent.recordingSessionID = sameSource
+    let childID = UUID()
+    var uiChild = DayRecord(id:childID,capturedAt:selected,kind:.voice,title:"selected",text:"selected child",duration:10,intervals:[DateInterval(start:selected,duration:10)])
+    uiChild.contentProvenance = .init(segmentID:childID,sourceID:sameSource,sourceKind:"session",sourceRevision:1,segmentRevision:1,configurationKey:"v1",contentSignature:"sig",sourceDate:target,ranges:[],transcript:[])
+    model.scopeLoader = { _ in [parent] }
+    model.ask("2001-01-01 有多少条记录？",records:[uiChild],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 where model.isPending { await Task.yield() }
+    precondition(model.prepared?.statistics.totalCount == 1 && model.prepared?.statistics.audioDuration == 86400,"selected-date child cannot suppress same-source parent loaded for explicit earlier date")
+    print("Requested content scope: old date, 121 rows, read failure and late invalidation passed")
+}
+
+@MainActor
+private func durableSourceDeletionTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at:root) }
+    let suite = "DurableSourceDeletion-\(UUID())"
+    let defaults = UserDefaults(suiteName:suite)!
+    defer { defaults.removePersistentDomain(forName:suite) }
+    let settings = AppSettings(defaults:defaults,secrets:DaybookTestSecrets())
+    try settings.saveAI(AIConfiguration(mode:.custom,model:"fixture",baseURL:"https://example.invalid/v1"),apiKey:"fixture-key")
+    let notes = try NoteRepository(root:root)
+    let selected = Calendar.current.startOfDay(for:Date())
+    let target = Calendar.current.date(from:DateComponents(year:2001,month:1,day:1))!
+    func fixture() throws -> DayRecord {
+        let id = UUID(), incoming = root.appendingPathComponent("\(UUID()).m4a")
+        try Data([1,2,3]).write(to:incoming)
+        _ = try notes.importRecording(id:id,from:incoming,kind:.long,capturedAt:target,duration:10)
+        let segmentID = UUID()
+        var record = DayRecord(id:segmentID,capturedAt:target,kind:.voice,title:"客户",text:"客户需要报价",duration:10,intervals:[DateInterval(start:target,duration:10)])
+        record.contentProvenance = .init(segmentID:segmentID,sourceID:id,sourceKind:"legacyNote",sourceRevision:1,segmentRevision:1,configurationKey:"fixture",contentSignature:"fixture",sourceDate:target,ranges:[.init(chunkID:id,startFrame:0,endFrame:100,sampleRate:10,sourceOffset:0)],transcript:[.init(start:0,end:10,text:"客户需要报价")])
+        return record
+    }
+    let loadingRecord = try fixture(), loadingService = DelayedDaybookAnswerService()
+    let loading = DaybookAssistantModel(answerService:loadingService,store:DaybookConversationStore(url:root.appendingPathComponent("loading.json")))
+    var continuation: CheckedContinuation<[DayRecord],Never>?
+    loading.scopeLoader = { _ in await withCheckedContinuation { continuation = $0 } }
+    loading.ask("2001-01-01 客户说了什么？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 where continuation == nil { await Task.yield() }
+    precondition(continuation != nil && loading.isPending)
+    try notes.delete(id:loadingRecord.contentProvenance!.sourceID)
+    for _ in 0..<1000 where loading.isPending { await Task.yield() }
+    precondition(!loading.isPending,"actual durable deletion cancels outstanding scope load")
+    continuation?.resume(returning:[loadingRecord])
+    for _ in 0..<100 { await Task.yield() }
+    precondition(loading.prepared == nil && loading.remoteConfirmation == nil && loading.recordsForEvidence([loadingRecord]).isEmpty,"late loader and old UI snapshots stay fenced after deletion")
+    let record = try fixture(), service = DelayedDaybookAnswerService()
+    let model = DaybookAssistantModel(answerService:service,store:DaybookConversationStore(url:root.appendingPathComponent("remote.json")))
+    model.scopeLoader = { _ in [record] }
+    model.ask("2001-01-01 客户说了什么？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<1000 where model.remoteConfirmation == nil { await Task.yield() }
+    precondition(model.remoteConfirmation != nil && model.recordsForEvidence([]).count == 1)
+    try notes.delete(id:record.contentProvenance!.sourceID)
+    for _ in 0..<1000 where model.remoteConfirmation != nil { await Task.yield() }
+    precondition(model.prepared == nil && model.remoteConfirmation == nil && model.recordsForEvidence([record]).isEmpty,"durable delete clears loaded evidence and prepared remote confirmation")
+    model.confirmRemote(records:[record],selectedDate:selected,allowedKinds:[.voice],settings:settings,doNotAskAgain:true)
+    precondition(service.calls == 0 && settings.requiresRemoteAIConfirmation,"deleted source cannot send or persist confirmation preference")
+    print("Durable legacy deletion: cache fence, pending loader and prepared remote send invalidation passed")
+}
+
 @MainActor
 private func remoteConfirmationPreferenceTests() async throws {
     let suite = "RemoteAIConfirmation-\(UUID())"

@@ -1,6 +1,436 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "仅隐藏此派生片段，保留完整录音。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide this derived segment and keep the full recording."
+          }
+        }
+      }
+    },
+    "仅隐藏此派生片段，保留完整录音。可撤销上次片段编辑。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide only this derived segment and keep the full recording. You can undo the last segment edit."
+          }
+        }
+      }
+    },
+    "内容已更新，等待重新整理": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content changed. Waiting to reorganize."
+          }
+        }
+      }
+    },
+    "内容片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content segments"
+          }
+        }
+      }
+    },
+    "内容片段已显示在时间轴；完整录音仍可回听。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content segments appear on the timeline. The full recording remains playable."
+          }
+        }
+      }
+    },
+    "删除片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete segment"
+          }
+        }
+      }
+    },
+    "删除片段？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete segment?"
+          }
+        }
+      }
+    },
+    "取消转写处理": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel transcription processing"
+          }
+        }
+      }
+    },
+    "回听片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play segment"
+          }
+        }
+      }
+    },
+    "在播放位置拆分": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Split at playback position"
+          }
+        }
+      }
+    },
+    "处理已取消，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing cancelled. You can retry."
+          }
+        }
+      }
+    },
+    "处理状态": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing status"
+          }
+        }
+      }
+    },
+    "尚无本机总结，可查看全文或稍后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No local summary yet. Read the transcript or retry later."
+          }
+        }
+      }
+    },
+    "录音片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording segment"
+          }
+        }
+      }
+    },
+    "撤销上次片段编辑": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo last segment edit"
+          }
+        }
+      }
+    },
+    "无法完整读取所查询日期的录音片段，请解锁后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to completely read segments for the requested date. Unlock and retry."
+          }
+        }
+      }
+    },
+    "无法读取录音片段，请解锁后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to read recording segments. Unlock and retry."
+          }
+        }
+      }
+    },
+    "暂无可显示片段，完整录音仍可回听。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No visible segments. You can still play the full recording."
+          }
+        }
+      }
+    },
+    "本机总结失败，可重试": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local summary failed. You can retry."
+          }
+        }
+      }
+    },
+    "本机总结已完成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local summary complete"
+          }
+        }
+      }
+    },
+    "本机总结已暂停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local summary paused"
+          }
+        }
+      }
+    },
+    "本机总结模型暂不可用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local summary model unavailable"
+          }
+        }
+      }
+    },
+    "本机模型资源未就绪，请在语音转写模型设置中检查。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local model resources are not ready. Check transcription model settings."
+          }
+        }
+      }
+    },
+    "查看完整录音": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View full recording"
+          }
+        }
+      }
+    },
+    "正在本机整理主题与总结": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organizing topics and summary locally"
+          }
+        }
+      }
+    },
+    "正在读取完整日期资料": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading complete date evidence"
+          }
+        }
+      }
+    },
+    "此片段尚无全文；空转写不表示无人声。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No transcript yet. Empty transcription does not prove there was no speech."
+          }
+        }
+      }
+    },
+    "片段仍在处理中，边界与文字可能更新。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This segment is still processing. Its boundaries and text may change."
+          }
+        }
+      }
+    },
+    "片段删除只隐藏派生内容；完整录音及原始音频仍保留。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting a segment only hides derived content. The full recording and original audio remain."
+          }
+        }
+      }
+    },
+    "片段已更新或操作未完成，请刷新后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The segment changed or the action did not finish. Refresh and retry."
+          }
+        }
+      }
+    },
+    "片段已更新或移除，请返回时间轴查看。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This segment has changed or was removed. Return to the timeline."
+          }
+        }
+      }
+    },
+    "等待本机处理状态": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for local processing status"
+          }
+        }
+      }
+    },
+    "等待本机总结": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for local summary"
+          }
+        }
+      }
+    },
+    "编辑片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit segment"
+          }
+        }
+      }
+    },
+    "语音转写模型设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription model settings"
+          }
+        }
+      }
+    },
+    "载入更多全文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load more transcript"
+          }
+        }
+      }
+    },
+    "载入更多片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load more segments"
+          }
+        }
+      }
+    },
+    "载入更早的片段": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load earlier segments"
+          }
+        }
+      }
+    },
+    "这会删除本机完整会话、内容片段及全部原始音频。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This deletes the entire local session, its segments and all original audio."
+          }
+        }
+      }
+    },
+    "部分原始音频暂不可用，缺口不计为静音。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some original audio is unavailable. Gaps do not count as silence."
+          }
+        }
+      }
+    },
+    "部分处理失败，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some processing failed. You can retry."
+          }
+        }
+      }
+    },
+    "重试处理": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry processing"
+          }
+        }
+      }
+    },
+    "重试本机总结": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry local summary"
+          }
+        }
+      }
+    },
     "AI 生成标题": {
       "localizations": {
         "en": {
@@ -16396,6 +16826,358 @@
           "stringUnit": {
             "state": "translated",
             "value": "这条生活片段已更新或移除，请返回时间轴查看。"
+          }
+        }
+      }
+    },
+    "已处理窗口 %lld / %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processed windows %1$lld / %2$lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理済みウィンドウ %1$lld / %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已处理窗口 %lld / %lld"
+          }
+        }
+      }
+    },
+    "这会删除本机原始音频及全部派生内容片段，无法撤销。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This permanently deletes the original audio and all derived content segments on this device."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末の元の音声とすべての派生コンテンツを削除します。この操作は取り消せません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会删除本机原始音频及全部派生内容片段，无法撤销。"
+          }
+        }
+      }
+    },
+    "部分处理窗口失败，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some processing windows failed. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部の処理ウィンドウが失敗しました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分处理窗口失败，可重试。"
+          }
+        }
+      }
+    },
+    "部分处理窗口已取消，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some processing windows were cancelled. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部の処理ウィンドウがキャンセルされました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分处理窗口已取消，可重试。"
+          }
+        }
+      }
+    },
+    "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaker analysis was skipped. Recordings over 30 minutes or with unknown duration are protected; this stage may also not have been requested."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話者分析はスキップされました。30 分を超える録音や長さが不明な録音には保護制限が適用されます。この段階が未要求の場合もあります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。"
+          }
+        }
+      }
+    },
+    "语音转写失败，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription failed. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしに失敗しました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音转写失败，可重试。"
+          }
+        }
+      }
+    },
+    "语音转写模型资源未就绪，请在语音转写模型设置中检查。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription model resources are not ready. Check transcription model settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしのモデルが準備できていません。文字起こしモデルの設定を確認してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音转写模型资源未就绪，请在语音转写模型设置中检查。"
+          }
+        }
+      }
+    },
+    "语音转写已取消，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription was cancelled. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしがキャンセルされました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音转写已取消，可重试。"
+          }
+        }
+      }
+    },
+    "语音转写未请求，不计为分析成功。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription was not requested and does not count as successful analysis."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしは要求されていないため、分析成功には含まれません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音转写未请求，不计为分析成功。"
+          }
+        }
+      }
+    },
+    "语音活动检测失败，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice activity detection failed. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声区間検出に失敗しました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音活动检测失败，可重试。"
+          }
+        }
+      }
+    },
+    "语音活动检测模型资源未就绪，请在语音转写模型设置中检查。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice activity detection model resources are not ready. Check transcription model settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声区間検出のモデルが準備できていません。文字起こしモデルの設定を確認してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音活动检测模型资源未就绪，请在语音转写模型设置中检查。"
+          }
+        }
+      }
+    },
+    "语音活动检测已取消，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice activity detection was cancelled. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声区間検出がキャンセルされました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音活动检测已取消，可重试。"
+          }
+        }
+      }
+    },
+    "语音活动检测未请求，不计为分析成功。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice activity detection was not requested and does not count as successful analysis."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声区間検出は要求されていないため、分析成功には含まれません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音活动检测未请求，不计为分析成功。"
+          }
+        }
+      }
+    },
+    "说话人分析失败，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaker analysis failed. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話者分析に失敗しました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分析失败，可重试。"
+          }
+        }
+      }
+    },
+    "说话人分析模型资源未就绪，请在语音转写模型设置中检查。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaker analysis model resources are not ready. Check transcription model settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話者分析のモデルが準備できていません。文字起こしモデルの設定を確認してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分析模型资源未就绪，请在语音转写模型设置中检查。"
+          }
+        }
+      }
+    },
+    "说话人分析已取消，可重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaker analysis was cancelled. You can retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話者分析がキャンセルされました。再試行できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分析已取消，可重试。"
           }
         }
       }

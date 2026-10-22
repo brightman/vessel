@@ -37,11 +37,12 @@ let package = Package(name: "VoicePipelineVerification", platforms: [.macOS("26.
     .product(name: "Hub", package: "swift-transformers")
 ])])
 PACKAGE
-for name in AppleSpeechReservationCoordinator AppleSpeechResources LocalTranscriptionService OfflineWhisperTokenizer OnDeviceTranscriber SpeakerModelStore SpeakerTranscript TranscriptionConfiguration WhisperModelStore VoiceIdentity VoiceEmbeddingEngine VoiceIdentityModelStore VoiceSpeechSelection; do
+for name in AppleSpeechReservationCoordinator AppleSpeechResources LocalTranscriptionService LocalAudioInferenceGate BoundedAudioReader OnDeviceSpeechActivity AudioSpeakerMapping AudioProcessing AudioAdaptiveInference AudioWindowPlanner OfflineWhisperTokenizer OnDeviceTranscriber SpeakerModelStore SpeakerTranscript TranscriptionConfiguration WhisperModelStore VoiceIdentity VoiceEmbeddingEngine VoiceIdentityModelStore VoiceSpeechSelection; do
     cp "$repo/Sources/iPhone/$name.swift" "$package/Sources/Smoke/$name.swift"
 done
 cp "$repo/Sources/Shared/VoiceNote.swift" "$package/Sources/Smoke/VoiceNote.swift"
 cp "$repo/Sources/Shared/CaptureMetadata.swift" "$package/Sources/Smoke/CaptureMetadata.swift"
+cp "$repo/Sources/Shared/RecordingSession.swift" "$package/Sources/Smoke/RecordingSession.swift"
 cp "$repo/Tests/VoiceIdentityPipelineSmoke.swift" "$package/Sources/Smoke/VoiceIdentityPipelineSmoke.swift"
 cat > "$work/fixtures/enrollment.txt" <<'TEXT'
 Today I am recording a sample of my own voice. I want to remember the important things that happen during an ordinary day. This morning I walked through the park and listened to the birds singing in the trees. Later I met a friend for coffee and we talked about our plans for next month. We might visit the coast and explore a few small towns along the way. At work I finished reading a useful report and wrote down several questions for our next meeting. In the evening I will cook dinner, read a book, and take a little time to plan tomorrow. I enjoy learning new ideas and keeping a clear record of what matters most to me.

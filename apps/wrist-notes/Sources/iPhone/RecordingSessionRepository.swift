@@ -208,13 +208,14 @@ final class RecordingSessionRepository {
     }
 
     /// Worker-only expensive inspection, serialized against deletion/publication.
-    func sourceRanges(sessionID: UUID) throws -> [RecordingSourceRange] {
+    func sourceRanges(sessionID: UUID, validateFile: ((RecordingChunkDescriptor, URL) throws -> Void)? = nil) throws -> [RecordingSourceRange] {
         try db.transaction {
             try requireLive(sessionID)
             var previous: RecordingChunkDescriptor?
             return try chunks(sessionID: sessionID).map { chunk in
                 let url = audioURL(chunk)
-                _ = try RecordingAudioFile.validate(chunk, at: url)
+                if let validateFile { try validateFile(chunk,url) }
+                else { _ = try RecordingAudioFile.validate(chunk, at: url) }
                 let missing = chunk.ordinal != (previous.map { $0.ordinal + 1 } ?? 0)
                 let gap = chunk.sessionStartOffset > (previous.map { $0.sessionStartOffset + $0.duration } ?? 0) + 0.5 / chunk.sampleRate
                 let range = RecordingSourceRange(chunkID: chunk.id, url: url, startFrame: 0, endFrame: chunk.frameCount, sampleRate: chunk.sampleRate, sessionStartOffset: chunk.sessionStartOffset, discontinuityBefore: missing ? "missingChunks" : (gap ? "captureGap" : nil))

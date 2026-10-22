@@ -110,6 +110,7 @@ final class NoteRepository {
             return try load()
         }
         notes = revised
+        NotificationCenter.default.post(name:.init("WiseLife.LegacyAudioSourceDeleted"),object:nil,userInfo:["legacyNoteID":id])
         cleanupTombstones()
     }
 

@@ -7,6 +7,7 @@ struct DaybookAssistantView: View {
     @ObservedObject var settings: AppSettings
     let allowedKinds: Set<DayRecord.Kind>
     let onOpenRecord: (UUID) -> Void
+    var onOpenCitation: ((DaybookRetrieval.Source) -> Void)?
     let onReminder: (String, UUID) -> Void
     let onPreferences: () -> Void
     let onReminders: () -> Void
@@ -25,7 +26,8 @@ struct DaybookAssistantView: View {
          allowedKinds: Set<DayRecord.Kind> = [.voice, .thought, .image], initialQuestion: String = "",
          onOpenRecord: @escaping (UUID) -> Void, onReminder: @escaping (String, UUID) -> Void,
          onPreferences: @escaping () -> Void = {}, onReminders: @escaping () -> Void = {},
-         onDate: @escaping () -> Void = {}, reminderCount: Int = 0, onNewReminder: @escaping (String) -> Void = { _ in }) {
+         onDate: @escaping () -> Void = {}, reminderCount: Int = 0, onNewReminder: @escaping (String) -> Void = { _ in }, onOpenCitation: ((DaybookRetrieval.Source) -> Void)? = nil) {
+        self.onOpenCitation = onOpenCitation
         self.model = model
         self.records = records; self.selectedDate = selectedDate; self.settings = settings
         self.allowedKinds = allowedKinds; self.onOpenRecord = onOpenRecord; self.onReminder = onReminder
@@ -42,7 +44,7 @@ struct DaybookAssistantView: View {
         model.validatedTurns(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds)
     }
     private var activeEvidence: DaybookRetrieval.Prepared? {
-        guard model.isSynchronized(selectedDate: selectedDate), let evidence = model.prepared, evidence.isCurrent(records: records, allowedKinds: allowedKinds) else { return nil }
+        guard model.isSynchronized(selectedDate: selectedDate), let evidence = model.prepared, evidence.isCurrent(records: model.recordsForEvidence(records), allowedKinds: allowedKinds) else { return nil }
         return evidence
     }
     private var canSubmit: Bool {
@@ -79,7 +81,7 @@ struct DaybookAssistantView: View {
                                 userMessage(turn.question)
                                 if turn.completionState == .completed {
                                     answerBody(turn)
-                                    if turn.evidence.isCurrent(records: records, allowedKinds: allowedKinds) {
+                                    if turn.evidence.isCurrent(records: model.recordsForEvidence(records), allowedKinds: allowedKinds) {
                                         sourcePills(turn.sources)
                                         Text(turn.scopeDescription).font(.system(size: 10)).lineSpacing(6)
                                             .foregroundStyle(DaybookStyle.secondary).padding(.vertical, 12)
@@ -272,7 +274,7 @@ struct DaybookAssistantView: View {
     private func sourcePills(_ sources: [DaybookRetrieval.Source]) -> some View {
         DaybookAssistantFlowLayout(spacing: 7) {
             ForEach(sources) { source in
-                Button { onOpenRecord(source.id) } label: {
+                Button { if let onOpenCitation { onOpenCitation(source) } else { onOpenRecord(source.id) } } label: {
                     HStack(spacing: 6) {
                         DaybookIcon("Link2", size: 12)
                         Text("[\(source.number)] \(dateLabel(source.capturedAt)) \(source.capturedAt.formatted(.dateTime.hour().minute())) · \(source.title.isEmpty ? DaybookRetrieval.kindLabel(source.kind) : source.title)")

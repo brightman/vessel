@@ -9,6 +9,7 @@ struct DaybookVoiceDetailView: View {
     @StateObject private var playback = AudioPlayback()
     @State private var selectedTab: ContentTab = .summary
     @State private var showEditor = false
+    @State private var confirmFullDeletion = false
     @State private var remoteSummary: NotesModel.RemoteSummaryRequest?
 
     private enum ContentTab: String, CaseIterable {
@@ -35,8 +36,14 @@ struct DaybookVoiceDetailView: View {
                             .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
                     }
                     player
+                    if note.kind == .long || note.duration > 300 {
+                        AudioSourceProcessingView(sourceID:.init(kind:.legacyNote,id:id)).padding(.top,16)
+                        ContentSegmentSourceListView(sourceID:.init(kind:.legacyNote,id:id),playbackAllowed:playbackAllowed).padding(.top,16)
+                    }
                     tabs.padding(.top, 20).padding(.bottom, 20)
                     content(note)
+                    Button("删除完整录音", role:.destructive) { confirmFullDeletion = true }
+                        .font(.system(size:12)).padding(.top,24).disabled(!playbackAllowed)
                 }
             } else {
                 Text("这条语音记录已不存在。")
@@ -48,6 +55,13 @@ struct DaybookVoiceDetailView: View {
             await playback.load(model.audioURL(id), fallbackDuration: model.note(id)?.duration ?? 0)
         }
         .onDisappear { if playbackAllowed { playback.stop() } }
+        .confirmationDialog("删除完整录音？",isPresented:$confirmFullDeletion,titleVisibility:.visible) {
+            Button("删除完整录音",role:.destructive) {
+                guard playbackAllowed else { return }
+                playback.stop(); model.delete(id)
+                if model.note(id) == nil { dismiss() }
+            }
+        } message: { Text("这会删除本机原始音频及全部派生内容片段，无法撤销。") }
         .sheet(isPresented: $showEditor) {
             NavigationStack { NoteDetailView(id: id) }
                 .environmentObject(model).environmentObject(settings)

@@ -3,6 +3,7 @@ import SwiftUI
 struct RecordingSessionDetailView: View {
     let sessionID: UUID
     var playbackAllowed = true
+    @EnvironmentObject private var content: ContentSegmentModel
     @EnvironmentObject private var sessions: RecordingSessionModel
     @Environment(\.dismiss) private var dismiss
     @StateObject private var playback = RecordingRangePlayback()
@@ -22,9 +23,7 @@ struct RecordingSessionDetailView: View {
                         else { Text("录音时间待同步") }
                         Text(RecordingFormat.duration(session.recordedDuration)).monospacedDigit()
                         Text(LocalizedStringKey(RecordingSessionPresentation.status(session)))
-                        Text("待分段处理").foregroundStyle(.secondary)
-                        Text("分片文件共同组成一次完整录音；内容分段处理尚未开始。")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        AudioSourceProcessingView(sourceID:.init(kind:.session,id:sessionID))
                     }
                     Section("回听完整录音") {
                         audioControls
@@ -42,6 +41,9 @@ struct RecordingSessionDetailView: View {
                             Text(location.title).font(.footnote)
                             Text("仅为一次采集点，不能推断全程位置。").font(.footnote).foregroundStyle(.secondary)
                         }
+                    }
+                    Section("内容片段") {
+                        ContentSegmentSourceListView(sourceID:.init(kind:.session,id:sessionID),playbackAllowed:playbackAllowed)
                     }
                     Section("分片与缺口") {
                         ForEach(detail?.chunks ?? [], id: \.id) { chunk in
@@ -80,7 +82,7 @@ struct RecordingSessionDetailView: View {
                         deleting = false
                     }
                 }
-            } message: { Text("这会删除本机完整会话及全部原始分片；无法仅删除一个派生片段。") }
+            } message: { Text("这会删除本机完整会话、内容片段及全部原始音频。") }
         }
         .task(id: sessions.revision) { await reload() }
         .onChange(of: playbackAllowed) { _, allowed in if !allowed { playback.stop() } }

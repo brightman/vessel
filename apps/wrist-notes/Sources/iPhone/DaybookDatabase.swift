@@ -192,7 +192,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 5 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 9 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -254,6 +254,55 @@ final class DaybookDatabase: @unchecked Sendable {
             ]
             for sql in recording { try execute(sql) }
         }
+        if version < 6 {
+            let audio = [
+                "CREATE TABLE IF NOT EXISTS audio_source_tombstones (source_key TEXT PRIMARY KEY, deleted_at REAL NOT NULL)",
+                "CREATE TABLE IF NOT EXISTS audio_processing_sources (source_key TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('session','legacyNote')), source_id TEXT NOT NULL, session_id TEXT REFERENCES recording_sessions(id) ON DELETE CASCADE, note_id TEXT REFERENCES voice_notes(id) ON DELETE CASCADE, descriptor BLOB NOT NULL, fingerprint TEXT NOT NULL, configuration_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)), CHECK((kind='session' AND session_id=source_id AND note_id IS NULL) OR (kind='legacyNote' AND note_id=source_id AND session_id IS NULL)))",
+                "CREATE TABLE IF NOT EXISTS audio_processing_jobs (id TEXT PRIMARY KEY, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, configuration_key TEXT NOT NULL, core_start REAL NOT NULL, core_end REAL NOT NULL, window BLOB NOT NULL, state TEXT NOT NULL CHECK(state IN ('pending','running','completed','missingResource','cancelled','failed')), active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)), lease TEXT, message TEXT, result BLOB, result_hash TEXT)",
+                "CREATE INDEX IF NOT EXISTS audio_jobs_queue ON audio_processing_jobs(state,active,source_key,core_start)",
+                "CREATE INDEX IF NOT EXISTS audio_jobs_source_version ON audio_processing_jobs(source_key,configuration_key,active,core_start)",
+                "CREATE TABLE IF NOT EXISTS audio_transcript_spans (job_id TEXT NOT NULL REFERENCES audio_processing_jobs(id) ON DELETE CASCADE, position INTEGER NOT NULL, start REAL NOT NULL, end REAL NOT NULL, text TEXT NOT NULL, speaker_id TEXT, PRIMARY KEY(job_id,position))",
+                "CREATE INDEX IF NOT EXISTS audio_spans_time ON audio_transcript_spans(job_id,start,end)",
+                "CREATE TABLE IF NOT EXISTS audio_activity_intervals (job_id TEXT NOT NULL REFERENCES audio_processing_jobs(id) ON DELETE CASCADE, position INTEGER NOT NULL, start REAL NOT NULL, end REAL NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('speech','noSpeech','uncertain')), PRIMARY KEY(job_id,position))",
+                "CREATE INDEX IF NOT EXISTS audio_activity_time ON audio_activity_intervals(job_id,start,end)",
+                "CREATE TRIGGER IF NOT EXISTS audio_source_delete BEFORE DELETE ON audio_processing_sources BEGIN INSERT OR IGNORE INTO audio_source_tombstones(source_key,deleted_at) VALUES (OLD.source_key,0); END",
+                "CREATE TRIGGER IF NOT EXISTS audio_source_insert BEFORE INSERT ON audio_processing_sources WHEN EXISTS(SELECT 1 FROM audio_source_tombstones WHERE source_key=NEW.source_key) BEGIN SELECT RAISE(ABORT,'audio_source_deleted'); END",
+                "CREATE TRIGGER IF NOT EXISTS audio_session_delete BEFORE DELETE ON recording_sessions BEGIN INSERT OR IGNORE INTO audio_source_tombstones(source_key,deleted_at) VALUES ('session:' || OLD.id,0); END",
+                "CREATE TRIGGER IF NOT EXISTS audio_note_delete BEFORE DELETE ON voice_notes BEGIN INSERT OR IGNORE INTO audio_source_tombstones(source_key,deleted_at) VALUES ('legacyNote:' || OLD.id,0); END",
+                "PRAGMA user_version = 6"
+            ]
+            for sql in audio { try execute(sql) }
+        }
+        if version < 7 {
+            try execute("CREATE TABLE IF NOT EXISTS audio_speaker_mappings (job_id TEXT NOT NULL REFERENCES audio_processing_jobs(id) ON DELETE CASCADE, local_id TEXT NOT NULL, canonical_id TEXT, feature BLOB NOT NULL, PRIMARY KEY(job_id,local_id))")
+            try execute("CREATE TABLE IF NOT EXISTS audio_processing_stage_requests (job_id TEXT PRIMARY KEY REFERENCES audio_processing_jobs(id) ON DELETE CASCADE, stages INTEGER NOT NULL)")
+            try execute("PRAGMA user_version = 7")
+        }
+
+        if version < 8 {
+            let segments = [
+                "CREATE TABLE IF NOT EXISTS content_segment_sources (source_key TEXT PRIMARY KEY REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, signature TEXT NOT NULL, state TEXT NOT NULL, epoch INTEGER NOT NULL DEFAULT 0)",
+                "CREATE TABLE IF NOT EXISTS content_segments (id TEXT PRIMARY KEY, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, start REAL NOT NULL, revision INTEGER NOT NULL, deleted INTEGER NOT NULL DEFAULT 0 CHECK(deleted IN (0,1)), payload BLOB NOT NULL)",
+                "CREATE INDEX IF NOT EXISTS content_segments_source ON content_segments(source_key,deleted,start,id)",
+                "CREATE TABLE IF NOT EXISTS content_segment_ranges (segment_id TEXT NOT NULL REFERENCES content_segments(id) ON DELETE CASCADE, position INTEGER NOT NULL, start REAL NOT NULL, end REAL NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(segment_id,position))",
+                "CREATE INDEX IF NOT EXISTS content_segment_range_time ON content_segment_ranges(segment_id,start,end)",
+                "CREATE TABLE IF NOT EXISTS content_segment_suppression (id INTEGER PRIMARY KEY, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, start REAL NOT NULL, end REAL NOT NULL)",
+                "CREATE INDEX IF NOT EXISTS content_segment_suppression_source ON content_segment_suppression(source_key,start,end)",
+                "CREATE TABLE IF NOT EXISTS content_segment_tombstones (id TEXT PRIMARY KEY, source_key TEXT NOT NULL, revision INTEGER NOT NULL)",
+                "CREATE TABLE IF NOT EXISTS content_segment_edits (sequence INTEGER PRIMARY KEY AUTOINCREMENT, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, kind TEXT NOT NULL, before_payload BLOB NOT NULL, after_epoch INTEGER NOT NULL, undone INTEGER NOT NULL DEFAULT 0 CHECK(undone IN (0,1)))",
+                "CREATE INDEX IF NOT EXISTS content_segment_edits_source ON content_segment_edits(source_key,sequence)",
+                "CREATE TRIGGER IF NOT EXISTS content_segments_source_delete BEFORE DELETE ON content_segments BEGIN INSERT OR REPLACE INTO content_segment_tombstones(id,source_key,revision) VALUES (OLD.id,OLD.source_key,OLD.revision); END",
+                "PRAGMA user_version = 8"
+            ]
+            for sql in segments { try execute(sql) }
+        }
+
+        if version < 9 {
+            try execute("CREATE TABLE IF NOT EXISTS content_enrichment_checkpoints (cache_key TEXT NOT NULL, unit TEXT NOT NULL, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, segment_id TEXT, text TEXT NOT NULL, accepted_revision INTEGER, PRIMARY KEY(cache_key,unit))")
+            try execute("CREATE TABLE IF NOT EXISTS content_topic_decisions (source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, signature TEXT NOT NULL, position REAL NOT NULL, decision TEXT NOT NULL, model_key TEXT NOT NULL, PRIMARY KEY(source_key,signature,position))")
+            try execute("PRAGMA user_version = 9")
+        }
+
     }
 }
 

@@ -61,6 +61,18 @@ struct SpeakerDiarizationSmoke {
             SpeakerTurn(start: 0, end: 1, speaker: 0), SpeakerTurn(start: 1, end: 2, speaker: 1)])
         precondition(boundary.first?.speakerID == "speaker-2")
 
+        let retainedRows = [TranscriptSegment(start:40,end:41,text:"hello"),
+                            TranscriptSegment(start:41,end:42,text:" world")]
+        let singleSpeaker = [SpeakerTurn(start:40,end:42,speaker:8)]
+        let annotations = SpeakerAlignment.annotate(retainedRows,turns:singleSpeaker)
+        precondition(annotations.count == retainedRows.count,"annotation coalesced retained rows")
+        for (original, annotated) in zip(retainedRows,annotations) {
+            precondition(original.id == annotated.id && original.start == annotated.start && original.end == annotated.end && original.text == annotated.text)
+            precondition(annotated.speakerID == "speaker-1")
+        }
+        let presentation = SpeakerAlignment.align(retainedRows,turns:singleSpeaker)
+        precondition(presentation.count == 1 && presentation[0].text == "hello world","display alignment stopped coalescing")
+
         var edited = note
         let revision = edited.transcriptRevision
         edited.applyEdit(title: edited.title, transcript: "manual edit")

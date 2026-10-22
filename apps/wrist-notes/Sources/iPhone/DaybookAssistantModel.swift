@@ -47,6 +47,17 @@ final class DaybookAssistantModel: ObservableObject {
     private let store: DaybookConversationStore
     private var task: Task<Void, Never>?
     private var version = UUID()
+    /// UI selection and requested evidence coverage are deliberately independent.
+    var scopeLoader: ((DateInterval) async throws -> [DayRecord])?
+    private var loadedScopeRecords: [DayRecord] = []
+    private var deletionObservation: AnyCancellable?
+    func recordsForEvidence(_ records: [DayRecord]) -> [DayRecord] {
+        let loadedIDs = Set(loadedScopeRecords.map(\.id))
+        return LegacyAudioDeletionLedger.shared.filter(records.filter { !loadedIDs.contains($0.id) } + loadedScopeRecords)
+    }
+    func invalidateLoadedScope() {
+        loadedScopeRecords = []; cancel(); prepared = nil; preparedTurnID = nil
+    }
     private var latestRecords: [DayRecord] = []
     private var latestDate: Date?
     private var latestAllowedKinds: Set<DayRecord.Kind> = []
@@ -63,6 +74,12 @@ final class DaybookAssistantModel: ObservableObject {
         #endif
         self.answerService = answerService ?? DaybookAnswerService()
         self.store = store
+        _ = LegacyAudioDeletionLedger.shared
+        deletionObservation = NotificationCenter.default.publisher(for:LegacyAudioDeletionLedger.notification).sink { [weak self] note in
+            if let id = note.userInfo?["legacyNoteID"] as? UUID { LegacyAudioDeletionLedger.shared.record(id) }
+            if Thread.isMainThread { MainActor.assumeIsolated { self?.sourceDeleted() } }
+            else { Task { @MainActor [weak self] in self?.sourceDeleted() } }
+        }
         do {
             try store.interruptPending()
             let page = try store.loadPage()
@@ -72,11 +89,18 @@ final class DaybookAssistantModel: ObservableObject {
         // Wait for the caller's current permissions before publishing any persisted answer.
     }
 
+    private func sourceDeleted() {
+        invalidateLoadedScope()
+        latestRecords = LegacyAudioDeletionLedger.shared.filter(latestRecords)
+        answer = nil; publishTurns()
+    }
+
     func synchronize(records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, configuration: AIConfiguration, configurationRevision: Int? = nil) {
+        let records = recordsForEvidence(records)
         let dayChanged = latestDate.map { !Calendar.current.isDate($0, inSameDayAs: selectedDate) } ?? true
         let configurationChanged = latestConfiguration.map { $0 != configuration } ?? false
         let revisionChanged = configurationRevision.map { latestConfigurationRevision != nil && latestConfigurationRevision != $0 } ?? false
-        let sourcesChanged = prepared.map { !$0.isCurrent(records: records, allowedKinds: allowedKinds) } ?? false
+        let sourcesChanged = (prepared.map { !$0.isCurrent(records: records, allowedKinds: allowedKinds) } ?? false) || (isPending && self.latestRecords != records)
         let permissionsChanged = latestDate == nil || latestAllowedKinds != allowedKinds
         if latestDate != nil { revokedKinds.formUnion(latestAllowedKinds.subtracting(allowedKinds)) }
         latestRecords = records; latestDate = selectedDate; latestAllowedKinds = allowedKinds
@@ -97,6 +121,42 @@ final class DaybookAssistantModel: ObservableObject {
     }
 
     func ask(_ question: String, records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, settings: AppSettings) {
+        guard let scopeLoader else { askLoaded(question,records:records,selectedDate:selectedDate,allowedKinds:allowedKinds,settings:settings); return }
+        synchronize(records:records,selectedDate:selectedDate,allowedKinds:allowedKinds,configuration:settings.ai,configurationRevision:settings.aiRevision)
+        cancel()
+        do {
+            let selectedDay = Calendar.current.startOfDay(for:selectedDate)
+            let date = DaybookRetrieval.hasExplicitDate(question) ? selectedDate : try continuationDay ?? store.latestEvidenceDay(selectedDay:selectedDay,allowedKinds:allowedKinds) ?? selectedDate
+            let resolved = try DaybookRetrieval().prepare(question:question,records:[],selectedDate:date,allowedKinds:allowedKinds)
+            let draft = Answer(id:UUID(),question:question.trimmingCharacters(in:.whitespacesAndNewlines),text:"",generated:false,provider:"",
+                evidence:DaybookEvidenceSnapshot(records:records,dayStart:resolved.dayStart,dayEnd:resolved.dayEnd,allowedKinds:allowedKinds),
+                sources:[],scopeDescription:"",state:.pending,createdAt:.now)
+            activeTurnID = draft.id; activeTurnDay = selectedDay
+            pendingMutation = .save(draft,day:selectedDay)
+            guard commitPendingMutation() else {
+                pendingMutation = .save(draft.replacing(text:"问题尚未开始处理，请重试保存后重新提问。",state:.cancelled),day:selectedDay)
+                activeTurnID = nil; activeTurnDay = nil; return
+            }
+            let token = UUID(); version = token; isPending = true
+            let configuration = settings.ai, revision = settings.aiRevision
+            task = Task { [weak self] in
+                do {
+                    let loaded = try await scopeLoader(DateInterval(start:resolved.dayStart,end:resolved.dayEnd))
+                    guard let self, !Task.isCancelled, self.version == token, settings.ai == configuration, settings.aiRevision == revision else { return }
+                    self.loadedScopeRecords = loaded; self.isPending = false; self.task = nil
+                    // Reuse the already durable question; source synchronization must not cancel it.
+                    self.activeTurnID = nil; self.activeTurnDay = nil
+                    self.askLoaded(question,records:self.recordsForEvidence(records),selectedDate:selectedDate,allowedKinds:allowedKinds,settings:settings,existingDraft:draft)
+                } catch {
+                    guard let self, self.version == token, !Task.isCancelled else { return }
+                    self.isPending = false; self.task = nil
+                    self.fail(NSError(domain:"ContentScope",code:1,userInfo:[NSLocalizedDescriptionKey:"无法完整读取所查询日期的录音片段，请解锁后重试。"]))
+                }
+            }
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func askLoaded(_ question: String, records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, settings: AppSettings, existingDraft: Answer? = nil) {
         synchronize(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds, configuration: settings.ai, configurationRevision: settings.aiRevision)
         guard storageError == nil else { statusMessage = "请先重试保存或读取本机对话，再发送新问题。"; return }
         cancel(); prepared = nil; preparedTurnID = nil; answer = nil; errorMessage = nil; statusMessage = nil
@@ -105,7 +165,7 @@ final class DaybookAssistantModel: ObservableObject {
         let day = Calendar.current.startOfDay(for: selectedDate)
         let end = Calendar.current.date(byAdding: .day, value: 1, to: day)!
         let history = turns.filter { $0.completionState == .completed }
-        let draft = Answer(id: UUID(), question: question, text: "", generated: false, provider: "",
+        let draft = existingDraft ?? Answer(id: UUID(), question: question, text: "", generated: false, provider: "",
             evidence: DaybookEvidenceSnapshot(records: records, dayStart: day, dayEnd: end, allowedKinds: allowedKinds),
             sources: [], scopeDescription: "", state: .pending, createdAt: .now)
         activeTurnID = draft.id; activeTurnDay = day
@@ -165,6 +225,7 @@ final class DaybookAssistantModel: ObservableObject {
     }
 
     func confirmRemote(records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, settings: AppSettings, doNotAskAgain: Bool = false) {
+        let records = recordsForEvidence(records)
         guard let confirmation = remoteConfirmation else { return }
         synchronize(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds, configuration: settings.ai, configurationRevision: settings.aiRevision)
         guard remoteConfirmation?.id == confirmation.id, confirmation.configuration == settings.ai, confirmation.configurationRevision == settings.aiRevision,

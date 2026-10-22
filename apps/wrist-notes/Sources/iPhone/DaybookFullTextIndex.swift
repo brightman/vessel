@@ -33,7 +33,7 @@ struct DaybookFullTextIndex {
         let records = Dictionary(records.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
         var existing = Dictionary(uniqueKeysWithValues: try db.query("SELECT rowid,id,fingerprint FROM fulltext_records").map { (try $0.requiredString("id"), $0) })
         for (id, record) in records {
-            let content = [DaybookRetrieval.normalizationVersion, id, String(record.capturedAt.timeIntervalSinceReferenceDate), record.kind.rawValue, record.title, record.text, record.summary]
+            let content = [DaybookRetrieval.normalizationVersion, id, String(record.capturedAt.timeIntervalSinceReferenceDate), record.kind.rawValue, record.title, record.text, record.summary, record.indexScopeIdentity]
             let fp = SHA256.hash(data: try JSONEncoder().encode(content)).map { String(format: "%02x", $0) }.joined()
             let old = existing.removeValue(forKey: id)
             if old?["fingerprint"]?.string == fp { continue }

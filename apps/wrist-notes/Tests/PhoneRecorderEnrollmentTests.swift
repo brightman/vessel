@@ -3,6 +3,17 @@ import XCTest
 @testable import WiseNote
 
 @MainActor final class PhoneRecorderEnrollmentTests: XCTestCase {
+    func testCaptureActivityTracksOverlappingAttemptsAndLateRelease() {
+        let first = AudioCaptureActivity.begin(), second = AudioCaptureActivity.begin()
+        XCTAssertTrue(AudioCaptureActivity.activeIDs.isSuperset(of:[first,second]))
+        AudioCaptureActivity.end(first)
+        XCTAssertTrue(AudioCaptureActivity.activeIDs.contains(second))
+        AudioCaptureActivity.end(first)
+        XCTAssertTrue(AudioCaptureActivity.activeIDs.contains(second), "late release must not clear a different capture")
+        AudioCaptureActivity.end(second)
+        XCTAssertFalse(AudioCaptureActivity.activeIDs.contains(second))
+    }
+
     func testFinalizedFramesRecoverSixtySecondsDespiteLaggingTimer() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".caf")
         defer { try? FileManager.default.removeItem(at: url) }

@@ -59,8 +59,9 @@ enum SpeakerAlignment {
         for turn in sorted where names[turn.speaker] == nil { names[turn.speaker] = "speaker-\(names.count + 1)" }
         return names
     }
+    /// Assign labels one row at a time, retaining exact identity, text and timestamps.
     /// Greatest overlap at word granularity. Ties and gaps stay unknown, never guessed.
-    static func align(_ pieces: [TranscriptSegment], turns: [SpeakerTurn]) -> [TranscriptSegment] {
+    static func annotate(_ pieces: [TranscriptSegment], turns: [SpeakerTurn]) -> [TranscriptSegment] {
         let turns = turns.filter { $0.start.isFinite && $0.end.isFinite && $0.start >= 0 && $0.end > $0.start }
             .sorted { $0.start == $1.start ? $0.speaker < $1.speaker : $0.start < $1.start }
         let names = identifiers(for: turns)
@@ -84,6 +85,15 @@ enum SpeakerAlignment {
                     piece.speakerID = names[best.key]
                 }
             }
+            output.append(piece)
+        }
+        return output
+    }
+
+    /// Presentation grouping is separate from annotation of durable transcript rows.
+    static func align(_ pieces: [TranscriptSegment], turns: [SpeakerTurn]) -> [TranscriptSegment] {
+        var output: [TranscriptSegment] = []
+        for piece in annotate(pieces,turns:turns) {
             if let last = output.last, last.speakerID == piece.speakerID,
                piece.start - last.end <= 1, piece.end - last.start <= 30,
                last.text.count + piece.text.count <= 400 {

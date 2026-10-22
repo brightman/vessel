@@ -7,6 +7,7 @@ sh scripts/test_watch_sync.sh
 sh scripts/test_watch_recording_launcher.sh
 sh scripts/test_audio_duration.sh
 sh scripts/test_recording_sessions.sh
+sh scripts/test_audio_processing.sh
 sh scripts/test_recording_titles.sh
 sh scripts/test_recording_title_coordinator.sh
 output=$(mktemp -d /private/tmp/wristnotes-checks.XXXXXX)

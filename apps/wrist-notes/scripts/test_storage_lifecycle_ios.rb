@@ -6,7 +6,7 @@ output = ARGV.fetch(0)
 FileUtils.mkdir_p(output)
 project = Xcodeproj::Project.new(File.join(output, 'StorageLifecycle.xcodeproj'))
 app = project.new_target(:application, 'StorageLifecycle', :ios, '26.0')
-names = %w[DaybookDatabase PhotoMoment PhotoRepository PhotoLibraryModel DaybookReminderPersistence DaybookReminderStore AppleReminderService NotesModel NoteRepository PhoneConnectivity PhoneWatchStatus WatchSyncStore RecordingTitleCoordinator RecordingSessionRepository RecordingChunkReceiver]
+names = %w[DaybookDatabase PhotoMoment PhotoRepository PhotoLibraryModel DaybookReminderPersistence DaybookReminderStore AppleReminderService NotesModel NoteRepository PhoneConnectivity PhoneWatchStatus WatchSyncStore RecordingTitleCoordinator RecordingSessionRepository RecordingChunkReceiver AudioProcessing AudioProcessingRepository AudioProcessingCoordinator AudioProcessingModel ContentSegmentation ContentSegmentRepository ContentEnrichmentService AudioWindowPlanner AudioSpeakerMapping TranscriptionConfiguration]
 names.each { |name| app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(root, 'Sources/iPhone', name + '.swift'))) }
 app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(root, 'Sources/Shared/VoiceNote.swift')))
 %w[CaptureMetadata CaptureLocationService WatchSyncSnapshot RecordingSession RecordingChunkProtocol RecordingAudioFile RecordingChunkTransport].each { |name| app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(root, 'Sources/Shared', name + '.swift'))) }

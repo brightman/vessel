@@ -17,7 +17,7 @@ import UIKit
 
     init(store: VoiceProfileStore = VoiceProfileStore(), enroll: ((URL) async throws -> VoiceProfile)? = nil) {
         self.store = store
-        let service = LocalTranscriptionService()
+        let service = LocalTranscriptionService.shared
         self.enroll = enroll ?? { try await service.enrollVoice(fileURL: $0) }
         reload()
         #if os(iOS)

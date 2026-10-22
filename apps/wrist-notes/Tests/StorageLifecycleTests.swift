@@ -32,6 +32,86 @@ import XCTest
         try JSONEncoder().encode(IncomingRecording(id: id, kind: .long, capturedAt: .now, duration: 1)).write(to: inbox.appendingPathComponent("\(id).json"))
     }
 
+    func testDurableHandlerOwnsQueuedLongNoteAndProjectionRejectsManualEdit() async throws {
+        let root = try temporary(), repository = try NoteRepository(root:root)
+        let source = root.appendingPathComponent("fixture.m4a"); try Data([1]).write(to:source)
+        let note = try repository.importRecording(id:UUID(),from:source,kind:.long,capturedAt:.now,duration:0)
+        var fallback = 0, routed = 0
+        let model = NotesModel(repository:repository,settings:AppSettings(),connectWatch:false,
+            transcribeWithSegments:{ _,_ in fallback += 1; return .init(text:"fallback") },voiceProfile:MyVoiceProfileModel(),root:root)
+        model.durableTranscription = { opening,automatic in
+            XCTAssertEqual(opening.id,note.id); XCTAssertTrue(automatic)
+            routed += 1; return true
+        }
+        try await eventually { routed == 1 }
+        XCTAssertEqual(fallback,0,"queued startup task must see attached durable handler")
+        let revision = model.note(note.id)?.transcriptRevision
+        XCTAssertTrue(model.save(id:note.id,title:"Manual",transcript:"manual text"))
+        XCTAssertFalse(model.applyDurableTranscription(note.id,output:.init(text:"late output"),expectedRevision:revision))
+        XCTAssertEqual(model.note(note.id)?.transcript,"manual text")
+        XCTAssertEqual(model.note(note.id)?.title,"Manual")
+    }
+
+    func testCompletedDurableLegacyProjectionRecoversWithoutInferenceOrCommit() async throws {
+        try await exerciseRecoveredProjection(failWrite:false)
+    }
+    func testFailedDurableProjectionWriteCanRetryWithoutInference() async throws {
+        try await exerciseRecoveredProjection(failWrite:true)
+    }
+    private func exerciseRecoveredProjection(failWrite: Bool) async throws {
+        let root = try temporary(), database = try DaybookDatabase(url:DaybookDatabase.metadataURL(forRoot:root))
+        let repository = try NoteRepository(root:root,database:database)
+        let file = root.appendingPathComponent("fixture.m4a")
+        do {
+            let writer = try AVAudioFile(forWriting:file,settings:[AVFormatIDKey:kAudioFormatMPEG4AAC,AVSampleRateKey:16000,AVNumberOfChannelsKey:1])
+            let buffer = AVAudioPCMBuffer(pcmFormat:AVAudioFormat(standardFormatWithSampleRate:16000,channels:1)!,frameCapacity:16000)!
+            buffer.frameLength = 16000
+            memset(buffer.floatChannelData![0],0,16000 * MemoryLayout<Float>.size)
+            try writer.write(from:buffer)
+        }
+        let note = try repository.importRecording(id:UUID(),from:file,kind:.long,capturedAt:.now,duration:1)
+        let id = AudioSourceID(kind:.legacyNote,id:note.id), settings = AppSettings()
+        let audio = repository.audioURL(for:note), info = try RecordingAudioFile.inspect(audio)
+        let range = try AudioSourceRange(range:.init(chunkID:note.id,url:audio,startFrame:0,endFrame:info.frameCount,sampleRate:info.sampleRate),contentHash:info.sha256)
+        let source = try AudioSourceSnapshot(id:id,capturedAt:note.capturedAt,title:note.title,ranges:[range],complete:true)
+        let durable = AudioProcessingRepository(database:database), key = AudioProcessingCoordinator.configurationKey(settings.transcription)
+        try durable.register(source:source,configurationKey:key,windows:AudioWindowPlanner.plan(source:source,configurationKey:key))
+        let job = try durable.claimNext()!
+        try durable.commit(job:job,result:.init(spans:[.init(start:0.1,end:0.5,text:"recovered words")],activities:[],asr:.success,vad:.notRequested,speaker:.notRequested,asrCoverage:[.init(start:0,end:job.window.coreEnd)],vadCoverage:[]))
+        let notes = NotesModel(repository:repository,settings:settings,connectWatch:false,voiceProfile:MyVoiceProfileModel(),root:root)
+        notes.durableTranscription = { _,_ in true }
+        let model = AudioProcessingModel(root:root,settings:settings)
+        defer { model.shutdown() }
+        var attempts = 0, commits = 0
+        let observer = NotificationCenter.default.addObserver(forName:AudioProcessingModel.didCommit,object:nil,queue:.main) { _ in commits += 1 }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        LocalTranscriptionService.durableCalls = 0
+        if failWrite { try database.execute("CREATE TRIGGER fail_projection BEFORE UPDATE ON voice_notes BEGIN SELECT RAISE(ABORT,'injected projection write failure'); END") }
+        model.onLegacyTranscript = { id,output,revision in
+            attempts += 1
+            return notes.applyDurableTranscription(id,output:output,expectedRevision:revision)
+        }
+        let owned = await model.route(note,automatic:true)
+        XCTAssertTrue(owned)
+        try await eventually { attempts > 0 }
+        if failWrite {
+            XCTAssertEqual(notes.note(note.id)?.transcript,"")
+            XCTAssertEqual(try NoteRepository(root:root).notes.first?.transcript,"")
+            let failedAttempts = attempts
+            try await Task.sleep(nanoseconds:100_000_000)
+            XCTAssertEqual(attempts,failedAttempts,"failed writes must wait for a later wake")
+            try database.execute("DROP TRIGGER fail_projection")
+            model.refresh()
+        }
+        try await eventually { notes.note(note.id)?.transcript == "recovered words" }
+        XCTAssertEqual(try NoteRepository(root:root).notes.first?.transcript,"recovered words")
+        XCTAssertEqual(LocalTranscriptionService.durableCalls,0,"completed snapshot recovery must not invoke inference")
+        XCTAssertEqual(commits,0,"projection recovery must not fabricate a new processing commit")
+        let delivered = attempts
+        model.refresh(); try await Task.sleep(nanoseconds:100_000_000)
+        XCTAssertEqual(attempts,delivered,"acknowledged projection was redelivered")
+    }
+
     func testNotesFailedOpenKeepsReceptionAndUnlockReplaysDurableInbox() async throws {
         let root = try temporary(), inbox = root.appendingPathComponent("Inbox"), blocker = root.appendingPathComponent("unavailable.sqlite3")
         try FileManager.default.createDirectory(at: blocker, withIntermediateDirectories: true)

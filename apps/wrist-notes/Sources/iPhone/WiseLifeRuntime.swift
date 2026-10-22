@@ -7,12 +7,14 @@ import UIKit
 final class WiseLifeRuntime {
     static let shared = WiseLifeRuntime()
 
-    enum Command { case start, toggle, stop, retry }
+    enum Command: Equatable { case start, toggle, stop, retry }
     enum Outcome { case recording, saved, unchanged }
 
     let life = LifeSourceModel()
     let sessions = RecordingSessionModel()
     let notes: NotesModel
+    let content: ContentSegmentModel
+    let processing: AudioProcessingModel
     let recorder: PhoneRecorder
     let recording: PhoneRecordingSession
     private let activities: RecordingActivityManager
@@ -22,9 +24,12 @@ final class WiseLifeRuntime {
 
     private init() {
         let notes = NotesModel()
+        let processing = AudioProcessingModel(settings:notes.settings)
         let recorder = PhoneRecorder()
         let activities = RecordingActivityManager()
         self.notes = notes
+        self.processing = processing
+        self.content = ContentSegmentModel(processing:processing)
         self.recorder = recorder
         self.activities = activities
         recording = PhoneRecordingSession(engine: recorder, activity: activities) { draft in
@@ -33,6 +38,13 @@ final class WiseLifeRuntime {
                 throw NSError(domain: "WiseLife.Recording.Save", code: 1,
                               userInfo: [NSLocalizedDescriptionKey: notes.errorMessage ?? "录音保存未完成，请重试。"])
             }
+        }
+        notes.durableTranscription = { [weak processing] note,automatic in
+            await processing?.route(note,automatic:automatic) ?? false
+        }
+        notes.durableAudioDeleted = { [weak processing] id in processing?.delete(.init(kind:.legacyNote,id:id)) }
+        processing.onLegacyTranscript = { [weak notes] id,output,revision in
+            notes?.applyDurableTranscription(id,output:output,expectedRevision:revision) ?? false
         }
         foregroundObservation = NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in Task { @MainActor [weak self] in self?.foreground() } }
@@ -49,6 +61,8 @@ final class WiseLifeRuntime {
                 await activities.endObsoleteActivities()
                 sessions.refresh(recover: true)
                 try? await recording.recoverPendingRecordings()
+                processing.refresh()
+                content.refresh()
             }
         }
         await preparation?.value
@@ -56,6 +70,7 @@ final class WiseLifeRuntime {
 
     private func recoverAfterUnlock() async {
         life.recoverAfterUnlock()
+        processing.foreground()
         await prepare()
         notes.refreshWatchStatus()
         sessions.refresh(recover: true)
@@ -63,6 +78,7 @@ final class WiseLifeRuntime {
     }
 
     func foreground() {
+        processing.foreground()
         notes.refreshWatchStatus()
         sessions.refresh(recover: true)
     }
@@ -74,6 +90,8 @@ final class WiseLifeRuntime {
         try Task.checkCancellation()
         let priorSaved = recording.lastSaved?.id
         let wasRecording = recorder.isRecording
+        if !wasRecording && (command == .start || command == .toggle) { await processing.suspendForCapture() }
+        defer { processing.resumeAfterCapture() }
         switch command {
         case .start: try await recording.start(requireLiveActivity: requireLiveActivity)
         case .toggle: try await recording.toggle()

@@ -5,7 +5,7 @@ enum RecordingSessionPresentation {
         if session.endRevision == nil { return "录音结束状态待同步" }
         if !session.syncComplete { return "部分录音尚未同步" }
         if session.interrupted { return "录音已中断" }
-        return "待分段处理"
+        return "完整录音"
     }
 
     static func records(_ sessions: [RecordingSessionSummary], legacyIDs: Set<UUID>) -> [DayRecord] {
