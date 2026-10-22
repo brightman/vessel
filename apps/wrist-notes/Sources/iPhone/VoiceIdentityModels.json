@@ -1,0 +1,34 @@
+{
+  "voice-identity": [
+    {
+      "path": "wespeaker_v2.mlmodelc/analytics/coremldata.bin",
+      "url": "https://huggingface.co/FluidInference/speaker-diarization-coreml/resolve/7eab74f3463c736418d0eb10296261ae581146c9/wespeaker_v2.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "d2b1fcde6121aea3ff0e14c1dc50d09dacb0314a2e89156353c31804230a422f"
+    },
+    {
+      "path": "wespeaker_v2.mlmodelc/coremldata.bin",
+      "url": "https://huggingface.co/FluidInference/speaker-diarization-coreml/resolve/7eab74f3463c736418d0eb10296261ae581146c9/wespeaker_v2.mlmodelc/coremldata.bin",
+      "bytes": 359,
+      "sha256": "6feb2472a71fa9d8a84020c85206138a4f6261c565c9884bf518d59dd5838da7"
+    },
+    {
+      "path": "wespeaker_v2.mlmodelc/metadata.json",
+      "url": "https://huggingface.co/FluidInference/speaker-diarization-coreml/resolve/7eab74f3463c736418d0eb10296261ae581146c9/wespeaker_v2.mlmodelc/metadata.json",
+      "bytes": 2738,
+      "sha256": "ddc4858b4051254098015cd0b97080149839d697faf7b036f933190e70b26758"
+    },
+    {
+      "path": "wespeaker_v2.mlmodelc/model.mil",
+      "url": "https://huggingface.co/FluidInference/speaker-diarization-coreml/resolve/7eab74f3463c736418d0eb10296261ae581146c9/wespeaker_v2.mlmodelc/model.mil",
+      "bytes": 706900,
+      "sha256": "2850f775d6ba659f01f616fed77ce6a45a25de3eb7e4bf3a4b07b658be4e13dd"
+    },
+    {
+      "path": "wespeaker_v2.mlmodelc/weights/weight.bin",
+      "url": "https://huggingface.co/FluidInference/speaker-diarization-coreml/resolve/7eab74f3463c736418d0eb10296261ae581146c9/wespeaker_v2.mlmodelc/weights/weight.bin",
+      "bytes": 7243904,
+      "sha256": "34004f6798d35cad7071e2fdc67e63faaa782f53697e1cb49bcb452cf81ae151"
+    }
+  ]
+}

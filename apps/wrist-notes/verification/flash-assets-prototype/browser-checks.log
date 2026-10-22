@@ -1,0 +1,10 @@
+PASS all six Insight asset types filter independently
+PASS unconfirmed expenses excluded; edited amount included after confirmation
+PASS dismiss and restore preserve original wording and transcript navigation
+PASS undated todo, completion toggle, capture-anchored date, event validation and system demo
+PASS asset to reminder links source and repeat open does not duplicate action
+PASS waiting, model unavailable and no-assets states retain source
+PASS keyboard tabs and existing life-insight plans still work under Action
+PASS dark appearance and 390/320 px widths without content/nav horizontal overflow
+PASS existing contact and Apple Reminder preview routes still open
+PASS no JavaScript page errors across all flows

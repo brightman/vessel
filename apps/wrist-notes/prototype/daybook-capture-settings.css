@@ -17,4 +17,4 @@
 select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:500px){.model-field input,.model-field select,#photoCaption{font-size:16px}}
 .daybook-language-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0;border-bottom:1px solid var(--line,#e5e9ed);font-size:13px}
-.daybook-language-row select{border:1px solid var(--line,#e5e9ed);border-radius:10px;background:var(--white,#fff);color:inherit;padding:8px 28px 8px 10px;font:inherit}
+.daybook-language-row select{flex:0 0 58%;width:58%;min-width:138px;max-width:58%;border:1px solid var(--line,#e5e9ed);border-radius:10px;background:var(--white,#fff);color:inherit;padding:6px 20px 6px 8px;font:inherit;font-size:12px;white-space:nowrap;text-align-last:right}

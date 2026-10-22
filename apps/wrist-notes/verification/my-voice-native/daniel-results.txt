@@ -1,0 +1,7 @@
+enrollmentSeconds=35.203875
+ENROLL PASS windows=7 duration=35.203875
+same PASS speakers=["speaker-1"] owners=["speaker-1"] identityMessage=none
+other PASS speakers=["speaker-1"] owners=[] identityMessage=none
+mixed PASS speakers=["speaker-1", "speaker-2", "speaker-3"] owners=["speaker-2"] identityMessage=none
+mixed-specificity=PASS
+MIXED ENROLL PASS rejected: inconsistentVoice

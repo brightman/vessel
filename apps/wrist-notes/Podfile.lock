@@ -1,22 +1,3 @@
-PODS:
-  - br_flutter_plugin_ble (3.0.0):
-    - br_flutter_plugin_ble/Native (= 3.0.0)
-  - br_flutter_plugin_ble/Bluetooth (3.0.0)
-  - br_flutter_plugin_ble/Native (3.0.0):
-    - br_flutter_plugin_ble/Bluetooth (= 3.0.0)
-    - br_flutter_plugin_ble/Opus (= 3.0.0)
-  - br_flutter_plugin_ble/Opus (3.0.0)
-
-DEPENDENCIES:
-  - br_flutter_plugin_ble (from `../../pods/br_flutter_plugin_ble`)
-
-EXTERNAL SOURCES:
-  br_flutter_plugin_ble:
-    :path: "../../pods/br_flutter_plugin_ble"
-
-SPEC CHECKSUMS:
-  br_flutter_plugin_ble: 2b7116a4f66b253f5bd2bfd8a7acab1d4023f7a9
-
-PODFILE CHECKSUM: 7db9a50cf91266e5125c4596afde28e9ea25fbc7
+PODFILE CHECKSUM: 35f05e752ce8daaaea0e2c248fb6b9d904d59376
 
 COCOAPODS: 1.16.2

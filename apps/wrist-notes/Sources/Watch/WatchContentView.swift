@@ -7,10 +7,20 @@ struct WatchContentView: View {
     @State private var interaction = RecordingButtonInteraction()
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
+    @State private var expandedSessionIDs = Set<UUID>()
     private let red = Color(red: 0.96, green: 0.17, blue: 0.21)
 
     private var recordings: [PendingRecording] {
         recorder.pending.sorted { $0.capturedAt > $1.capturedAt }
+    }
+
+    private var sessionIDs: [UUID] {
+        let ids = Set(recorder.sessionChunks.map(\.sessionID) + recorder.sessionEnds.map(\.sessionID) + recorder.sessionSyncStates.map(\.id))
+        return ids.sorted { left, right in
+            let a = recorder.sessionChunks.first { $0.sessionID == left }?.sessionStartedAt ?? .distantPast
+            let b = recorder.sessionChunks.first { $0.sessionID == right }?.sessionStartedAt ?? .distantPast
+            return a == b ? left.uuidString < right.uuidString : a > b
+        }
     }
 
     var body: some View {
@@ -44,13 +54,14 @@ struct WatchContentView: View {
             HStack {
                 Text("录音").font(.system(size: 14, weight: .bold))
                 Spacer()
-                Text("\(recordings.count)").font(.caption2).foregroundStyle(.secondary)
+                Text("\(recordings.count + sessionIDs.count)").font(.caption2).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 15)
             .padding(.bottom, 4)
 
             List {
-                if recordings.isEmpty {
+                ForEach(sessionIDs, id: \.self) { id in sessionRow(id) }
+                if recordings.isEmpty && sessionIDs.isEmpty {
                     Text("还没有录音")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -80,7 +91,7 @@ struct WatchContentView: View {
             .listStyle(.plain)
         }
         .background(Color(red: 0.03, green: 0.03, blue: 0.035))
-        .alert("无法开始录音", isPresented: Binding(
+        .alert("录音提示", isPresented: Binding(
             get: { recorder.recordingError != nil },
             set: { if !$0 { recorder.recordingError = nil } }
         )) { Button("好") { recorder.recordingError = nil } } message: {
@@ -92,11 +103,49 @@ struct WatchContentView: View {
         }
     }
 
+    private func sessionRow(_ id: UUID) -> some View {
+        let chunks = recorder.sessionChunks.filter { $0.sessionID == id }.sorted { $0.ordinal < $1.ordinal }
+        let state = recorder.sessionSyncStates.first { $0.id == id }
+        let end = recorder.sessionEnds.first { $0.sessionID == id }
+        let expanded = expandedSessionIDs.contains(id)
+        return VStack(alignment: .leading, spacing: 6) {
+            Button {
+                if expanded { expandedSessionIDs.remove(id) } else { expandedSessionIDs.insert(id) }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("完整录音").font(.caption)
+                        if let start = chunks.first?.sessionStartedAt { Text(start, style: .time).font(.caption2) }
+                        else { Text("录音时间待同步").font(.caption2) }
+                        Text(RecordingFormat.duration(chunks.reduce(0) { $0 + $1.duration })).font(.caption2).monospacedDigit()
+                        Text(LocalizedStringKey(state?.isComplete == true ? "已同步到当前 iPhone" : "会话尚未同步完成"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.caption2).accessibilityHidden(true)
+                }
+            }.buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(Text(LocalizedStringKey(expanded ? "已展开" : "已折叠")))
+                .accessibilityHint("展开查看分片进度")
+            if expanded {
+                ForEach(chunks) { chunk in
+                    Text("分片 \(chunk.ordinal + 1) · \(RecordingFormat.duration(chunk.duration))").font(.caption2)
+                }
+                Text("已保存 \(state?.savedChunkCount ?? 0) 个分片到当前 iPhone").font(.caption2)
+                if end == nil { Text("录音结束状态待同步").font(.caption2) }
+                else if state?.isComplete != true { Text("会话尚未同步完成").font(.caption2) }
+                if end?.interrupted == true { Text("录音已中断").font(.caption2).foregroundStyle(.orange) }
+            }
+        }
+    }
+
     private var caption: String {
         if interaction.isThought {
             if interaction.cancelOnRelease { return "松开取消闪念" }
             return "闪念 · \(RecordingFormat.duration(recorder.elapsed)) · 松开保存"
         }
+        if recorder.isFinishingSession { return "正在保存录音…" }
         if recorder.isRecording { return "长录音 · \(RecordingFormat.duration(recorder.elapsed))" }
         if interaction.isArming { return "继续按住录闪念" }
         return notice ?? "轻点长录音 · 按住闪念"
@@ -126,7 +175,7 @@ struct WatchContentView: View {
     private func handle(_ action: RecordingButtonInteraction.Action?) {
         switch action {
         case .startLong: recorder.start(.long)
-        case .stopLong: recorder.stop(); showNotice("录音已保存")
+        case .stopLong: recorder.stop()
         case .startThought: recorder.start(.thought)
         case .saveThought:
             if recorder.releaseThought() { showNotice("闪念已保存") }

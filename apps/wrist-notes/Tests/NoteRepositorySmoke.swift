@@ -37,22 +37,19 @@ struct NoteRepositorySmoke {
         let restoredAudio = try Data(contentsOf: afterEdit.audioURL(for: first))
         precondition(restoredAudio == Data([5, 6]), "a retransmission restores missing audio")
 
-        // Disk/index failure must leave a phone recording draft retryable, not move it away.
-        let index = root.appendingPathComponent("notes.json")
-        let savedIndex = try Data(contentsOf: index)
-        try FileManager.default.removeItem(at: index)
-        try FileManager.default.createDirectory(at: index, withIntermediateDirectories: true)
+        // Database failure must leave a phone recording draft retryable, not move it away.
+        let database = try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
+        try database.execute("CREATE TRIGGER fail_voice_insert BEFORE INSERT ON voice_notes BEGIN SELECT RAISE(ABORT,'injected'); END")
         let retryID = UUID()
         let draft = root.appendingPathComponent("phone-draft.m4a")
         try Data([7, 8, 9]).write(to: draft)
         do {
             _ = try afterEdit.importRecording(id: retryID, from: draft, kind: .long, capturedAt: .now, duration: 3)
-            preconditionFailure("index write should fail")
+            preconditionFailure("metadata write should fail")
         } catch {}
         precondition(FileManager.default.fileExists(atPath: draft.path), "failed import must restore its source")
         precondition(!afterEdit.notes.contains { $0.id == retryID })
-        try FileManager.default.removeItem(at: index)
-        try savedIndex.write(to: index)
+        try database.execute("DROP TRIGGER fail_voice_insert")
         let retried = try afterEdit.importRecording(id: retryID, from: draft, kind: .long, capturedAt: .now, duration: 3)
         precondition(retried.id == retryID)
         let afterRetry = try NoteRepository(root: root)

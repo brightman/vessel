@@ -1,11 +1,12 @@
 /* Interactive concept only: deterministic example replies, memory-only reminders. */
 window.createDaybookAI = function (app) {
   'use strict';
-  const {$,esc,icon,toast,openSheet,closeSheet,openCalendar,showView,getDay,getView,getRecords,today}=app;
+  const {$,esc,icon,toast,openSheet,closeSheet,openCalendar,showView,getDay,getView,getRecords,getInsight,today,getProvider,setRemoteConfirmationRequired,openModelSettings,usageLink}=app;
   const prefs={proactive:true,frequency:1,quiet:true,quietStart:'22:00',quietEnd:'08:00',audio:true,health:true,photo:true,journal:true};
   const conversations=new Map(), reminders=[];
+  const apple=window.createDaybookAppleReminders(app);
   const clock={minutes:990}; // The entire prototype uses 2026-10-19, 16:30.
-  let pending=null,sequence=0,draft=null,snoozedUntil=0,dismissed=false;
+  let pending=null,sequence=0,draft=null,snoozedUntil=0,dismissed=false,remotePreview=null;
   const scopeNames={audio:'语音与闪念',photo:'图片与补充说明',health:'睡眠与活动'};
   const scopeOf=r=>r.kind==='image'?'photo':r.kind==='sleep'||r.kind==='activity'?'health':r.kind==='journal'?'journal':'audio';
   const allowed=r=>prefs[scopeOf(r)];
@@ -15,8 +16,8 @@ window.createDaybookAI = function (app) {
   const asMinutes=value=>{const [h,m]=value.split(':').map(Number);return h*60+m;};
   const isQuiet=()=>{if(!prefs.quiet)return false;const start=asMinutes(prefs.quietStart),end=asMinutes(prefs.quietEnd);return start<end?clock.minutes>=start&&clock.minutes<end:clock.minutes>=start||clock.minutes<end;};
   const currentThread=()=>{if(!conversations.has(getDay()))conversations.set(getDay(),[]);return conversations.get(getDay());};
-  const currentReminder=()=>reminders.find(r=>r.origin==='scope'&&!r.done);
-  const dueReminder=()=>reminders.find(r=>!r.done&&r.date==='2026-10-19'&&asMinutes(r.time)<=clock.minutes);
+  const currentReminder=()=>reminders.find(r=>r.origin==='walk'&&!r.done);
+  const dueReminder=()=>reminders.find(r=>!r.done&&!r.appleId&&r.date==='2026-10-19'&&asMinutes(r.time)<=clock.minutes);
   const reminderDate=r=>`${Number(r.date.slice(5,7))}月${Number(r.date.slice(8))}日 ${r.time}`;
   const sourcesMarkup=ids=>`<div class="ai-sources">${ids.map(id=>{
     const r=[...getRecords(19),...getRecords(18)].find(row=>row.id===id);
@@ -29,8 +30,10 @@ window.createDaybookAI = function (app) {
   }
   function proactiveMarkup(){
     if(getDay()!==today)return '';
-    if(!prefs.proactive||!prefs.audio||isQuiet()||dismissed||snoozedUntil>clock.minutes||currentReminder())return '';
-    return `<article class="ai-nudge"><div class="ai-nudge-top"><span>${icon('MessageCircle')}AI 留意到 · ${hhmm(clock.minutes)}</span><button data-ai-action="nudge-options" aria-label="管理这条主动建议">稍后 / 收起</button></div><h3>给反复想到的事，留一点时间。</h3><p>14:00 的讨论提到先列清首版范围。可以在今天收尾前，留 10 分钟把它写下来。</p><div class="ai-nudge-actions"><button class="primary-button" data-ai-remind="scope">${icon('Bell')}提醒我</button><button class="secondary-button" data-ai-ask="这一天最值得跟进什么？">和 AI 聊聊</button><button class="text-button" data-ai-action="nudge-why">为什么建议</button></div></article>`;
+    const insight=getInsight();
+    if(!insight||!prefs.proactive||!prefs.audio||!prefs.health||isQuiet()||dismissed||snoozedUntil>clock.minutes||currentReminder())return '';
+    if(getRecords(today).some(r=>r.id.startsWith('recording-')))return '';
+    return `<article class="ai-nudge"><div class="ai-nudge-top"><span>${icon('Lightbulb')}洞察 · 可选建议</span><button data-ai-action="nudge-options" aria-label="管理这条主动建议">稍后 / 收起</button></div><h3>${esc(insight.action)}</h3><p>午间说想走走，随后有步行记录和走回来后的想法。明天要不要再留一点这样的时间？</p><div class="ai-nudge-actions"><button class="primary-button" data-ai-remind="walk">${icon('Bell')}提醒我</button><button class="secondary-button" data-ai-ask="这一天最值得跟进什么？">和 AI 聊聊</button><button class="text-button" data-ai-action="nudge-why">为什么建议</button></div></article>`;
   }
   function renderHome(){
     const nudge=reminderMarkup()||proactiveMarkup();
@@ -42,10 +45,12 @@ window.createDaybookAI = function (app) {
     if(a.evidence.some(id=>{const r=[...getRecords(19),...getRecords(18)].find(row=>row.id===id);return r&&!allowed(r);})){
       return `<div class="ai-answer"><p>这条回答使用的数据已被你关闭，内容已收起。</p><button class="text-button" data-ai-ask="${esc(turn.question)}">使用当前允许的数据重新回答 ${icon('RotateCcw')}</button></div>`;
     }
-    return `<div class="ai-answer"><div class="ai-answer-label">${icon('MessageCircle')}WiseLife AI<span>${esc(a.context)} · 示例回答</span></div><h3>${esc(a.title)}</h3>${a.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}${sourcesMarkup(a.evidence)}${a.note?`<p class="ai-answer-note">${esc(a.note)}</p>`:''}<div class="ai-answer-actions">${a.remind?`<button class="secondary-button" data-ai-remind="${a.remind}">${icon('Bell')}设一个提醒</button>`:''}${a.followup?`<button class="text-button" data-ai-ask="${esc(a.followup)}">继续：${esc(a.followup)} ${icon('ArrowRight')}</button>`:''}${a.retry?`<button class="secondary-button" data-ai-ask="${esc(turn.question)}">${icon('RotateCcw')}重新回答</button>`:''}</div></div>`;
+    return `<div class="ai-answer"><div class="ai-answer-label">${icon('MessageCircle')}WiseLife AI<span>${esc(a.context)} · 示例回答</span></div><div class="ai-provider-provenance"><span>${esc(turn.provider.label)}</span>${turn.provider.id==='chatgpt'?`<span>·</span><span>${esc(turn.provider.model)}</span>`:''}</div><h3>${esc(a.title)}</h3>${a.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}${sourcesMarkup(a.evidence)}${a.note?`<p class="ai-answer-note">${esc(a.note)}</p>`:''}<div class="ai-answer-actions">${a.remind?`<button class="secondary-button" data-ai-remind="${a.remind}">${icon('Bell')}设一个提醒</button>`:''}${a.followup?`<button class="text-button" data-ai-ask="${esc(a.followup)}">继续：${esc(a.followup)} ${icon('ArrowRight')}</button>`:''}${a.retry?`<button class="secondary-button" data-ai-ask="${esc(turn.question)}">${icon('RotateCcw')}重新回答</button>`:''}</div></div>`;
   }
   function render(){
     const list=recordsFor(getDay()),thread=currentThread();
+    const provider=getProvider();
+    $('aiProvider').innerHTML=`<button class="ai-provider-button" data-ai-action="models">${icon(provider.remote?'MessageCircle':'ShieldCheck')}<span><span>${esc(provider.label)}</span><small>${!provider.ready?'模型暂不可用':provider.id==='chatgpt'?'使用 ChatGPT 套餐':provider.remote?'通过自定义服务处理':'在本机处理'}</small></span>${icon('ChevronDown')}</button>${provider.id==='chatgpt'?usageLink():''}`;
     renderHome();
     $('aiContext').innerHTML=`${icon('CalendarDays')}${dateLabel(getDay())} · ${list.length} 条可用记录 ${icon('ChevronDown')}`;
     $('aiReminderCount').textContent=reminders.filter(r=>!r.done).length;
@@ -54,7 +59,7 @@ window.createDaybookAI = function (app) {
     $('aiPrompts').hidden=thread.length>0;
     const prompts=list.length?['这一天最值得跟进什么？','帮我回顾这一天',list.some(r=>r.kind==='image')?'这一天的图片记录了什么？':'最近的睡眠有什么变化？']:['这一天有哪些记录？','明天提醒我做个语音回顾'];
     $('aiPrompts').innerHTML=prompts.map(p=>`<button data-ai-ask="${p}">${p}${icon('ArrowUpRight')}</button>`).join('');
-    $('aiConversation').innerHTML=thread.map(turn=>`<article class="ai-turn"><p class="ai-user-message">${esc(turn.question)}</p>${answerMarkup(turn)}</article>`).join('');
+    $('aiConversation').innerHTML=thread.map(turn=>`<article class="ai-turn"><p class="ai-user-message" translate="no">${esc(turn.question)}</p>${answerMarkup(turn)}</article>`).join('');
     $('aiConversation').setAttribute('aria-busy',String(!!pending));
     $('aiSend').hidden=!!pending;$('aiStop').hidden=!pending;
     $('aiSend').disabled=!$('aiQuestion').value.trim();
@@ -88,7 +93,7 @@ window.createDaybookAI = function (app) {
     if(/最近|趋势|变化|几天|一周/.test(question)&&/睡|休息/.test(question)){
       const sleeps=[...recordsFor(day-1),...list].filter(r=>r.kind==='sleep').sort((a,b)=>a.day-b.day);
       if(sleeps.length<2)return result('记录还不够，先不判断趋势。',['目前允许使用的数据里，没有相邻两天的睡眠记录。可以允许“睡眠与活动”，或再积累一些记录。'],sleeps.map(r=>r.id));
-      return result('比前一天少了 36 分钟，还不代表趋势。',['10月18日记录到 7 小时 48 分钟，10月19日为 7 小时 12 分钟。两条记录只能比较时长，不能判断睡眠质量或长期变化。','如果想观察，可以先固定几天的睡前回顾时间，再结合自己的感受。'],sleeps.map(r=>r.id),{context:'10月18–19日',note:'这里只比较示例时长，不作健康诊断。'});
+      return result('比前一天少了 30 分钟，还不代表趋势。',['10月18日记录到 7 小时 48 分钟，10月19日为 7 小时 18 分钟。两条记录只能比较时长，不能判断睡眠质量或长期变化。','如果想观察，可以先固定几天的睡前回顾时间，再结合自己的感受。'],sleeps.map(r=>r.id),{context:'10月18–19日',note:'这里只比较示例时长，不作健康诊断。'});
     }
     if(/散步|步行|活动|运动|走了多久/.test(question)){
       const walks=list.filter(r=>r.kind==='activity');
@@ -124,16 +129,47 @@ window.createDaybookAI = function (app) {
     if(getView()==='ai')$('screenScroll').scrollTop=$('screenScroll').scrollHeight;
   }
   function ask(question){
-    question=question.trim().slice(0,600);if(!question||pending)return;
+    question=question.trim().slice(0,600);if(!question||pending||remotePreview)return;
     showView('ai');
-    const day=getDay(),turn={id:++sequence,question,pending:true};
+    const provider=getProvider();
+    if(!provider.ready){
+      $('aiQuestion').value=question;
+      openSheet('检查 ChatGPT 连接',`<div class="chatgpt-card"><h3>${provider.state==='limited'?'ChatGPT 用量已达上限':provider.state==='expired'?'授权已过期':'模型暂不可用'}</h3><p>当前选择不可用。请重新连接、管理用量，或在设置中主动切换模型。</p>${provider.state==='limited'?usageLink(true):''}</div><button class="secondary-button wide" data-ai-action="models">打开 AI 模型设置</button>`);render();return;
+    }
+    const day=getDay(),answer=reply(question,day);
+    if(provider.remote&&provider.requiresConfirmation!==false){
+      $('aiQuestion').value=question;
+      const resolved=resolveDay(question,day);
+      const available=[...recordsFor(resolved),...recordsFor(resolved-1)];
+      // Only text and safe metadata for the evidence used by this deterministic answer.
+      // Never copy a full record object: it can contain image/audio blobs or local URLs.
+      const texts=answer.evidence.map(id=>available.find(r=>r.id===id)).filter(Boolean).map(r=>({
+        id:r.id,title:r.title,day:r.day,time:r.time,
+        text:[r.source,`${r.duration||0} s`,r.kind==='image'?`${r.images?.length||0} images`:'',r.summary,r.preview,r.text,r.caption,r.ocr].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join('\n\n')
+      }));
+      remotePreview={question,day,provider,answer,scope:JSON.stringify(prefs)};
+      openSheet('发送前，确认这次使用的文字',`<p class="sheet-intro"><span>处理服务</span> · <strong>${esc(provider.destination)}</strong></p><p class="source-footnote">${provider.id==='chatgpt'?'使用 ChatGPT 套餐':'通过自定义服务处理'}</p><div class="ai-remote-preview"><h3>你的问题</h3><p id="aiOutgoingQuestion" translate="no">${esc(question)}</p></div><div class="ai-remote-records"><h3><span>本次引用的记录</span> · ${texts.length}</h3>${texts.length?texts.map(r=>`<details data-outgoing-record="${esc(r.id)}"><summary translate="no">${dateLabel(r.day)} ${esc(r.time)} · ${esc(r.title)}</summary><pre translate="no">${esc(r.text)}</pre></details>`).join(''):'<p class="source-footnote">没有引用记录，仅使用你的问题。</p>'}</div><p class="source-footnote">录音、图片文件和“我的声音”档案不会发送。原型仅模拟，不进行网络请求。</p><label class="ai-send-preference"><input id="aiDoNotAskAgain" type="checkbox"><span>下次不再提示</span></label><p class="source-footnote">适用于外部 AI 问答、总结与长录音标题。开启免提示后，长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。</p><div class="model-actions chatgpt-preview-actions"><button class="secondary-button" data-ai-action="cancel-send">取消并保留问题</button><button class="primary-button" data-ai-action="confirm-send">确认并模拟发送</button></div>`);
+      return;
+    }
+    startAnswer({question,day,provider,answer});
+  }
+  function startAnswer({question,day,provider,answer}){
+    const turn={id:++sequence,question,pending:true,provider:{...provider}};
     currentThread().push(turn);$('aiQuestion').value='';$('aiQuestion').style.height='';
     pending={turn,day,timer:setTimeout(()=>{
-      try{turn.answer=reply(question,day);}
-      catch{turn.answer={title:'这次回答没有完成。',paragraphs:['请重试，已确认的提醒仍然保留。'],evidence:[],context:dateLabel(day),retry:true};}
+      turn.answer=answer;
       turn.pending=false;pending=null;render();scrollToConversation();
     },650)};
     render();scrollToConversation();
+  }
+  function confirmSend(){
+    if(!remotePreview)return;
+    const request=remotePreview,provider=getProvider();remotePreview=null;
+    if(provider.revision!==request.provider.revision||!provider.ready||JSON.stringify(prefs)!==request.scope||getDay()!==request.day){
+      closeSheet();toast('模型或数据范围已变化，请重新预览后再发送。');return;
+    }
+    if($('aiDoNotAskAgain')?.checked)setRemoteConfirmationRequired(false);
+    closeSheet();startAnswer(request);
   }
   function stop(){
     if(!pending)return;
@@ -142,29 +178,36 @@ window.createDaybookAI = function (app) {
     pending=null;render();
   }
   function openNudgeWhy(){
-    openSheet('为什么现在建议',`<div class="insight-label">${icon('MessageCircle')}10月19日 · 示例洞察</div><h3 class="insight-detail-title">反复出现的方向，值得变成一个小行动。</h3><p class="sheet-intro">两次闪念都提到收小范围，下午的讨论进一步提到先列清首版要做的事。于是建议在收尾前留 10 分钟写下来。</p>${sourcesMarkup(['thought-morning','thought-noon','review'])}<div class="quiet-info">${icon('CircleHelp')}<p>记录没有告诉我这件事是否已完成。你可以收起建议；设置提醒前，也可以改内容和时间。</p></div><button class="primary-button wide" data-ai-remind="scope">${icon('Bell')}拟定一个提醒</button>`);
+    openSheet('为什么现在建议',`<div class="insight-label">${icon('Lightbulb')}10月19日 · 示例洞察</div><h3 class="insight-detail-title">午间的想法，有了后续记录。</h3><p class="sheet-intro">11:50 说想出去走走，12:15–12:31 有步行记录，12:40 又留下了走回后的想法。建议仅是明天再留一点空白，可由你决定要不要采纳。</p>${sourcesMarkup(['walk-intent','walk-noon','walk-followup'])}<div class="quiet-info">${icon('CircleHelp')}<p>这三段记录不能证明步行带来了新想法，也不能判断活动对健康的影响。</p></div><button class="primary-button wide" data-ai-remind="walk">${icon('Bell')}拟定一个提醒</button>`);
   }
   function openNudgeOptions(){
     openSheet('这条建议，按你的节奏',`<p class="sheet-intro">稍后再看，或告诉 AI 这件事已经处理好了。</p><button class="plain-row" data-ai-action="snooze"><span>${icon('Clock3')}1 小时后再看</span>${icon('ChevronRight')}</button><button class="plain-row" data-ai-action="dismiss"><span>${icon('Check')}已处理 / 今天不再建议</span>${icon('ChevronRight')}</button><button class="plain-row" data-ai-action="preferences"><span>${icon('Settings2')}调整主动建议与免打扰</span>${icon('ChevronRight')}</button><p class="source-footnote">原型只模拟时机，不会发出系统通知。</p>`);
   }
   function createDraft(kind,id){
     const existing=reminders.find(r=>r.id===id);
-    if(existing){draft={...existing};}
+    if(existing){draft={...existing,evidence:[...existing.evidence]};}
     else {
-      const same=kind==='scope'?currentReminder():null;
+      const same=reminders.find(r=>r.origin===kind&&!r.done);
       if(same){openReminders();return;}
       const options={
+        walk:{title:'午休留一点走走和回顾的时间',date:'2026-10-20',time:'12:00',evidence:['walk-intent','walk-noon','walk-followup'],origin:'walk'},
         scope:{title:'把首版范围写成 3 行',date:clock.minutes>=1080?'2026-10-20':'2026-10-19',time:'18:00',evidence:['review'],origin:'scope'},
         review:{title:'回顾本周的使用反馈',date:'2026-10-23',time:'16:00',evidence:['meeting'],origin:'review'},
         journal:{title:'录一段今天的回顾',date:'2026-10-20',time:'20:30',evidence:[],origin:'journal'},
         custom:{title:'',date:'2026-10-20',time:'09:00',evidence:[],origin:'custom'}
       };
-      draft={...options[kind],evidence:[...(options[kind]?.evidence||[])]};
+      draft={appleEnabled:false,appleList:'WiseLife',...options[kind||'custom'],evidence:[...(options[kind]?.evidence||[])]};
     }
     renderDraft();
   }
+  function captureDraft(){
+    if(!draft||!$('aiReminderForm'))return;
+    draft.title=$('aiReminderTitle').value;draft.date=$('aiReminderDate').value;draft.time=$('aiReminderTime').value;
+    if($('appleDemoResult'))apple.setResult($('appleDemoResult').value);
+  }
+  document.addEventListener('change',event=>{if(event.target.id==='appleDemoResult')apple.setResult(event.target.value);});
   function renderDraft(){
-    openSheet(draft.id?'修改提醒':'先确认，再替你记下',`<p class="sheet-intro">选一个适合自己的时刻。确认前，不会创建提醒。</p><form id="aiReminderForm"><label class="note-field"><span>提醒我</span><input id="aiReminderTitle" required maxlength="80" value="${esc(draft.title)}" placeholder="想提醒自己做什么"></label><div class="ai-field-grid"><label class="note-field"><span>日期</span><input id="aiReminderDate" type="date" required min="2026-10-19" value="${draft.date}"></label><label class="note-field"><span>时间</span><input id="aiReminderTime" type="time" required value="${draft.time}"></label></div>${draft.evidence.length?`<div class="ai-confirm-preview">来自你的记录${sourcesMarkup(draft.evidence)}</div>`:''}<p class="source-footnote ai-reminder-note">这是原型内的提醒，刷新后清空，不会发送系统通知。你确认的提醒与 AI 主动建议分别管理。</p><p id="aiReminderError" class="ai-inline-error" role="alert" hidden></p><div class="sheet-actions"><button class="secondary-button" type="button" data-ai-action="cancel-draft">取消</button><button class="primary-button" type="submit">${icon('Check')}${draft.id?'保存修改':'确认提醒'}</button></div></form>`);
+    openSheet(draft.id?'修改提醒':'先确认，再替你记下',`<p class="sheet-intro">选一个适合自己的时刻。确认前，不会创建提醒。</p><form id="aiReminderForm"><label class="note-field"><span>提醒我</span><input id="aiReminderTitle" required maxlength="80" value="${esc(draft.title)}" placeholder="想提醒自己做什么"></label><div class="ai-field-grid"><label class="note-field"><span>日期</span><input id="aiReminderDate" type="date" required min="2026-10-19" value="${draft.date}"></label><label class="note-field"><span>时间</span><input id="aiReminderTime" type="time" required value="${draft.time}"></label></div>${draft.evidence.length?`<div class="ai-confirm-preview">来自你的记录${sourcesMarkup(draft.evidence).replaceAll('data-record=', 'data-apple-evidence=')}</div>`:''}${apple.controls(draft)}<p class="source-footnote ai-reminder-note">这是原型内的提醒，刷新后清空，不会发送系统通知。你确认的提醒与 AI 主动建议分别管理。</p><p id="aiReminderError" class="ai-inline-error" role="alert" hidden></p><div class="sheet-actions"><button class="secondary-button" type="button" data-ai-action="cancel-draft">取消</button><button class="primary-button" type="submit">${icon('Check')}${draft.id?'保存修改':'确认提醒'}</button></div></form>`);
   }
   function saveReminder(form){
     if(!draft||!form.reportValidity())return;
@@ -174,17 +217,18 @@ window.createDaybookAI = function (app) {
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{2}:\d{2}$/.test(time)||date<'2026-10-19'||(date==='2026-10-19'&&asMinutes(time)<=clock.minutes))return fail('请选择晚于原型当前时刻的时间。');
     const duplicate=reminders.find(r=>!r.done&&r.id!==draft.id&&r.title===title&&r.date===date&&r.time===time);
     if(duplicate)return fail('同一时间已经有这条提醒，可以在提醒列表中修改。');
-    const next={...draft,title,date,time,done:false,id:draft.id||`reminder-${++sequence}`};
+    const next={...draft,title,date,time,done:draft.done||false,id:draft.id||`reminder-${++sequence}`};
+    apple.write(next);
     const index=reminders.findIndex(r=>r.id===draft.id);
     if(index>=0)reminders[index]=next;else reminders.push(next);
-    draft=null;render();openReminders();toast('已加入原型内提醒，不会发送系统通知。');
+    draft=null;render();openReminders();toast(next.appleStatus==='pending'?'Apple 更新待重试，原任务可能仍提醒。':next.appleStatus==='failed'?'已保留 WiseLife 提醒，可重试添加 Apple。':'已保存示例提醒，不会发送系统通知。');
   }
   function openReminders(){
     const sorted=[...reminders].sort((a,b)=>Number(a.done)-Number(b.done)||(a.date+a.time).localeCompare(b.date+b.time));
-    openSheet('我的提醒',`<p class="sheet-intro">你确认过的小行动，都在这里。<br>原型当前：10月19日 ${hhmm(clock.minutes)}。</p>${sorted.length?sorted.map(r=>`<article class="ai-reminder-row"><h3>${r.done?'✓ ':''}${esc(r.title)}</h3><p>${reminderDate(r)} · ${r.done?'已完成':'已确认 · 仅原型内'}</p><div class="ai-reminder-actions">${r.done?'':`<button data-ai-edit="${r.id}">修改时间 / 内容</button><button data-ai-done="${r.id}">标记完成</button>`}<button data-ai-delete="${r.id}">${r.done?'移除':'取消提醒'}</button></div></article>`).join(''):`<div class="empty-state">${icon('Bell')}<h3>还没有安排提醒</h3><p>有值得跟进的事，再轻轻提醒你。</p></div>`}<button class="primary-button wide" data-ai-remind="custom">${icon('Plus')}新建提醒</button><p class="source-footnote">这里只保存本页内的提醒，不访问系统日历或通知。刷新后清空。</p>`);
+    openSheet('我的提醒',`<p class="sheet-intro">你确认过的小行动，都在这里。<br>原型当前：10月19日 ${hhmm(clock.minutes)}。</p>${sorted.length?sorted.map(r=>`<article class="ai-reminder-row"><h3>${r.done?'✓ ':''}${esc(r.title)}</h3><p>${reminderDate(r)} · ${r.done?'已完成':'已确认'}</p><p class="apple-reminder-status">${apple.status(r)}</p><div class="ai-reminder-actions">${r.appleId?`<button data-apple-preview="${r.id}">Apple 只读预览</button>`:''}${['failed','pending'].includes(r.appleStatus)?`<button data-apple-retry="${r.id}">重试添加 Apple</button>`:''}${r.done?'':`<button data-ai-edit="${r.id}">修改时间 / 内容</button><button data-ai-done="${r.id}">标记完成</button>`}<button data-ai-delete="${r.id}">${r.appleId?'删除两处示例任务':r.done?'移除':'取消提醒'}</button></div></article>`).join(''):`<div class="empty-state">${icon('Bell')}<h3>还没有安排提醒</h3><p>有值得跟进的事，再轻轻提醒你。</p></div>`}<button class="primary-button wide" data-ai-remind="custom">${icon('Plus')}新建提醒</button><p class="source-footnote">所有操作仅在本页内演示，刷新后清空。已添加 Apple 的任务仅由 Apple 提醒（概念演示），WiseLife 不重复提醒。修改、完成、删除会同步更新关联的两处示例；失败时保留 WiseLife 提醒并可重试。</p>`);
   }
   function preferences(){
-    openSheet('AI 偏好与提醒',`<div class="ai-prefs-row"><div><strong>主动给我建议</strong><p>发现值得跟进的线索时，在 App 内提醒我。</p></div><button class="switch" role="switch" aria-checked="${prefs.proactive}" aria-label="主动给我建议" data-ai-pref="proactive"></button></div><h3 class="sheet-section-title">建议频率</h3><div class="ai-settings-options" role="group" aria-label="建议频率"><button data-ai-frequency="1" aria-pressed="${prefs.frequency===1}">每天精选 1 条</button><button data-ai-frequency="3" aria-pressed="${prefs.frequency===3}">每天最多 3 条</button></div><p class="subtle">少而有用。当前仅提供 1 条主动建议示例。</p><div class="ai-prefs-row"><div><strong>免打扰时段</strong><p>此时收起主动建议，仍可主动向 AI 提问。</p></div><button class="switch" role="switch" aria-checked="${prefs.quiet}" aria-label="免打扰时段" data-ai-pref="quiet"></button></div><form id="aiQuietForm"><div class="ai-field-grid"><label class="note-field"><span>开始</span><input id="aiQuietStart" type="time" required value="${prefs.quietStart}"></label><label class="note-field"><span>结束（可跨天）</span><input id="aiQuietEnd" type="time" required value="${prefs.quietEnd}"></label></div><p id="aiQuietError" class="ai-inline-error" role="alert" hidden></p><button class="secondary-button" type="submit">保存时段</button></form><h3 class="sheet-section-title">允许 AI 使用的记录</h3>${Object.entries(scopeNames).map(([key,name])=>`<div class="ai-prefs-row"><div><strong>${name}</strong><p>${key==='audio'?'录音转写、讨论与随手说出的想法':key==='health'?'只描述记录，不推断健康状况':'你选择的图片与说明，未自动读取相册'}</p></div><button class="switch" role="switch" aria-checked="${prefs[key]}" aria-label="允许 AI 使用${name}" data-ai-pref="${key}"></button></div>`).join('')}<p class="source-footnote">关闭后，新回答不再使用该类记录，已有相关回答会收起。暂停数据采集则仍可回顾历史记录。已确认的提醒由你单独管理。</p><button class="plain-row" data-ai-action="reminders"><span>${icon('Bell')}管理已确认的提醒</span>${icon('ChevronRight')}</button><h3 class="sheet-section-title">预览建议出现的时机</h3><p class="subtle">演示时刻仅用于 AI 时机预览，首页记录仍截至 16:30。</p><div class="ai-settings-options" role="group" aria-label="演示时刻">${[990,1050,1080,1350].map(t=>`<button data-ai-clock="${t}" aria-pressed="${clock.minutes===t}">${hhmm(t)}</button>`).join('')}</div><p class="ai-preference-status">${isQuiet()?'当前处于免打扰时段。':snoozedUntil>clock.minutes?`这条建议将在 ${hhmm(snoozedUntil)} 再出现。`:'当前可展示主动建议。'}${dismissed?'这条示例建议已收起。':''}</p><button class="text-button" data-ai-action="reset-nudge">重新展示这条示例建议</button>`);
+    openSheet('AI 偏好与提醒',`<div class="ai-prefs-row"><div><strong>主动给我建议</strong><p>发现值得跟进的线索时，在 App 内提醒我。</p></div><button class="switch" role="switch" aria-checked="${prefs.proactive}" aria-label="主动给我建议" data-ai-pref="proactive"></button></div><h3 class="sheet-section-title">建议上限</h3><div class="ai-settings-options" role="group" aria-label="建议上限"><button data-ai-frequency="1" aria-pressed="${prefs.frequency===1}">有合适内容时最多 1 条</button><button data-ai-frequency="3" aria-pressed="${prefs.frequency===3}">有合适内容时最多 3 条</button></div><p class="subtle">没有可靠联系或有用建议时，不生成洞察，也不提醒。</p><div class="ai-prefs-row"><div><strong>免打扰时段</strong><p>此时收起主动建议，仍可主动向 AI 提问。</p></div><button class="switch" role="switch" aria-checked="${prefs.quiet}" aria-label="免打扰时段" data-ai-pref="quiet"></button></div><form id="aiQuietForm"><div class="ai-field-grid"><label class="note-field"><span>开始</span><input id="aiQuietStart" type="time" required value="${prefs.quietStart}"></label><label class="note-field"><span>结束（可跨天）</span><input id="aiQuietEnd" type="time" required value="${prefs.quietEnd}"></label></div><p id="aiQuietError" class="ai-inline-error" role="alert" hidden></p><button class="secondary-button" type="submit">保存时段</button></form><h3 class="sheet-section-title">允许 AI 使用的记录</h3>${Object.entries(scopeNames).map(([key,name])=>`<div class="ai-prefs-row"><div><strong>${name}</strong><p>${key==='audio'?'录音转写、讨论与随手说出的想法':key==='health'?'只描述记录，不推断健康状况':'你选择的图片与说明，未自动读取相册'}</p></div><button class="switch" role="switch" aria-checked="${prefs[key]}" aria-label="允许 AI 使用${name}" data-ai-pref="${key}"></button></div>`).join('')}<p class="source-footnote">关闭后，新回答不再使用该类记录，已有相关回答会收起。暂停数据采集则仍可回顾历史记录。已确认的提醒由你单独管理。</p><button class="plain-row" data-ai-action="reminders"><span>${icon('Bell')}管理已确认的提醒</span>${icon('ChevronRight')}</button><h3 class="sheet-section-title">预览建议出现的时机</h3><p class="subtle">演示时刻仅用于 AI 时机预览，首页记录仍截至 16:30。</p><div class="ai-settings-options" role="group" aria-label="演示时刻">${[990,1050,1080,1350].map(t=>`<button data-ai-clock="${t}" aria-pressed="${clock.minutes===t}">${hhmm(t)}</button>`).join('')}</div><p class="ai-preference-status">${isQuiet()?'当前处于免打扰时段。':snoozedUntil>clock.minutes?`这条建议将在 ${hhmm(snoozedUntil)} 再出现。`:'当前可展示主动建议。'}${dismissed?'这条示例建议已收起。':''}</p><button class="text-button" data-ai-action="reset-nudge">重新展示这条示例建议</button>`);
   }
   function setPreference(key){
     if(!(key in prefs))return;
@@ -194,6 +238,26 @@ window.createDaybookAI = function (app) {
   }
   document.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button)return;
+    if(button.dataset.appleEvidence){
+      captureDraft();const r=[...getRecords(19),...getRecords(18)].find(row=>row.id===button.dataset.appleEvidence);
+      if(r)openSheet('提醒来源',`<button class="text-button" data-apple-action="back">← 返回提醒草稿</button><h3>${esc(r.title)}</h3><p class="sheet-intro" translate="no">${esc(r.text||r.preview||r.summary||'')}</p><p class="source-footnote">来源留在 WiseLife，不添加到 Apple 提醒事项。</p>`);return;
+    }
+    if(button.dataset.applePreview){const r=reminders.find(r=>r.id===button.dataset.applePreview);if(r)apple.preview(r);return;}
+    if(button.dataset.appleRetry){const r=reminders.find(r=>r.id===button.dataset.appleRetry);if(r){if(apple.needsPermission()){draft={...r,evidence:[...r.evidence]};apple.permissionSheet();}else{apple.write(r);render();openReminders();}}return;}
+    if(button.dataset.appleAction||button.dataset.appleList){
+      if(!draft)return;
+      captureDraft();
+      if(button.dataset.appleList){draft.appleList=button.dataset.appleList;renderDraft();return;}
+      const action=button.dataset.appleAction;
+      if(action==='toggle'){draft.appleEnabled=!draft.appleEnabled;if(draft.appleEnabled&&apple.needsPermission())apple.permissionSheet();else renderDraft();}
+      if(action==='back')renderDraft();
+      if(action==='lists')apple.choose(draft);
+      if(action==='allow'){apple.setPermission('allowed');renderDraft();}
+      if(action==='decline'){apple.setPermission('denied');apple.denied();}
+      if(action==='local'){draft.appleEnabled=false;renderDraft();}
+      if(action==='settings')apple.settings();
+      return;
+    }
     if(button.dataset.aiAsk){if($('sheet').open)closeSheet();ask(button.dataset.aiAsk);return;}
     if(button.dataset.aiRemind){createDraft(button.dataset.aiRemind);return;}
     if(button.dataset.aiEdit){createDraft(null,button.dataset.aiEdit);return;}
@@ -201,13 +265,16 @@ window.createDaybookAI = function (app) {
       const r=reminders.find(r=>r.id===button.dataset.aiDelay);
       if(r){const time=clock.minutes+30;r.time=hhmm(time%1440);if(time>=1440)r.date='2026-10-20';render();toast(`已改为 ${reminderDate(r)}，仅在原型内演示。`);}return;
     }
-    if(button.dataset.aiDone){const r=reminders.find(r=>r.id===button.dataset.aiDone);if(r){r.done=true;if(r.origin==='scope')dismissed=true;render();openReminders();}return;}
-    if(button.dataset.aiDelete){const index=reminders.findIndex(r=>r.id===button.dataset.aiDelete);if(index>=0){reminders.splice(index,1);render();openReminders();toast('这条提醒已移除。');}return;}
+    if(button.dataset.aiDone){const r=reminders.find(r=>r.id===button.dataset.aiDone);if(r){r.done=true;apple.write(r);if(r.origin==='scope')dismissed=true;render();openReminders();}return;}
+    if(button.dataset.aiDelete){const r=reminders.find(r=>r.id===button.dataset.aiDelete);if(!r)return;if(r.appleId){openSheet('删除关联提醒？',`<p class="sheet-intro">确认后删除 WiseLife 和 Apple 中的两处示例任务。Apple 删除失败时，两处任务都会保留，可以重试。</p><div class="sheet-actions"><button class="secondary-button" data-ai-action="reminders">返回我的提醒</button><button class="primary-button" data-apple-delete-confirm="${r.id}">确认删除两处示例任务</button></div>`);}else{reminders.splice(reminders.indexOf(r),1);render();openReminders();}return;}
+    if(button.dataset.appleDeleteConfirm){const r=reminders.find(r=>r.id===button.dataset.appleDeleteConfirm);if(!r)return;if(apple.remove(r)){reminders.splice(reminders.indexOf(r),1);toast('已删除两处示例任务。');}else{toast('Apple 删除失败，两处示例任务仍保留，请重试。');}render();openReminders();return;}
     if(button.dataset.aiPref){setPreference(button.dataset.aiPref);return;}
     if(button.dataset.aiFrequency){prefs.frequency=Number(button.dataset.aiFrequency);preferences();document.querySelector(`[data-ai-frequency="${prefs.frequency}"]`)?.focus();return;}
     if(button.dataset.aiClock){clock.minutes=Number(button.dataset.aiClock);render();preferences();document.querySelector(`[data-ai-clock="${clock.minutes}"]`)?.focus();return;}
     const actions={
       preferences,reminders:openReminders,stop,date:()=>{stop();openCalendar();},
+      models:()=>{remotePreview=null;openModelSettings();},
+      'cancel-send':()=>{remotePreview=null;closeSheet();},'confirm-send':confirmSend,
       'nudge-why':openNudgeWhy,'nudge-options':openNudgeOptions,
       snooze:()=>{snoozedUntil=Math.min(1439,clock.minutes+60);render();closeSheet();toast(`已稍后再看，可在 AI 偏好中预览 ${hhmm(snoozedUntil)} 的状态。`);},
       dismiss:()=>{dismissed=true;render();closeSheet();toast('今天不再展示这条建议。');},
@@ -231,5 +298,10 @@ window.createDaybookAI = function (app) {
     if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();ask($('aiQuestion').value);}
   });
   window.addEventListener('pagehide',()=>{clearTimeout(pending?.timer);});
-  return {render};
+  $('sheet').addEventListener('close',()=>{if(!$('sheet').open)remotePreview=null;});
+  document.addEventListener('daybook-provider-change',()=>{
+    if(pending&&pending.turn.provider.revision!==getProvider().revision){stop();toast('服务或授权已变化，请重新提问。');}
+    render();
+  });
+  return {render,openReminders,createDraft};
 };

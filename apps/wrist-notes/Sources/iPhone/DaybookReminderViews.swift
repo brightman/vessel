@@ -46,7 +46,7 @@ struct DaybookReminderListView: View {
                 .disabled(!store.isAvailable || store.isBusy)
                 .padding(.top, 16)
                 DaybookNotificationStatus(store: store).padding(.top, 18)
-                SettingsFootnote(text: "提醒保存在本机，由 iPhone 系统通知。已确认的提醒与 AI 主动建议分别管理。")
+                SettingsFootnote(text: "未关联 Apple 的提醒使用 WiseLife 本地通知。关联后由 Apple 提醒事项负责通知；内容是否同步由所选列表的账户设置决定。")
                     .padding(.top, 12)
             }
         }
@@ -66,7 +66,11 @@ struct DaybookReminderListView: View {
                 deletingReminder = nil
                 Task { await store.delete(reminder.id) }
             }
-        } message: { Text("已安排的通知也会取消。") }
+        } message: {
+            Text(deletingReminder?.appleLink == nil
+                 ? "已安排的通知也会取消。"
+                 : "将删除 WiseLife 待办和关联的 Apple 提醒事项。若系统删除失败，会保留待办供你重试。")
+        }
         .task { await store.refreshAuthorization() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await store.refreshAuthorization() } }
@@ -82,6 +86,21 @@ struct DaybookReminderListView: View {
             }
             Text(reminder.scheduledAt.formatted(.dateTime.month().day().hour().minute()) + " · " + reminder.statusTitle)
                 .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+            if let link = reminder.appleLink {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(LocalizedStringKey(link.statusTitle), systemImage: "checklist")
+                        .foregroundStyle(link.state == .linked ? DaybookStyle.green : DaybookStyle.red)
+                    Text(verbatim: link.list.title + " · " + link.list.accountTitle)
+                        .foregroundStyle(DaybookStyle.secondary)
+                    if let error = link.lastError {
+                        Text(LocalizedStringKey(error)).foregroundStyle(DaybookStyle.red)
+                    }
+                    if link.state == .failed || link.state == .missing {
+                        Button("重试 Apple 同步") { Task { await store.retryApple(reminder.id) } }
+                            .foregroundStyle(DaybookStyle.accent).disabled(store.isBusy)
+                    }
+                }.font(.system(size: 11)).lineSpacing(5)
+            }
             if let sourceID = reminder.sourceID, let onOpenRecord {
                 if let title = sourceTitle(sourceID) {
                     Button { onOpenRecord(sourceID) } label: {
@@ -97,7 +116,11 @@ struct DaybookReminderListView: View {
                 if reminder.status == .scheduled || reminder.status == .needsAttention {
                     Button("修改时间 / 内容") { editingReminder = reminder }
                     Button("标记完成") { Task { await store.complete(reminder.id) } }
-                    Button("取消提醒") { Task { await store.cancel(reminder.id) } }
+                    if reminder.appleLink != nil {
+                        Button("移除") { deletingReminder = reminder }
+                    } else {
+                        Button("取消提醒") { Task { await store.cancel(reminder.id) } }
+                    }
                 } else {
                     Button("重新安排") { editingReminder = reminder }
                     Button("移除") { deletingReminder = reminder }
@@ -121,6 +144,10 @@ struct DaybookReminderEditor: View {
     @State private var title: String
     @State private var scheduledAt: Date
     @State private var submitting = false
+    @State private var addToApple: Bool
+    @State private var selectedListID: String
+    @State private var confirmUnlink = false
+    @State private var draftID = UUID()
 
     init(store: DaybookReminderStore, proposedTitle: String, reminder: DaybookReminder? = nil,
          sourceID: UUID? = nil, initialDate: Date? = nil, sourceTitle: String? = nil) {
@@ -129,14 +156,21 @@ struct DaybookReminderEditor: View {
         self.sourceID = sourceID ?? reminder?.sourceID
         self.sourceTitle = sourceTitle
         _title = State(initialValue: reminder?.title ?? proposedTitle)
+        _addToApple = State(initialValue: reminder?.appleLink != nil)
+        _selectedListID = State(initialValue: reminder?.appleLink?.list.id ?? "")
         let defaultDate = Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? Date.now.addingTimeInterval(3600)
         _scheduledAt = State(initialValue: reminder?.scheduledAt ?? initialDate ?? defaultDate)
     }
 
     private var canConfirm: Bool {
-        !submitting && !store.isBusy && store.isAvailable &&
+        !submitting && !store.isBusy && !store.isLoadingApple && store.isAvailable &&
+        (!addToApple || (store.appleAccess == .authorized && selectedAppleList != nil)) &&
         (try? DaybookReminder.validatedTitle(title)) != nil &&
         (try? DaybookReminder.validateDate(scheduledAt)) != nil
+    }
+
+    private var selectedAppleList: AppleReminderList? {
+        store.appleLists.first { $0.id == selectedListID }
     }
 
     var body: some View {
@@ -182,30 +216,85 @@ struct DaybookReminderEditor: View {
                     .overlay(alignment: .leading) { Rectangle().fill(DaybookStyle.accent.opacity(0.45)).frame(width: 2) }
                     .padding(.vertical, 4)
                 }
-                SettingsFootnote(text: "确认后会设置 iPhone 本地通知。你确认的提醒与 AI 主动建议分别管理，可随时修改或取消。")
-                    .padding(.top, 13)
-                DaybookNotificationStatus(store: store).padding(.top, 13)
+                appleDestination.padding(.top, 20)
+                if !addToApple {
+                    SettingsFootnote(text: "确认后会设置 iPhone 本地通知。你确认的提醒与 AI 主动建议分别管理，可随时修改或取消。")
+                        .padding(.top, 13)
+                    DaybookNotificationStatus(store: store).padding(.top, 13)
+                }
                 if let error = store.errorMessage {
                     Text(error).font(.system(size: 12)).lineSpacing(7).foregroundStyle(DaybookStyle.red)
                         .padding(.top, 12)
                 }
-                DaybookSettingsActions(cancel: { dismiss() }, save: save,
+                DaybookSettingsActions(cancel: { dismiss() }, save: {
+                    if (store.items.first { $0.id == (reminder?.id ?? draftID) })?.appleLink != nil && !addToApple { confirmUnlink = true }
+                    else { save() }
+                },
                                        canSave: canConfirm, saveTitle: reminder == nil ? "确认提醒" : "保存修改",
                                        isSaving: submitting, canCancel: !submitting)
                     .padding(.top, 22)
             }
         }
         .interactiveDismissDisabled(submitting)
-        .task { await store.refreshAuthorization() }
+        .confirmationDialog("改用 WiseLife 本地通知？", isPresented: $confirmUnlink, titleVisibility: .visible) {
+            Button("删除 Apple 任务并改用本地通知", role: .destructive, action: save)
+        } message: {
+            Text("会先删除关联的 Apple 提醒事项，再安排本地通知。删除失败时保留关联，避免重复提醒。")
+        }
+        .task {
+            await store.refreshAuthorization()
+            chooseDefaultList()
+        }
+        .onChange(of: store.appleLists) { _, _ in chooseDefaultList() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await store.refreshAuthorization() } }
         }
     }
 
+    private var appleDestination: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle("同时添加到 Apple 提醒事项", isOn: $addToApple)
+                .font(.system(size: 13)).tint(DaybookStyle.accent)
+                .disabled(submitting)
+            if addToApple {
+                SettingsFootnote(text: "仅添加提醒内容与时间，不包含原始录音或全文。选择 iCloud 等账户下的列表时，将按该账户设置同步。")
+                if store.appleAccess == .notDetermined {
+                    SettingsFootnote(text: "需要提醒事项完整访问权限，以创建、更新和移除你关联的任务。")
+                    Button("允许访问提醒事项") { Task { await store.requestAppleAccess() } }
+                        .buttonStyle(DaybookSettingsButtonStyle())
+                        .disabled(store.isLoadingApple)
+                } else if store.appleAccess != .authorized {
+                    Text("请在系统设置中允许提醒事项访问。已有 Apple 关联需恢复权限后才能安全移除；新待办可关闭此选项使用本地通知。")
+                        .font(.system(size: 11)).foregroundStyle(DaybookStyle.red)
+                    Button("打开系统设置") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                    }.buttonStyle(DaybookSettingsButtonStyle())
+                } else if !store.appleLists.isEmpty {
+                    Picker("提醒事项列表", selection: $selectedListID) {
+                        if selectedAppleList == nil { Text("请选择列表").tag("") }
+                        ForEach(store.appleLists) { list in
+                            Text(verbatim: list.title + " · " + list.accountTitle).tag(list.id)
+                        }
+                    }.tint(DaybookStyle.accent)
+                }
+                if store.isLoadingApple { ProgressView() }
+                if let error = store.appleError {
+                    Text(LocalizedStringKey(error)).font(.system(size: 11)).foregroundStyle(DaybookStyle.red)
+                }
+                SettingsFootnote(text: "关联后由 Apple 提醒事项负责通知，WiseLife 不再重复通知。添加失败时待办仍保留在“我的提醒”中，可重试或改用本地通知。")
+            }
+        }
+    }
+
+    private func chooseDefaultList() {
+        // Keep an existing choice if its account temporarily disappears; never silently move it.
+        if selectedListID.isEmpty, let first = store.appleLists.first { selectedListID = first.id }
+    }
+
     private func save() {
         submitting = true
         Task {
-            let saved = await store.confirm(title: title, scheduledAt: scheduledAt, sourceID: sourceID, editingID: reminder?.id)
+            let saved = await store.confirm(title: title, scheduledAt: scheduledAt, sourceID: sourceID, editingID: reminder?.id, appleList: addToApple ? selectedAppleList : nil, newID: draftID)
             submitting = false
             if saved { dismiss() }
         }
@@ -268,6 +357,9 @@ struct DaybookPreferencesView: View {
                 sectionTitle("允许 AI 使用的记录")
                 preferenceRow("语音与闪念", detail: "录音转写、讨论与随手说出的想法", isOn: $preferences.allowAudio)
                 preferenceRow("图片与说明", detail: "你选择的图片与说明，未自动读取相册", isOn: $preferences.allowPhotos)
+                preferenceRow("健康快照", detail: "已保存的步数和睡眠；默认关闭", isOn: $preferences.allowHealth)
+                preferenceRow("日历快照", detail: "已保存的日程背景；默认关闭", isOn: $preferences.allowCalendar)
+                preferenceRow("地点快照", detail: "前台保存时的坐标；默认关闭", isOn: $preferences.allowLocation)
                 SettingsFootnote(text: "关闭后，新回答不再使用该类记录，已有相关回答会收起。原始录音与照片保留在本机；已确认的提醒由你单独管理。")
                     .padding(.top, 16)
                 Button { showReminders = true } label: {
@@ -309,11 +401,11 @@ struct DaybookPreferencesView: View {
     private func preferenceRow(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
-                Text(detail).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineSpacing(7)
+                Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+                Text(LocalizedStringKey(detail)).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineSpacing(7)
                     .fixedSize(horizontal: false, vertical: true)
             }.frame(maxWidth: .infinity, alignment: .leading)
-            Toggle(title, isOn: isOn).labelsHidden().tint(DaybookStyle.accent)
+            Toggle(LocalizedStringKey(title), isOn: isOn).labelsHidden().tint(DaybookStyle.accent)
                 .scaleEffect(0.81, anchor: .trailing).frame(width: 42, height: 25)
         }
         .padding(.vertical, 17)
@@ -322,7 +414,7 @@ struct DaybookPreferencesView: View {
 
     private func frequencyButton(_ value: Int, title: String) -> some View {
         Button { preferences.dailySuggestionLimit = value } label: {
-            Text(title).font(.system(size: 11))
+            Text(LocalizedStringKey(title)).font(.system(size: 11))
                 .foregroundStyle(preferences.dailySuggestionLimit == value ? DaybookStyle.accent : DaybookStyle.secondary)
                 .frame(maxWidth: .infinity).padding(.horizontal, 8).padding(.vertical, 12)
                 .background(preferences.dailySuggestionLimit == value ? DaybookStyle.blueSoft : DaybookStyle.white,

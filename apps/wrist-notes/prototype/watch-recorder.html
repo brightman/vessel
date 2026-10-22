@@ -326,9 +326,8 @@
     const HOLD_DELAY_MS = 450;
 
     function formatDuration(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const remainder = seconds % 60;
-      return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+      const total=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;
+      return `${Math.floor(total/3600)}小时${Math.floor(total/60)%60}分${total%60}秒`;
     }
 
     function localTime(date) {

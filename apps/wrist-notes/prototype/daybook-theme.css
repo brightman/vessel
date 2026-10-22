@@ -2,6 +2,7 @@
 .daybook-preferences{margin:0 0 26px;border-top:1px solid var(--line)}
 .daybook-preferences .daybook-language-row{margin:0}
 html[lang="ja"] .design-note h1{font-size:34px;letter-spacing:-1.5px;word-break:keep-all}
+html[lang="ja"] .wiselife-site .product-demo-title{font-size:32px;letter-spacing:-1px;word-break:keep-all}
 :root[data-appearance="dark"]{
   color-scheme:dark;
   --ink:#e9edf1;--secondary:#a6b3bf;--muted:#9aabb9;--line:#303943;
@@ -35,6 +36,11 @@ html[lang="ja"] .design-note h1{font-size:34px;letter-spacing:-1.5px;word-break:
 :root[data-appearance="dark"] .capture-button,
 :root[data-appearance="dark"] .primary-button{color:#11171d}
 :root[data-appearance="dark"] .insight-card{background:linear-gradient(115deg,#202e3c,#192733);border-color:#303e4b}
+:root[data-appearance="dark"] .recap-card{background:#24282b;border-color:#363b3e}
+:root[data-appearance="dark"] .recap-label,:root[data-appearance="dark"] .recap-status,:root[data-appearance="dark"] .recap-open{color:#b9aa97}
+:root[data-appearance="dark"] .recap-open{border-color:#363b3e}
+:root[data-appearance="dark"] .insight-preview-tag{border-color:#405667;color:#a7c3d5}
+:root[data-appearance="dark"] .insight-source-line{color:#a7bccc}
 :root[data-appearance="dark"] .insight-card p,
 :root[data-appearance="dark"] .ai-nudge p,
 :root[data-appearance="dark"] .ai-answer p,

@@ -7,7 +7,7 @@ watch_target = project.targets.find { |target| target.name == 'WristNotesWatch' 
 abort 'WristNotesWatch target is missing' unless watch_target
 
 watch_sources = watch_target.source_build_phase.files_references.map { |reference| File.basename(reference.path) }
-required_sources = %w[RecordingButtonInteraction.swift WatchConnectivityStatus.swift]
+required_sources = %w[RecordingButtonInteraction.swift WatchConnectivityStatus.swift SegmentedAudioCapture.swift WatchRecordingSessionStore.swift WatchChunkTransferQueue.swift]
 missing_project_sources = required_sources - watch_sources
 abort "Watch target is missing sources: #{missing_project_sources.join(', ')}" unless missing_project_sources.empty?
 
@@ -46,9 +46,35 @@ abort 'Project generator does not preserve selected development teams' unless
 
 puts 'Watch app icon resource: passed'
 
+abort 'Watch target is missing the shared app localization catalog' unless
+  watch_target.resources_build_phase.files_references.any? { |reference| reference.path == 'Localizable.xcstrings' }
+puts 'Watch localized session resources: passed'
+
 phone_target = project.targets.find { |target| target.name == 'WristNotes' }
 phone_sources = phone_target.source_build_phase.files_references.map { |reference| File.basename(reference.path) }
 required_phone_sources = Dir.glob(File.join(root, 'Sources/iPhone/*.swift')).map { |path| File.basename(path) }
 abort 'iPhone target source membership is incomplete' unless (required_phone_sources - phone_sources).empty?
 abort 'Generator iPhone source list is incomplete' unless required_phone_sources.all? { |source| generator.include?(source) }
 puts 'iPhone project source membership: passed'
+
+session_sources = %w[RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift]
+abort 'Recording session sources must belong to iPhone and Watch' unless
+  (session_sources - phone_sources).empty? && (session_sources - watch_sources).empty?
+abort 'Generator recording session sources are incomplete' unless session_sources.all? { |source| generator.include?(source) }
+puts 'Recording session shared source membership: passed'
+
+widget_target = project.targets.find { |target| target.name == 'WiseLifeRecordingActivity' }
+abort 'Recording widget extension target is missing' unless widget_target
+widget_sources = widget_target.source_build_phase.files_references.map { |reference| File.basename(reference.path) }
+abort 'Recording session sources leaked into widget target' unless (session_sources & widget_sources).empty?
+shared_recording_sources = Dir.glob(File.join(root, 'Sources/RecordingShared/*.swift')).map { |path| File.basename(path) }
+widget_only_sources = Dir.glob(File.join(root, 'Sources/RecordingActivity/*.swift')).map { |path| File.basename(path) }
+abort 'Shared recording source membership is incomplete' unless
+  (shared_recording_sources - phone_sources).empty? && (shared_recording_sources - widget_sources).empty?
+abort 'Widget source membership is incomplete' unless (widget_only_sources - widget_sources).empty?
+abort 'Recording widget sources leaked into Watch target' unless
+  ((shared_recording_sources + widget_only_sources) & watch_sources).empty?
+abort 'Widget-only sources leaked into iPhone app target' unless (widget_only_sources & phone_sources).empty?
+abort 'Generator recording source list is incomplete' unless
+  (shared_recording_sources + widget_only_sources).all? { |source| generator.include?(source) }
+puts 'Recording widget and shared intent source membership: passed'

@@ -48,12 +48,12 @@ window.createDaybookPhotos=function(app){
     event.preventDefault();if(!images.length)return;saveCaption();
     const photos=images;images=[];generation++;
     const description=caption.trim(),ocr=photos.filter(p=>p.demo).map(()=>demoText).join('\n\n');
-    const record={id:`image-${Date.now()}-${++serial}`,kind:'image',title:description?description.slice(0,32):'留住的一刻',preview:description||`${photos.length} 张图片 · ${origin}`,source:`iPhone · ${origin}`,images:photos,caption:description,ocr,summary:description||'还没有补充说明。',text:[description,ocr].filter(Boolean).join('\n\n'),tags:[`${photos.length} 张图片`]};
+    const record={id:`image-${Date.now()}-${++serial}`,kind:'image',title:description?description.slice(0,32):'留住的一刻',preview:description||`${photos.length} 张图片 · ${origin}`,source:origin,captureDevice:origin==='拍照'?'camera':undefined,importMethod:origin,images:photos,caption:description,ocr,summary:description||'还没有补充说明。',text:[description,ocr].filter(Boolean).join('\n\n'),tags:[`${photos.length} 张图片`]};
     caption='';onSave(record);
   }
   function openRecord(record){
     activeRecord=record;
-    openSheet(record.title,`<div class="detail-meta">10月${record.day}日 ${record.time} · ${esc(record.source)} · ${record.images.length} 张图片</div><div class="photo-grid photo-detail-grid">${record.images.map((p,i)=>`<button class="photo-tile" data-photo-original="${i}" aria-label="查看第 ${i+1} 张原图"><img src="${esc(p.url)}" alt="${esc(p.name)}">${p.demo?'<span class="photo-demo-tag">示例图</span>':''}</button>`).join('')}</div><h3 class="sheet-section-title">补充说明</h3><p class="photo-caption">${esc(record.caption||'没有补充说明，也可以先留住画面。')}</p><h3 class="sheet-section-title">图片文字</h3><p class="photo-caption">${esc(record.ocr||'尚未识别。原型保留图片，不生成真实 OCR 或图片总结。')}</p>${record.ocr?'<p class="source-footnote">以上文字是示例图的预置内容；你选择的其他图片尚未识别。</p>':''}<button class="secondary-button wide" data-ai-ask="这一天的图片记录了什么？">${icon('MessageCircle')}问问 AI 这些图片</button>`);
+    openSheet(record.title,`<div class="detail-meta">10月${record.day}日 ${record.time} · ${esc(record.source)} · ${record.images.length} 张图片</div>${app.sourceDetail?.(record)||''}${app.placeDetail?.(record)||''}<div class="photo-grid photo-detail-grid">${record.images.map((p,i)=>`<button class="photo-tile" data-photo-original="${i}" aria-label="查看第 ${i+1} 张原图"><img src="${esc(p.url)}" alt="${esc(p.name)}">${p.demo?'<span class="photo-demo-tag">示例图</span>':''}</button>`).join('')}</div><h3 class="sheet-section-title">补充说明</h3><p class="photo-caption">${esc(record.caption||'没有补充说明，也可以先留住画面。')}</p><h3 class="sheet-section-title">图片文字</h3><p class="photo-caption">${esc(record.ocr||'尚未识别。原型保留图片，不生成真实 OCR 或图片总结。')}</p>${record.ocr?'<p class="source-footnote">以上文字是示例图的预置内容；你选择的其他图片尚未识别。</p>':''}<button class="secondary-button wide" data-ai-ask="这一天的图片记录了什么？">${icon('MessageCircle')}问问 AI 这些图片</button>`);
   }
   function original(index){
     if(!activeRecord?.images[index])return;

@@ -22,8 +22,10 @@ struct AppleSpeechResources {
         }.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
     func status(locale: String) async -> SpeechResourceState {
-        guard SpeechTranscriber.isAvailable,
-              let resolved = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: locale)) else {
+        guard SpeechTranscriber.isAvailable else {
+            return .unavailable(TranscriptionResourceError.appleUnavailableMessage)
+        }
+        guard let resolved = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: locale)) else {
             return .unavailable(TranscriptionResourceError.unsupported.localizedDescription)
         }
         let module = SpeechTranscriber(locale: resolved, preset: .transcription)
@@ -42,8 +44,8 @@ struct AppleSpeechResources {
         }
     }
     func download(locale: String, progress: @escaping @Sendable (SpeechDownloadProgress) -> Void) async throws {
-        guard SpeechTranscriber.isAvailable,
-              let resolved = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: locale)) else {
+        guard SpeechTranscriber.isAvailable else { throw TranscriptionFailure.deviceUnsupported }
+        guard let resolved = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: locale)) else {
             throw TranscriptionResourceError.unsupported
         }
         try await AppleSpeechReservationCoordinator.shared.withReservation(locale: resolved.identifier) {

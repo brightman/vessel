@@ -12,6 +12,13 @@ final class DaybookPreferences: ObservableObject {
     @Published var allowPhotos: Bool {
         didSet { defaults.set(allowPhotos, forKey: key("allowPhotos")) }
     }
+    @Published var allowHealth: Bool { didSet { defaults.set(allowHealth, forKey: key("allowHealth")) } }
+    @Published var allowCalendar: Bool { didSet { defaults.set(allowCalendar, forKey: key("allowCalendar")) } }
+    @Published var allowLocation: Bool { didSet { defaults.set(allowLocation, forKey: key("allowLocation")) } }
+    func allows(_ kind: DayRecord.Kind) -> Bool {
+        switch kind { case .voice, .thought: allowAudio; case .image: allowPhotos; case .activity, .sleep: allowHealth; case .calendar: allowCalendar; case .location: allowLocation }
+    }
+    var allowedKinds: Set<DayRecord.Kind> { Set([DayRecord.Kind.voice, .thought, .image, .activity, .sleep, .calendar, .location].filter(allows)) }
     @Published var quietEnabled: Bool {
         didSet { defaults.set(quietEnabled, forKey: key("quietEnabled")) }
     }
@@ -52,6 +59,9 @@ final class DaybookPreferences: ObservableObject {
         proactiveEnabled = bool("proactiveEnabled", fallback: true)
         allowAudio = bool("allowAudio", fallback: true)
         allowPhotos = bool("allowPhotos", fallback: true)
+        allowHealth = bool("allowHealth", fallback: false)
+        allowCalendar = bool("allowCalendar", fallback: false)
+        allowLocation = bool("allowLocation", fallback: false)
         quietEnabled = bool("quietEnabled", fallback: true)
         quietStartMinutes = integer("quietStartMinutes", fallback: 22 * 60, range: 0...1439)
         quietEndMinutes = integer("quietEndMinutes", fallback: 8 * 60, range: 0...1439)

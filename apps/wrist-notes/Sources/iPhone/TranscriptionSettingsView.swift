@@ -61,16 +61,20 @@ struct TranscriptionSettingsView: View {
                     }
                     SettingsFootnote(text: "多语言模型下载一次，其支持的语言共用；切换语言不需要重新下载。更大模型通常占用更多存储与内存。")
                         .padding(.top, -5)
-                    SettingsFootnote(text: "Tiny / Base / Small 下载约 80 MB / 150 MB / 490 MB。首次加载可能需要一些时间。")
+                    SettingsFootnote(text: "Tiny / Base / Small 下载约 80 MB / 150 MB / 490 MB，另含约 11 MB 的说话人模型和 8 MB 的声纹模型。首次加载可能需要一些时间。")
                         .padding(.top, -9)
                 }
             }.padding(.top, 18)
             resourceStatus.padding(.vertical, 20)
-            SettingsFootnote(text: "资源就绪后可保存。请保持此页面打开直至下载完成；关闭或切换资源会取消当前下载，已完成的资源会保留。")
+            SettingsFootnote(text: "转写、说话人和我的声音资源会一并下载，已有资源直接复用。声音登记后可在本机匹配我的发言。请保持页面打开，关闭或切换资源会取消下载，已完成的部分会保留。")
             SettingsFootnote(text: editor.configuration.engine == .apple
-                ? "语言包由系统管理，音频留在本机。"
-                : "模型来自 Hugging Face 上的 Argmax / OpenAI 公共仓库。下载后在本机转写，录音不会上传。")
+                ? "语言包由系统管理；说话人与声纹模型来自 Argmax / FluidInference 公共仓库。音频留在本机。"
+                : "模型来自 Hugging Face 上的 Argmax / OpenAI / FluidInference 公共仓库。下载后在本机处理，录音不会上传。")
                 .padding(.top, 10)
+            Link("说话人模型：Argmax / pyannote · CC BY 4.0", destination: URL(string: "https://huggingface.co/argmaxinc/speakerkit-coreml")!)
+                .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.top, 8)
+            Link("声纹模型：FluidInference / WeSpeaker · CC BY 4.0", destination: URL(string: "https://huggingface.co/FluidInference/speaker-diarization-coreml")!)
+                .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.top, 8)
         }
         .task { await editor.refresh() }
         .onChange(of: scenePhase) { _, phase in if phase == .active && !editor.isDownloading { editor.scheduleRefresh() } }
@@ -82,18 +86,18 @@ struct TranscriptionSettingsView: View {
 
     private var resourceStatus: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(editor.configuration.resourceName + " · " + resourceStateTitle)
+            Text("\(editor.configuration.resourceName) · 说话人与我的声音 · \(NSLocalizedString(resourceStateTitle, comment: ""))")
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
             switch editor.state {
             case .checking:
                 HStack(spacing: 8) { ProgressView().controlSize(.small); Text("正在检查资源…") }
             case .ready:
-                Text("可保存设置，应用于后续转写任务。").foregroundStyle(DaybookStyle.secondary)
+                Text("转写、说话人和我的声音资源已就绪，可保存设置。").foregroundStyle(DaybookStyle.secondary)
             case .unavailable(let message):
                 Text(message).foregroundStyle(DaybookStyle.secondary)
                 Button("重新检查") { editor.scheduleRefresh() }.buttonStyle(DaybookSettingsButtonStyle())
             case .missing:
-                Text("下载完成后才可保存。已有系统资源会直接复用。").foregroundStyle(DaybookStyle.secondary)
+                Text("只补全缺少的资源，已下载的模型和语言包会直接复用。").foregroundStyle(DaybookStyle.secondary)
                 downloadButton
             case .failed(let message):
                 Text(message).foregroundStyle(DaybookStyle.red)
@@ -129,7 +133,7 @@ struct TranscriptionSettingsView: View {
     }
 
     private var downloadButton: some View {
-        Button(editor.configuration.engine == .apple ? "下载语言包" : "下载多语言模型") { editor.startDownload() }
+        Button("下载或补全离线资源") { editor.startDownload() }
             .buttonStyle(DaybookSettingsButtonStyle())
     }
 }

@@ -14,6 +14,7 @@ private final class TestNotificationScheduler: DaybookReminderScheduling {
     var afterSchedule: (() -> Void)?
     var scheduleContinuation: CheckedContinuation<Void, Never>?
     var pauseSchedule = false
+    var afterPendingSnapshot: (() async -> Void)?
 
     func authorization() async -> DaybookNotificationAuthorization { permission }
     func requestAuthorization() async throws -> DaybookNotificationAuthorization {
@@ -30,11 +31,52 @@ private final class TestNotificationScheduler: DaybookReminderScheduling {
         if failSchedule { throw DaybookReminderError.notificationFailure }
     }
     func remove(ids: [String]) async { ids.forEach { scheduled[$0] = nil } }
-    func pendingIDs() async -> Set<String> { Set(scheduled.keys) }
+    func pendingIDs() async -> Set<String> {
+        let snapshot = Set(scheduled.keys)
+        if let action = afterPendingSnapshot {
+            afterPendingSnapshot = nil
+            await action()
+        }
+        return snapshot
+    }
 }
 
 @main
 struct DaybookReminderSmoke {
+    @MainActor
+    static func multipleCoordinatorReconciliation(root: URL, future: Date) async throws {
+        let scheduler = TestNotificationScheduler()
+        let a = DaybookReminderCoordinator(repository: try DaybookReminderRepository(root: root), scheduler: scheduler)
+        let b = DaybookReminderCoordinator(repository: try DaybookReminderRepository(root: root), scheduler: scheduler)
+        let first = try await a.confirm(title: "Other instance reminder", scheduledAt: future)
+        expect(b.items.isEmpty, "second repository begins stale")
+        try await b.reconcile()
+        expect(scheduler.scheduled[first.notificationID] == first, "stale reconciliation must preserve another instance's valid notification")
+        expect(b.items == [first], "reconciliation refreshes durable rows even without local changes")
+
+        // A notification is already pending while its confirmation awaits scheduling completion.
+        scheduler.pauseSchedule = true
+        let confirmation = Task { try await a.confirm(title: "Confirmation in flight", scheduledAt: future.addingTimeInterval(60)) }
+        while scheduler.scheduleContinuation == nil { await Task.yield() }
+        let inFlightIDs = Set(scheduler.scheduled.keys).subtracting([first.notificationID])
+        expect(inFlightIDs.count == 1, "confirmation scheduled exactly one candidate")
+        try await b.reconcile()
+        expect(inFlightIDs.isSubset(of: Set(scheduler.scheduled.keys)), "reconciliation preserves another coordinator's in-flight notification")
+        scheduler.scheduleContinuation?.resume()
+        scheduler.scheduleContinuation = nil
+        _ = try await confirmation.value
+        scheduler.pauseSchedule = false
+
+        // The queue snapshot predates a confirmation that commits while pendingIDs suspends.
+        var concurrent: DaybookReminder?
+        scheduler.afterPendingSnapshot = {
+            concurrent = try! await a.confirm(title: "Committed during queue read", scheduledAt: future.addingTimeInterval(120))
+        }
+        try await b.reconcile()
+        let latest = try DaybookReminderRepository(root: root).items.first { $0.id == concurrent?.id }
+        expect(latest?.status == .scheduled && scheduler.scheduled[concurrent!.notificationID] == concurrent, "queue snapshot cannot demote or remove a concurrent confirmation")
+    }
+
     @MainActor
     static func main() async throws {
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("daybook-reminders-\(UUID())", isDirectory: true)
@@ -86,17 +128,15 @@ struct DaybookReminderSmoke {
         scheduler.afterSchedule = nil
         scheduler.permission = .authorized
 
-        // A real filesystem obstruction makes atomic persistence fail after scheduling.
-        let backup = temporary.appendingPathComponent("RemindersBackup", isDirectory: true)
+        // Abort the actual metadata write after scheduling to verify notification compensation.
+        let database = try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
         scheduler.afterSchedule = {
-            try! FileManager.default.moveItem(at: root, to: backup)
-            try! Data("blocked".utf8).write(to: root)
+            try! database.execute("CREATE TRIGGER fail_reminder_update BEFORE UPDATE ON daybook_reminders BEGIN SELECT RAISE(ABORT,'injected'); END")
         }
         do { _ = try await coordinator.confirm(title: "磁盘失败", scheduledAt: future, editingID: first.id); fatalError("ignored storage failure") }
         catch {}
         expect(coordinator.items == [first] && scheduler.scheduled == [first.notificationID: first], "failed persistence rolls back candidate notification and memory")
-        try FileManager.default.removeItem(at: root)
-        try FileManager.default.moveItem(at: backup, to: root)
+        try database.execute("DROP TRIGGER fail_reminder_update")
         scheduler.afterSchedule = nil
         expect(try DaybookReminderRepository(root: root).items == [first], "failed persistence leaves old index intact")
 
@@ -104,12 +144,10 @@ struct DaybookReminderSmoke {
         expect(edited.id == first.id && edited.sourceID == sourceID && edited.notificationID != first.notificationID, "edit preserves identity and renews notification")
         expect(scheduler.scheduled == [edited.notificationID: edited], "successful edit removes old notification")
 
-        try FileManager.default.moveItem(at: root, to: backup)
-        try Data("blocked".utf8).write(to: root)
+        try database.execute("CREATE TRIGGER fail_reminder_update BEFORE UPDATE ON daybook_reminders BEGIN SELECT RAISE(ABORT,'injected'); END")
         do { try await coordinator.cancel(edited.id); fatalError("ignored cancellation persistence failure") } catch {}
         expect(coordinator.items == [edited] && scheduler.scheduled == [edited.notificationID: edited], "failed cancellation keeps active reminder")
-        try FileManager.default.removeItem(at: root)
-        try FileManager.default.moveItem(at: backup, to: root)
+        try database.execute("DROP TRIGGER fail_reminder_update")
         try await coordinator.cancel(edited.id)
         expect(coordinator.items[0].status == .cancelled && scheduler.scheduled.isEmpty, "cancel persists and removes notification")
         expect(try DaybookReminderRepository(root: root).items[0].status == .cancelled, "cancel survives restart")
@@ -166,6 +204,8 @@ struct DaybookReminderSmoke {
         try corruptData.write(to: corruptURL)
         do { _ = try DaybookReminderRepository(root: corruptRoot); fatalError("silently reset corrupt reminders") } catch {}
         expect(try Data(contentsOf: corruptURL) == corruptData, "opening corrupt data must not replace it")
+
+        try await multipleCoordinatorReconciliation(root: temporary.appendingPathComponent("SharedCoordinators"), future: future)
 
         let suite = "daybook-preferences-\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!

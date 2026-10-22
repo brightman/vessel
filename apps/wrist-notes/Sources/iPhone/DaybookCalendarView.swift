@@ -3,14 +3,16 @@ import SwiftUI
 struct DaybookCalendarView: View {
     @Binding var selectedDate: Date
     let recordDates: [Date]
+    var onMonthChange: (Date) -> Void = { _ in }
     @Environment(\.dismiss) private var dismiss
     @State private var month: Date
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 7)
 
-    init(selectedDate: Binding<Date>, recordDates: [Date]) {
+    init(selectedDate: Binding<Date>, recordDates: [Date], onMonthChange: @escaping (Date) -> Void = { _ in }) {
         _selectedDate = selectedDate
         self.recordDates = recordDates
+        self.onMonthChange = onMonthChange
         _month = State(initialValue: Calendar.current.dateInterval(of: .month, for: selectedDate.wrappedValue)?.start ?? selectedDate.wrappedValue)
     }
     private var monthStart: Date { calendar.dateInterval(of: .month, for: month)?.start ?? month }
@@ -42,6 +44,8 @@ struct DaybookCalendarView: View {
                     .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.top, 17).padding(.bottom, 3)
             }
         }
+        .onAppear { onMonthChange(month) }
+        .onChange(of: month) { _, value in onMonthChange(value) }
     }
     private func dayCell(_ date: Date) -> some View {
         let selected = calendar.isDate(date, inSameDayAs: selectedDate)

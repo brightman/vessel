@@ -109,7 +109,7 @@ final class DaybookSuggestionStore: ObservableObject {
     }
 
     private func isAllowed(_ record: DayRecord, preferences: DaybookPreferences, now: Date) -> Bool {
-        let allowedSource = record.kind == .image ? preferences.allowPhotos : preferences.allowAudio
+        let allowedSource = preferences.allows(record.kind)
         return allowedSource && record.capturedAt <= now &&
             Calendar.current.isDate(record.capturedAt, inSameDayAs: now) &&
             !record.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

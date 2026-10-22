@@ -1,0 +1,28 @@
+# SQLite Vector 1.1.2
+
+Official source: https://github.com/sqliteai/sqlite-vector/tree/1.1.2
+Commit: 0c2223ada9dce1fa33248c8835a15f51d9a0f655
+License: Apache-2.0 (LICENSE.md); FP16 MIT (libs/fp16/LICENSE.upstream).
+Downloaded 2026-10-19. Upstream source bytes are unchanged. Build with SQLITE_CORE and system SQLite; Bridge.c explicitly registers the extension. No dynamic extension loading.
+
+SHA-256 of upstream files:
+
+421717de661f6707b9829bd7d459994af9fc5c7b400335da822a817ffd8a42a1  LICENSE.md
+17e4f539024be2749ee729d1e2f01d24cef12ece8c9bf18e91a4349be29c80bf  libs/fp16/LICENSE.upstream
+f5682e7826c47714fa47508bf4f098a45392dc985ec116b203b16a37f5243e94  libs/fp16/bitcasts.h
+c0e1100313e9e990360ef405b0d1353bf059d9e4c9e07344c015fc5800c4c897  libs/fp16/fp16.h
+b3e945eec6485017e99cecec94c666ec00471405b1e0951aac0f7817011436e5  libs/fp16/macros.h
+80a7d6f2c7015ee1cf29395768b48313794d2bbd7c909132eb0316cc6117ec42  src/distance-avx2.c
+25d67917cf8b8fec3b171243be4db52662454a9dd57421442a2f1769c392c82a  src/distance-avx2.h
+121ed8f9f8ff3e5a64b8fe84af5f16de5e6e0d6e97536fa306fc03ae5b4f88c1  src/distance-avx512.c
+32dad6fb92b0740f69efe67123f46e5ba0d3af5bb2361122d04b1d35b0f63445  src/distance-avx512.h
+dea3595567c051027306d64d2fdf8c1e83614daa9d3f0e38384de808ff734824  src/distance-cpu.c
+d7c8f09f7aa5ce2a55176c22accd85fd8726a62c1bfe187c51ca6b04ba6919fe  src/distance-cpu.h
+b97edfa7bc47f5d42951593d5a986e4ba803ee50e539d7125f2b27bf9b6264b4  src/distance-neon.c
+38a8b401801a63725213eb67dc424c2c31492788726eed2a56eed464e8383292  src/distance-neon.h
+2cd9bcf37f90dd6757bc0c8778d17bc0fe4caa867e0304efd579d3a61b300add  src/distance-rvv.c
+113b69c45c054e5c49c38f86698e26774392af9c22a2dab43da2c7055f0ed631  src/distance-rvv.h
+021455ab75bc6e7403e324e43a30f8f4417999500b9456e8a10bededb2d6f829  src/distance-sse2.c
+cf7ad30f40d1a7ec69996a6fe609c30a22051b1b601ac907d550bd6065136f8c  src/distance-sse2.h
+0522e335c27bbed4e30793f13e1cca5f0273be0f058d5704cd4497e0de4dee35  src/sqlite-vector.c
+c08da78db1f41740e9a13ae8c11e9b52a09f51d6bdbfbf46560d725d38f25739  src/sqlite-vector.h

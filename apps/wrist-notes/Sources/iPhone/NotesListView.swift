@@ -1,7 +1,17 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum VoiceLibraryRoute: Hashable { case note(UUID), session(UUID) }
+private struct VoiceLibraryItem: Identifiable {
+    let id: UUID
+    let date: Date
+    let note: VoiceNote?
+    let session: RecordingSessionSummary?
+}
+
 struct NotesListView: View {
+    @EnvironmentObject private var recorder: PhoneRecorder
+    @EnvironmentObject private var sessions: RecordingSessionModel
     @EnvironmentObject private var model: NotesModel
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.scenePhase) private var scenePhase
@@ -9,14 +19,27 @@ struct NotesListView: View {
     @State private var search = ""
     @State private var showImporter = false
     @State private var showWatchStatus = false
+    @State private var deletingSession: UUID?
 
     private var filtered: [VoiceNote] {
         let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return model.notes }
         return model.notes.filter {
-            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.displayTitle.localizedCaseInsensitiveContains(query) ||
             $0.transcript.localizedCaseInsensitiveContains(query)
         }
+    }
+
+    private var items: [VoiceLibraryItem] {
+        let legacyIDs = Set(model.notes.map(\.id))
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sessions = sessions.sessions.filter { session in
+            (session.legacyNoteID.map { !legacyIDs.contains($0) } ?? true) &&
+                (query.isEmpty || String(localized: "完整录音").localizedCaseInsensitiveContains(query))
+        }
+        return (filtered.map { VoiceLibraryItem(id: $0.id, date: $0.capturedAt, note: $0, session: nil) } +
+            sessions.map { VoiceLibraryItem(id: $0.id, date: $0.startedAt ?? .distantFuture, note: nil, session: $0) })
+            .sorted { $0.date > $1.date }
     }
 
     var body: some View {
@@ -24,7 +47,7 @@ struct NotesListView: View {
             VStack(spacing: 0) {
                 header
                 List {
-                    if filtered.isEmpty {
+                    if items.isEmpty {
                         ContentUnavailableView(
                             model.notes.isEmpty ? "还没有语音笔记" : "没有匹配的笔记",
                             systemImage: "waveform",
@@ -33,15 +56,27 @@ struct NotesListView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                     }
-                    ForEach(filtered) { note in
-                        Button { path.append(note.id) } label: { row(note) }
-                            .buttonStyle(.plain)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 14, bottom: 4, trailing: 14))
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button("删除", systemImage: "trash", role: .destructive) { model.delete(note.id) }
+                    ForEach(items) { item in
+                        Button {
+                            if item.session != nil { path.append(VoiceLibraryRoute.session(item.id)) }
+                            else { path.append(VoiceLibraryRoute.note(item.id)) }
+                        } label: {
+                            if let note = item.note { row(note) }
+                            else if let session = item.session { sessionRow(session) }
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 14, bottom: 4, trailing: 14))
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button("删除", systemImage: "trash", role: .destructive) {
+                                if item.session != nil { deletingSession = item.id } else { model.delete(item.id) }
                             }
+                        }
+                    }
+                    if sessions.hasMore { Button("载入更早的录音") { sessions.loadMore() }.disabled(sessions.loading) }
+                    if !sessions.cleanupIDs.isEmpty {
+                        Text("文件清理待重试").foregroundStyle(.orange)
+                        Button("重试清理") { sessions.refresh(recover: true) }
                     }
                 }
                 .listStyle(.plain)
@@ -51,12 +86,26 @@ struct NotesListView: View {
             }
             .background(NotesStyle.background)
             .navigationDestination(for: UUID.self) { id in NoteDetailView(id: id) }
+            .navigationDestination(for: VoiceLibraryRoute.self) { route in
+                switch route {
+                case .note(let id): NoteDetailView(id: id)
+                case .session(let id): RecordingSessionDetailView(sessionID: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
+                }
+            }
+            .confirmationDialog("删除完整录音？", isPresented: Binding(get: { deletingSession != nil }, set: { if !$0 { deletingSession = nil } }), titleVisibility: .visible) {
+                Button("删除完整录音", role: .destructive) {
+                    if let id = deletingSession { Task { await sessions.delete(id) } }
+                    deletingSession = nil
+                }
+            } message: { Text("这会删除本机完整会话及全部原始分片；无法仅删除一个派生片段。") }
             .navigationDestination(for: SettingsRoute.self) { route in
                 switch route {
                 case .settings:
                     SettingsView { showImporter = true }
                 case .transcription: TranscriptionSettingsView(settings: settings)
+                case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile)
                 case .ai: AISettingsView(settings: settings)
+                case .about: AboutView()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -69,16 +118,16 @@ struct NotesListView: View {
                 }
             }
             .alert("操作未完成", isPresented: Binding(
-                get: { model.errorMessage != nil },
-                set: { if !$0 { model.errorMessage = nil } }
-            )) { Button("好") { model.errorMessage = nil } } message: {
-                Text(model.errorMessage ?? "")
+                get: { sessions.errorMessage != nil || model.errorMessage != nil },
+                set: { if !$0 { model.errorMessage = nil; sessions.errorMessage = nil } }
+            )) { Button("好") { model.errorMessage = nil; sessions.errorMessage = nil } } message: {
+                Text(LocalizedStringKey(sessions.errorMessage ?? model.errorMessage ?? ""))
             }
         }
         .tint(NotesStyle.red)
         .preferredColorScheme(settings.appearance.colorScheme)
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { model.refreshWatchStatus() }
+            if phase == .active { WiseLifeRuntime.shared.foreground() }
         }
     }
 
@@ -92,11 +141,11 @@ struct NotesListView: View {
                 Button { model.refreshWatchStatus(); showWatchStatus.toggle() } label: {
                     Image(systemName: "applewatch")
                         .font(.system(size: 21, weight: .medium))
-                        .foregroundStyle(model.watchStatus.isConnected ? NotesStyle.green : .secondary)
+                        .foregroundStyle(model.watchStatus.hasPairedWatch ? NotesStyle.green : .secondary)
                         .frame(width: 39, height: 39)
-                        .background(model.watchStatus.isConnected ? NotesStyle.greenBackground : NotesStyle.field, in: Circle())
+                        .background(model.watchStatus.hasPairedWatch ? NotesStyle.greenBackground : NotesStyle.field, in: Circle())
                         .overlay(alignment: .bottomTrailing) {
-                            Circle().fill(model.watchStatus.isConnected ? NotesStyle.green : .secondary)
+                            Circle().fill(model.watchStatus.hasPairedWatch ? NotesStyle.green : .secondary)
                                 .frame(width: 6, height: 6).padding(7)
                         }
                 }
@@ -105,6 +154,17 @@ struct NotesListView: View {
                     VStack(alignment: .leading, spacing: 9) {
                         Text(model.watchStatus.title).font(.headline)
                         Text(model.watchStatus.message).font(.subheadline).foregroundStyle(Color.secondary)
+                        ForEach(model.watchStatus.issueMessages, id: \.self) { issue in
+                            Text(issue).font(.caption).foregroundStyle(.orange)
+                        }
+                        if model.watchStatus.hasPairedWatch, model.watchStatus.isInstalled {
+                            if let error = model.watchRetryError { Text(error).font(.caption).foregroundStyle(.orange) }
+                            if model.watchStatus.retryPending {
+                                Text("重试请求已提交，等待手表处理。后台传输时间由系统安排。")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Button("重试同步") { model.retryWatchSync() }.disabled(!model.watchStatus.canRetrySync)
+                        }
                     }
                     .frame(maxWidth: 290, alignment: .leading).padding(20)
                     .presentationCompactAdaptation(.popover)
@@ -133,10 +193,22 @@ struct NotesListView: View {
             HStack {
                 Text("所有录音").font(.system(size: 19, weight: .bold))
                 Spacer()
-                Text("\(filtered.count) 条").font(.system(size: 13)).foregroundStyle(Color.secondary)
+                Text("\(items.count) 条").font(.system(size: 13)).foregroundStyle(Color.secondary)
             }
         }
         .padding(.horizontal, 24).padding(.top, 9).padding(.bottom, 10)
+    }
+
+    private func sessionRow(_ session: RecordingSessionSummary) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("完整录音").font(.headline)
+            if let start = session.startedAt { Text(start, style: .date); Text(start, style: .time) }
+            else { Text("录音时间待同步") }
+            Text(RecordingFormat.duration(session.recordedDuration)).font(.subheadline).monospacedDigit()
+            Text(LocalizedStringKey(RecordingSessionPresentation.status(session))).font(.caption).foregroundStyle(.secondary)
+        }.padding(17).frame(maxWidth: .infinity, alignment: .leading)
+            .background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
+            .accessibilityElement(children: .combine)
     }
 
     private func toolbarIcon(_ name: String) -> some View {
@@ -148,7 +220,7 @@ struct NotesListView: View {
     private func row(_ note: VoiceNote) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Text(note.title).font(.system(size: 17, weight: .semibold)).lineLimit(1)
+                Text(note.displayTitle).font(.system(size: 17, weight: .semibold)).lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.secondary)
             }

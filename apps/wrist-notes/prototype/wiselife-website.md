@@ -17,7 +17,7 @@ Design settings: variance 6, motion 4, density 3. Keep the blue-gray brand and l
 5. `#hardware`: Apple Watch and EurekaRing, with an entry into the Ring connection demo. Existing always-visible Watch compatibility information retained.
 6. `#ownership`: local storage, on-device models and optional user-configured external AI. Processing-mode buttons explain data flow without changing settings or transmitting content.
 7. `#questions`: six accessible FAQ disclosures covering devices, offline use, data flow, sources, recording/health boundaries, and availability/cost.
-8. `#pricing`: US$9.9, one-time purchase for lifetime use, no subscription. Optional external AI provider usage is billed separately. Prototype/video links precede the photo-credit footer; purchasing opens at release.
+8. `#pricing`: US$19.99 regular price and a one-time US$9.99 launch offer through 2026-12-31. No subscription; optional external AI provider usage is billed separately. Prototype/video links precede the photo-credit footer.
 
 Implementation: `wiselife-story.css`, `wiselife-story.js` and `wiselife-story-locales.js` extend the existing website layer. Locale processing also translates image alternative text. The prototype remains dependency-free at runtime.
 
@@ -33,9 +33,9 @@ The owner confirmed these values on 2026-10-19:
 2. Let AI use permitted daily records for reflection and suggestions.
 3. Keep data and AI on the phone in on-device mode. External AI is optional, with the content-sharing boundary stated next to that choice.
 4. Support Apple Watch and EurekaRing, using hardware the customer already owns.
-5. US$9.9, one payment for lifetime use, no subscription. Users own their data and may bring their own AI; external provider fees are separate.
+5. US$19.99 regular price, with a one-time US$9.99 launch offer through 2026-12-31. No subscription. Users own their data and may bring their own AI; external provider fees are separate.
 
-These values now guide the hero, scenarios, hardware, ownership, FAQ and pricing. The prototype has no payment or App Store purchase link yet.
+These values now guide the hero, scenarios, hardware, ownership, FAQ and pricing. The prototype has no payment or App Store purchase link yet. The limited-time price was confirmed by the owner on 2026-10-20.
 
 ## Capability boundaries
 
@@ -93,3 +93,17 @@ The capture script writes source PNGs, raw WebM and cue timings to `/private/tmp
 - Evidence: [verification record](../verification/wiselife-website-refresh/README.md).
 - Design comparison: [Auday review](../docs/2026-10-19-wiselife-auday-review.md).
 - Preview: http://127.0.0.1:8767/iphone-day.html . Changes are local HTML prototype work; not deployed.
+
+## App Store legal pages and launch pricing (2026-10-20)
+
+- Added standalone `privacy/index.html` and `terms/index.html` pages with shared responsive styling, and linked both from the site footer. The app's About screen links to `https://wiselife.cloud/privacy`, `https://wiselife.cloud/terms`, and `mailto:hello@wiselife.cloud`.
+- Policy copy reflects current app behavior: local-first records, optional HealthKit/calendar/location access, explicit confirmation before user-selected external AI receives text, deletion controls, third-party boundaries, and the reduced iCloud backup scope for Application Support data.
+- Pricing copy now says US$19.99 regular price and US$9.99 one-time launch offer through 2026-12-31, with App Store regional pricing governing.
+- These pages are local source only and are not deployed. The privacy URL must be publicly reachable before App Store submission.
+- `python3 -m unittest apps/wrist-notes/Tests/test_website_legal_pages.py` passes (4 tests); visual browser review and production URL check are still required after deployment.
+
+## Cloud-service wording (2026-10-20)
+
+- The site and privacy policy now state plainly that the WiseLife app provides no cloud service, account, cloud storage or sync; app-created records, transcripts, photos, summaries and insights default to iPhone storage, and Apple Watch recordings transfer to the paired iPhone for storage.
+- The copy distinguishes third-party AI from WiseLife infrastructure: selected text leaves the device only when the user chooses an external AI provider and confirms sending. Recordings and photos are not sent to external AI. Apple device backup remains separately controlled by Apple settings.
+- Chinese, English and Japanese homepage strings were updated together. Local source and tests are updated; production deployment and public URL verification remain pending.

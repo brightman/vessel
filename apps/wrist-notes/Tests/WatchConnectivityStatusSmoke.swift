@@ -22,8 +22,9 @@ let restored = try JSONDecoder().decode([PendingRecording].self, from: Data(lega
 precondition(restored.count == 1 && restored[0].id == id && !restored[0].uploaded)
 var uploaded = restored[0]
 uploaded.uploaded = true
+uploaded.transferFailed = true
 let roundTrip = try JSONDecoder().decode(PendingRecording.self, from: JSONEncoder().encode(uploaded))
-precondition(roundTrip.uploaded)
+precondition(roundTrip.uploaded && roundTrip.transferFailed)
 precondition(!WatchConnectivityStatus.shouldRetryPendingTransfers(isActivated: true, companionAppInstalled: false))
 precondition(WatchConnectivityStatus.shouldRetryPendingTransfers(isActivated: true, companionAppInstalled: true))
 precondition(!WatchConnectivityStatus.shouldRetryPendingTransfers(isActivated: false, companionAppInstalled: true))
@@ -36,7 +37,7 @@ precondition(
         pendingCount: 11,
         transferCount: 0,
         missingFileCount: 0
-    ) == "请先在配对 iPhone 安装并打开 WristNotes"
+    ) == "请先在配对 iPhone 安装并打开 WiseLife"
 )
 precondition(
     WatchConnectivityStatus.message(
@@ -46,7 +47,7 @@ precondition(
         pendingCount: 11,
         transferCount: 3,
         missingFileCount: 0
-    ) == "iPhone 已连接，待传 11 条（传输中 3 条）"
+    ) == "已配对 · 待同步 11 条"
 )
 precondition(
     WatchConnectivityStatus.message(

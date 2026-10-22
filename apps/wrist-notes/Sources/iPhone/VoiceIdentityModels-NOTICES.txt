@@ -1,0 +1,26 @@
+WiseLife voice identity model: WeSpeaker v2 (8-bit palettized Core ML conversion)
+
+Selected artifact: wespeaker_v2.mlmodelc, downloaded unchanged.
+Source: https://huggingface.co/FluidInference/speaker-diarization-coreml
+Pinned revision: 7eab74f3463c736418d0eb10296261ae581146c9
+Model notice: https://huggingface.co/FluidInference/speaker-diarization-coreml/blob/7eab74f3463c736418d0eb10296261ae581146c9/NOTICE.md
+
+Attribution: WeSpeaker authors, pyannote contributors, and Fluid Inference.
+Upstream: https://huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM/tree/837717dd
+License: Creative Commons Attribution 4.0 International (CC-BY-4.0)
+https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Fluid Inference modified the upstream checkpoint by converting it to Core ML,
+fixing input shapes, fusing the fbank frontend and palettizing weights to 8 bits.
+WiseLife makes no further changes to weights. No endorsement is implied.
+This legacy artifact is covered by its upstream CC-BY-4.0 license, separately
+from the repository's scoped Community-1 license. The repository notice reports
+cosine parity >=0.997 against the upstream checkpoint on AMI ES2004a; original
+conversion scripts were not preserved. WiseLife's manifest pins each file by
+size and SHA-256; this verifies distribution integrity, not conversion lineage.
+
+Citation:
+Wang, Hongji; Liang, Chengdong; Wang, Shuai; Chen, Zhengyang; Zhang, Binbin;
+Xiang, Xu; Deng, Yanlei; Qian, Yanmin. Wespeaker: A research and production
+oriented speaker embedding learning toolkit. ICASSP 2023, pages 1-5, IEEE.

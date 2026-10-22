@@ -3,24 +3,35 @@ import SwiftUI
 struct DaybookHardwareView: View {
     let watch: PhoneWatchStatus
     let openWatch: () -> Void
+#if WISELIFE_EUREKA_RING
     let openRing: () -> Void
+#endif
     let onClose: () -> Void
+#if WISELIFE_EUREKA_RING
     @EnvironmentObject private var ring: EurekaRingModel
+#endif
 
     var body: some View {
         DaybookSheetLayout(title: "连接硬件", onClose: onClose) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("让声音成为记录").font(.system(size: 24, weight: .semibold)).padding(.top, 14).padding(.bottom, 10)
+#if WISELIFE_EUREKA_RING
                 Text("Apple Watch 和 EurekaRing 可以同时连接，录音会汇集到你的本机记录中。")
                     .font(.system(size: 12)).lineSpacing(7).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 24)
-                row("Apple Watch", subtitle: "抬腕录音，回到手机继续整理", icon: "Watch", connected: watch.isConnected, action: openWatch)
+#else
+                Text("Apple Watch 录音会汇集到你的本机记录中。")
+                    .font(.system(size: 12)).lineSpacing(7).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 24)
+#endif
+                row("Apple Watch", subtitle: "轻点录音，按住记录闪念", icon: "Watch", connected: watch.hasPairedWatch, status: watch.title, action: openWatch)
+#if WISELIFE_EUREKA_RING
                 row("EurekaRing", subtitle: "录音、闪念与蓝牙同步", icon: "Ring", connected: ring.isConnected, action: openRing)
-                DaybookQuietInfo(text: "断开连接不会删除本机历史记录。录音和转写在本机完成。这里不需要登录账号。")
+#endif
+                DaybookQuietInfo(text: "设备状态变化不会删除本机历史记录。录音和转写在本机完成。这里不需要登录账号。")
                     .padding(.top, 24)
             }
         }
     }
-    private func row(_ title: String, subtitle: String, icon: String, connected: Bool, action: @escaping () -> Void) -> some View {
+    private func row(_ title: String, subtitle: String, icon: String, connected: Bool, status: String? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 14) {
                 DaybookIcon(icon, size: 30).foregroundStyle(DaybookStyle.accent).frame(width: 54, height: 64)
@@ -30,7 +41,7 @@ struct DaybookHardwareView: View {
                     Text(subtitle).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
                     HStack(spacing: 5) {
                         Circle().fill(connected ? DaybookStyle.green : DaybookStyle.secondary).frame(width: 4, height: 4)
-                        Text(connected ? "已连接" : "未连接").font(.system(size: 10))
+                        Text(status ?? (connected ? "已连接" : "未连接")).font(.system(size: 10))
                     }.foregroundStyle(connected ? DaybookStyle.green : DaybookStyle.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 DaybookIcon("ChevronRight", size: 16).foregroundStyle(DaybookStyle.secondary)
@@ -39,6 +50,7 @@ struct DaybookHardwareView: View {
     }
 }
 
+#if WISELIFE_EUREKA_RING
 struct EurekaRingDetailView: View {
     let onBack: () -> Void
     let onClose: () -> Void
@@ -174,3 +186,4 @@ struct EurekaRingDetailView: View {
         }
     }
 }
+#endif

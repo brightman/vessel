@@ -6,11 +6,14 @@ struct NoteDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let id: UUID
     @State private var title = ""
+    @State private var originalTitle = ""
     @State private var transcript = ""
+    @State private var originalTranscript = ""
+    @State private var editingWholeTranscript = false
     @State private var initialized = false
     @State private var selectedTab: DetailTab = .summary
     @State private var savedNotice = false
-    @State private var confirmRemoteSummary = false
+    @State private var remoteSummary: NotesModel.RemoteSummaryRequest?
     @StateObject private var playback = AudioPlayback()
 
     private enum DetailTab: String, CaseIterable {
@@ -32,6 +35,7 @@ struct NoteDetailView: View {
                                     .accessibilityLabel("笔记标题")
                                 Text(RecordingFormat.date(note.capturedAt))
                                     .font(.system(size: 13)).foregroundStyle(Color.secondary)
+                                if note.kind == .long { RecordingTitleAction(note: note, beforeRequest: { save() }) }
                             }
                             playerCard.padding(.top, 29)
                             tabs.padding(.top, 25)
@@ -49,14 +53,19 @@ struct NoteDetailView: View {
                 .toolbar(.hidden, for: .navigationBar)
                 .task(id: id) {
                     if !initialized {
-                        title = note.title
+                        title = note.editableRecordingTitle
+                        originalTitle = title
                         transcript = note.transcript
+                        originalTranscript = note.transcript
                         initialized = true
                     }
                     await playback.load(model.audioURL(id), fallbackDuration: note.duration)
                 }
+                .onChange(of: note.editableRecordingTitle) { oldValue, newValue in
+                    if title == oldValue { title = newValue; originalTitle = newValue }
+                }
                 .onChange(of: note.transcript) { oldValue, newValue in
-                    if transcript == oldValue { transcript = newValue }
+                    if transcript == oldValue { transcript = newValue; originalTranscript = newValue }
                 }
                 .onDisappear { playback.stop(); save() }
             } else {
@@ -64,21 +73,20 @@ struct NoteDetailView: View {
             }
         }
         .tint(NotesStyle.red)
-        .confirmationDialog("将这条记录的全文发送给自定义 AI？", isPresented: $confirmRemoteSummary, titleVisibility: .visible) {
-            Button("确认并生成总结") { Task { await model.summarize(id) } }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("使用 \(settings.ai.label)。将发送此条记录的转写全文，原始录音保留在本机。")
+        .sheet(item: $remoteSummary) { request in
+            RemoteSummaryConfirmationView(request: request, onCancel: { remoteSummary = nil }, onConfirm: { doNotAskAgain in
+                remoteSummary = nil
+                Task { await model.summarize(id, confirmation: request, doNotAskAgain: doNotAskAgain) }
+            })
         }
     }
 
     private var header: some View {
         HStack {
-            Button { save(); dismiss() } label: { Label("语音笔记", systemImage: "chevron.left") }
+            Button { if save() { dismiss() } } label: { Label("语音笔记", systemImage: "chevron.left") }
             Spacer()
             Button(savedNotice ? "已保存" : "保存") {
-                save()
-                savedNotice = true
+                savedNotice = save()
             }
             .fontWeight(.semibold)
         }
@@ -152,7 +160,7 @@ struct NoteDetailView: View {
                 Spacer()
                 Button(model.summaryModels[id] != nil ? "生成中…" : (note.summary.isEmpty ? "生成总结" : "重新生成")) {
                     save()
-                    if model.summaryConfiguration(for: note).mode == .custom { confirmRemoteSummary = true }
+                    if model.summaryConfiguration(for: note).isRemote && settings.requiresRemoteAIConfirmation { remoteSummary = model.prepareRemoteSummary(id) }
                     else { Task { await model.summarize(id) } }
                 }
                 .disabled(transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.summaryModels[id] != nil)
@@ -189,32 +197,57 @@ struct NoteDetailView: View {
                     save()
                     Task { await model.transcribe(id) }
                 }
-                .disabled(note.transcriptionState == .running)
+                .disabled(note.transcriptionState == .running || note.diarizationState == .running)
             }
             .font(.system(size: 13, weight: .medium))
-            ZStack(alignment: .topLeading) {
-                if transcript.isEmpty {
-                    Text("转写完成后会出现在这里，也可以直接编辑。")
-                        .font(.system(size: 15)).foregroundStyle(.tertiary)
-                        .padding(.horizontal, 5).padding(.top, 8)
-                        .allowsHitTesting(false)
+            if note.diarizationState == .ready, !(note.transcriptSegments ?? []).isEmpty, !editingWholeTranscript,
+               transcript == note.transcript {
+                SpeakerTranscriptView(note: note, editable: true)
+                    .padding(16).background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
+                Button("编辑整段全文") {
+                    transcript = note.transcript
+                    originalTranscript = note.transcript
+                    editingWholeTranscript = true
                 }
-                TextEditor(text: $transcript)
-                    .font(.system(size: 15)).lineSpacing(5)
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 172)
-                    .accessibilityLabel("转写文本")
+                .font(.caption).disabled(note.transcriptionState == .running)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    if transcript.isEmpty {
+                        Text("转写完成后会出现在这里，也可以直接编辑。")
+                            .font(.system(size: 15)).foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5).padding(.top, 8)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $transcript)
+                        .font(.system(size: 15)).lineSpacing(5)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 172)
+                        .accessibilityLabel("转写文本")
+                }
+                .padding(10).background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
+                .overlay(RoundedRectangle(cornerRadius: 17).stroke(NotesStyle.border, lineWidth: 1))
+                if editingWholeTranscript {
+                    Text("保存整段修改后会移除原有说话人标记；逐段编辑可以保留标记。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("完成整段编辑") { if save() { editingWholeTranscript = false } }.font(.caption)
+                }
             }
-            .padding(10).background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 17))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(NotesStyle.border, lineWidth: 1))
+            SpeakerProcessingView(note: note)
+            if let error = model.errorMessage { Text(error).font(.caption).foregroundStyle(.orange) }
             if note.transcriptionState == .failed || note.transcriptionState == .unavailable {
                 Text(note.processingMessage ?? "转写暂不可用").font(.caption).foregroundStyle(.orange)
             }
         }
     }
 
-    private func save() {
-        guard initialized else { return }
-        model.save(id: id, title: title, transcript: transcript)
+    @discardableResult
+    private func save() -> Bool {
+        guard initialized else { return false }
+        let text = transcript != originalTranscript ? transcript : (model.note(id)?.transcript ?? transcript)
+        guard model.save(id: id, title: title == originalTitle ? (model.note(id)?.title ?? title) : title, transcript: text) else { return false }
+        title = model.note(id)?.editableRecordingTitle ?? title
+        originalTitle = title
+        originalTranscript = transcript
+        return true
     }
 }

@@ -1,0 +1,37 @@
+SpeakerKit Core ML models
+
+Model authors/contributors: Argmax, Inc. and pyannote contributors.
+Source: https://huggingface.co/argmaxinc/speakerkit-coreml
+Pinned revision: 556fc52a13327837688f02289457cded017802e9
+Selected artifacts: Pyannote v3 W8A16 segmenter and embedder/preprocessor;
+Pyannote v4 W32A32 PLDA projector. WiseLife does not modify the downloaded weights.
+License declared by the model repository: Creative Commons Attribution 4.0 International.
+License: https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+Source model card: https://huggingface.co/argmaxinc/speakerkit-coreml/blob/556fc52a13327837688f02289457cded017802e9/README.md
+No endorsement by the model authors is implied.
+
+SpeakerKit / WhisperKit Swift SDK 0.18.0
+Source: https://github.com/argmaxinc/WhisperKit/tree/v0.18.0
+
+MIT License
+
+Copyright (c) 2024 argmax, inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -332,7 +332,7 @@
           <div class="list-toolbar">
             <span class="eyebrow">WATCH · IPHONE</span>
             <div class="toolbar-actions">
-              <button id="watchStatusButton" class="icon-button watch-status connected" type="button" aria-label="Apple Watch 已连接" aria-expanded="false" aria-controls="connectionPopover" title="Apple Watch 已连接">
+              <button id="watchStatusButton" class="icon-button watch-status connected" type="button" aria-label="已配对 · 最近同步 14:30" aria-expanded="false" aria-controls="connectionPopover" title="已配对 · 最近同步 14:30">
                 <svg viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="14" rx="4"/><path d="m8 7 1-5h6l1 5M8 21l1 5h6l1-5M21 12v4"/><path d="m9 14 2 2 4-4"/></svg>
               </button>
               <button id="settingsButton" class="icon-button" type="button" aria-label="设置" title="设置">
@@ -492,8 +492,8 @@
         </section>
 
         <div id="connectionPopover" class="connection-popover" hidden>
-          <strong id="connectionTitle">Apple Watch 已连接</strong>
-          <p id="connectionDescription">可以接收手表录音。每条录音的传输状态请在手表列表中查看。</p>
+          <strong id="connectionTitle">已配对 · 最近同步 14:30</strong>
+          <p id="connectionDescription">显示最近收到的同步状态，后台更新可能延迟。录音由系统安排传输，无需保持手表亮屏。</p>
         </div>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <div class="home-indicator" aria-hidden="true"></div>
@@ -502,7 +502,7 @@
     </div>
     <p class="prototype-note"><a href="iphone-day.html" style="color:inherit;text-underline-offset:4px">探索新版「我的一天」首页 →</a></p>
     <p class="prototype-note">交互原型 · 播放、模型和连接状态均为演示<br>配置仅保留在当前页面内存中，不发送音频、文本或 Key</p>
-    <details class="prototype-controls"><summary>演示控制</summary><div class="demo-controls"><label>手表状态<select id="demoWatchState"><option value="connected">已连接</option><option value="disconnected">未连接</option></select></label><label>资源下载<select id="demoLanguageDownloadResult"><option value="success">模拟成功</option><option value="network">模拟下载失败</option></select></label><label>连接测试结果<select id="demoTestResult"><option value="success">模拟成功</option><option value="auth">模拟 Key 错误</option><option value="network">模拟无法连接</option></select></label></div></details>
+    <details class="prototype-controls"><summary>演示控制</summary><div class="demo-controls"><label>手表状态<select id="demoWatchState"><option value="synced">已配对 · 最近同步 14:30</option><option value="pending">已配对 · 待同步 2 条</option><option value="paired">已配对</option><option value="unpaired">未配对</option></select></label><label>资源下载<select id="demoLanguageDownloadResult"><option value="success">模拟成功</option><option value="network">模拟下载失败</option></select></label><label>连接测试结果<select id="demoTestResult"><option value="success">模拟成功</option><option value="auth">模拟 Key 错误</option><option value="network">模拟无法连接</option></select></label></div></details>
   </main>
 
   <script>
@@ -819,15 +819,16 @@
     }));
 
     function renderWatchStatus() {
-      const connected = $('demoWatchState').value === 'connected';
-      const title = `Apple Watch ${connected ? '已连接' : '未连接'}`;
+      const state = $('demoWatchState').value;
+      const connected = state !== 'unpaired';
+      const title = state === 'pending' ? '已配对 · 待同步 2 条' : state === 'synced' ? '已配对 · 最近同步 14:30' : state === 'paired' ? '已配对' : '未配对 Apple Watch';
       $('watchStatusButton').classList.toggle('connected', connected);
       $('watchStatusButton').setAttribute('aria-label', title);
       $('watchStatusButton').title = title;
       $('connectionTitle').textContent = title;
       $('connectionDescription').textContent = connected
-        ? '可以接收手表录音。每条录音的传输状态请在手表列表中查看。'
-        : '录音保留在手表上，恢复连接后继续传输。请确认手表在附近且蓝牙已开启。';
+        ? '显示最近收到的同步状态，后台更新可能延迟。录音由系统安排传输，无需保持手表亮屏。'
+        : '请先在 iPhone 的 Watch App 中配对手表。';
     }
     $('demoWatchState').addEventListener('change', renderWatchStatus);
     $('watchStatusButton').addEventListener('click', () => {

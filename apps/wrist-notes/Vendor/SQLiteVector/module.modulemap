@@ -1,0 +1,1 @@
+module WristNotesVector { header "Bridge.h" export * }

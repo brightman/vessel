@@ -1,6 +1,45 @@
 import Foundation
 
-/// Deliberately lexical: a bounded, dated projection of allowed text, never a semantic-memory claim.
+/// Bounded dated evidence. Semantic candidates only enrich ranking; source grounding stays here.
+struct DaybookSemanticMatches: Sendable {
+    struct Hit: Sendable { let id: UUID; let snippet: String }
+    let hits: [Hit]
+    let status: String
+    let evidence: DaybookEvidenceSnapshot
+    let generation: UInt64
+    var keywords: Keywords? = nil
+    var coverage: Coverage? = nil
+    var query: String? = nil
+
+    struct Coverage: Sendable {
+        let total: Int
+        let finished: Int
+        let unavailable: Int
+        let attempted: Int
+        let resourcesAvailable: Bool
+        let modelWindowLimited: Bool
+        var pending: Int { max(0, total - finished - unavailable) }
+        var canContinue: Bool { resourcesAvailable && attempted > 0 && pending > 0 }
+    }
+    struct Keywords: Sendable {
+        let query: String
+        let terms: [String]
+        let libraryIDs: Set<UUID>
+        let aiScores: [UUID: Int]
+        let libraryEvidence: DaybookEvidenceSnapshot
+        let usesFTS: Bool
+        func isCurrent(query: String, records: [DayRecord]) -> Bool {
+            self.query == query.trimmingCharacters(in: .whitespacesAndNewlines) &&
+            libraryEvidence.isCurrent(records: records, allowedKinds: Self.allKinds)
+        }
+        static let allKinds: Set<DayRecord.Kind> = [.voice, .thought, .image, .activity, .sleep, .calendar, .location]
+    }
+}
+protocol DaybookSemanticSearching: Sendable {
+    func search(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date,
+                allowedKinds: Set<DayRecord.Kind>, limit: Int) async -> DaybookSemanticMatches
+}
+
 struct DaybookRetrieval {
     struct Limits {
         var maxSources = 5
@@ -25,15 +64,16 @@ struct DaybookRetrieval {
         let voiceCount: Int
         let thoughtCount: Int
         let imageCount: Int
+        let lifeCount: Int
         let audioDuration: TimeInterval
 
         var description: String {
             let seconds = Int(min(audioDuration, Double(Int.max / 2)).rounded(.down))
-            return "共 \(totalCount) 条记录：录音 \(voiceCount) 条、闪念 \(thoughtCount) 条、图片记录 \(imageCount) 条；录音与闪念总时长 \(seconds / 60) 分 \(seconds % 60) 秒。"
+            return "共 \(totalCount) 条记录：录音 \(voiceCount) 条、闪念 \(thoughtCount) 条、图片记录 \(imageCount) 条、生活快照 \(lifeCount) 条；录音与闪念总时长 \(seconds / 60) 分 \(seconds % 60) 秒。"
         }
     }
 
-    struct Source: Identifiable, Equatable, Sendable {
+    struct Source: Identifiable, Equatable, Codable, Sendable {
         let id: UUID
         let number: Int
         let title: String
@@ -45,6 +85,8 @@ struct DaybookRetrieval {
 
     struct Prepared: Sendable {
         let question: String
+        let providerQuestion: String
+        let questionReferenceIDs: [Int: UUID]
         let dayStart: Date
         let dayEnd: Date
         let dateLabel: String
@@ -54,22 +96,21 @@ struct DaybookRetrieval {
         let context: String
         let directResponse: String?
         let scopeDescription: String
-        private let snapshots: [DayRecord]
-        private let allowedKinds: Set<DayRecord.Kind>
+        let evidence: DaybookEvidenceSnapshot
 
-        fileprivate init(question: String, dayStart: Date, dayEnd: Date, dateLabel: String, statistics: Statistics,
+        fileprivate init(question: String, providerQuestion: String, questionReferenceIDs: [Int: UUID], dayStart: Date, dayEnd: Date, dateLabel: String, statistics: Statistics,
                          matchedCount: Int, sources: [Source], context: String, directResponse: String?,
                          scopeDescription: String, snapshots: [DayRecord], allowedKinds: Set<DayRecord.Kind>) {
-            self.question = question; self.dayStart = dayStart; self.dayEnd = dayEnd; self.dateLabel = dateLabel
+            self.question = question; self.providerQuestion = providerQuestion; self.questionReferenceIDs = questionReferenceIDs
+            self.dayStart = dayStart; self.dayEnd = dayEnd; self.dateLabel = dateLabel
             self.statistics = statistics; self.matchedCount = matchedCount; self.sources = sources
             self.context = context; self.directResponse = directResponse; self.scopeDescription = scopeDescription
-            self.snapshots = snapshots; self.allowedKinds = allowedKinds
+            self.evidence = DaybookEvidenceSnapshot(records: snapshots, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
         }
 
         /// Includes every allowed record on the day: edits outside top-k can also invalidate aggregate facts.
         func isCurrent(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>) -> Bool {
-            guard allowedKinds == self.allowedKinds else { return false }
-            return DaybookRetrieval.scoped(records, from: dayStart, to: dayEnd, allowedKinds: allowedKinds) == snapshots
+            evidence.isCurrent(records: records, allowedKinds: allowedKinds)
         }
     }
 
@@ -77,7 +118,8 @@ struct DaybookRetrieval {
     var limits = Limits()
 
     func prepare(question: String, records: [DayRecord], selectedDate: Date, now: Date = .now,
-                 allowedKinds: Set<DayRecord.Kind> = [.voice, .thought, .image]) throws -> Prepared {
+                 allowedKinds: Set<DayRecord.Kind> = [.voice, .thought, .image],
+                 priorTurns: [DaybookConversationTurn] = [], usableTextOnly: Bool = false, semantic: DaybookSemanticMatches? = nil) throws -> Prepared {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty else { throw Failure.emptyQuestion }
         guard question.count <= 300 else { throw Failure.questionTooLong }
@@ -88,33 +130,48 @@ struct DaybookRetrieval {
         let stats = Statistics(totalCount: day.count, voiceCount: day.filter { $0.kind == .voice }.count,
                                thoughtCount: day.filter { $0.kind == .thought }.count,
                                imageCount: day.filter { $0.kind == .image }.count,
+                               lifeCount: day.filter { $0.kind.isLife }.count,
                                audioDuration: day.reduce(0) { sum, record in
-                                   let duration = record.kind != .image && record.duration.isFinite ? max(0, record.duration) : 0
+                                   let duration = record.kind.isAudio && record.duration.isFinite ? max(0, record.duration) : 0
                                    return min(Double(Int.max / 2), sum + duration)
                                })
         let dateLabel = format(start, pattern: "yyyy-MM-dd")
-        let terms = keywords(resolved.remaining)
-        let requestedKind: DayRecord.Kind? = {
-            if ["照片", "图片", "相片"].contains(where: question.contains) { return .image }
-            if question.contains("闪念") { return .thought }
-            if question.contains("录音") { return .voice }
-            return nil
-        }()
+        let terms = Self.keywords(resolved.remaining)
+        let requestedKind = Self.requestedKind(for: question)
+        let history = priorTurns.suffix(3).filter {
+            $0.completionState == .completed && $0.evidence.allowedKinds.isSubset(of: allowedKinds) &&
+            calendar.isDate($0.evidence.dayStart, inSameDayAs: start)
+        }
+        let precedingMap = Self.sourceMap(history.last?.sources ?? [])
+        let questionReferences = Self.citationNumbers(in: question)
+        let questionReferenceIDs = precedingMap.filter { questionReferences.contains($0.key) }
+        let currentIDs = Set(questionReferenceIDs.values)
+        let previousIDs = Set(history.flatMap { turn in
+            // A historical question used its predecessor's numbering. Its own answer map cannot recover that input.
+            let userIDs = turn.questionReferenceIDs ?? [:]
+            return Array(turn.referencedSourceIDs) + Array(userIDs.values)
+        })
+        let validSemantic = semantic.flatMap { matches in
+            (matches.query == nil || matches.query == question) && matches.evidence.dayStart == start && matches.evidence.dayEnd == end &&
+            matches.evidence.isCurrent(records: records, allowedKinds: allowedKinds) ? matches : nil
+        }
+        let semanticHits = validSemantic?.hits ?? []
+        let sqlKeywords = validSemantic?.keywords.flatMap {
+            $0.terms == terms && $0.isCurrent(query: question, records: records) ? $0 : nil
+        }
         let ranked = day.compactMap { record -> (DayRecord, Int)? in
+            if usableTextOnly && record.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
             if let requestedKind, record.kind != requestedKind { return nil }
-            let title = record.title.lowercased()
-            let body = record.text.lowercased()
-            let score = terms.reduce(0) { sum, term in
-                sum + (title.contains(term) ? 4 * term.count : 0) + (body.contains(term) ? term.count : 0)
-            }
-            return terms.isEmpty || score > 0 ? (record, score) : nil
+            let score = sqlKeywords.map { $0.aiScores[record.id] ?? 0 } ?? Self.keywordScore(record, terms: terms)
+            let semanticRank = semanticHits.firstIndex { $0.id == record.id }.map { max(1, 100 - $0) } ?? 0
+            return terms.isEmpty || score > 0 || semanticRank > 0 || previousIDs.contains(record.id) || currentIDs.contains(record.id) ? (record, score * 100 + semanticRank + (currentIDs.contains(record.id) ? 20_000 : previousIDs.contains(record.id) ? 10_000 : 0)) : nil
         }.sorted {
             if $0.1 != $1.1 { return $0.1 > $1.1 }
             if $0.0.capturedAt != $1.0.capturedAt { return $0.0.capturedAt < $1.0.capturedAt }
             return $0.0.id.uuidString < $1.0.id.uuidString
         }
         let maxContext = max(0, limits.maxContextCharacters)
-        var context = String("日期：\(dateLabel)（设备时区）。以下统计由程序对当天全部允许读取的记录计算，不能用摘录数量替代：\n\(stats.description)\n关键词匹配 \(ranked.count) 条。以下仅为有限原文摘录，不保证覆盖当天所有细节。\n".prefix(maxContext))
+        var context = String("日期：\(dateLabel)（设备时区）。以下统计由程序对当天全部允许读取的记录计算，不能用摘录数量替代：\n\(stats.description)\n检索候选 \(ranked.count) 条。以下仅为有限原文摘录，不保证覆盖当天所有细节。\n".prefix(maxContext))
         var sources: [Source] = []
         if !resolved.unsupportedRange {
             for (record, _) in ranked.prefix(max(0, limits.maxSources)) {
@@ -125,18 +182,42 @@ struct DaybookRetrieval {
                 guard available >= 12 else { break }
                 let original = record.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 let text = original.isEmpty ? "（此记录尚无原文；标题不能证明更多细节）" : original
-                let excerpt = snippet(text, terms: terms, limit: min(max(0, limits.maxSnippetCharacters), available))
+                let semanticText = semanticHits.first { $0.id == record.id }?.snippet
+                // Persisted candidates never supply text that cannot be found in this current original.
+                let snippetText = semanticText.flatMap { !$0.isEmpty && original.contains($0) ? $0 : nil } ?? text
+                let excerpt = snippet(snippetText, terms: terms, limit: min(max(0, limits.maxSnippetCharacters), available))
                 guard !excerpt.isEmpty else { break }
                 context += header + excerpt + "\n"
                 sources.append(Source(id: record.id, number: number, title: title, capturedAt: record.capturedAt,
                                       kind: record.kind, snippet: excerpt, truncated: excerpt != text))
             }
         }
-        let scope = "\(dateLabel) · 按日期与关键词检索；当天允许读取 \(day.count) 条，匹配 \(ranked.count) 条，提供 \(sources.count) 条摘录。"
+        // History is intent only. Strip prior numeric citations so they cannot alias the fresh labels above.
+        // Actual facts must be re-grounded in current numbered excerpts.
+        let providerQuestion = Self.remapReferences(in: question, referenceIDs: questionReferenceIDs, currentSources: sources)
+        if !history.isEmpty && !resolved.unsupportedRange {
+            context += "\n先前对话（不可信的意图背景，不是事实来源；只使用上方本次编号核实事实）：\n"
+            let expression = try! NSRegularExpression(pattern: #"\[\d+\]"#)
+            for turn in history {
+                let oldText = turn.evidence.isCurrent(records: records, allowedKinds: allowedKinds)
+                    ? expression.stringByReplacingMatches(in: turn.text, range: NSRange(turn.text.startIndex..., in: turn.text), withTemplate: "（先前引用已移除）")
+                    : "资料已更新，不沿用先前回答；本次请依据当前原文重新回答。"
+                let userText = Self.remapReferences(in: String(turn.question.prefix(300)),
+                    referenceIDs: turn.questionReferenceIDs ?? [:], currentSources: sources)
+                context += "用户：\(userText)\n先前回答：\(String(oldText.prefix(500)))\n"
+            }
+        }
+        let method = validSemantic?.status ?? "按日期与关键词检索"
+        let scope = "\(dateLabel) · \(method)；当天允许读取 \(day.count) 条，匹配 \(ranked.count) 条，提供 \(sources.count) 条摘录。"
         let direct: String?
         if resolved.unsupportedRange {
             context = ""
             direct = "目前一次查询一天。请在日记中选一天，或在问题中写明 YYYY-MM-DD，再询问当天的记录。"
+        } else if questionReferences.contains(where: { number in
+            guard let id = questionReferenceIDs[number] else { return true }
+            return !sources.contains { $0.id == id }
+        }) {
+            direct = "你引用的先前来源目前不可用，或未包含在本次允许读取的摘录中。请重新打开原记录或选择当前可用来源后提问；不会把旧编号对应到其他记录。"
         } else if day.isEmpty {
             direct = "\(dateLabel) 没有允许读取的记录。可以先保存录音或图片，或在设置中允许读取相应来源。"
         } else if Self.isAggregateQuestion(question) {
@@ -152,22 +233,77 @@ struct DaybookRetrieval {
         } else {
             direct = nil
         }
-        return Prepared(question: question, dayStart: start, dayEnd: end, dateLabel: dateLabel,
+        return Prepared(question: question, providerQuestion: providerQuestion, questionReferenceIDs: questionReferenceIDs, dayStart: start, dayEnd: end, dateLabel: dateLabel,
                         statistics: stats, matchedCount: ranked.count, sources: sources, context: context,
                         directResponse: direct, scopeDescription: scope, snapshots: day, allowedKinds: allowedKinds)
     }
 
+    /// Manual substring matches include all local sources. Semantic additions obey AI scope and freshness.
+    static func libraryRecords(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date,
+                               allowedKinds: Set<DayRecord.Kind>, semantic: DaybookSemanticMatches?) -> [DayRecord] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let valid = semantic.flatMap { result in
+            (result.query == nil || result.query == query) && result.evidence.dayStart == dayStart && result.evidence.dayEnd == dayEnd &&
+            result.evidence.isCurrent(records: records, allowedKinds: allowedKinds) ? result : nil
+        }
+        let day = records.compactMap { $0.recordingProjection(from: dayStart, to: dayEnd) }
+        let sqlKeywords = valid?.keywords.flatMap { $0.isCurrent(query: query, records: records) ? $0 : nil }
+        let literal = day.filter { record in
+            if let sqlKeywords { return sqlKeywords.libraryIDs.contains(record.id) }
+            return query.isEmpty || [record.title, record.text, record.summary].contains { normalize($0).contains(normalize(query)) }
+        }
+        let literalIDs = Set(literal.map(\.id))
+        let available = Dictionary(day.filter { allowedKinds.contains($0.kind) }.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let additions = (valid?.hits ?? []).compactMap { hit in literalIDs.contains(hit.id) ? nil : available[hit.id] }
+        return literal + additions
+    }
+
+    private static func sourceMap(_ sources: [Source]) -> [Int: UUID] {
+        sources.reduce(into: [:]) { result, source in result[source.number] = source.id }
+    }
+
+    private static func citationNumbers(in text: String) -> Set<Int> {
+        let expression = try! NSRegularExpression(pattern: #"\[(\d+)\]"#)
+        return Set(expression.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap { match in
+            Range(match.range(at: 1), in: text).flatMap { Int(text[$0]) }
+        })
+    }
+
+    /// Resolve the old numeric label to a stable record identity before assigning a fresh label.
+    /// Unknown, revoked, out-of-day or budget-excluded references never retain an aliasable [n].
+    private static func remapReferences(in text: String, referenceIDs: [Int: UUID], currentSources: [Source]) -> String {
+        let expression = try! NSRegularExpression(pattern: #"\[(\d+)\]"#)
+        var result = text
+        for match in expression.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let numberRange = Range(match.range(at: 1), in: text),
+                  let number = Int(text[numberRange]), let range = Range(match.range, in: result) else { continue }
+            let replacement: String
+            if let id = referenceIDs[number], let current = currentSources.first(where: { $0.id == id }) {
+                replacement = "（本次[\(current.number)]）"
+            } else { replacement = "（先前引用\(number)不可用）" }
+            result.replaceSubrange(range, with: replacement)
+        }
+        return result
+    }
+
+    static func requestedKind(for question: String) -> DayRecord.Kind? {
+        if ["照片", "图片", "相片"].contains(where: question.contains) { return .image }
+        if question.contains("闪念") { return .thought }
+        if question.contains("录音") { return .voice }
+        return nil
+    }
+
     static func kindLabel(_ kind: DayRecord.Kind) -> String {
-        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录" }
+        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录"; case .activity: "活动日汇总"; case .sleep: "睡眠"; case .calendar: "日历"; case .location: "地点" }
     }
 
     private static func scoped(_ records: [DayRecord], from start: Date, to end: Date,
                                allowedKinds: Set<DayRecord.Kind>) -> [DayRecord] {
-        records.filter { $0.capturedAt >= start && $0.capturedAt < end && allowedKinds.contains($0.kind) }
+        records.compactMap { $0.recordingProjection(from: start, to: end) }.filter { allowedKinds.contains($0.kind) }
             .sorted { $0.id.uuidString < $1.id.uuidString }
     }
 
-    private static func isAggregateQuestion(_ question: String) -> Bool {
+    static func isAggregateQuestion(_ question: String) -> Bool {
         let namesRecordKind = ["记录", "录音", "闪念", "照片", "图片", "相片"].contains(where: question.contains)
         let asksCount = ["多少条", "几条", "多少张", "几张", "数量"].contains(where: question.contains)
         return (namesRecordKind && asksCount) || ["总时长", "录音多久", "录音多长时间", "录了多久", "录了几分钟"].contains(where: question.contains)
@@ -178,6 +314,11 @@ struct DaybookRetrieval {
         formatter.calendar = calendar; formatter.timeZone = calendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = pattern
         return formatter.string(from: date)
+    }
+
+    static func hasExplicitDate(_ question: String) -> Bool {
+        if ["今天", "今日", "昨天", "昨日", "前天", "明天"].contains(where: question.contains) { return true }
+        return question.range(of: #"(?:\d{4}[-/年])?\d{1,2}[-/月]\d{1,2}"#, options: .regularExpression) != nil
     }
 
     private func resolveDate(_ question: String, selectedDate: Date, now: Date) throws -> (date: Date, remaining: String, unsupportedRange: Bool) {
@@ -211,8 +352,20 @@ struct DaybookRetrieval {
         return (unique.first ?? selectedDate, remaining, unsupported)
     }
 
-    private func keywords(_ question: String) -> [String] {
-        var query = question.lowercased()
+    /// Versioned fixed-locale normalization shared by SQL and live fallback.
+    static let normalizationVersion = "nfc-casefold-posix-v1"
+    static func normalize(_ text: String) -> String {
+        text.precomposedStringWithCanonicalMapping.folding(options: [.caseInsensitive], locale: Locale(identifier: "en_US_POSIX")).precomposedStringWithCanonicalMapping
+    }
+    static func keywordScore(_ record: DayRecord, terms: [String]) -> Int {
+        let title = normalize(record.title), body = normalize(record.text)
+        return terms.reduce(0) { $0 + (title.contains($1) ? 4 * $1.count : 0) + (body.contains($1) ? $1.count : 0) }
+    }
+    func keywordTerms(question: String, selectedDate: Date, now: Date = .now) throws -> [String] {
+        Self.keywords(try resolveDate(question, selectedDate: selectedDate, now: now).remaining)
+    }
+    static func keywords(_ question: String) -> [String] {
+        var query = normalize(question)
         // Remove question scaffolding before CJK n-grams, keeping the actual topic.
         let fillers = ["最值得跟进什么", "有哪些要点", "有哪些待办", "有什么待办", "有什么记录", "有哪些记录", "有多少条记录", "有多少记录", "说了什么", "记录了什么", "发生了什么", "回顾这一天", "总结这一天", "多长时间", "总时长", "几分钟", "这一天", "这一天的", "选中的日期", "所选日期", "请帮我", "帮我", "请问", "总结", "回顾", "概括", "要点", "待办", "行动项", "记录", "录音", "闪念", "图片", "照片", "相片", "拍了", "多少", "几条", "几张", "数量", "多久", "有哪些", "有什么", "是什么", "怎么样", "如何", "什么", "有关", "关于", "的", "了", "呢", "吗", "请"]
         for filler in fillers { query = query.replacingOccurrences(of: filler, with: " ") }

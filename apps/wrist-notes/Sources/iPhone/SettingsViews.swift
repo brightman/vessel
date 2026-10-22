@@ -1,10 +1,11 @@
 import SwiftUI
 import FoundationModels
 
-enum SettingsRoute: Hashable { case settings, transcription, ai }
+enum SettingsRoute: Hashable { case settings, transcription, myVoice, ai, about }
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var model: NotesModel
     var showDaybookSettings = false
     let importAudio: () -> Void
 
@@ -40,12 +41,14 @@ struct SettingsView: View {
                         SettingsRow(symbol: "waveform", title: "语音转写模型", subtitle: settings.transcriptionLabel)
                     }
                     Divider().overlay(NotesStyle.border)
+                    MyVoiceSettingsEntry(profile: model.voiceProfile)
+                    Divider().overlay(NotesStyle.border)
                     NavigationLink(value: SettingsRoute.ai) {
                         SettingsRow(symbol: "sparkles", title: "AI 模型", subtitle: settings.ai.label)
                     }
                 }
                 .settingsCard()
-                SettingsFootnote(text: "默认在 iPhone 上转写、总结和回答问题。自定义 AI 的问答会先展示所选文本，确认后发送到你指定的服务。")
+                SettingsFootnote(text: "默认在 iPhone 上转写、总结和回答问题。使用外部 AI 时默认先确认发送内容，也可选择下次不再提示。")
             }
             if showDaybookSettings {
                 SettingsSection("我的 AI") {
@@ -60,16 +63,56 @@ struct SettingsView: View {
                 }
                 .settingsCard()
             }
+            SettingsSection("关于") {
+                NavigationLink(value: SettingsRoute.about) {
+                    SettingsRow(symbol: "info.circle", title: "关于", subtitle: "隐私协议、服务协议与联系信息")
+                }
+                .settingsCard()
+            }
         }
+    }
+}
+
+struct AboutView: View {
+    private let privacyPolicyURL = URL(string: "https://wiselife.cloud/privacy")!
+    private let termsOfServiceURL = URL(string: "https://wiselife.cloud/terms")!
+    private let contactURL = URL(string: "mailto:hello@wiselife.cloud")!
+
+    var body: some View {
+        SettingsPage(title: "关于", subtitle: "WiseLife 的隐私、服务条款与联系渠道。") {
+            SettingsSection("法律与支持") {
+                VStack(spacing: 0) {
+                    Link(destination: privacyPolicyURL) {
+                        SettingsRow(symbol: "hand.raised", title: "隐私协议", subtitle: "查看隐私政策与数据使用说明")
+                    }
+                    Divider().overlay(NotesStyle.border)
+                    Link(destination: termsOfServiceURL) {
+                        SettingsRow(symbol: "doc.text", title: "服务协议", subtitle: "查看应用服务条款")
+                    }
+                    Divider().overlay(NotesStyle.border)
+                    Link(destination: contactURL) {
+                        SettingsRow(symbol: "envelope", title: "联系我", subtitle: "hello@wiselife.cloud")
+                    }
+                }
+                .settingsCard()
+            }
+        }
+        .tint(NotesStyle.red)
     }
 }
 
 struct AISettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var settings: AppSettings
     @StateObject private var editor: AISettingsModel
+    @ObservedObject private var chatGPT: ChatGPTAccountModel
     @State private var saveError: String?
 
-    init(settings: AppSettings) { _editor = StateObject(wrappedValue: AISettingsModel(settings: settings)) }
+    init(settings: AppSettings) {
+        self.settings = settings
+        _editor = StateObject(wrappedValue: AISettingsModel(settings: settings))
+        chatGPT = settings.chatGPT
+    }
 
     var body: some View {
         SettingsPage(title: "AI 模型", subtitle: "用于笔记总结、跨记录回顾与 AI 对话。", canSave: editor.canSave, save: {
@@ -82,6 +125,11 @@ struct AISettingsView: View {
                             selected: editor.configuration.mode == .local) {
                     editor.configuration.mode = .local
                 }
+                ModelChoice(title: "ChatGPT 账号", badge: "云端",
+                            description: "使用已有 ChatGPT 账号，按套餐额度在云端处理。",
+                            selected: editor.configuration.mode == .chatgpt) {
+                    editor.configuration.mode = .chatgpt
+                }
                 ModelChoice(title: "自定义模型", badge: "自有服务",
                             description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
                             selected: editor.configuration.mode == .custom) {
@@ -92,6 +140,8 @@ struct AISettingsView: View {
                 SettingsInfo(title: localAvailabilityTitle,
                              text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
                     .padding(.top, 20)
+            } else if editor.configuration.mode == .chatgpt {
+                ChatGPTSettingsSection(account: chatGPT, configuration: $editor.configuration).padding(.top, 20)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
                     DaybookSettingsField("API 接口兼容") {
@@ -131,7 +181,14 @@ struct AISettingsView: View {
                 }
                 .padding(.top, 18)
             }
-            SettingsFootnote(text: "保存后用于下一次总结与问答。关闭会放弃未保存的修改。")
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("发送给外部 AI 前确认", isOn: $settings.requiresRemoteAIConfirmation)
+                    .font(.system(size: 14)).tint(DaybookStyle.accent)
+                    .accessibilityIdentifier("ai.settings.confirmBeforeSending")
+                SettingsFootnote(text: "即时生效。关闭后，外部 AI 问答与总结直接发送允许使用的文字，长录音转写后自动发送摘录生成标题；可随时重新开启。")
+            }.padding(.top, 24)
+            DaybookSemanticSettingsView().padding(.top, 20)
+            SettingsFootnote(text: "模型配置保存后用于下一次总结与问答。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")
                 .padding(.top, 20)
         }
         .onDisappear { editor.invalidateTest() }

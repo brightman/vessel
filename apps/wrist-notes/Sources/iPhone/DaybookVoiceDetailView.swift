@@ -9,20 +9,24 @@ struct DaybookVoiceDetailView: View {
     @StateObject private var playback = AudioPlayback()
     @State private var selectedTab: ContentTab = .summary
     @State private var showEditor = false
-    @State private var confirmRemoteSummary = false
+    @State private var remoteSummary: NotesModel.RemoteSummaryRequest?
 
     private enum ContentTab: String, CaseIterable {
         case summary = "总结", transcript = "全文"
     }
 
     var body: some View {
-        DaybookSheetLayout(title: model.note(id)?.title ?? "语音记录", onClose: { dismiss() }) {
+        DaybookSheetLayout(title: model.note(id)?.displayTitle ?? "语音记录", onClose: { dismiss() }) {
             if let note = model.note(id) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(RecordingFormat.date(note.capturedAt)) · \(note.kind == .thought ? "闪念" : "语音记录") · \(RecordingFormat.duration(note.duration))")
                         .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
                         .padding(.bottom, 18)
-                    if let origin = note.origin {
+                    if note.kind == .long { RecordingTitleAction(note: note).padding(.bottom, 14) }
+                    LabeledContent("录制设备", value: note.origin?.device ?? "设备未知")
+                        .font(.system(size: 12)).padding(.bottom, 14)
+                    if let point = note.location { CapturePlaceDetails(point: point).padding(.bottom, 14) }
+                    if let origin = note.origin, origin.recordingTimeIsEstimated {
                         Text("来自 \(origin.device)\(origin.recordingTimeIsEstimated ? " · 录制时间缺失，按同步时间显示" : "")")
                             .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
                     }
@@ -48,11 +52,11 @@ struct DaybookVoiceDetailView: View {
             NavigationStack { NoteDetailView(id: id) }
                 .environmentObject(model).environmentObject(settings)
         }
-        .confirmationDialog("将这条记录的全文发送给自定义 AI？", isPresented: $confirmRemoteSummary, titleVisibility: .visible) {
-            Button("确认并生成总结") { Task { await model.summarize(id) } }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("使用 \(settings.ai.label)。将发送此条记录的转写全文，原始录音保留在本机。")
+        .sheet(item: $remoteSummary) { request in
+            RemoteSummaryConfirmationView(request: request, onCancel: { remoteSummary = nil }, onConfirm: { doNotAskAgain in
+                remoteSummary = nil
+                Task { await model.summarize(id, confirmation: request, doNotAskAgain: doNotAskAgain) }
+            })
         }
     }
 
@@ -79,7 +83,7 @@ struct DaybookVoiceDetailView: View {
             .padding(.horizontal, 2).frame(maxWidth: .infinity, alignment: .leading).frame(height: 46)
             .accessibilityHidden(true)
             HStack {
-                Text(RecordingFormat.duration(playback.position)).frame(minWidth: 55, alignment: .leading)
+                Text(RecordingFormat.duration(playback.position)).lineLimit(1).minimumScaleFactor(0.7).frame(minWidth: 55, alignment: .leading)
                 Spacer()
                 Button { playback.toggle() } label: {
                     DaybookIcon(playback.isPlaying ? "Pause" : "Play", size: 16)
@@ -89,7 +93,7 @@ struct DaybookVoiceDetailView: View {
                 .buttonStyle(.plain).disabled(!playbackAllowed)
                 .accessibilityLabel(playback.isPlaying ? "暂停播放" : "播放录音")
                 Spacer()
-                Text(RecordingFormat.duration(playback.duration)).frame(minWidth: 55, alignment: .trailing)
+                Text(RecordingFormat.duration(playback.duration)).lineLimit(1).minimumScaleFactor(0.7).frame(minWidth: 55, alignment: .trailing)
             }
             .font(.system(size: 10).monospacedDigit()).foregroundStyle(DaybookStyle.secondary)
             .padding(.top, 12)
@@ -133,10 +137,15 @@ struct DaybookVoiceDetailView: View {
                     Text(isSummary ? "正在使用 \(model.summaryModels[id] ?? model.summaryConfiguration(for: note).label) 生成总结…" : "正在转写录音…")
                 }.font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
             }
-            Text(text.isEmpty ? (isSummary ? "还没有总结。可以根据转写全文生成。" : "还没有转写文字。可以开始转写，或在编辑页面补充。") : text)
-                .font(.system(size: 13)).lineSpacing(10)
-                .foregroundStyle(DaybookStyle.bodyText)
-                .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            if !isSummary && note.diarizationState == .ready, !(note.transcriptSegments ?? []).isEmpty {
+                SpeakerTranscriptView(note: note)
+            } else {
+                Text(text.isEmpty ? (isSummary ? "还没有总结。可以根据转写全文生成。" : "还没有转写文字。可以开始转写，或在编辑页面补充。") : text)
+                    .font(.system(size: 13)).lineSpacing(10)
+                    .foregroundStyle(DaybookStyle.bodyText)
+                    .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if !isSummary { SpeakerProcessingView(note: note) }
             if state == .failed || state == .unavailable {
                 Text(note.processingMessage ?? (isSummary ? "总结暂不可用。" : "转写暂不可用。"))
                     .font(.system(size: 11)).lineSpacing(6).foregroundStyle(DaybookStyle.red)
@@ -147,11 +156,11 @@ struct DaybookVoiceDetailView: View {
             HStack(spacing: 18) {
                 Button(isSummary ? (text.isEmpty ? "生成总结" : "重新生成") : (text.isEmpty ? "开始转写" : "重新转写")) {
                     if isSummary {
-                        if model.summaryConfiguration(for: note).mode == .custom { confirmRemoteSummary = true }
+                        if model.summaryConfiguration(for: note).isRemote && settings.requiresRemoteAIConfirmation { remoteSummary = model.prepareRemoteSummary(id) }
                         else { Task { await model.summarize(id) } }
                     } else { Task { await model.transcribe(id) } }
                 }
-                .disabled(pending || (isSummary && note.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                .disabled(pending || (!isSummary && note.diarizationState == .running) || (isSummary && note.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 Spacer(minLength: 0)
                 Button("编辑标题与全文") { playback.stop(); showEditor = true }.disabled(!playbackAllowed)
             }

@@ -14,12 +14,12 @@ struct PhoneRecordingView: View {
                 Image(systemName: "waveform").font(.system(size: 52, weight: .ultraLight)).foregroundStyle(NotesStyle.red)
                 Text(recorder.draft != nil ? "录音已结束" : recorder.isRecording ? "正在录音" : "说出这一刻")
                     .font(.title2.weight(.semibold))
-                Text(RecordingFormat.duration(recorder.duration)).font(.system(size: 44, weight: .light, design: .rounded).monospacedDigit())
+                Text(RecordingFormat.duration(recorder.duration)).font(.system(size: 36, weight: .light, design: .rounded).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.55)
                 if let error = recorder.errorMessage { Text(error).font(.callout).foregroundStyle(NotesStyle.warning).multilineTextAlignment(.center) }
                 if recorder.draft != nil {
                     Button("保存录音") {
                         if let draft = recorder.draft, model.savePhoneRecording(id: draft.id, fileURL: draft.fileURL,
-                            capturedAt: draft.capturedAt, duration: draft.duration) {
+                            capturedAt: draft.capturedAt, duration: draft.duration, location: draft.location) {
                             recorder.didSave(); dismiss(); onSaved(draft.capturedAt)
                         }
                     }.buttonStyle(.borderedProminent).tint(NotesStyle.red)

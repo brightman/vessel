@@ -1,12 +1,13 @@
 import AVFoundation
 import Combine
 import PhotosUI
+import Photos
 import SwiftUI
 import UIKit
 
 struct PhotoCaptureView: View {
     @ObservedObject var library: PhotoLibraryModel
-    let onSaved: () -> Void
+    let onSaved: (Date) -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var capture = PhotoCaptureModel()
     @State private var selection: [PhotosPickerItem] = []
@@ -63,16 +64,17 @@ struct PhotoCaptureView: View {
         }
         .interactiveDismissDisabled(!capture.photos.isEmpty || !caption.isEmpty || capture.isLoading)
         .fullScreenCover(isPresented: $showCamera) {
-            PhotoCameraView { result in
+            PhotoCameraView(location: capture.cameraLocation) { result in
                 showCamera = false
                 switch result {
                 case .success(let image): capture.addCameraImage(image)
                 case .failure(let error): capture.errorMessage = error.localizedDescription
-                case nil: break
+                case nil: capture.cameraLocation.cancel()
                 }
             }
             .ignoresSafeArea()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in capture.cameraLocation.cancel() }
         .onChange(of: selection) { _, items in
             guard !items.isEmpty else { return }
             capture.load(items)
@@ -95,7 +97,7 @@ struct PhotoCaptureView: View {
             }
             .disabled(requestingCamera || capture.isLoading || capture.photos.count >= 6)
             PhotosPicker(selection: $selection, maxSelectionCount: max(1, 6 - capture.photos.count),
-                         matching: .images, preferredItemEncoding: .compatible) {
+                         matching: .images, preferredItemEncoding: .current) {
                 sourceRow("从相册选择", description: "一次最多 6 张，确认前可以移除。", icon: "Images")
             }
             .disabled(capture.isLoading || capture.photos.count >= 6)
@@ -123,7 +125,7 @@ struct PhotoCaptureView: View {
                     .foregroundStyle(DaybookStyle.secondary)
                 Spacer()
                 PhotosPicker(selection: $selection, maxSelectionCount: max(1, 6 - capture.photos.count),
-                             matching: .images, preferredItemEncoding: .compatible) {
+                             matching: .images, preferredItemEncoding: .current) {
                     HStack(spacing: 4) { DaybookIcon("Plus", size: 14); Text("再选几张") }
                         .foregroundStyle(DaybookStyle.accent)
                 }
@@ -213,7 +215,7 @@ struct PhotoCaptureView: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 12)
                 .background(Color(red: 234/255, green: 240/255, blue: 244/255), in: RoundedRectangle(cornerRadius: 14))
             Button(action: save) {
-                HStack(spacing: 7) { DaybookIcon("Check", size: 15); Text("保存到今天") }
+                HStack(spacing: 7) { DaybookIcon("Check", size: 15); Text("保存记录") }
                     .font(.system(size: 12)).foregroundStyle(DaybookStyle.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
                     .background(DaybookStyle.accent, in: RoundedRectangle(cornerRadius: 14))
@@ -248,18 +250,18 @@ struct PhotoCaptureView: View {
         default: allowed = false
         }
         guard isActive else { return }
-        if allowed { showCamera = true }
-        else { capture.errorMessage = "相机权限未开启。可在系统设置中允许 WiseNote 使用相机，或从相册选择。" }
+        if allowed { capture.cameraLocation.beginCameraPreview(); showCamera = true }
+        else { capture.errorMessage = "相机权限未开启。可在系统设置中允许 WiseLife 使用相机，或从相册选择。" }
     }
 
     private func save() {
         do {
             let photos = capture.photos.map {
-                PhotoImport(jpegData: $0.jpegData, recognizedText: $0.recognizedText, recognitionError: $0.recognitionError)
+                PhotoImport(jpegData: $0.jpegData, recognizedText: $0.recognizedText, recognitionError: $0.recognitionError, capture: $0.capture)
             }
-            _ = try library.save(caption: caption, photos: photos)
+            let moment = try library.save(caption: caption, photos: photos)
             capture.cancel()
-            onSaved()
+            onSaved(moment.capturedAt)
             dismiss()
         } catch { capture.errorMessage = "保存失败：\(error.localizedDescription)" }
     }
@@ -271,6 +273,7 @@ private struct PhotoDraft: Identifiable {
     let id = UUID()
     let jpegData: Data
     let preview: UIImage
+    let capture: PhotoCaptureMetadata
     var recognizedText = ""
     var recognitionError: String?
     var isRecognizing = true
@@ -281,6 +284,7 @@ private final class PhotoCaptureModel: ObservableObject {
     @Published var photos: [PhotoDraft] = []
     @Published var errorMessage: String?
     @Published var isLoading = false
+    let cameraLocation = CaptureLocationService()
     private var loadTask: Task<Void, Never>?
     private var recognitionTasks: [UUID: Task<Void, Never>] = [:]
     var isRecognizing: Bool { photos.contains { $0.isRecognizing } }
@@ -295,16 +299,29 @@ private final class PhotoCaptureModel: ObservableObject {
                 do {
                     try Task.checkCancellation()
                     guard let data = try await item.loadTransferable(type: Data.self) else { throw PhotoStorageError.invalidImage }
-                    try await append(data)
+                    var metadata = PhotoMetadataReader.read(data, includeLocation: CaptureLocationSettings.enabled)
+                    // PHPicker grants the image, not unrestricted PHAsset metadata access.
+                    // Use an asset only when access was previously granted; never escalate here.
+                    let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+                    if (status == .authorized || status == .limited), let identifier = item.itemIdentifier,
+                       let asset = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject {
+                        if let date = asset.creationDate { metadata.capturedAt = date; metadata.timeZoneKnown = true }
+                        if CaptureLocationSettings.enabled, let point = asset.location {
+                            metadata.location = CaptureLocation(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude,
+                                accuracy: point.horizontalAccuracy >= 0 ? point.horizontalAccuracy : nil,
+                                measuredAt: asset.creationDate, source: .photoMetadata)
+                        }
+                    }
+                    try await append(data, metadata: metadata)
                 } catch is CancellationError { return }
                 catch { errorMessage = "部分照片无法载入：\(error.localizedDescription)" }
             }
         }
     }
 
-    func addCameraImage(_ image: UIImage) {
+    func addCameraImage(_ image: CameraCaptureResult) {
         guard photos.count < 6, !isLoading else { return }
-        guard let data = image.jpegData(compressionQuality: 0.9) else {
+        guard let data = image.image.jpegData(compressionQuality: 0.9) else {
             errorMessage = PhotoStorageError.invalidImage.localizedDescription
             return
         }
@@ -312,17 +329,17 @@ private final class PhotoCaptureModel: ObservableObject {
         errorMessage = nil
         loadTask = Task {
             defer { isLoading = false }
-            do { try await append(data) }
+            do { try await append(data, metadata: image.metadata) }
             catch is CancellationError {}
             catch { errorMessage = "照片载入失败：\(error.localizedDescription)" }
         }
     }
 
-    private func append(_ data: Data) async throws {
+    private func append(_ data: Data, metadata: PhotoCaptureMetadata) async throws {
         let jpeg = try await PhotoImageProcessing.prepare(data)
         try Task.checkCancellation()
         guard photos.count < 6, let preview = UIImage(data: jpeg) else { throw PhotoStorageError.invalidImage }
-        let photo = PhotoDraft(jpegData: jpeg, preview: preview)
+        let photo = PhotoDraft(jpegData: jpeg, preview: preview, capture: metadata)
         photos.append(photo)
         recognize(photo.id)
     }
@@ -355,16 +372,23 @@ private final class PhotoCaptureModel: ObservableObject {
     }
 
     func cancel() {
+        cameraLocation.cancel()
         loadTask?.cancel()
         recognitionTasks.values.forEach { $0.cancel() }
         recognitionTasks.removeAll()
     }
 }
 
-private struct PhotoCameraView: UIViewControllerRepresentable {
-    let onFinish: (Result<UIImage, Error>?) -> Void
+private struct CameraCaptureResult {
+    let image: UIImage
+    let metadata: PhotoCaptureMetadata
+}
 
-    func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish) }
+private struct PhotoCameraView: UIViewControllerRepresentable {
+    let location: CaptureLocationService
+    let onFinish: (Result<CameraCaptureResult, Error>?) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(location: location, onFinish: onFinish) }
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
@@ -375,12 +399,21 @@ private struct PhotoCameraView: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onFinish: (Result<UIImage, Error>?) -> Void
-        init(onFinish: @escaping (Result<UIImage, Error>?) -> Void) { self.onFinish = onFinish }
+        let onFinish: (Result<CameraCaptureResult, Error>?) -> Void
+        let location: CaptureLocationService
+        init(location: CaptureLocationService, onFinish: @escaping (Result<CameraCaptureResult, Error>?) -> Void) { self.location = location; self.onFinish = onFinish }
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { onFinish(nil) }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage { onFinish(.success(image)) }
-            else { onFinish(.failure(PhotoStorageError.invalidImage)) }
+            if let image = info[.originalImage] as? UIImage {
+                var metadata = PhotoMetadataReader.read(properties: info[.mediaMetadata] as? [String: Any] ?? [:], includeLocation: CaptureLocationSettings.enabled)
+                metadata.device = metadata.device ?? "iPhone"
+                metadata.importMethod = .camera
+                metadata.timeZoneKnown = metadata.capturedAt == nil ? nil : true
+                let point = location.finishCamera(at: metadata.capturedAt)
+                metadata.location = metadata.location ?? point
+                onFinish(.success(CameraCaptureResult(image: image, metadata: metadata)))
+            }
+            else { location.cancel(); onFinish(.failure(PhotoStorageError.invalidImage)) }
         }
     }
 }

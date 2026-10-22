@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AVFAudio
 
 // Retained for older library/settings routes.
 enum DaybookRoute: Hashable { case record(UUID), preferences, reminders }
@@ -10,24 +11,36 @@ private struct DaybookReminderDraft: Hashable {
     let initialDate: Date?
 }
 private enum DaybookSheet: Hashable, Identifiable {
-    case capture, photo, date, watch, hardware, ring, transcription, aiSettings, preferences, reminders
-    case record(UUID), evidence(UUID), reminder(DaybookReminderDraft), source(String)
+    case capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, preferences, reminders
+#if WISELIFE_EUREKA_RING
+    case ring
+#endif
+    case record(UUID), lifeMoment(UUID, Date, Bool), reminder(DaybookReminderDraft), source(String)
     var id: Self { self }
 }
 private enum DaybookFilter: String, CaseIterable {
-    case all = "全部", audio = "语音", image = "图片", thought = "闪念"
+    case all = "全部", audio = "语音", image = "图片", thought = "闪念", life = "生活"
     func includes(_ record: DayRecord) -> Bool {
-        switch self { case .all: true; case .audio: record.kind != .image; case .image: record.kind == .image; case .thought: record.kind == .thought }
+        switch self { case .all: true; case .audio: record.kind.isAudio; case .image: record.kind == .image; case .thought: record.kind == .thought; case .life: record.kind.isLife }
     }
 }
 
 struct DaybookView: View {
+    @EnvironmentObject private var sessions: RecordingSessionModel
     @EnvironmentObject private var model: NotesModel
     @EnvironmentObject private var settings: AppSettings
+#if WISELIFE_EUREKA_RING
     @EnvironmentObject private var ring: EurekaRingModel
+#endif
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var semanticSearch = DaybookSemanticSearchModel()
+    @StateObject private var assistant = DaybookAssistantModel()
+    @StateObject private var dailyInsight = DaybookInsightModel()
+    @EnvironmentObject private var life: LifeSourceModel
+    @StateObject private var addresses = CaptureAddressModel()
     @StateObject private var photos = PhotoLibraryModel()
-    @StateObject private var recorder = PhoneRecorder()
+    @EnvironmentObject private var recorder: PhoneRecorder
+    @EnvironmentObject private var recording: PhoneRecordingSession
     @StateObject private var preferences = DaybookPreferences()
     @StateObject private var reminders = DaybookReminderStore()
     @StateObject private var suggestions = DaybookSuggestionStore()
@@ -46,40 +59,44 @@ struct DaybookView: View {
     @State private var recorderMenu = false
     @State private var initialQuestion = ""
     @State private var assistantID = UUID()
-    @State private var dismissedInsights: Set<UUID> = []
 
     private var records: [DayRecord] {
-        let audio = model.notes.map { DayRecord(id: $0.id, capturedAt: $0.capturedAt,
-            kind: $0.kind == .thought ? .thought : .voice, title: $0.title,
-            text: $0.transcript, summary: $0.summary, duration: $0.duration) }
-        let images = photos.moments.map { DayRecord(id: $0.id, capturedAt: $0.capturedAt, kind: .image, title: $0.title, text: $0.searchableText) }
-        return (audio + images).sorted { $0.capturedAt > $1.capturedAt }
+        let audio = model.notes.map(DaybookPlaces.voice)
+        let images = photos.moments.map(DaybookPlaces.photo)
+        let sessionRecords = RecordingSessionPresentation.records(sessions.allKnownSessions, legacyIDs: Set(model.notes.map(\.id)))
+        let places = DaybookPlaces.records(notes: model.notes, photos: photos.moments)
+        let movements = LocationMovementBuilder.records(points: places).filter { !life.isSuppressed($0.id) }
+        let moments = LifeMomentBuilder.timeline(records: life.records, day: selectedDate, now: clockNow,
+            healthEnabled: life.isEnabled(.health), calendar: .current,
+            snapshot: { life.snapshot(.health, day: $0) }, isSuppressed: life.isSuppressed)
+        return (audio + sessionRecords + images + life.records + places + movements + moments).sorted { $0.capturedAt > $1.capturedAt }
     }
-    private var dayRecords: [DayRecord] { records.filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: selectedDate) } }
+    private var dayRecords: [DayRecord] { records.compactMap { $0.recordingProjection(on: selectedDate) } }
     private var dayPhotoCount: Int { photos.moments.filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: selectedDate) }.reduce(0) { $0 + $1.photos.count } }
     private var shownRecords: [DayRecord] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        return dayRecords.filter { record in filter.includes(record) && (query.isEmpty ||
-            [record.title, record.text, record.summary].contains { $0.localizedCaseInsensitiveContains(query) }) }
+        let start = Calendar.current.startOfDay(for: selectedDate)
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
+        return DaybookRetrieval.libraryRecords(query: search, records: records, dayStart: start, dayEnd: end,
+            allowedKinds: allowedKinds, semantic: activeSemantic).filter {
+                filter.includes($0) && ($0.parentRecordID == nil || filter == .life)
+                    && !($0.kind == .activity && $0.lifeMoment?.steps?.archived != true)
+            }
     }
-    private var allowedKinds: Set<DayRecord.Kind> {
-        var result: Set<DayRecord.Kind> = []
-        if preferences.allowAudio { result.formUnion([.voice, .thought]) }; if preferences.allowPhotos { result.insert(.image) }; return result
+    private var activeSemantic: DaybookSemanticMatches? {
+        semanticSearch.validated(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds)
     }
-    private var insights: [DayRecord] {
-        dayRecords.filter { allowedKinds.contains($0.kind) && !$0.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !dismissedInsights.contains($0.id) }
-    }
+    private var allowedKinds: Set<DayRecord.Kind> { preferences.allowedKinds }
     private var suggestionPreferences: [Int] {
-        [preferences.proactiveEnabled ? 1 : 0, preferences.allowAudio ? 1 : 0, preferences.allowPhotos ? 1 : 0,
+        [preferences.proactiveEnabled ? 1 : 0, preferences.allowAudio ? 1 : 0, preferences.allowPhotos ? 1 : 0, preferences.allowHealth ? 1 : 0, preferences.allowCalendar ? 1 : 0, preferences.allowLocation ? 1 : 0,
          preferences.quietEnabled ? 1 : 0, preferences.quietStartMinutes, preferences.quietEndMinutes, preferences.dailySuggestionLimit]
     }
 
-    var body: some View {
+    private var pageContent: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 header
                 if page == .ai {
-                    DaybookAssistantView(records: records, selectedDate: selectedDate, settings: settings,
+                    DaybookAssistantView(model: assistant, records: records, selectedDate: selectedDate, settings: settings,
                         allowedKinds: allowedKinds, initialQuestion: initialQuestion, onOpenRecord: openRecord,
                         onReminder: { title, id in proposeReminder(title, id: id) },
                         onPreferences: { present(.preferences) }, onReminders: { present(.reminders) },
@@ -104,7 +121,7 @@ struct DaybookView: View {
                             .onChange(of: page) { _, _ in proxy.scrollTo("pageTop", anchor: .top) }
                     }
                 }
-                if recorder.isRecording || recorder.requestingPermission || recorder.draft != nil { recordingBanner }
+                if recording.phase != .idle || recorder.requestingPermission { recordingBanner }
                 bottomBar
             }.background(DaybookStyle.paper).foregroundStyle(DaybookStyle.ink)
                 .toolbar(.hidden, for: .navigationBar)
@@ -118,35 +135,74 @@ struct DaybookView: View {
                     }
                 }
                 .confirmationDialog("删除这条记录？", isPresented: Binding(get: { deleteRecord != nil }, set: { if !$0 { deleteRecord = nil } }), titleVisibility: .visible) {
-                    Button("删除记录和原文件", role: .destructive) {
+                    Button(LocalizedStringKey(deleteRecord?.recordingSessionID != nil ? "删除完整录音" : deleteRecord?.kind.isLife == true && deleteRecord?.parentRecordID == nil ? "删除本机快照" : "删除记录和原文件"), role: .destructive) {
                         if let record = deleteRecord {
-                            if record.kind == .image { photos.delete(record.id) } else { model.delete(record.id) }
+                            if let id = record.recordingSessionID { Task { await sessions.delete(id) } } else if let parent = record.parentRecordID { if model.note(parent) != nil { model.delete(parent) } else { photos.delete(parent) } } else if record.kind.isLife { life.delete(record.id) } else if record.kind == .image { photos.delete(record.id) } else { model.delete(record.id) }
                             deleteRecord = nil
                         }
                     }
+                } message: {
+                    if deleteRecord?.recordingSessionID != nil { Text("这会删除本机完整会话及全部原始分片；无法仅删除一个派生片段。") }
                 }
                 .confirmationDialog("语音记录", isPresented: $recorderMenu, titleVisibility: .visible) {
-                    if recorder.isRecording { Button("结束并保存") { recorder.stop() } }
-                    else if recorder.draft != nil { Button("重试保存") { saveDraft() } }
-                    Button("放弃录音", role: .destructive) { recorder.discard() }
+                    if recorder.isRecording { Button("结束并保存") { recordingAction(.stop) } }
+                    else if recording.phase == .failed { Button("重试保存") { recordingAction(.retry) } }
+                    Button("放弃录音", role: .destructive) { Task { await recording.discard() } }
                 }
-                .alert("提示", isPresented: Binding(get: { sheet == nil && (model.errorMessage != nil || photos.errorMessage != nil || recorder.errorMessage != nil || reminders.errorMessage != nil) }, set: { if !$0 { clearErrors() } })) {
+                .alert("提示", isPresented: Binding(get: { sheet == nil && (sessions.errorMessage != nil || model.errorMessage != nil || photos.errorMessage != nil || recorder.errorMessage != nil || recording.errorMessage != nil || reminders.errorMessage != nil || life.errorMessage != nil) }, set: { if !$0 { clearErrors() } })) {
                     Button("好") { clearErrors() }
-                } message: { Text(model.errorMessage ?? photos.errorMessage ?? recorder.errorMessage ?? reminders.errorMessage ?? "") }
-        }.buttonStyle(.plain).tint(DaybookStyle.accent).preferredColorScheme(settings.appearance.colorScheme)
+                } message: { Text(LocalizedStringKey(sessions.errorMessage ?? model.errorMessage ?? photos.errorMessage ?? recorder.errorMessage ?? recording.errorMessage ?? reminders.errorMessage ?? life.errorMessage ?? "")) }
+        }
+    }
+
+    private var observedContent: some View {
+        pageContent.buttonStyle(.plain).tint(DaybookStyle.accent).preferredColorScheme(settings.appearance.colorScheme)
             .environment(\.locale, settings.interfaceLanguage.locale)
-            .task { model.refreshWatchStatus(); synchronizeSuggestions(); await reminders.refreshAuthorization() }
-            .onChange(of: records) { _, _ in synchronizeSuggestions() }
+            .task { sessions.selectDay(selectedDate); synchronizeAssistant(); WiseLifeRuntime.shared.foreground(); synchronizeSuggestions(); life.setForeground(scenePhase == .active, day: selectedDate); synchronizeAddresses(); await reminders.refreshAuthorization() }
+            .onChange(of: records) { old, new in
+                synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses()
+            }
+            .onChange(of: life.isEnabled(.location)) { _, _ in synchronizeAddresses() }
+            .onChange(of: search) { _, _ in synchronizeSemantic() }
+            .onReceive(NotificationCenter.default.publisher(for: .daybookSemanticChanged)) { notification in
+                guard let change = notification.object as? DaybookSemanticResourceChange else { return }
+                semanticSearch.resourcesChanged(change, active: page == .library && scenePhase == .active); assistant.cancel()
+            }
+            .onChange(of: allowedKinds) { _, _ in synchronizeAssistant() }
+            .onChange(of: settings.interfaceLanguage) { _, _ in synchronizeInsights(); synchronizeAddresses() }
+            .onChange(of: recorder.isRecording) { _, _ in synchronizeInsights() }
+            .onChange(of: recorder.requestingPermission) { _, _ in synchronizeInsights() }
+    }
+
+    var body: some View {
+        observedContent
+            .onChange(of: settings.ai) { _, _ in synchronizeAssistant() }
+            .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant() }
             .onChange(of: suggestionPreferences) { _, _ in synchronizeSuggestions() }
-            .onChange(of: selectedDate) { _, _ in filter = .all; search = ""; synchronizeSuggestions() }
-            .onChange(of: page) { _, value in if value == .day { search = "" }; synchronizeSuggestions() }
+            .onChange(of: selectedDate) { _, _ in filter = .all; search = ""; sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
+            .onChange(of: page) { _, value in if value == .day { search = "" }; synchronizeAssistant(); synchronizeSuggestions() }
             .onChange(of: sheet) { _, _ in synchronizeSuggestions() }
-            .onChange(of: recorder.draft?.id) { _, id in if id != nil { saveDraft() } }
+            .onChange(of: recording.phase) { _, _ in synchronizeInsights() }
+            .onChange(of: recording.lastSaved?.id) { _, id in
+                if id != nil, let saved = recording.lastSaved { showToday(); selectedDate = saved.capturedAt }
+            }
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now in
-                guard scenePhase == .active else { return }; clockNow = now; synchronizeSuggestions(now: now)
+                guard scenePhase == .active else { return }; updateCalendar(now: now); synchronizeSuggestions(now: now)
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { model.refreshWatchStatus(); synchronizeSuggestions(); Task { await reminders.refreshAuthorization(); await ring.foreground() } }
+                if phase != .active { assistant.cancel() }
+                synchronizeAssistant(resumeSemantic: phase == .active)
+                life.setForeground(phase == .active, day: selectedDate)
+                synchronizeAddresses()
+                if phase == .active {
+                    updateCalendar(now: .now); model.refreshWatchStatus(); synchronizeSuggestions()
+                    Task {
+                        await reminders.refreshAuthorization()
+#if WISELIFE_EUREKA_RING
+                        await ring.foreground()
+#endif
+                    }
+                }
             }
     }
 
@@ -154,12 +210,14 @@ struct DaybookView: View {
         HStack {
             Button { model.refreshWatchStatus(); present(.hardware) } label: {
                 HStack(spacing: 7) {
-                    Circle().fill(model.watchStatus.isConnected || ring.isConnected ? DaybookStyle.green : DaybookStyle.secondary).frame(width: 5, height: 5)
-                    DaybookIcon(ring.isConnected ? "Ring" : "Watch", size: 21)
-                    Text(ring.isRecording ? "Ring 录音中" : connectedHardwareCount == 0 ? "连接硬件" : "\(connectedHardwareCount) 台已连接").font(.system(size: 11, weight: .medium))
+                    Circle().fill(configuredHardwareCount > 0 ? DaybookStyle.green : DaybookStyle.secondary).frame(width: 5, height: 5)
+                    DaybookIcon(hardwareStatusIcon, size: 21)
+                    Text(hardwareStatusLabel).font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                 }.padding(.leading, 10).padding(.trailing, 12).frame(height: 40)
                     .background(DaybookStyle.white, in: Capsule()).overlay(Capsule().stroke(DaybookStyle.line, lineWidth: 1))
-            }.accessibilityLabel("查看录音硬件连接状态")
+            }.accessibilityLabel("硬件状态：\(hardwareStatusLabel)")
+            Spacer()
+            Text("WiseLife").font(.system(size: 15, weight: .semibold))
             Spacer()
             HStack(spacing: 4) {
                 Button { focusSearchOnAppear = true; page = .library; searchFocused = true } label: { DaybookIcon("Search", size: 21).frame(width: 40, height: 40) }.accessibilityLabel("搜索记录")
@@ -167,13 +225,30 @@ struct DaybookView: View {
             }.padding(.horizontal, 3).background(DaybookStyle.white, in: Capsule()).overlay(Capsule().stroke(DaybookStyle.line, lineWidth: 1))
         }.padding(.horizontal, 23).padding(.top, 8).padding(.bottom, 10)
     }
-    private var connectedHardwareCount: Int { (model.watchStatus.isConnected ? 1 : 0) + (ring.isConnected ? 1 : 0) }
+    private var configuredHardwareCount: Int {
+        var count = model.watchStatus.hasPairedWatch ? 1 : 0
+#if WISELIFE_EUREKA_RING
+        count += ring.isConnected ? 1 : 0
+#endif
+        return count
+    }
+    private var hardwareStatusIcon: String {
+#if WISELIFE_EUREKA_RING
+        if ring.isConnected { return "Ring" }
+#endif
+        return "Watch"
+    }
+    private var hardwareStatusLabel: String {
+#if WISELIFE_EUREKA_RING
+        if ring.isRecording { return "Ring 录音中" }
+#endif
+        return model.watchStatus.compactLabel
+    }
     private var dayPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             DaybookDateHeading(date: selectedDate, hasRecords: !dayRecords.isEmpty, onDate: { present(.date) }).padding(.bottom, 20)
-            DaybookOverview(records: dayRecords, photoCount: dayPhotoCount, date: selectedDate, now: clockNow, onOpenRecord: openRecord).padding(.bottom, 18)
-            if let insight = insights.first { insightCard(insight, home: true) }
-            else { DaybookQuietInfo(icon: "Lightbulb", text: dayRecords.isEmpty ? "这一天还没有记录。说句话，或拍张照片。" : "多留下一些片段，线索会慢慢清晰。") }
+            DaybookOverview(records: dayRecords, photoCount: dayPhotoCount, date: selectedDate, now: clockNow, healthStale: life.snapshot(.health, day: selectedDate)?.isStale ?? false, onOpenRecord: openRecord, onOpenPlaces: { present(.places) }).padding(.bottom, 18)
+            dailyInsightCard
             if Calendar.current.isDate(selectedDate, inSameDayAs: clockNow),
                let candidate = suggestions.visibleCandidate(records: records, preferences: preferences, now: clockNow) { nudge(candidate) }
             else { aiHomeLink }
@@ -183,7 +258,7 @@ struct DaybookView: View {
                 Button { page = .library } label: { HStack(spacing: 3) { Text("查看全部"); DaybookIcon("ArrowUpRight", size: 13) }.font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary) }
             }.padding(.top, 24).padding(.bottom, 16)
             filters
-            recordList(Array(shownRecords.prefix(4)), home: true)
+            recordList(filter == .life ? shownRecords : Array(shownRecords.prefix(4)), home: true)
             HStack(spacing: 6) {
                 DaybookIcon("ShieldCheck", size: 13)
                 Text("由你选择记录什么，也由你决定何时暂停。").font(.system(size: 9))
@@ -197,11 +272,31 @@ struct DaybookView: View {
                 DaybookIcon("Search", size: 17).foregroundStyle(DaybookStyle.secondary)
                 TextField("搜索想法、片段或关键词", text: $search).font(.system(size: 12))
                     .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel("搜索想法、片段或关键词")
+                    .onSubmit { synchronizeSemantic(resume: true) }
                     .focused($searchFocused).onAppear { searchFocused = focusSearchOnAppear; focusSearchOnAppear = false }
             }.padding(12).background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 14)).padding(.bottom, 20)
+            if !search.isEmpty {
+                Text(activeSemantic?.status ?? (semanticSearch.isSearching ? "正在本机检索；已显示文字匹配" : "按日期与关键词检索"))
+                    .font(.caption).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 12)
+            }
             filters
             recordList(shownRecords, home: false)
+            sessionMaintenance
         }
+    }
+    private var sessionMaintenance: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(sessions.sessions.filter { $0.startedAt == nil }) { session in
+                Button { openRecord(session.id) } label: {
+                    VStack(alignment: .leading) { Text("录音时间待同步"); Text(LocalizedStringKey(RecordingSessionPresentation.status(session))).font(.caption) }
+                }
+            }
+            if sessions.hasMore { Button("载入更早的录音") { sessions.loadMore() }.disabled(sessions.loading) }
+            if !sessions.cleanupIDs.isEmpty {
+                Text("文件清理待重试").foregroundStyle(.orange)
+                Button("重试清理") { sessions.refresh(recover: true) }
+            }
+        }.padding(.top, 12)
     }
     private var filters: some View {
         ScrollView(.horizontal) {
@@ -217,30 +312,35 @@ struct DaybookView: View {
         }.scrollIndicators(.hidden).padding(.bottom, 19)
     }
     @ViewBuilder private func recordList(_ values: [DayRecord], home: Bool) -> some View {
+        if let error = life.errorMessage { Text(error).font(.caption).foregroundStyle(.orange).padding(.bottom, 12) }
         if values.isEmpty {
             DaybookEmptyView(title: home ? "这里留了一点空白" : search.isEmpty ? "还没有这样的片段" : "没有找到这段记录",
                 text: home ? "可以换个筛选，或用右下角的“记此刻”留下今天。" : search.isEmpty ? "下一次记录，会出现在这里。" : "试试更短的关键词，或切换记录类型。", icon: home ? "BookOpen" : "Search")
         } else {
-            ForEach(values) { record in
-                DaybookSwipeRow(id: record.id, revealedID: $revealedRecordID, onDelete: { deleteRecord = record }) {
-                    Button {
-                        if revealedRecordID == record.id { revealedRecordID = nil }
-                        else { openRecord(record.id) }
-                    } label: {
-                        DaybookRecordRow(record: record, thumbnails: thumbnails(record), photoCount: photoCount(record), status: recordStatus(record))
-                    }
-                }.contextMenu {
-                    Button("打开") { openRecord(record.id) }
-                    Button("删除", role: .destructive) { deleteRecord = record }
-                }.accessibilityAction(named: "删除记录") { deleteRecord = record }
-            }
+            ForEach(values) { record in recordListRow(record) }
+        }
+    }
+    @ViewBuilder private func recordListRow(_ record: DayRecord) -> some View {
+        if record.parentRecordID != nil {
+            Button { openRecord(record.id) } label: { DaybookRecordRow(record: record) }
+        } else {
+            DaybookSwipeRow(id: record.id, revealedID: $revealedRecordID, onDelete: { deleteRecord = record }) {
+                Button {
+                    if revealedRecordID == record.id { revealedRecordID = nil }
+                    else { openRecord(record.id) }
+                } label: {
+                    DaybookRecordRow(record: record, thumbnails: thumbnails(record), photoCount: photoCount(record), status: recordStatus(record))
+                }
+            }.contextMenu {
+                Button("打开") { openRecord(record.id) }
+                Button("删除", role: .destructive) { deleteRecord = record }
+            }.accessibilityAction(named: "删除记录") { deleteRecord = record }
         }
     }
     private var insightsPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             pageHeading("从记录中发现", title: "更懂自己一点。", subtitle: "\(DaybookFormat.day(selectedDate)) · 把线索变成一个小行动。")
-            if insights.isEmpty { DaybookEmptyView(title: "先记录，再发现", text: "当一天的记录足够丰富，这里会展示有出处的线索和建议。", icon: "Lightbulb") }
-            else { ForEach(insights.prefix(5)) { insightCard($0, home: false) } }
+            dailyInsightCard
             HStack {
                 Text("明天的打算").font(.system(size: 17, weight: .semibold))
                 Spacer(); Text("从今天出发").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
@@ -264,26 +364,10 @@ struct DaybookView: View {
             DaybookQuietInfo(text: "洞察来自你选择的记录。你可以查看依据，也可以告诉我们哪里不符合。")
         }
     }
-    private func insightCard(_ record: DayRecord, home: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 7) { DaybookIcon("Lightbulb", size: 14); Text("今日洞察 · 从你的记录出发") }
-                .font(.system(size: 10, weight: .medium)).foregroundStyle(DaybookStyle.accent).padding(.bottom, 11)
-            Text(record.title).font(.system(size: 22, weight: .semibold)).tracking(-0.5).lineSpacing(6).padding(.bottom, 10)
-            Text(String(record.summary.prefix(180))).font(.system(size: 12)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).lineLimit(4).padding(.bottom, 14)
-            HStack(spacing: 10) {
-                Button { present(.evidence(record.id)) } label: {
-                    HStack(spacing: 6) { DaybookIcon("Link2", size: 13); Text("1 条记录支持"); DaybookIcon("ChevronRight", size: 13) }
-                        .font(.system(size: 10)).foregroundStyle(DaybookStyle.accent).padding(.vertical, 7)
-                }
-                Spacer(minLength: 0)
-                Button { proposeReminder("回顾：\(record.title)", id: record.id, tomorrow: true) } label: {
-                    HStack(spacing: 6) { DaybookIcon("ArrowUpRight", size: 13); Text(home ? "给明天一步" : "看看建议") }
-                }.buttonStyle(DaybookPrimaryButtonStyle())
-            }
-        }.padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 17)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(LinearGradient(colors: [DaybookStyle.blueSoft, DaybookStyle.paleBlue], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 23))
-            .overlay(RoundedRectangle(cornerRadius: 23).stroke(DaybookStyle.line, lineWidth: 1)).padding(.bottom, 20)
+    private var dailyInsightCard: some View {
+        DaybookInsightView(model: dailyInsight, records: records, selectedDate: selectedDate,
+            allowedKinds: allowedKinds, language: settings.interfaceLanguage.rawValue,
+            onOpenRecord: openRecord, onReminder: { title, id in proposeReminder(title, id: id, tomorrow: true) })
     }
     private func nudge(_ record: DayRecord) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -339,10 +423,14 @@ struct DaybookView: View {
             }.padding(.vertical, 16).padding(.bottom, 20).overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 1) }
             HStack { Text("语音与 AI").font(.system(size: 17, weight: .semibold)); Spacer(); Text("优先在本机处理").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary) }.padding(.bottom, 16)
             VStack(spacing: 0) {
+                Button { present(.quickRecording) } label: { DaybookOptionRow(icon: "Mic", title: "快捷录音", subtitle: "操作按钮、实时活动与自动保存") }
                 Button { present(.transcription) } label: { DaybookOptionRow(icon: "AudioLines", title: "语音转写模型", subtitle: settings.transcriptionLabel) }
+                MyVoiceSettingsEntry(profile: model.voiceProfile, open: { present(.myVoice) })
                 Button { present(.aiSettings) } label: { DaybookOptionRow(icon: "MessageCircle", title: "AI 模型", subtitle: settings.ai.label) }
                 Button { present(.preferences) } label: { DaybookOptionRow(icon: "Bell", title: "AI 偏好与提醒", subtitle: "主动建议、免打扰和数据范围") }
             }.overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+            Text("硬件").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 16)
+            hardwareRows
             Text("数据来源").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 16)
             HStack(alignment: .top, spacing: 13) {
                 DaybookIcon("ShieldCheck", size: 23).foregroundStyle(DaybookStyle.accent)
@@ -352,11 +440,9 @@ struct DaybookView: View {
                         .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(18).background(DaybookStyle.blueSoft, in: RoundedRectangle(cornerRadius: 18)).padding(.bottom, 14)
-            sourceRow("Apple Watch", subtitle: "语音与闪念", icon: "Watch", status: model.watchStatus.isConnected ? "已连接" : "未连接") { present(.watch) }
-            sourceRow("EurekaRing", subtitle: "录音与蓝牙同步", icon: "Ring", status: ring.connectionLabel) { present(.ring) }
-            sourceRow("Apple 健康", subtitle: "活动、步数与睡眠", icon: "Heart", status: "未接入") { present(.source("Apple 健康")) }
-            sourceRow("日历", subtitle: "为记录补充日程背景", icon: "CalendarDays", status: "未接入") { present(.source("日历")) }
-            sourceRow("地点", subtitle: "为片段留下一点位置线索", icon: "MapPin", status: "未接入") { present(.source("地点")) }
+            sourceRow("Apple 健康", subtitle: "活动、步数与睡眠", icon: "Heart", status: life.status(.health, day: selectedDate)) { present(.source("Apple 健康")) }
+            sourceRow("日历", subtitle: "为记录补充日程背景", icon: "CalendarDays", status: life.status(.calendar, day: selectedDate)) { present(.source("日历")) }
+            sourceRow("地点", subtitle: "为片段留下一点位置线索", icon: "MapPin", status: life.status(.location, day: selectedDate)) { present(.source("地点")) }
             Text("已有记录保存在本机。录音始终由你主动开始；未授权健康数据时，首页显示闪念条数与图片张数。")
                 .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.top, 18).padding(.bottom, 27)
             Button { showImporter = true } label: { plainRow("导入音频文件", icon: "AudioLines") }
@@ -365,7 +451,10 @@ struct DaybookView: View {
     private func sourceRow(_ title: String, subtitle: String, icon: String, status: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                DaybookIcon(icon, size: 23).foregroundStyle(DaybookStyle.secondary)
+                Group {
+                    if icon == "Ring" { Circle().stroke(lineWidth: 1.6).frame(width: 21, height: 21).padding(1) }
+                    else { DaybookIcon(icon, size: 23) }
+                }.foregroundStyle(DaybookStyle.secondary).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .semibold))
                     Text(LocalizedStringKey(subtitle)).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
@@ -395,7 +484,7 @@ struct DaybookView: View {
             navItem(.insights, title: "洞察", icon: "Lightbulb")
             Spacer(minLength: 0)
             Button {
-                if recorder.isRecording || recorder.requestingPermission || recorder.draft != nil { recorderMenu = true }
+                if recording.phase != .idle || recorder.requestingPermission { recorderMenu = true }
                 else { present(.capture) }
             } label: {
                 HStack(spacing: 5) { DaybookIcon("Plus", size: 17); Text("记此刻").font(.system(size: 11, weight: .medium)) }
@@ -415,90 +504,150 @@ struct DaybookView: View {
     private var recordingBanner: some View {
         HStack(spacing: 8) {
             Circle().fill(DaybookStyle.red).frame(width: 6, height: 6)
-            Text(recorder.requestingPermission ? "等待麦克风授权" : recorder.isRecording ? "录音中" : "录音待保存").font(.system(size: 10))
-            Text(RecordingFormat.duration(recorder.duration)).font(.system(size: 12, weight: .semibold)).monospacedDigit()
+            Text(LocalizedStringKey(recordingStatus)).font(.system(size: 10))
+            Text(RecordingFormat.duration(recorder.isRecording ? recorder.duration : recording.pendingDraft?.duration ?? recorder.duration)).font(.system(size: 12, weight: .semibold)).monospacedDigit()
             Spacer(minLength: 0)
-            Button(recorder.isRecording ? "结束并保存" : "重试保存") { if recorder.isRecording { recorder.stop() } else { saveDraft() } }
-                .font(.system(size: 10)).underline().disabled(recorder.requestingPermission)
+            Button(recorder.isRecording ? "结束并保存" : "重试保存") { recordingAction(recorder.isRecording ? .stop : .retry) }
+                .font(.system(size: 10)).underline().disabled(recording.phase == .starting || recording.phase == .saving || recorder.requestingPermission)
         }.padding(.horizontal, 23).padding(.vertical, 11).foregroundStyle(DaybookStyle.red)
             .background(DaybookStyle.red.opacity(0.08)).overlay(alignment: .top) { DaybookStyle.red.opacity(0.15).frame(height: 1) }
     }
     @ViewBuilder private func sheetContent(_ value: DaybookSheet) -> some View {
         switch value {
-        case .capture: DaybookCaptureMenu(voice: { sheet = nil; Task { await recorder.start() } }, image: { present(.photo) })
-        case .photo: PhotoCaptureView(library: photos, onSaved: showToday)
-        case .date: DaybookCalendarView(selectedDate: $selectedDate, recordDates: records.map(\.capturedAt))
+        case .capture: DaybookCaptureMenu(voice: { sheet = nil; recordingAction(.start) }, image: { present(.photo) })
+        case .places: DaybookPlacesView(records: dayRecords.filter { $0.kind == .location && $0.location != nil }, date: selectedDate, onOpen: openRecord, onClose: { sheet = nil })
+        case .photo: PhotoCaptureView(library: photos, onSaved: { date in showToday(); selectedDate = date })
+        case .date: DaybookCalendarView(selectedDate: $selectedDate, recordDates: records.filter { $0.recordingSessionID == nil }.map(\.capturedAt) + sessions.calendarDates, onMonthChange: sessions.selectMonth)
+        case .lifeMoment(let id, let day, let pendingSleep):
+            if let record = LifeMomentBuilder.detail(id: id, pendingSleepOn: pendingSleep ? day : nil, records: records, calendar: .current) {
+                LifeMomentDetailView(record: record, model: life, onOpen: openRecord, onClose: { sheet = nil })
+            } else {
+                DaybookSheetLayout(title: "生活片段", onClose: { sheet = nil }) {
+                    DaybookQuietInfo(text: "这条生活片段已更新或移除，请返回时间轴查看。")
+                }
+            }
         case .record(let id):
-            if model.note(id) != nil {
+            if sessions.session(id) != nil {
+                RecordingSessionDetailView(sessionID: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
+            } else if model.note(id) != nil {
                 DaybookVoiceDetailView(id: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
+            } else if let record = records.first(where: { $0.id == id && $0.lifeMoment != nil }) {
+                LifeMomentDetailView(record: record, model: life, onOpen: openRecord, onClose: { sheet = nil })
+            } else if let record = records.first(where: { $0.id == id && $0.kind == .location && $0.parentRecordID != nil }) {
+                DaybookPlaceDetailView(record: record, onOpenParent: openRecord, onClose: { sheet = nil })
+            } else if let record = life.records.first(where: { $0.id == id }) {
+                LifeRecordDetailView(record: record, model: life, onClose: { sheet = nil })
             } else {
                 PhotoDetailView(momentID: id, library: photos, onAskAI: {
                     if let moment = photos.moments.first(where: { $0.id == id }) { selectedDate = moment.capturedAt }
                     sheet = nil; ask("这一天的图片记录了什么？")
                 })
             }
-        case .evidence(let id): evidenceSheet(id)
         case .watch: watchSheet
-        case .hardware: DaybookHardwareView(watch: model.watchStatus, openWatch: { present(.watch) }, openRing: { present(.ring) }, onClose: { sheet = nil })
+        case .hardware:
+#if WISELIFE_EUREKA_RING
+            DaybookHardwareView(watch: model.watchStatus, openWatch: { present(.watch) }, openRing: { present(.ring) }, onClose: { sheet = nil })
+#else
+            DaybookHardwareView(watch: model.watchStatus, openWatch: { present(.watch) }, onClose: { sheet = nil })
+#endif
+#if WISELIFE_EUREKA_RING
         case .ring: EurekaRingDetailView(onBack: { present(.hardware) }, onClose: { sheet = nil }, phoneIsRecording: recorder.isRecording || recorder.requestingPermission)
+#endif
         case .transcription: TranscriptionSettingsView(settings: settings)
+        case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile, recordingBlocked: recording.phase != .idle || recorder.requestingPermission)
+        case .quickRecording: QuickRecordingSettingsView()
         case .aiSettings: AISettingsView(settings: settings)
         case .preferences: DaybookPreferencesView(preferences: preferences, reminders: reminders, onOpenRecord: openRecord, sourceTitle: sourceTitle)
         case .reminders: DaybookReminderListView(store: reminders, onOpenRecord: openRecord, sourceTitle: sourceTitle)
         case .reminder(let draft): DaybookReminderEditor(store: reminders, proposedTitle: draft.title, sourceID: draft.sourceID,
             initialDate: draft.initialDate, sourceTitle: draft.sourceID.flatMap(sourceTitle))
         case .source(let name):
-            DaybookSheetLayout(title: name, onClose: { sheet = nil }) {
-                DaybookQuietInfo(icon: name == "Apple 健康" ? "Heart" : "CircleHelp",
-                    text: "\(name)尚未接入。当前不会读取这类数据；已有语音和图片记录可以继续使用。")
-            }
+            LifeSourceSheet(model: life, source: LifeSource.allCases.first { $0.title == name } ?? .health, day: selectedDate, onClose: { sheet = nil })
         }
     }
     private func sheetDetents(_ value: DaybookSheet) -> Set<PresentationDetent> {
-        switch value { case .capture: [.height(350)]; case .date: [.height(460)]; case .source: [.height(280)]; default: [.fraction(0.87)] }
+        switch value { case .capture: [.height(350)]; case .date: [.height(460)]; case .source: [.fraction(0.87)]; default: [.fraction(0.87)] }
     }
-    private func evidenceSheet(_ id: UUID) -> some View {
-        DaybookSheetLayout(title: "这条洞察从哪里来", onClose: { sheet = nil }) {
-            if let record = records.first(where: { $0.id == id }), allowedKinds.contains(record.kind) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 7) { DaybookIcon("Lightbulb", size: 14); Text("\(DaybookFormat.day(record.capturedAt)) · 今日线索") }.font(.system(size: 10)).foregroundStyle(DaybookStyle.accent)
-                    Text(record.title).font(.system(size: 24, weight: .semibold)).lineSpacing(8).padding(.top, 10).padding(.bottom, 14)
-                    Text(record.summary).font(.system(size: 12)).lineSpacing(7).foregroundStyle(DaybookStyle.secondary)
-                    Text("回到原始记录").font(.system(size: 12, weight: .semibold)).padding(.top, 24).padding(.bottom, 12)
-                    Button { openRecord(record.id) } label: {
-                        VStack(alignment: .leading, spacing: 9) {
-                            HStack(spacing: 5) { DaybookIcon(record.kind.prototypeIcon, size: 12); Text("\(DaybookFormat.time(record.capturedAt)) · \(record.kind.title)"); DaybookIcon("ArrowUpRight", size: 12) }.font(.system(size: 10)).foregroundStyle(DaybookStyle.accent)
-                            Text(record.text).font(.system(size: 13)).lineSpacing(7).lineLimit(8)
-                        }.padding(.leading, 14).overlay(alignment: .leading) { DaybookStyle.accent.opacity(0.5).frame(width: 2) }
-                    }.padding(.vertical, 20)
-                    DaybookQuietInfo(text: "总结来自这条记录，请结合原文判断。建议需由你确认后才会安排提醒。")
-                    HStack(spacing: 10) {
-                        Button("不太符合") { dismissedInsights.insert(record.id); sheet = nil }.buttonStyle(DaybookSecondaryButtonStyle())
-                        Button("看看行动建议") { proposeReminder("回顾：\(record.title)", id: record.id, tomorrow: true) }.buttonStyle(DaybookPrimaryButtonStyle(wide: true))
-                    }
-                }
-            } else { DaybookQuietInfo(text: "原记录不存在，或已不允许 AI 使用。") }
+    private var watchHardwareStatus: String {
+        model.watchStatus.title
+    }
+    private var hardwareRows: some View {
+        VStack(spacing: 0) {
+            sourceRow("Apple Watch", subtitle: "语音与闪念", icon: "Watch", status: watchHardwareStatus) {
+                model.refreshWatchStatus(); present(.watch)
+            }
+#if WISELIFE_EUREKA_RING
+            sourceRow("EurekaRing", subtitle: "录音与蓝牙同步", icon: "Ring", status: ring.connectionLabel) { present(.ring) }
+#endif
         }
+    }
+    private var allHardwareButton: some View {
+        Button { model.refreshWatchStatus(); present(.hardware) } label: {
+            HStack(spacing: 4) { DaybookIcon("ChevronLeft", size: 14); Text("全部硬件") }
+                .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).padding(.vertical, 8)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    private func watchFact(_ title: String, value: String) -> some View {
+        HStack { Text(LocalizedStringKey(title)); Spacer(); Text(LocalizedStringKey(value)) }.padding(.vertical, 14)
     }
     private var watchSheet: some View {
         DaybookSheetLayout(title: "Apple Watch", onClose: { sheet = nil }) {
             VStack(spacing: 0) {
+                allHardwareButton
                 DaybookIcon("Watch", size: 36).foregroundStyle(DaybookStyle.accent).frame(width: 70, height: 70).background(DaybookStyle.blueSoft, in: RoundedRectangle(cornerRadius: 22)).padding(.top, 8).padding(.bottom, 18)
-                Text(model.watchStatus.title).font(.system(size: 20, weight: .semibold)).padding(.bottom, 10)
-                Text(model.watchStatus.message).font(.system(size: 12)).lineSpacing(6).multilineTextAlignment(.center).foregroundStyle(DaybookStyle.secondary)
+                Text(LocalizedStringKey(model.watchStatus.title)).font(.system(size: 20, weight: .semibold)).padding(.bottom, 10)
+                Text(LocalizedStringKey(model.watchStatus.message)).font(.system(size: 12)).lineSpacing(6).multilineTextAlignment(.center).foregroundStyle(DaybookStyle.secondary)
                 VStack(spacing: 0) {
-                    HStack { Text("连接状态"); Spacer(); Text(model.watchStatus.isConnected ? "已连接" : "未连接") }.padding(.vertical, 14)
+                    watchFact("配对状态", value: !model.watchStatus.isSupported ? "不可用" : model.watchStatus.isPaired ? "已配对" : "未配对")
+                    DaybookStyle.line.frame(height: 1)
+                    watchFact("手表 App", value: !model.watchStatus.isSupported ? "不可用" : model.watchStatus.isInstalled ? "已安装" : "未安装")
+                    DaybookStyle.line.frame(height: 1)
+                    watchFact("待同步录音", value: model.watchStatus.pendingLabel)
+                    DaybookStyle.line.frame(height: 1)
+                    watchFact("最近同步", value: model.watchStatus.lastSyncLabel)
                     DaybookStyle.line.frame(height: 1)
                     HStack { Text("采集方式"); Spacer(); Text("轻点录音 · 按住闪念") }.padding(.vertical, 14)
                 }.font(.system(size: 11)).padding(.horizontal, 16).padding(.vertical, 4).background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(DaybookStyle.line)).padding(.vertical, 22)
-                Button("刷新连接状态") { model.refreshWatchStatus() }.buttonStyle(DaybookPrimaryButtonStyle(wide: true))
+                watchSyncActions
+                Text("Apple Watch 的配对与取消配对请在 iPhone 的 Watch App 中管理。")
+                    .font(.system(size: 11)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.top, 16)
             }
+        }.task { model.refreshWatchStatus() }
+    }
+    private var watchSyncActions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if model.watchStatus.hasPairedWatch, model.watchStatus.isInstalled {
+                ForEach(model.watchStatus.issueMessages, id: \.self) { issue in
+                    Label(issue, systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 12)).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                }
+                if let error = model.watchRetryError {
+                    Text(error).font(.system(size: 12)).foregroundStyle(.orange)
+                }
+                if model.watchStatus.retryPending {
+                    Text("重试请求已提交，等待手表处理。后台传输时间由系统安排。")
+                        .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+                }
+                Button("重试同步") { model.retryWatchSync() }
+                    .buttonStyle(DaybookPrimaryButtonStyle(wide: true))
+                    .disabled(!model.watchStatus.canRetrySync)
+                if !model.watchStatus.isActivated {
+                    Text("同步服务正在准备，请稍后刷新状态。")
+                        .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                }
+            }
+            Button("刷新同步状态") { model.refreshWatchStatus() }
+                .font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity).padding(.vertical, 10)
         }
     }
     private func present(_ destination: DaybookSheet) {
         if sheet != nil { nextSheet = destination; sheet = nil } else { sheet = destination }
     }
-    private func openRecord(_ id: UUID) { present(.record(id)) }
+    private func openRecord(_ id: UUID) {
+        if let record = records.first(where: { $0.id == id && $0.lifeMoment != nil }) {
+            present(.lifeMoment(id, record.capturedAt, record.lifeMoment?.sleep != nil && record.lifeMoment?.sleep?.endedAt == nil))
+        } else { present(.record(id)) }
+    }
     private func proposeReminder(_ title: String, id: UUID?, tomorrow: Bool = false) {
         let initialDate = tomorrow ? Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now) : nil
         present(.reminder(DaybookReminderDraft(title: title, sourceID: id, initialDate: initialDate)))
@@ -507,24 +656,87 @@ struct DaybookView: View {
     private func thumbnails(_ record: DayRecord) -> [URL] { photos.moments.first { $0.id == record.id }?.photos.compactMap { photos.imageURL(for: $0) } ?? [] }
     private func photoCount(_ record: DayRecord) -> Int { photos.moments.first { $0.id == record.id }?.photos.count ?? 0 }
     private func recordStatus(_ record: DayRecord) -> String {
+        if let id = record.recordingSessionID, let session = sessions.session(id) { return RecordingSessionPresentation.status(session) }
+        if record.kind.isLife { return life.isStale(record) ? "本机快照 · 可能已过期" : "本机快照 · 点开查看来源" }
         guard let note = model.note(record.id) else { return "点开查看图片" }
         switch note.transcriptionState { case .pending: return "等待转写 · 原始录音已保存"; case .running: return "正在端上转写"; case .ready: return "点开回听录音"; case .unavailable, .failed: return "转写未完成 · 点开可重试" }
     }
+    private func synchronizeAddresses() {
+        let audio = model.notes.compactMap { note -> CaptureAddressRequest? in
+            note.location.map { .init(owner: .voice(note.id), date: note.capturedAt, point: $0) }
+        }
+        let images = photos.moments.flatMap { moment in
+            moment.photos.compactMap { photo -> CaptureAddressRequest? in
+                photo.capture?.location.map { .init(owner: .photo(photo.id), date: photo.capture?.capturedAt ?? moment.capturedAt, point: $0) }
+            }
+        }
+        let requests = audio + images
+        let evidence = LocationMovementBuilder.records(points: DaybookPlaces.records(notes: model.notes, photos: photos.moments))
+            .filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: selectedDate) && !life.isSuppressed($0.id) }
+            .compactMap(\.lifeMoment?.movement).flatMap { [$0.from, $0.to] }
+        let owners = Set(requests.filter { request in
+            evidence.contains { $0.point.matchesCapture(request.point) && $0.capturedAt == request.date }
+        }.map(\.owner))
+        addresses.synchronize(requests: requests, day: selectedDate,
+            localeIdentifier: settings.interfaceLanguage.locale.identifier,
+            enabled: life.isEnabled(.location), foreground: scenePhase == .active, additionalOwners: owners) { request, address in
+                switch request.owner {
+                case .voice(let id): model.setAddress(address, noteID: id, matching: request.point)
+                case .photo(let id): photos.setAddress(address, photoID: id, matching: request.point)
+                }
+            }
+    }
     private func synchronizeSuggestions(now: Date = .now) {
-        clockNow = now
+        updateCalendar(now: now)
+        synchronizeInsights(now: now)
         guard page == .day, sheet == nil, scenePhase == .active, Calendar.current.isDate(selectedDate, inSameDayAs: now) else { return }
         suggestions.synchronize(records: records, preferences: preferences, now: now)
     }
     private func showToday() { selectedDate = .now; page = .day; search = ""; filter = .all }
+    private func updateCalendar(now: Date) {
+        let calendar = Calendar.current
+        selectedDate = LifeMomentBuilder.selectedDate(after: now, previousNow: clockNow, selected: selectedDate, calendar: calendar)
+        clockNow = now
+        life.refreshForCalendarChange(now: now, day: selectedDate)
+    }
+    private func synchronizeInsights(now: Date = .now) {
+        dailyInsight.synchronize(records: records, selectedDate: selectedDate, preferences: preferences,
+            language: settings.interfaceLanguage.rawValue, foreground: scenePhase == .active,
+            capturing: recording.phase != .idle || recorder.requestingPermission, now: now)
+    }
+    private func synchronizeSemantic(resume: Bool = false) {
+        semanticSearch.synchronize(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds, active: page == .library && scenePhase == .active, resume: resume)
+    }
+    private func synchronizeAssistant(resumeSemantic: Bool = false) {
+        synchronizeSemantic(resume: resumeSemantic)
+        synchronizeInsights()
+        assistant.synchronize(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds, configuration: settings.ai, configurationRevision: settings.aiRevision)
+    }
     private func ask(_ question: String) { initialQuestion = question; assistantID = UUID(); page = .ai }
-    private func saveDraft() {
-        guard let draft = recorder.draft else { return }
-        if model.savePhoneRecording(id: draft.id, fileURL: draft.fileURL, capturedAt: draft.capturedAt, duration: draft.duration) {
-            let warning = recorder.errorMessage
-            recorder.didSave()
-            if warning != nil { recorder.errorMessage = "录音已保存。录制曾被中断，请回听检查内容是否完整。" }
-            showToday(); selectedDate = draft.capturedAt
+    private var recordingStatus: String {
+        if recorder.requestingPermission { return "等待麦克风授权" }
+        switch recording.phase {
+        case .starting: return "正在开始录音"
+        case .recording: return "录音中"
+        case .saving: return "正在保存录音"
+        case .failed: return "录音待保存"
+        case .idle: return "录音已保存"
         }
     }
-    private func clearErrors() { model.errorMessage = nil; photos.errorMessage = nil; recorder.errorMessage = nil; reminders.errorMessage = nil }
+    private func recordingAction(_ command: WiseLifeRuntime.Command) {
+        Task {
+            do {
+                await WiseLifeRuntime.shared.prepare()
+                if command == .start, recording.phase == .idle {
+                    guard await AVAudioApplication.requestRecordPermission() else {
+                        recorder.errorMessage = "请在系统设置中允许 WiseLife 使用麦克风，然后重试。"
+                        return
+                    }
+                }
+                try await WiseLifeRuntime.shared.perform(command, requireLiveActivity: false)
+            }
+            catch { recorder.errorMessage = error.localizedDescription }
+        }
+    }
+    private func clearErrors() { sessions.errorMessage = nil; model.errorMessage = nil; photos.errorMessage = nil; recorder.errorMessage = nil; recording.clearError(); reminders.errorMessage = nil; life.errorMessage = nil }
 }

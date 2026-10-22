@@ -31,7 +31,13 @@ final class AISettingsModel: ObservableObject {
         }
     }
 
-    var canSave: Bool { configuration.mode == .local || state == .success }
+    var canSave: Bool {
+        switch configuration.mode {
+        case .local: true
+        case .custom: state == .success
+        case .chatgpt: settings.chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID)
+        }
+    }
 
     func invalidateTest() {
         generation += 1
