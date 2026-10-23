@@ -1,4 +1,4 @@
-"""Deterministic, atomic operations for non-authoritative Page proposals."""
+"""Deterministic, atomic operations for non-authoritative Note proposals."""
 
 from __future__ import annotations
 
@@ -216,7 +216,7 @@ def apply_operation_batch(
     """Apply a complete operation batch to a private copy or reject it wholly.
 
     The returned document is proposal preview state only; callers must persist it
-    separately from the authoritative Page. Existing operation IDs are replayed
+    separately from the authoritative Note. Existing operation IDs are replayed
     as no-ops, while reusing an ID for different content is rejected.
     """
     if not isinstance(operations, list) or len(operations) > MAX_OPERATIONS_PER_BATCH:

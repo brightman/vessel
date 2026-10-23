@@ -9,39 +9,62 @@ struct WhisperModelFile: Codable, Sendable {
     let gitSHA1: String?
 }
 
-/// Only downloads public model assets. Audio and notes are never sent to this service.
+/// Whisper's public interface remains stable while both model families share atomic installation.
 struct WhisperModelStore: Sendable {
-    typealias Download = @Sendable (URLRequest, @escaping @Sendable (Int64) -> Void) async throws -> (URL, URLResponse)
-    let root: URL
-    let catalogURL: URL?
-    private let downloadFile: Download?
+    typealias Download = LocalModelAssetStore.Download
+    let assets: LocalModelAssetStore
+    var root: URL { assets.root }
+    var catalogURL: URL? { assets.catalogURL }
     init(root: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("WristNotes/Models", isDirectory: true),
          catalogURL: URL? = Bundle.main.url(forResource: "WhisperModels", withExtension: "json"),
          downloadFile: Download? = nil) {
-        self.root = root; self.catalogURL = catalogURL; self.downloadFile = downloadFile
+        assets = LocalModelAssetStore(root: root, catalogURL: catalogURL, requiredPaths: [
+            "tokenizer.json", "tokenizer_config.json", "AudioEncoder.mlmodelc/weights/weight.bin",
+            "TextDecoder.mlmodelc/weights/weight.bin", "MelSpectrogram.mlmodelc/weights/weight.bin"], downloadFile: downloadFile)
+    }
+    func folder(for size: TranscriptionConfiguration.WhisperSize) -> URL { assets.folder(for: size.rawValue) }
+    func files(for size: TranscriptionConfiguration.WhisperSize) throws -> [WhisperModelFile] { try assets.files(for: size.rawValue) }
+    func installed(_ size: TranscriptionConfiguration.WhisperSize) -> Bool { assets.installed(size.rawValue) }
+    func validate(_ size: TranscriptionConfiguration.WhisperSize) throws { try assets.validate(size.rawValue) }
+    func download(_ size: TranscriptionConfiguration.WhisperSize,
+                  progress: @escaping @Sendable (SpeechDownloadProgress) -> Void) async throws {
+        try await assets.download(size.rawValue, progress: progress)
+    }
+}
+
+/// Only downloads public model assets. Audio and notes are never sent to this service.
+struct LocalModelAssetStore: Sendable {
+    typealias Download = @Sendable (URLRequest, @escaping @Sendable (Int64) -> Void) async throws -> (URL, URLResponse)
+    let root: URL
+    let catalogURL: URL?
+    let requiredPaths: [String]
+    private let downloadFile: Download?
+    init(root: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("WristNotes/Models", isDirectory: true),
+         catalogURL: URL? = Bundle.main.url(forResource: "WhisperModels", withExtension: "json"),
+         requiredPaths: [String], downloadFile: Download? = nil) {
+        self.root = root; self.catalogURL = catalogURL; self.requiredPaths = requiredPaths; self.downloadFile = downloadFile
     }
 
-    func folder(for size: TranscriptionConfiguration.WhisperSize) -> URL { root.appendingPathComponent(size.rawValue, isDirectory: true) }
-    func files(for size: TranscriptionConfiguration.WhisperSize) throws -> [WhisperModelFile] {
+    func folder(for size: String) -> URL { root.appendingPathComponent(size, isDirectory: true) }
+    func files(for size: String) throws -> [WhisperModelFile] {
         guard let catalogURL else { throw TranscriptionResourceError.invalidFiles }
         let catalog = try JSONDecoder().decode([String: [WhisperModelFile]].self, from: Data(contentsOf: catalogURL))
-        guard let files = catalog[size.rawValue], !files.isEmpty,
+        guard let files = catalog[size], !files.isEmpty,
               Set(files.map(\.path)).count == files.count,
               files.allSatisfy({ $0.bytes > 0 && !$0.path.isEmpty && !$0.path.hasPrefix("/") && !$0.path.split(separator: "/").contains("..") &&
                   $0.url.scheme == "https" && $0.url.host == "huggingface.co" && validChecksum($0) }) else {
             throw TranscriptionResourceError.invalidFiles
         }
-        let required = ["tokenizer.json", "tokenizer_config.json", "AudioEncoder.mlmodelc/weights/weight.bin",
-                        "TextDecoder.mlmodelc/weights/weight.bin", "MelSpectrogram.mlmodelc/weights/weight.bin"]
-        guard required.allSatisfy({ path in files.contains { $0.path == path } }) else { throw TranscriptionResourceError.invalidFiles }
+        guard requiredPaths.allSatisfy({ path in files.contains { $0.path == path } }) else { throw TranscriptionResourceError.invalidFiles }
         return files
     }
     private func stamp(_ files: [WhisperModelFile]) throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         return Data(SHA256.hash(data: try encoder.encode(files)))
     }
-    func installed(_ size: TranscriptionConfiguration.WhisperSize) -> Bool {
+    func installed(_ size: String) -> Bool {
         guard let files = try? files(for: size),
               let marker = try? Data(contentsOf: folder(for: size).appendingPathComponent("installed.manifest")),
               marker == (try? stamp(files)) else { return false }
@@ -51,14 +74,14 @@ struct WhisperModelStore: Sendable {
             return info.isRegularFile == true && info.isSymbolicLink != true && Int64(info.fileSize ?? -1) == file.bytes
         }
     }
-    func validate(_ size: TranscriptionConfiguration.WhisperSize) throws {
+    func validate(_ size: String) throws {
         guard installed(size) else { throw TranscriptionResourceError.missing }
         for file in try files(for: size) {
             try Task.checkCancellation()
             try verify(folder(for: size).appendingPathComponent(file.path), file: file)
         }
     }
-    func download(_ size: TranscriptionConfiguration.WhisperSize,
+    func download(_ size: String,
                   progress: @escaping @Sendable (SpeechDownloadProgress) -> Void) async throws {
         let key = root.standardizedFileURL.resolvingSymlinksInPath().path
         try await ModelInstallCoordinator.shared.run(root: key) {
@@ -66,7 +89,7 @@ struct WhisperModelStore: Sendable {
         }
     }
 
-    private func downloadSerially(_ size: TranscriptionConfiguration.WhisperSize,
+    private func downloadSerially(_ size: String,
                                   progress: @escaping @Sendable (SpeechDownloadProgress) -> Void) async throws {
         try Task.checkCancellation()
         let files = try files(for: size)
@@ -89,7 +112,7 @@ struct WhisperModelStore: Sendable {
         // Assembly can be discarded on cancellation without throwing away downloaded work.
         let cache = root.appendingPathComponent(".verified-cache", isDirectory: true)
         try manager.createDirectory(at: cache, withIntermediateDirectories: true)
-        let staging = root.appendingPathComponent(".assembly-\(size.rawValue)-\(UUID())", isDirectory: true)
+        let staging = root.appendingPathComponent(".assembly-\(size)-\(UUID())", isDirectory: true)
         try manager.createDirectory(at: staging, withIntermediateDirectories: true)
         defer { try? manager.removeItem(at: staging) }
         let config = URLSessionConfiguration.ephemeral

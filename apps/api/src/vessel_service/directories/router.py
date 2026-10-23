@@ -7,8 +7,8 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
-from vessel_service.models import Page, PageDirectory, User
-from vessel_service.pages.router import current_user
+from vessel_service.models import Note, NoteDirectory, User
+from vessel_service.notes.router import current_user
 from vessel_service.spaces.permissions import personal_space, space_access
 from vessel_service.spaces.resources import directory_for_user
 
@@ -40,7 +40,7 @@ class DirectoryUpdate(BaseModel):
         return normalized
 
 
-def serialize_directory(directory: PageDirectory) -> dict[str, str]:
+def serialize_directory(directory: NoteDirectory) -> dict[str, str]:
     return {
         "directory_id": directory.directory_id,
         "space_id": directory.space_id,
@@ -51,12 +51,12 @@ def serialize_directory(directory: PageDirectory) -> dict[str, str]:
     }
 
 
-def _directory_or_404(session: Session, owner_id: str, directory_id: str) -> PageDirectory:
+def _directory_or_404(session: Session, owner_id: str, directory_id: str) -> NoteDirectory:
     directory = session.scalar(
-        select(PageDirectory).where(
-            PageDirectory.directory_id == directory_id,
-            PageDirectory.owner_user_id == owner_id,
-            PageDirectory.status == "active",
+        select(NoteDirectory).where(
+            NoteDirectory.directory_id == directory_id,
+            NoteDirectory.owner_user_id == owner_id,
+            NoteDirectory.status == "active",
         )
     )
     if directory is None:
@@ -70,9 +70,9 @@ def list_directories(
 ) -> dict[str, list[dict[str, str]]]:
     space = personal_space(session, user)
     directories = session.scalars(
-        select(PageDirectory)
-        .where(PageDirectory.space_id == space.space_id, PageDirectory.status == "active")
-        .order_by(PageDirectory.created_at, PageDirectory.directory_id)
+        select(NoteDirectory)
+        .where(NoteDirectory.space_id == space.space_id, NoteDirectory.status == "active")
+        .order_by(NoteDirectory.created_at, NoteDirectory.directory_id)
     ).all()
     return {"directories": [serialize_directory(directory) for directory in directories]}
 
@@ -89,7 +89,7 @@ def create_directory(
 def _create_in_space(session: Session, user: User, space_id: str, payload: DirectoryCreate) -> dict[str, dict[str, str]]:
     space_access(session, user, space_id, capability="can_write", lock=True)
     now = datetime.now(UTC)
-    directory = PageDirectory(
+    directory = NoteDirectory(
         directory_id=str(uuid4()),
         space_id=space_id,
         owner_user_id=user.user_id,
@@ -111,9 +111,9 @@ def list_space_directories(
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, str]]]:
     space_access(session, user, space_id)
-    directories = session.scalars(select(PageDirectory).where(
-        PageDirectory.space_id == space_id, PageDirectory.status == "active",
-    ).order_by(PageDirectory.created_at, PageDirectory.directory_id)).all()
+    directories = session.scalars(select(NoteDirectory).where(
+        NoteDirectory.space_id == space_id, NoteDirectory.status == "active",
+    ).order_by(NoteDirectory.created_at, NoteDirectory.directory_id)).all()
     return {"directories": [serialize_directory(directory) for directory in directories]}
 
 
@@ -162,8 +162,8 @@ def archive_directory(
     directory.status = "archived"
     directory.updated_at = now
     session.execute(
-        update(Page)
-        .where(Page.directory_id == directory_id, Page.space_id == directory.space_id)
+        update(Note)
+        .where(Note.directory_id == directory_id, Note.space_id == directory.space_id)
         .values(directory_id=None, updated_at=now)
     )
     session.commit()

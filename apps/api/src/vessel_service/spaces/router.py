@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
 from vessel_service.models import Space, TeamInvitation, TeamMember, User
-from vessel_service.pages.router import current_user
+from vessel_service.notes.router import current_user
 from vessel_service.spaces.permissions import ROLE_CAPABILITIES, space_access
 
 router = APIRouter(tags=["spaces"])

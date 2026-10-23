@@ -6,9 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from vessel_service.models.base import Base
 
 
-class PageDirectory(Base):
-    __tablename__ = "page_directories"
-    __table_args__ = (Index("ix_page_directories_space_status", "space_id", "status"),)
+class NoteDirectory(Base):
+    __tablename__ = "note_directories"
+    __table_args__ = (Index("ix_note_directories_space_status", "space_id", "status"),)
 
     directory_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     space_id: Mapped[str] = mapped_column(ForeignKey("spaces.space_id", ondelete="RESTRICT"), nullable=False)

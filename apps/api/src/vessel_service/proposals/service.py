@@ -1,4 +1,4 @@
-"""Persistence and acceptance boundary for Page edit proposals."""
+"""Persistence and acceptance boundary for Note edit proposals."""
 
 from __future__ import annotations
 
@@ -7,9 +7,11 @@ from uuid import uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 from vessel_service.document.codec import DocumentValidationError, markdown_from_document, normalize_document
-from vessel_service.models import Page, PageAgentEvent, PageProposal, PageVersion
+from vessel_service.models import Note, NoteAgentEvent, NoteProposal, NoteVersion, User
+from vessel_service.spaces.permissions import space_access
 from vessel_service.proposals.operations import OperationError, apply_operation_batch
 
 
@@ -26,21 +28,21 @@ class ProposalService:
     def begin(
         self,
         *,
-        page_id: str,
+        note_id: str,
         owner_user_id: str,
         run_id: str,
         base_revision: int,
         allow_full_rewrite: bool = False,
-    ) -> PageProposal:
+    ) -> NoteProposal:
         if not isinstance(run_id, str) or not run_id.strip() or len(run_id) > 128:
             raise ProposalError("INVALID_RUN_ID")
-        page = self._page(page_id, owner_user_id)
-        if page.revision != base_revision:
-            raise ProposalError("PAGE_REVISION_CONFLICT")
+        note = self._note(note_id, owner_user_id, write=True)
+        if note.revision != base_revision:
+            raise ProposalError("NOTE_REVISION_CONFLICT")
         existing = self.session.scalar(
-            select(PageProposal).where(
-                PageProposal.page_id == page_id,
-                PageProposal.run_id == run_id,
+            select(NoteProposal).where(
+                NoteProposal.note_id == note_id,
+                NoteProposal.run_id == run_id,
             )
         )
         if existing is not None:
@@ -49,9 +51,9 @@ class ProposalService:
             return existing
 
         now = datetime.now(UTC)
-        proposal = PageProposal(
+        proposal = NoteProposal(
             proposal_id=str(uuid4()),
-            page_id=page.page_id,
+            note_id=note.note_id,
             owner_user_id=owner_user_id,
             base_revision=base_revision,
             run_id=run_id,
@@ -59,15 +61,15 @@ class ProposalService:
             status="streaming",
             operations=[],
             applied_operations=[],
-            preview_title=page.title,
-            preview_document=page.document_json,
-            preview_markdown=page.markdown,
+            preview_title=note.title,
+            preview_document=note.document_json,
+            preview_markdown=note.markdown,
             created_at=now,
             updated_at=now,
         )
         self.session.add(proposal)
         self.session.flush()
-        self._emit(proposal, "page.proposal.started", {"base_revision": proposal.base_revision})
+        self._emit(proposal, "note.proposal.started", {"base_revision": proposal.base_revision})
         return proposal
 
     def append_operations(
@@ -76,17 +78,17 @@ class ProposalService:
         proposal_id: str,
         owner_user_id: str,
         operations: list[dict],
-    ) -> PageProposal:
+    ) -> NoteProposal:
         proposal = self._proposal(proposal_id, owner_user_id)
         if proposal.status != "streaming":
             raise ProposalError("PROPOSAL_NOT_STREAMING")
-        page = self._page(proposal.page_id, owner_user_id)
-        if page.revision != proposal.base_revision:
+        note = self._note(proposal.note_id, owner_user_id, write=True)
+        if note.revision != proposal.base_revision:
             proposal.status = "superseded"
             proposal.updated_at = datetime.now(UTC)
-            self._emit(proposal, "page.proposal.superseded", {"current_revision": page.revision})
+            self._emit(proposal, "note.proposal.superseded", {"current_revision": note.revision})
             self.session.flush()
-            raise ProposalError("PAGE_REVISION_CONFLICT")
+            raise ProposalError("NOTE_REVISION_CONFLICT")
 
         try:
             document, title, applied_operations, _ = apply_operation_batch(
@@ -117,7 +119,7 @@ class ProposalService:
         if additions:
             self._emit(
                 proposal,
-                "page.proposal.operations",
+                "note.proposal.operations",
                 {"operation_ids": [item["operation_id"] for item in additions]},
             )
         return proposal
@@ -128,7 +130,7 @@ class ProposalService:
         proposal_id: str,
         owner_user_id: str,
         summary: str,
-    ) -> PageProposal:
+    ) -> NoteProposal:
         if not isinstance(summary, str) or not summary.strip() or len(summary) > 4_000:
             raise ProposalError("INVALID_PROPOSAL_SUMMARY")
         proposal = self._proposal(proposal_id, owner_user_id)
@@ -138,13 +140,13 @@ class ProposalService:
             return proposal
         if proposal.status != "streaming":
             raise ProposalError("PROPOSAL_NOT_STREAMING")
-        page = self._page(proposal.page_id, owner_user_id)
-        if page.revision != proposal.base_revision:
+        note = self._note(proposal.note_id, owner_user_id, write=True)
+        if note.revision != proposal.base_revision:
             proposal.status = "superseded"
             proposal.updated_at = datetime.now(UTC)
-            self._emit(proposal, "page.proposal.superseded", {"current_revision": page.revision})
+            self._emit(proposal, "note.proposal.superseded", {"current_revision": note.revision})
             self.session.flush()
-            raise ProposalError("PAGE_REVISION_CONFLICT")
+            raise ProposalError("NOTE_REVISION_CONFLICT")
         try:
             document = normalize_document(proposal.preview_document)
             markdown = markdown_from_document(document)
@@ -156,7 +158,7 @@ class ProposalService:
         proposal.status = "ready"
         proposal.updated_at = datetime.now(UTC)
         self.session.flush()
-        self._emit(proposal, "page.proposal.ready", {"operation_count": len(proposal.operations)})
+        self._emit(proposal, "note.proposal.ready", {"operation_count": len(proposal.operations)})
         return proposal
 
     def accept(
@@ -165,26 +167,28 @@ class ProposalService:
         proposal_id: str,
         owner_user_id: str,
         idempotency_key: str,
-    ) -> Page:
+    ) -> Note:
         if not isinstance(idempotency_key, str) or not idempotency_key.strip() or len(idempotency_key) > 128:
             raise ProposalError("INVALID_IDEMPOTENCY_KEY")
         proposal = self._proposal(proposal_id, owner_user_id)
         if proposal.status == "accepted":
             if proposal.acceptance_idempotency_key != idempotency_key:
                 raise ProposalError("PROPOSAL_ALREADY_ACCEPTED")
-            return self._page(proposal.page_id, owner_user_id)
+            return self._note(proposal.note_id, owner_user_id, write=True)
         if proposal.status != "ready":
             raise ProposalError("PROPOSAL_NOT_READY")
+
+        note = self._note(proposal.note_id, owner_user_id, write=True)
 
         now = datetime.now(UTC)
         next_revision = proposal.base_revision + 1
         result = self.session.execute(
-            update(Page)
+            update(Note)
             .where(
-                Page.page_id == proposal.page_id,
-                Page.owner_user_id == owner_user_id,
-                Page.status == "active",
-                Page.revision == proposal.base_revision,
+                Note.note_id == proposal.note_id,
+                Note.space_id == note.space_id,
+                Note.status == "active",
+                Note.revision == proposal.base_revision,
             )
             .values(
                 title=proposal.preview_title,
@@ -197,14 +201,14 @@ class ProposalService:
         if result.rowcount != 1:
             proposal.status = "superseded"
             proposal.updated_at = now
-            self._emit(proposal, "page.proposal.superseded", {"current_revision": next_revision})
+            self._emit(proposal, "note.proposal.superseded", {"current_revision": next_revision})
             self.session.flush()
-            raise ProposalError("PAGE_REVISION_CONFLICT")
+            raise ProposalError("NOTE_REVISION_CONFLICT")
 
         self.session.add(
-            PageVersion(
+            NoteVersion(
                 version_id=str(uuid4()),
-                page_id=proposal.page_id,
+                note_id=proposal.note_id,
                 revision=next_revision,
                 title=proposal.preview_title,
                 document_json=proposal.preview_document,
@@ -220,10 +224,10 @@ class ProposalService:
         proposal.acceptance_idempotency_key = idempotency_key
         proposal.updated_at = now
         self.session.flush()
-        self._emit(proposal, "page.revision.committed", {"revision": next_revision, "source": "agent"})
-        return self._page(proposal.page_id, owner_user_id)
+        self._emit(proposal, "note.revision.committed", {"revision": next_revision, "source": "agent"})
+        return self._note(proposal.note_id, owner_user_id, write=True)
 
-    def reject(self, *, proposal_id: str, owner_user_id: str) -> PageProposal:
+    def reject(self, *, proposal_id: str, owner_user_id: str) -> NoteProposal:
         proposal = self._proposal(proposal_id, owner_user_id)
         if proposal.status == "rejected":
             return proposal
@@ -232,16 +236,16 @@ class ProposalService:
         proposal.status = "rejected"
         proposal.updated_at = datetime.now(UTC)
         self.session.flush()
-        self._emit(proposal, "page.proposal.rejected", {"status": proposal.status})
+        self._emit(proposal, "note.proposal.rejected", {"status": proposal.status})
         return proposal
 
-    def terminate_run(self, *, page_id: str, run_id: str, status: str) -> int:
+    def terminate_run(self, *, note_id: str, run_id: str, status: str) -> int:
         """Close an unfinished proposal when its owning Agent Run reaches a terminal state."""
         proposal = self.session.scalar(
-            select(PageProposal).where(
-                PageProposal.page_id == page_id,
-                PageProposal.run_id == run_id,
-                PageProposal.status == "streaming",
+            select(NoteProposal).where(
+                NoteProposal.note_id == note_id,
+                NoteProposal.run_id == run_id,
+                NoteProposal.status == "streaming",
             )
         )
         if proposal is None:
@@ -250,41 +254,45 @@ class ProposalService:
         proposal.failure_code = "AGENT_RUN_CANCELLED" if status == "cancelled" else "AGENT_RUN_TERMINATED"
         proposal.updated_at = datetime.now(UTC)
         self.session.flush()
-        self._emit(proposal, "page.proposal.run_terminated", {
+        self._emit(proposal, "note.proposal.run_terminated", {
             "status": proposal.status,
             "run_status": status,
         })
         return 1
 
-    def _page(self, page_id: str, owner_user_id: str) -> Page:
-        page = self.session.scalar(
-            select(Page).where(
-                Page.page_id == page_id,
-                Page.owner_user_id == owner_user_id,
-                Page.status == "active",
+    def _note(self, note_id: str, owner_user_id: str, *, write: bool = False) -> Note:
+        note = self.session.scalar(
+            select(Note).where(
+                Note.note_id == note_id,
+                Note.status == "active",
             )
         )
-        if page is None:
-            raise ProposalError("PAGE_NOT_FOUND")
-        return page
+        user = self.session.get(User, owner_user_id)
+        if note is None or user is None or user.status != "active":
+            raise ProposalError("NOTE_NOT_FOUND")
+        try:
+            space_access(self.session, user, note.space_id, capability="can_write" if write else "can_read", lock=write)
+        except HTTPException as error:
+            raise ProposalError("NOTE_NOT_FOUND" if error.status_code == 404 else "SPACE_PERMISSION_DENIED") from error
+        return note
 
-    def _proposal(self, proposal_id: str, owner_user_id: str) -> PageProposal:
+    def _proposal(self, proposal_id: str, owner_user_id: str) -> NoteProposal:
         proposal = self.session.scalar(
-            select(PageProposal).where(
-                PageProposal.proposal_id == proposal_id,
-                PageProposal.owner_user_id == owner_user_id,
+            select(NoteProposal).where(
+                NoteProposal.proposal_id == proposal_id,
+                NoteProposal.owner_user_id == owner_user_id,
             )
         )
         if proposal is None:
             raise ProposalError("PROPOSAL_NOT_FOUND")
         return proposal
 
-    def _emit(self, proposal: PageProposal, event_type: str, payload: dict) -> None:
+    def _emit(self, proposal: NoteProposal, event_type: str, payload: dict) -> None:
         """Persist only small, allowlisted lifecycle metadata, never edit contents or credentials."""
-        self.session.add(PageAgentEvent(
+        self.session.add(NoteAgentEvent(
             event_id=str(uuid4()),
             correlation_id=proposal.proposal_id,
-            page_id=proposal.page_id,
+            note_id=proposal.note_id,
             proposal_id=proposal.proposal_id,
             run_id=proposal.run_id,
             event_type=event_type,

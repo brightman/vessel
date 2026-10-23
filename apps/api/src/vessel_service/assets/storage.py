@@ -14,10 +14,10 @@ class LocalAssetStorage:
         self.root = root.expanduser().resolve()
 
     @staticmethod
-    def make_key(owner_id: str, page_id: str, asset_id: str) -> str:
+    def make_key(owner_id: str, note_id: str, asset_id: str) -> str:
         owner_segment = hashlib.sha256(owner_id.encode("utf-8")).hexdigest()[:32]
-        page_segment = hashlib.sha256(page_id.encode("utf-8")).hexdigest()[:32]
-        return f"{owner_segment}/{page_segment}/{asset_id}"
+        note_segment = hashlib.sha256(note_id.encode("utf-8")).hexdigest()[:32]
+        return f"{owner_segment}/{note_segment}/{asset_id}"
 
     def _path(self, object_key: str) -> Path:
         if not self._key_pattern.fullmatch(object_key):

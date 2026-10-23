@@ -21,7 +21,7 @@ def main():
         parser.error("interval must be positive")
     settings = Settings()
     if not settings.database_url:
-        parser.error("PAGES_DATABASE_URL required")
+        parser.error("NOTES_DATABASE_URL required")
     engine = create_database_engine(settings.database_url)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     storage = OSSStorage(FilesSettings())

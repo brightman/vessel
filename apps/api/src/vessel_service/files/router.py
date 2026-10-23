@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
 from vessel_service.models import User
-from vessel_service.pages.router import current_user
+from vessel_service.notes.router import current_user
 
 from .jobs import process_jobs
 from .metadata import FileMetadata

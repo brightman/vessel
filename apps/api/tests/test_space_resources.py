@@ -1,4 +1,4 @@
-"""Cross-account behavior for Pages and Apps in personal and team spaces."""
+"""Cross-account behavior for Notes and Apps in personal and team spaces."""
 
 import jwt
 
@@ -47,25 +47,25 @@ def _team_with_members(api):
     return space_id, (owner, owner_id), (editor, editor_id), (viewer, viewer_id), outsider
 
 
-def test_team_pages_are_visible_by_role_and_revocation_is_immediate(api_factory):
+def test_team_notes_are_visible_by_role_and_revocation_is_immediate(api_factory):
     api = api_factory()
     space_id, (owner, _), (editor, editor_id), (viewer, _), outsider = _team_with_members(api)
-    created = api("POST", f"/v1/spaces/{space_id}/pages", headers=_headers(owner), json={
+    created = api("POST", f"/v1/spaces/{space_id}/notes", headers=_headers(owner), json={
         "title": "Shared note", "document": _document(),
     })
     assert created.status_code == 201, created.text
-    page = created.json()["page"]
+    page = created.json()["note"]
     assert page["space_id"] == space_id
-    path = f"/v1/pages/{page['page_id']}"
+    path = f"/v1/notes/{page['note_id']}"
     assert api("GET", path, headers=_headers(editor)).status_code == 200
     assert api("GET", path, headers=_headers(viewer)).status_code == 200
     assert api("GET", path, headers=_headers(outsider)).status_code == 404
-    assert api("GET", f"/v1/spaces/{space_id}/pages", headers=_headers(outsider)).status_code == 404
-    assert api("GET", "/v1/pages", headers=_headers(owner)).json()["pages"] == []
+    assert api("GET", f"/v1/spaces/{space_id}/notes", headers=_headers(outsider)).status_code == 404
+    assert api("GET", "/v1/notes", headers=_headers(owner)).json()["notes"] == []
     assert api("PATCH", path, headers=_headers(viewer), json={"expected_revision": 1, "title": "Denied"}).status_code == 403
     updated = api("PATCH", path, headers=_headers(editor), json={"expected_revision": 1, "title": "Edited"})
     assert updated.status_code == 200
-    assert updated.json()["page"]["title"] == "Edited"
+    assert updated.json()["note"]["title"] == "Edited"
     checkpoint = api("POST", f"{path}/versions/checkpoint", headers=_headers(editor), json={"expected_revision": 2})
     assert checkpoint.status_code == 201
     versions = api("GET", f"{path}/versions", headers=_headers(viewer))
@@ -76,36 +76,36 @@ def test_team_pages_are_visible_by_role_and_revocation_is_immediate(api_factory)
     assert api("PATCH", path, headers=_headers(editor), json={"expected_revision": 2, "title": "Denied"}).status_code == 404
 
 
-def test_team_page_directory_and_version_cannot_cross_space(api_factory):
+def test_team_note_directory_and_version_cannot_cross_space(api_factory):
     api = api_factory()
     space_id, (owner, _), (editor, _), (viewer, _), _ = _team_with_members(api)
     directory = api("POST", f"/v1/spaces/{space_id}/directories", headers=_headers(editor), json={"name": "Notes"})
     assert directory.status_code == 201, directory.text
     directory_id = directory.json()["directory"]["directory_id"]
-    page = api("POST", f"/v1/spaces/{space_id}/pages", headers=_headers(owner), json={
+    page = api("POST", f"/v1/spaces/{space_id}/notes", headers=_headers(owner), json={
         "title": "Shared", "directory_id": directory_id, "document": _document(),
     })
     assert page.status_code == 201
-    page_id = page.json()["page"]["page_id"]
-    assert api("GET", f"/v1/pages/{page_id}/versions", headers=_headers(viewer)).status_code == 200
-    assert api("POST", f"/v1/pages/{page_id}/versions/checkpoint", headers=_headers(viewer), json={"expected_revision": 1}).status_code == 403
-    assert api("POST", "/v1/pages", headers=_headers(owner), json={
+    note_id = page.json()["note"]["note_id"]
+    assert api("GET", f"/v1/notes/{note_id}/versions", headers=_headers(viewer)).status_code == 200
+    assert api("POST", f"/v1/notes/{note_id}/versions/checkpoint", headers=_headers(viewer), json={"expected_revision": 1}).status_code == 403
+    assert api("POST", "/v1/notes", headers=_headers(owner), json={
         "title": "Private", "directory_id": directory_id, "document": _document(),
     }).status_code == 404
     assert api("GET", f"/v1/directories/{directory_id}", headers=_headers(viewer)).status_code == 200
 
 
-def test_team_page_asset_is_shared_and_revoked(api_factory):
-    from vessel_service.models import Page, PageAsset, PageDirectory
+def test_team_note_asset_is_shared_and_revoked(api_factory):
+    from vessel_service.models import Note, NoteAsset, NoteDirectory
 
-    for model in (Page, PageDirectory, PageAsset):
+    for model in (Note, NoteDirectory, NoteAsset):
         foreign_key = next(iter(model.__table__.c.owner_user_id.foreign_keys))
         assert foreign_key.ondelete == "RESTRICT"
     api = api_factory()
     space_id, (owner, _), (editor, editor_id), (viewer, _), outsider = _team_with_members(api)
-    page = api("POST", f"/v1/spaces/{space_id}/pages", headers=_headers(owner),
-               json={"title": "Image", "document": _document()}).json()["page"]
-    upload = api("POST", f"/v1/pages/{page['page_id']}/assets", headers={**_headers(editor), "Content-Type": "image/png"},
+    page = api("POST", f"/v1/spaces/{space_id}/notes", headers=_headers(owner),
+               json={"title": "Image", "document": _document()}).json()["note"]
+    upload = api("POST", f"/v1/notes/{page['note_id']}/assets", headers={**_headers(editor), "Content-Type": "image/png"},
                  content=b"\x89PNG\r\n\x1a\n" + b"image-content")
     assert upload.status_code == 201, upload.text
     content_url = upload.json()["asset"]["content_url"]
@@ -196,10 +196,10 @@ def test_app_validation_and_manifest_version(api_factory):
 def test_legacy_agent_endpoints_are_not_exposed(api_factory):
     api = api_factory()
     owner, _ = _account(api, "agent_owner")
-    page = api("POST", "/v1/pages", headers=_headers(owner), json={"title": "Local", "document": _document()})
-    page_id = page.json()["page"]["page_id"]
-    assert api("GET", f"/v1/pages/{page_id}/agent/status", headers=_headers(owner)).status_code == 404
-    assert api("GET", f"/v1/pages/{page_id}/proposals", headers=_headers(owner)).status_code == 404
+    page = api("POST", "/v1/notes", headers=_headers(owner), json={"title": "Local", "document": _document()})
+    note_id = page.json()["note"]["note_id"]
+    assert api("GET", f"/v1/notes/{note_id}/agent/status", headers=_headers(owner)).status_code == 404
+    assert api("GET", f"/v1/notes/{note_id}/proposals", headers=_headers(owner)).status_code == 404
     assert api("POST", "/mcp", headers=_headers(owner), json={"jsonrpc": "2.0", "method": "initialize", "id": 1}).status_code == 404
 
 

@@ -153,7 +153,7 @@ def test_disabled_owner_does_not_count_for_last_owner_protection(api_factory, tm
     invitation_id = invite(api, owner, space_id, second_id, "owner")
     assert api("POST", f"/v1/team-invitations/{invitation_id}/accept", headers=auth(second)).status_code == 200
 
-    engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'pages-test.sqlite3'}")
+    engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'notes-test.sqlite3'}")
     with engine.begin() as connection:
         connection.execute(
             text("UPDATE users SET status = 'disabled' WHERE user_id = :user_id"),

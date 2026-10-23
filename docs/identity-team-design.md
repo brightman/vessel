@@ -1,16 +1,16 @@
 # Vessel 用户、团队与权限设计
 
-状态：身份与团队 API 已实现；Page/Apps 资源已接入。日期：2026-10-14。数据库定义见 [db-schema.md](db-schema.md)。
+状态：身份与团队 API 已实现；Note/Apps 资源已接入。日期：2026-10-14。数据库定义见 [db-schema.md](db-schema.md)。
 
 ## 范围与归属
 
-Vessel 使用自己的 `users`、密码凭据、Refresh Session、JWT 签名密钥和 PostgreSQL 数据库。每个新账号在同一事务中获得一个个人空间；`0007` 支持其引入时的旧账号回填。个人空间仅本人可访问。团队空间没有单一用户 Owner 字段，创建者成为第一位成员 Owner。Pages 与 Apps 已归属 `space_id`，创建者不会因此获得额外私有权限。
+Vessel 使用自己的 `users`、密码凭据、Refresh Session、JWT 签名密钥和 PostgreSQL 数据库。每个新账号在同一事务中获得一个个人空间；`0007` 支持其引入时的旧账号回填。个人空间仅本人可访问。团队空间没有单一用户 Owner 字段，创建者成为第一位成员 Owner。Notes 与 Apps 已归属 `space_id`，创建者不会因此获得额外私有权限。
 
-当前团队角色控制空间、邀请、成员、Page/目录/图片/版本和 Apps 表格 API。通用 OSS/S3 文件功能将在文件增量接入同一空间授权函数。
+当前团队角色控制空间、邀请、成员、Note/目录/图片/版本和 Apps 表格 API。通用 OSS/S3 文件功能将在文件增量接入同一空间授权函数。
 
 ## 角色能力
 
-| 角色 | 查看团队与成员 | Page/Apps 内容读 | Page/Apps 内容写 | 管理邀请和成员 | 永久删除能力 |
+| 角色 | 查看团队与成员 | Note/Apps 内容读 | Note/Apps 内容写 | 管理邀请和成员 | 永久删除能力 |
 | --- | --- | --- | --- | --- | --- |
 | Owner | 是 | 是 | 是 | 是 | 是 |
 | Admin | 是 | 是 | 是 | 是；不能操作 Owner 或授予 Owner | 是 |
@@ -48,6 +48,6 @@ Vessel 使用自己的 `users`、密码凭据、Refresh Session、JWT 签名密�
 
 ## 当前边界
 
-生产默认禁止公开注册。受控终端可运行 `python -m vessel_service.bootstrap_admin --role user` 创建普通账号。注册邮箱验证正在开发：当前工作区已有验证码 API、Brevo 适配、前端表单和迁移，但未完成生产送达与部署验收。自助密码重置、普通账号生产开通流程、账号停用 API、团队审计表和 CLI 凭据库仍未提供。`PAGES_*` 环境变量名沿用迁入代码；旧 Page MCP capability 仅在显式测试模式注册，正常应用不暴露。部署时须配置 Vessel 专用数据库和密钥。后续账号停用流程必须在同一事务中检查团队 Owner 不变量。
+生产默认禁止公开注册。受控终端可运行 `python -m vessel_service.bootstrap_admin --role user` 创建普通账号。注册邮箱验证正在开发：当前工作区已有验证码 API、Brevo 适配、前端表单和迁移，但未完成生产送达与部署验收。自助密码重置、普通账号生产开通流程、账号停用 API、团队审计表和 CLI 凭据库仍未提供。`NOTES_*` 环境变量名沿用迁入代码；旧 Note MCP capability 仅在显式测试模式注册，正常应用不暴露。部署时须配置 Vessel 专用数据库和密钥。后续账号停用流程必须在同一事务中检查团队 Owner 不变量。
 
-本阶段不提供单资源 ACL、公开分享或跨团队资源访问。Page 与 Apps 每次读写都按持久化空间和当前成员关系检查；文件增量需采取相同方式。
+本阶段不提供单资源 ACL、公开分享或跨团队资源访问。Note 与 Apps 每次读写都按持久化空间和当前成员关系检查；文件增量需采取相同方式。

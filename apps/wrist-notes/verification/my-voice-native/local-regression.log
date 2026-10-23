@@ -1,0 +1,29 @@
+NoteRepositorySmoke passed
+Watch connectivity status smoke passed
+Recording button interaction: 8 scenarios passed
+Watch project source membership: passed
+Watch app icon resource: passed
+iPhone project source membership: passed
+Debug idle timer smoke passed
+Note editing: 5 scenarios passed
+Speaker persistence, legacy decoding, alignment, rename, editing and revision protection: passed
+Owner persistence, manual override and transcription reset passed
+Clean speech overlap, enrollment validation, clipping, windowing and short-input rejection passed
+VoiceIdentity storage and policy PASS
+AI settings: validation, persistence, request/response, errors, long text, test races and Watch status passed
+Transcription settings: migration, ready/save gate, failure/retry, shared language resource, stale completion, persistence passed
+Apple speech reservations: cancellation, shared leases, normalization, reuse, capacity eviction and serialization passed
+Whisper model store: failure/cancel resume, persistent verified cache, FIFO installs, corruption and incomplete-model checks passed
+PhotoRepositorySmoke passed: persistence, OCR status, reopen, deletion, input validation, import rollback, failed-delete preservation, path and symlink validation
+Daybook reminders: validation, permission denial, durable create/edit/cancel/complete/delete, scheduling and disk rollback, reconciliation, concurrency, corrupt storage and preferences passed
+Daybook semantic Ask races: passed
+DaybookAssistantModel smoke passed: no-data/count bypass, deletion, cancellation, late response, permissions, per-request remote confirmation
+DaybookConversation smoke passed: restart, day isolation, follow-up re-grounding/date retention, edits, clear race, permissions, exact remote preview, config invalidation, corrupt storage, save retry, bounded pruning
+Daybook conversation transactions: append/clear/reset rollback, follow-up/reopen/retry, privacy failure, pending freshness passed
+DaybookRetrievalSmoke passed: date boundaries, Chinese search, bounded snippets, complete-day counts, source invalidation, privacy, DST
+Daybook suggestions: daily caps, quiet/off gating, source revocation, edits/deletions, rollover, snooze, dismissal, relaunch and bounded content-free state passed
+Life source aggregation, DST, atomic persistence, pause/restart, empty/stale/error and suppression checks passed
+Life source lifecycle: no launch permissions/queries, pause and foreground races, empty reconciliation, one-shot save-time location and independent AI permissions passed
+Daybook daily insight: passed
+SQLite persistence: rollback, WAL/FK, row roundtrip, once migration, corruption preservation, domain isolation, atomic reservation passed
+Daybook semantic SQLite Vector: passed

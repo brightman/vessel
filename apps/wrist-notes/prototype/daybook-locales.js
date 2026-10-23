@@ -2,6 +2,8 @@
 (() => {
   'use strict';
   const translations = {
+  "长录音·": "Recording·",
+  "待生成标题": "Title pending",
   "一天": "Day",
   "洞察": "Insights",
   "我的记录": "My records",
@@ -11,6 +13,37 @@
   "今天": "Today",
   "昨天": "Yesterday",
   "回顾": "Review",
+  "每日回顾": "Daily recap",
+  "昨日回顾": "Yesterday’s recap",
+  "昨天还没有可回顾的记录。": "There are no records to recap from yesterday yet.",
+  "这一天还没有可回顾的记录。": "There are no records to recap for this day yet.",
+  "每日记录": "Daily records",
+  "来自": "From",
+  "条记录": "records",
+  "按日期查看每日回顾": "Browse daily recaps by date",
+  "天": "days",
+  "查看回顾": "View recap",
+  "搜索每日回顾": "Search daily recaps",
+  "没有找到每日回顾": "No matching recap",
+  "试试其他日期或关键词。": "Try another date or keyword.",
+  "有新记录 · 待更新": "New records · Update pending",
+  "新记录加入后将重新生成": "Will update after new records are processed",
+  "有用时，再提醒。": "A nudge, when it helps.",
+  "洞察 · 可选建议": "Insight · Optional suggestion",
+  "有可靠线索和可选建议时才出现 · 今日 1 条示例。": "Only when there is evidence and a useful suggestion · One example today.",
+  "有可靠线索和可选建议时才出现。": "Only when there is evidence and a useful suggestion.",
+  "有新记录加入 · 等待回顾更新后再判断。": "New records arrived · Wait for the recap to update.",
+  "先等记录补齐": "Wait for the records",
+  "新增记录尚未处理完，不急着给出洞察或建议。": "New records are still being processed. There is no need to rush an insight or suggestion.",
+  "有新记录加入。这篇示例回顾仍是旧版本，等待新记录处理后重新生成。": "New records arrived. This example recap is an earlier version and will update after processing.",
+  "这段回顾概括当天已有记录，不提供建议；点击下面的条目可查看原始记录。": "This recap summarizes the records available that day without advice. Open any source below.",
+  "这天没有新洞察": "No new insight this day",
+  "只有录音转写与生活记录相互印证，且有值得提出的建议时，才会在这里出现。": "An insight appears only when transcripts and daily records connect and there is a useful suggestion.",
+  "手表录音尚未上传或转写完成时，先等待记录补齐；只有语音内容与生活记录形成可靠联系、并有值得采取的建议时，才生成洞察。": "Wait for Watch uploads and transcripts. An insight needs a reliable link to daily data and a useful suggestion.",
+  "建议上限": "Suggestion limit",
+  "有合适内容时最多 1 条": "Up to 1 when useful",
+  "有合适内容时最多 3 条": "Up to 3 when useful",
+  "没有可靠联系或有用建议时，不生成洞察，也不提醒。": "Without a reliable link or useful suggestion, there is no insight or nudge.",
   "选择查看日期": "Choose a date",
   "今天的片段": "Today’s moments",
   "查看全部": "View all",
@@ -36,6 +69,17 @@
   "留白，也是一天的一部分。": "A quiet day is part of life, too.",
   "从记录中发现": "Discover from your records",
   "更懂自己一点。": "Know yourself a little better.",
+  "计划与后续记录": "Plan and follow-through",
+  "感受与生活记录": "Your words and daily data",
+  "七日重复模式": "A seven-day pattern",
+  "内容预览": "Content preview",
+  "语音转写": "Transcript",
+  "查看 7 日依据": "View seven-day evidence",
+  "3 条记录支持": "Supported by 3 records",
+  "2 条记录支持": "Supported by 2 records",
+  "三类跨来源洞察 · 示例内容，真实使用时不强制生成三条。": "Three cross-source insight examples · The app would not force three insights each day.",
+  "录音转写与生活记录没有可靠联系时，不会为了凑数生成洞察。": "If transcripts and daily data have no reliable connection, the app will not invent an insight.",
+  "手表录音尚未上传或转写完成时，先等待记录补齐；没有可靠的跨来源联系，就不生成洞察。": "Wait for Watch uploads and transcripts before reflecting. Without a reliable cross-source link, there is no insight.",
   "先记录，再发现": "Record first, then discover",
   "当一天的记录足够丰富，这里会展示有出处的线索和建议。": "When there is enough to reflect on, sourced insights and suggestions will appear here.",
   "明天的打算": "Tomorrow’s plans",
@@ -82,6 +126,7 @@
   "已有记录保存在本机。录音始终由你主动开始；未授权健康数据时，首页显示闪念条数与图片张数。": "Existing records stay on your iPhone. You start recordings. Without Health access, the home screen shows thoughts and photos.",
   "导入音频文件": "Import audio file",
   "外观": "Appearance",
+  "界面偏好": "Interface preferences",
   "浅色": "Light",
   "深色": "Dark",
   "跟随系统": "Use system setting",
@@ -231,6 +276,50 @@
   "给反复想到的事，留一点时间。": "Make time for what keeps coming to mind."
 };
   const japanese = {
+  "长录音·": "録音·",
+  "待生成标题": "タイトル作成待ち",
+    "每日回顾": "毎日の振り返り",
+    "昨日回顾": "昨日の振り返り",
+    "昨天还没有可回顾的记录。": "昨日の振り返りに使える記録はまだありません。",
+    "这一天还没有可回顾的记录。": "この日の振り返りに使える記録はまだありません。",
+    "每日记录": "その日の記録",
+    "来自": "元データ",
+    "条记录": "件の記録",
+    "按日期查看每日回顾": "日付順に毎日の振り返りを見る",
+    "天": "日分",
+    "查看回顾": "振り返りを見る",
+    "搜索每日回顾": "毎日の振り返りを検索",
+    "没有找到每日回顾": "振り返りが見つかりません",
+    "试试其他日期或关键词。": "別の日付やキーワードを試してください。",
+    "有新记录 · 待更新": "新しい記録 · 更新待ち",
+    "新记录加入后将重新生成": "新しい記録の処理後に更新します",
+    "有用时，再提醒。": "役立つときに、お知らせ。",
+    "洞察 · 可选建议": "気づき · 任意の提案",
+    "有可靠线索和可选建议时才出现 · 今日 1 条示例。": "確かな手がかりと役立つ提案があるときだけ · 今日の例は1件。",
+    "有可靠线索和可选建议时才出现。": "確かな手がかりと役立つ提案があるときだけ。",
+    "有新记录加入 · 等待回顾更新后再判断。": "新しい記録があります · 振り返りの更新を待ちます。",
+    "先等记录补齐": "記録がそろうまで待ちます",
+    "新增记录尚未处理完，不急着给出洞察或建议。": "新しい記録を処理中です。気づきや提案を急ぎません。",
+    "有新记录加入。这篇示例回顾仍是旧版本，等待新记录处理后重新生成。": "新しい記録があります。この例の振り返りは旧版で、処理後に更新します。",
+    "这段回顾概括当天已有记录，不提供建议；点击下面的条目可查看原始记录。": "この振り返りはその日の記録を要約し、提案はしません。下の記録から元データを確認できます。",
+    "这天没有新洞察": "この日の新しい気づきはありません",
+    "只有录音转写与生活记录相互印证，且有值得提出的建议时，才会在这里出现。": "文字起こしと生活記録に確かなつながりがあり、役立つ提案があるときだけ表示します。",
+    "手表录音尚未上传或转写完成时，先等待记录补齐；只有语音内容与生活记录形成可靠联系、并有值得采取的建议时，才生成洞察。": "Watchの録音と文字起こしがそろうまで待ちます。確かなつながりと役立つ提案があるときだけ気づきを作ります。",
+    "建议上限": "提案の上限",
+    "有合适内容时最多 1 条": "役立つ場合に最大1件",
+    "有合适内容时最多 3 条": "役立つ場合に最大3件",
+    "没有可靠联系或有用建议时，不生成洞察，也不提醒。": "確かなつながりや役立つ提案がなければ、気づきも通知も作りません。",
+    "计划与后续记录": "計画とその後の記録",
+    "感受与生活记录": "自分の言葉と生活の記録",
+    "七日重复模式": "7日間の繰り返し",
+    "内容预览": "内容プレビュー",
+    "语音转写": "文字起こし",
+    "查看 7 日依据": "7日間の根拠を見る",
+    "3 条记录支持": "3件の記録が根拠",
+    "2 条记录支持": "2件の記録が根拠",
+    "三类跨来源洞察 · 示例内容，真实使用时不强制生成三条。": "3種類のデータをまたぐ気づきの例。毎日3件を作るわけではありません。",
+    "录音转写与生活记录没有可靠联系时，不会为了凑数生成洞察。": "文字起こしと生活データに確かなつながりがなければ、気づきを無理に作りません。",
+    "手表录音尚未上传或转写完成时，先等待记录补齐；没有可靠的跨来源联系，就不生成洞察。": "Watchの録音や文字起こしがそろうまで待ちます。確かなつながりがなければ気づきは作りません。",
     "1 小时后再看": "1時間後に見る",
     "1 条记录支持": "1件の記録が根拠",
     "AI 偏好与提醒": "AIの設定とリマインダー",
@@ -306,6 +395,7 @@
     "地点": "場所",
     "声音": "音声",
     "外观": "外観",
+    "界面偏好": "表示の設定",
     "多留下一些片段，线索会慢慢清晰。": "もう少し記録すると、つながりが見えてくるかもしれません。",
     "好": "OK",
     "导入音频文件": "音声ファイルを読み込む",
@@ -463,7 +553,7 @@
     "管理这条主动建议": "この提案を管理",
     "给反复想到的事，留一点时间。": "繰り返し考えることに、少し時間を使いましょう。"
   };
-  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookHardwareCopy ?? [])]) {
+  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookHardwareCopy ?? []), ...(window.daybookVoiceProfileCopy ?? []), ...(window.daybookChatGPTCopy ?? []), ...(window.daybookPlacesCopy ?? []), ...(window.daybookRecordSourcesCopy ?? []), ...(window.daybookSpeakerContactsCopy ?? []), ...(window.daybookAppleRemindersCopy ?? []), ...(window.daybookFlashAssetsCopy ?? []), ...(window.daybookLifeMomentsCopy ?? []), ...(window.daybookRecordMergeCopy ?? []), ...(window.daybookRecordManagementCopy ?? [])]) {
     translations[zh] = en;
     japanese[zh] = ja;
   }
@@ -489,6 +579,8 @@
   const translate = value => {
     const match = value.match(/^(\s*)([\s\S]*?)(\s*)$/);
     if (!match) return value;
+    const duration=match[2].match(/^(\d+)(?:小时|時間|h )(\d+)(?:分|m )(\d+)(?:秒|s)$/);
+    if(duration){const [,h,m,s]=duration;return match[1]+(language==='en'?`${h}h ${m}m ${s}s`:language==='ja'?`${h}時間${m}分${s}秒`:`${h}小时${m}分${s}秒`)+match[3];}
     const original = reverseEnglish[match[2]] ?? reverseJapanese[match[2]] ?? match[2];
     const replacement = language === 'en' ? translations[original]
       : language === 'ja' ? japanese[original] : original;
@@ -502,7 +594,8 @@
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const node = walker.currentNode;
-      if (node.parentElement?.closest('script, style, svg, .moment-title, .moment-description')) continue;
+      if (node.parentElement?.closest('script, style, svg, .moment-description, [translate="no"]')) continue;
+      if (node.parentElement?.closest('.moment-title') && !node.parentElement?.closest('[data-recording-kind]')) continue;
       const updated = translate(node.nodeValue);
       if (updated !== node.nodeValue) node.nodeValue = updated;
     }

@@ -3,7 +3,7 @@ from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 
 _hasher = PasswordHasher()
-_dummy_password_hash = _hasher.hash("pages-invalid-login-dummy-password")
+_dummy_password_hash = _hasher.hash("notes-invalid-login-dummy-password")
 
 
 def hash_password(password: str) -> str:

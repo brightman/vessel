@@ -11,7 +11,6 @@
 .ai-nudge-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--accent);font-size:10px;margin-bottom:10px}.ai-nudge-top>span{display:flex;align-items:center;gap:6px}.ai-nudge-top .icon{width:13px;height:13px}.ai-nudge-top button{font-size:10px;color:var(--secondary);padding:5px}
 .ai-nudge h3{font-size:16px;font-weight:550;line-height:1.6;margin:0 0 8px;letter-spacing:-.2px}.ai-nudge p{font-size:11px;line-height:1.85;color:#526573;margin:0 0 10px}
 .ai-nudge-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.ai-nudge-actions .secondary-button{background:white;font-size:10px;padding:9px 12px;border:1px solid #dce5ec}.ai-nudge-actions .text-button{font-size:10px;color:var(--accent)}
-.ai-home-link{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:15px 0;color:var(--accent)}.ai-home-link>span{flex:1;font-size:12px}.ai-home-link small{display:block;font-size:10px;color:var(--secondary);margin-top:5px}.ai-home-link>.icon{width:18px}
 .ai-prompts{display:flex;flex-direction:column;gap:8px;margin:15px 0 23px}.ai-prompts button{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;border:1px solid var(--line);background:white;border-radius:13px;padding:12px 13px;font-size:12px;line-height:1.6}.ai-prompts .icon{width:14px;height:14px;color:var(--secondary)}
 .ai-conversation{margin-top:22px}.ai-turn{margin-bottom:24px;overflow-wrap:anywhere}.ai-user-message{margin:0 0 23px 30px;padding:13px 16px;border-radius:17px 17px 4px 17px;background:#e9eff4;color:#304b60;font-size:13px;line-height:1.85;white-space:pre-wrap}
 .ai-answer-label{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--accent);margin-bottom:12px}.ai-answer-label .icon{width:15px;height:15px}.ai-answer-label span:last-child{margin-left:auto;color:var(--secondary);font-size:9px}
@@ -32,3 +31,7 @@
 .ai-preference-status{font-size:11px;line-height:1.8;color:var(--secondary);padding:12px 0;margin:0}.ai-reminder-note{margin:13px 0!important}
 @media(max-width:500px){.ai-composer textarea,#aiReminderForm input,#aiQuietForm input{font-size:16px}}
 @media(max-width:360px){.ai-composer-dock{padding-left:18px;padding-right:18px}.ai-nudge{padding:15px}.ai-context-row{align-items:flex-start}.ai-context-row>.text-button{flex-shrink:0}.ai-identity h2{font-size:17px}}
+
+/* Automatic retrieval context, no date picker. */
+.bottom-nav .nav-item[hidden]{display:none}
+#aiContext{min-width:0;flex:1;line-height:1.6}

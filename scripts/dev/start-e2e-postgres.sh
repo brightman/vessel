@@ -45,6 +45,6 @@ started=1
 "$pg_bin_dir/createdb" -h 127.0.0.1 -p "$port" -U vessel vessel_e2e
 "$pg_bin_dir/pg_isready" -h 127.0.0.1 -p "$port"
 
-printf 'PAGES_DATABASE_URL=postgresql+psycopg://vessel@127.0.0.1:%s/vessel_e2e\n' "$port"
+printf 'NOTES_DATABASE_URL=postgresql+psycopg://vessel@127.0.0.1:%s/vessel_e2e\n' "$port"
 printf 'Stop after testing: %s -D %s stop -m fast\n' "$pg_ctl" "$pg_data_dir"
 trap - EXIT

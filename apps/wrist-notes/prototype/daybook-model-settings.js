@@ -6,13 +6,19 @@ window.createDaybookModelSettings=function(app){
   const names=new Intl.DisplayNames(['zh-Hans'],{type:'language'});
   const languageName=code=>code==='auto'?'自动检测':names.of(code);
   const protocols={openai:{label:'OpenAI',name:'OpenAI Chat Completions',suffix:'/chat/completions'},anthropic:{label:'Anthropic',name:'Anthropic Messages',suffix:'/messages'}};
-  const saved={asr:{engine:'apple',language:'zh-CN',size:'base',whisperLanguage:'auto'},ai:{mode:'local',protocol:'openai',model:'',url:'',key:''}};
+  const saved={asr:{engine:'apple',language:'zh-CN',size:'base',whisperLanguage:'auto'},ai:{mode:'local',chatgptModel:'default',protocol:'openai',model:'',url:'',key:''}};
   const resources=new Set(['apple:zh-CN','apple:en-US']);
   let asr,ai,downloadTimer=null,testTimer=null,percent=0,downloadError=false,testState='idle',testedSignature='',active=null;
+  let providerRevision=0,requiresRemoteAIConfirmation=true;
+  function setRemoteConfirmationRequired(value){requiresRemoteAIConfirmation=Boolean(value);}
+  const chatgpt=window.createDaybookChatGPT({...app,onChange:()=>{
+    if(active==='ai'&&$('daySaveAI'))updateSave();
+    labels();document.dispatchEvent(new Event('daybook-provider-change'));
+  }});
   const option=(value,label,selected)=>`<option value="${esc(value)}" ${selected===value?'selected':''}>${esc(label)}</option>`;
   function labels(){
     $('dayASRLabel').textContent=saved.asr.engine==='apple'?`iPhone端上转写 · ${catalog.apple.find(l=>l.id===saved.asr.language).label}`:`Whisper ${saved.asr.size} · ${languageName(saved.asr.whisperLanguage)}`;
-    $('dayAIModelLabel').textContent=saved.ai.mode==='local'?'Apple 本地模型':`${saved.ai.model} · ${protocols[saved.ai.protocol].label}`;
+    $('dayAIModelLabel').textContent=saved.ai.mode==='local'?'Apple 本地模型':saved.ai.mode==='chatgpt'?'ChatGPT':`${saved.ai.model} · ${protocols[saved.ai.protocol].label}`;
   }
   function cancelDownload(){clearInterval(downloadTimer);downloadTimer=null;percent=0;downloadError=false;}
   function cancelTest(){clearTimeout(testTimer);testTimer=null;testState='idle';testedSignature='';}
@@ -46,19 +52,32 @@ window.createDaybookModelSettings=function(app){
   }
   function openAI(){
     cancelDownload();cancelTest();active='ai';ai={...saved.ai};
-    openSheet('AI 模型',`<p class="sheet-intro">用于笔记总结、跨记录洞察与 AI 对话。</p><div role="radiogroup" aria-label="AI 模型来源"><label class="model-choice"><input type="radio" name="dayAIMode" value="local" ${ai.mode==='local'?'checked':''}><span><strong>Apple 本地模型</strong><small>由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。</small></span></label><label class="model-choice"><input type="radio" name="dayAIMode" value="custom" ${ai.mode==='custom'?'checked':''}><span><strong>自定义模型</strong><small>使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。</small></span></label></div><div id="dayLocalAI" class="local-banner">${icon('ShieldCheck')}<div><strong>需要 Apple Intelligence 可用</strong><p>在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。</p></div></div><div id="dayCustomAI"><label class="model-field"><span>API 接口兼容</span><select id="dayAIProtocol">${Object.entries(protocols).map(([v,p])=>option(v,p.label,ai.protocol)).join('')}</select></label><label class="model-field"><span>模型名称</span><input id="dayAIModel" maxlength="120" value="${esc(ai.model)}" placeholder="例如 my-model" autocomplete="off" autocapitalize="off" spellcheck="false"></label><label class="model-field"><span>服务地址 · Base URL</span><input id="dayAIURL" type="url" value="${esc(ai.url)}" placeholder="https://api.example.com/v1" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p class="source-footnote" id="dayAIProtocolHint"></p><label class="model-field"><span>API Key</span><input id="dayAIKey" type="password" value="${esc(ai.key)}" placeholder="原型请填写虚构 Key" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p class="source-footnote">正式 App 使用自定义模型时，会发送你允许用于本次任务的文本。此原型不发送数据，图片也不会上传；图片理解能力需按模型另行验证。</p><button class="secondary-button" id="dayTestAI" data-model-action="test-ai">模拟测试连接</button><p id="dayAITestStatus" class="model-status" role="status"></p><details class="model-demo-options"><summary>连接测试演示选项</summary><label class="model-field"><span>模拟结果</span><select id="dayAIOutcome"><option value="success">成功</option><option value="auth">Key 无效</option><option value="network">连接失败</option></select></label></details></div><p class="source-footnote">配置仅保留在本页，刷新后清空。保存不连接真实 AI，示例对话仍使用预设回答。</p><div class="model-actions"><button class="secondary-button" data-model-action="cancel">取消</button><button class="primary-button" id="daySaveAI" data-model-action="save-ai">${icon('Check')}保存设置</button></div>`);
+    openSheet('AI 模型',`<p class="sheet-intro">用于笔记总结、跨记录洞察与 AI 对话。</p><div role="radiogroup" aria-label="AI 模型来源"><label class="model-choice"><input type="radio" name="dayAIMode" value="local" ${ai.mode==='local'?'checked':''}><span><strong>Apple 本地模型</strong><small>由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。</small></span></label><label class="model-choice"><input type="radio" name="dayAIMode" value="custom" ${ai.mode==='custom'?'checked':''}><span><strong>自定义模型</strong><small>使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。</small></span></label></div><div id="dayLocalAI" class="local-banner">${icon('ShieldCheck')}<div><strong>需要 Apple Intelligence 可用</strong><p>在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。</p></div></div><div id="dayCustomAI"><label class="model-field"><span>API 接口兼容</span><select id="dayAIProtocol">${Object.entries(protocols).map(([v,p])=>option(v,p.label,ai.protocol)).join('')}</select></label><label class="model-field"><span>模型名称</span><input id="dayAIModel" maxlength="120" value="${esc(ai.model)}" placeholder="例如 my-model" autocomplete="off" autocapitalize="off" spellcheck="false"></label><label class="model-field"><span>服务地址 · Base URL</span><input id="dayAIURL" type="url" value="${esc(ai.url)}" placeholder="https://api.example.com/v1" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p class="source-footnote" id="dayAIProtocolHint"></p><label class="model-field"><span>API Key</span><input id="dayAIKey" type="password" value="${esc(ai.key)}" placeholder="原型请填写虚构 Key" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p class="source-footnote">正式 App 使用自定义模型时，会发送你允许用于本次任务的文本。此原型不发送数据，图片也不会上传；图片理解能力需按模型另行验证。</p><button class="secondary-button" id="dayTestAI" data-model-action="test-ai">模拟测试连接</button><p id="dayAITestStatus" class="model-status" role="status"></p><details class="model-demo-options"><summary>连接测试演示选项</summary><label class="model-field"><span>模拟结果</span><select id="dayAIOutcome"><option value="success">成功</option><option value="auth">Key 无效</option><option value="network">连接失败</option></select></label></details></div><label class="ai-send-preference"><input id="dayAIConfirmBeforeSend" type="checkbox" ${requiresRemoteAIConfirmation?'checked':''}><span>发送给外部 AI 前确认</span></label><p class="source-footnote">即时生效，适用于外部 AI 问答、总结与长录音自动标题。原型仅在本页记住选择，刷新后恢复提示。</p><p class="source-footnote">配置仅保留在本页，刷新后清空。保存不连接真实 AI，示例对话仍使用预设回答。</p><div class="model-actions"><button class="secondary-button" data-model-action="cancel">取消</button><button class="primary-button" id="daySaveAI" data-model-action="save-ai">${icon('Check')}保存设置</button></div>`);
+    const customChoice=$('sheetBody').querySelector('[name="dayAIMode"][value="custom"]').closest('label');
+    customChoice.insertAdjacentHTML('beforebegin',`<label class="model-choice"><input type="radio" name="dayAIMode" value="chatgpt" ${ai.mode==='chatgpt'?'checked':''}><span><strong>ChatGPT 账号</strong><small>使用已有 ChatGPT 账号，按套餐额度在云端处理。</small></span></label><div id="dayChatGPTAI"><div id="dayChatGPTCard"></div><label class="model-field" id="dayChatGPTModelField" hidden><span>账号可用模型</span><select id="dayChatGPTModel">${option('default','账号默认模型（示例）',ai.chatgptModel)}${option('reasoning','推理模型（示例）',ai.chatgptModel)}</select></label><p class="source-footnote">实际模型列表将在授权后由账号返回。</p><p class="source-footnote">选中的文字会发送至 OpenAI 云端。原始录音、图片文件和声音档案留在本机；不会读取你的 ChatGPT 聊天记录。</p><p class="chatgpt-demo-label">原型演示 · 不会真正登录或发送数据</p>${chatgpt.demoMarkup()}</div>`);
     renderAI();
   }
   function renderAI(){
-    const custom=ai.mode==='custom';$('dayCustomAI').hidden=!custom;$('dayLocalAI').hidden=custom;
+    const custom=ai.mode==='custom';$('dayCustomAI').hidden=!custom;$('dayLocalAI').hidden=ai.mode!=='local';$('dayChatGPTAI').hidden=ai.mode!=='chatgpt';chatgpt.render();
     const p=protocols[ai.protocol];$('dayAIProtocolHint').textContent=`兼容 ${p.name}。填写 Base URL（通常以 /v1 结尾），不含末尾 ${p.suffix}。`;
     status('idle','原型不连接服务，请使用虚构的 Key。修改配置后需重新模拟测试。');
   }
-  function readAI(){ai={...ai,protocol:$('dayAIProtocol').value,model:$('dayAIModel').value.trim(),url:$('dayAIURL').value.trim().replace(/\/+$/,''),key:$('dayAIKey').value.trim()};}
+  function readAI(){ai={...ai,chatgptModel:$('dayChatGPTModel').value,protocol:$('dayAIProtocol').value,model:$('dayAIModel').value.trim(),url:$('dayAIURL').value.trim().replace(/\/+$/,''),key:$('dayAIKey').value.trim()};}
   function signature(){return JSON.stringify(ai);}
   function status(state,message){
     testState=state;$('dayAITestStatus').textContent=message;$('dayAITestStatus').dataset.state=state;
-    $('dayTestAI').disabled=state==='testing';$('daySaveAI').disabled=ai.mode==='custom'&&state!=='success';
+    $('dayTestAI').disabled=state==='testing';updateSave();
+  }
+  function updateSave(){
+    $('daySaveAI').disabled=ai.mode==='custom'?testState!=='success':ai.mode==='chatgpt'&&!chatgpt.snapshot().ready;
+  }
+  function getProvider(){
+    const connection=chatgpt.snapshot(),mode=saved.ai.mode;
+    return {id:mode,label:mode==='local'?'Apple 本地模型':mode==='chatgpt'?'ChatGPT':saved.ai.model,
+      model:mode==='chatgpt'?(saved.ai.chatgptModel==='reasoning'?'推理模型（示例）':'账号默认模型（示例）'):saved.ai.model,
+      remote:mode!=='local',requiresConfirmation:requiresRemoteAIConfirmation,ready:mode!=='chatgpt'||connection.ready,state:connection.state,
+      revision:`${providerRevision}:${mode==='chatgpt'?connection.revision:0}`,
+      destination:mode==='chatgpt'?'OpenAI':mode==='custom'?new URL(saved.ai.url).origin:'iPhone'};
   }
   function validateAI(){
     if(!Object.hasOwn(protocols,ai.protocol))return '请选择 API 接口兼容协议。';
@@ -85,17 +104,18 @@ window.createDaybookModelSettings=function(app){
     const actions={
       cancel:closeSheet,download,'cancel-download':()=>{cancelDownload();renderResource();},'test-ai':testAI,
       'save-asr':()=>{if(!resources.has(resource().key))return;saved.asr={...asr};labels();closeSheet();toast('转写设置已保存（演示）。');},
-      'save-ai':()=>{readAI();if(ai.mode==='custom'&&(testState!=='success'||signature()!==testedSignature||validateAI())){status('error','配置已变化，请重新模拟测试。');return;}saved.ai={...ai};labels();closeSheet();toast('AI 模型设置已保存（演示）。');}
+      'save-ai':()=>{readAI();if(ai.mode==='chatgpt'&&!chatgpt.snapshot().ready){toast('先连接 ChatGPT 并确认套餐提示，再保存。');return;}if(ai.mode==='custom'&&(testState!=='success'||signature()!==testedSignature||validateAI())){status('error','配置已变化，请重新模拟测试。');return;}saved.ai={...ai};providerRevision++;labels();document.dispatchEvent(new Event('daybook-provider-change'));closeSheet();toast('AI 模型设置已保存（演示）。');}
     };
     actions[b.dataset.modelAction]?.();
   });
   document.addEventListener('change',event=>{
     const el=event.target;
+    if(el.id==='dayAIConfirmBeforeSend'){setRemoteConfirmationRequired(el.checked);return;}
     if(el.name==='dayASREngine'){cancelDownload();asr.engine=el.value;renderASR();}
     if(el.id==='dayAppleLanguage'){cancelDownload();asr.language=el.value;renderResource();}
     if(el.id==='dayWhisperSize'){cancelDownload();asr.size=el.value;renderResource();}
     if(el.id==='dayWhisperLanguage')asr.whisperLanguage=el.value;
-    if(el.name==='dayAIMode'){readAI();cancelTest();ai.mode=el.value;renderAI();}
+    if(el.name==='dayAIMode'){readAI();cancelTest();ai.mode=el.value;if(ai.mode!=='chatgpt')chatgpt.cancelAuthorization();renderAI();}
     if(el.id==='dayAIProtocol'||el.id==='dayAIOutcome'){readAI();cancelTest();renderAI();}
   });
   document.addEventListener('input',event=>{
@@ -104,5 +124,5 @@ window.createDaybookModelSettings=function(app){
   $('sheet').addEventListener('close',()=>{cancelDownload();cancelTest();active=null;ai=null;asr=null;});
   window.addEventListener('pagehide',()=>{cancelDownload();cancelTest();});
   labels();
-  return {openASR,openAI};
+  return {openASR,openAI,getProvider,setRemoteConfirmationRequired,usageLink:chatgpt.usageLink};
 };

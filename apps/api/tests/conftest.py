@@ -16,7 +16,7 @@ from vessel_service.auth.tokens import KeyRing
 
 @pytest.fixture
 def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
-    database_path = tmp_path / "pages-test.sqlite3"
+    database_path = tmp_path / "notes-test.sqlite3"
     engine = create_database_engine(f"sqlite+pysqlite:///{database_path}")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
@@ -28,7 +28,7 @@ def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
         application = create_app(
             settings=Settings(
                 environment="test",
-                issuer_url="https://pages.test",
+                issuer_url="https://notes.test",
                 app_release_origin=app_release_origin,
                 allow_registration=allow_registration,
                 registration_email_verification_required=False,
@@ -46,7 +46,7 @@ def api_factory(tmp_path: Path) -> Callable[..., Callable[..., httpx.Response]]:
             async def send() -> httpx.Response:
                 async with httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=application),
-                    base_url="https://pages.test",
+                    base_url="https://notes.test",
                 ) as client:
                     cookies = kwargs.pop("cookies", None)
                     if cookies:

@@ -1,4 +1,4 @@
-"""Minimal stateless Streamable HTTP MCP endpoint for one Page/Run capability."""
+"""Minimal stateless Streamable HTTP MCP endpoint for one Note/Run capability."""
 
 import json
 from typing import Any
@@ -9,18 +9,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_keyring, get_session, get_settings
-from vessel_service.mcp.capabilities import CapabilityError, PageCapabilityService
-from vessel_service.models import Page, PageCapability, PageProposal
+from vessel_service.mcp.capabilities import CapabilityError, NoteCapabilityService
+from vessel_service.models import NoteCapability, NoteProposal, User
+from vessel_service.spaces.resources import note_for_user
 from vessel_service.proposals.operations import OperationError
 from vessel_service.proposals.service import ProposalError, ProposalService
 from vessel_service.settings import Settings
 
-router = APIRouter(tags=["private-pages-mcp"])
+router = APIRouter(tags=["private-notes-mcp"])
 
 TOOLS = [
     {
-        "name": "read_current_page",
-        "description": "Read the Page bound to this Run capability.",
+        "name": "read_current_note",
+        "description": "Read the Note bound to this Run capability.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
@@ -29,8 +30,8 @@ TOOLS = [
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
-        "name": "begin_page_edit",
-        "description": "Begin or resume a non-authoritative proposal for the current Page.",
+        "name": "begin_note_edit",
+        "description": "Begin or resume a non-authoritative proposal for the current Note.",
         "inputSchema": {
             "type": "object",
             "properties": {"base_revision": {"type": "integer", "minimum": 1}},
@@ -39,9 +40,9 @@ TOOLS = [
         },
     },
     {
-        "name": "append_page_operations",
+        "name": "append_note_operations",
         "description": (
-            "Append complete Page Edit Operations to this Run's proposal. Use only the exact "
+            "Append complete Note Edit Operations to this Run's proposal. Use only the exact "
             "operation types in the schema; every operation needs a unique operation_id. "
             "Required fields by type: set_title(title); replace_block(block_id, block), with "
             "block.attrs.block_id equal to block_id; replace_range(block_id, expected_text, "
@@ -89,7 +90,7 @@ TOOLS = [
                             },
                             "block_id": {
                                 "type": "string",
-                                "description": "Required by replace_block, replace_range, and move_block; use a stable block_id from read_current_page.",
+                                "description": "Required by replace_block, replace_range, and move_block; use a stable block_id from read_current_note.",
                             },
                             "block": {
                                 "type": "object",
@@ -105,21 +106,21 @@ TOOLS = [
                             },
                             "after_block_id": {
                                 "type": ["string", "null"],
-                                "description": "Required by insert_blocks_after and move_block. Use a stable block_id or null to target the start of the Page.",
+                                "description": "Required by insert_blocks_after and move_block. Use a stable block_id or null to target the start of the Note.",
                             },
                             "blocks": {
                                 "type": "array",
                                 "items": {"type": "object"},
-                                "description": "Required by insert_blocks_after; complete valid Page blocks, each with a new stable attrs.block_id.",
+                                "description": "Required by insert_blocks_after; complete valid Note blocks, each with a new stable attrs.block_id.",
                             },
                             "block_ids": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Required by delete_blocks; stable block_id values from read_current_page.",
+                                "description": "Required by delete_blocks; stable block_id values from read_current_note.",
                             },
                             "document": {
                                 "type": "object",
-                                "description": "Required by replace_document; a complete canonical Page document. Use only for an explicitly requested full rewrite.",
+                                "description": "Required by replace_document; a complete canonical Note document. Use only for an explicitly requested full rewrite.",
                             },
                         },
                         "required": ["operation_id", "type"],
@@ -134,7 +135,7 @@ TOOLS = [
         },
     },
     {
-        "name": "finish_page_edit",
+        "name": "finish_note_edit",
         "description": "Validate and mark this Run's proposal ready for the user to review.",
         "inputSchema": {
             "type": "object",
@@ -172,16 +173,16 @@ def _proposal_for_capability(
     session: Session,
     *,
     proposal_id: str,
-    page_id: str,
+    note_id: str,
     run_id: str,
     owner_user_id: str,
-) -> PageProposal:
+) -> NoteProposal:
     proposal = session.scalar(
-        select(PageProposal).where(
-            PageProposal.proposal_id == proposal_id,
-            PageProposal.page_id == page_id,
-            PageProposal.run_id == run_id,
-            PageProposal.owner_user_id == owner_user_id,
+        select(NoteProposal).where(
+            NoteProposal.proposal_id == proposal_id,
+            NoteProposal.note_id == note_id,
+            NoteProposal.run_id == run_id,
+            NoteProposal.owner_user_id == owner_user_id,
         )
     )
     if proposal is None:
@@ -199,7 +200,7 @@ async def handle_mcp(
     authorization = request.headers.get("authorization", "")
     token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
     if not token:
-        return JSONResponse({"detail": {"code": "PAGE_CAPABILITY_DENIED"}}, status_code=401)
+        return JSONResponse({"detail": {"code": "NOTE_CAPABILITY_DENIED"}}, status_code=401)
     try:
         body = await request.json()
     except Exception:
@@ -210,24 +211,24 @@ async def handle_mcp(
     method = body["method"]
     params = body.get("params") if isinstance(body.get("params"), dict) else {}
     name = ((params.get("name") if isinstance(params, dict) else None) or "")
-    required_scope = "page:propose" if name in {"begin_page_edit", "append_page_operations", "finish_page_edit"} else "page:read"
-    service = PageCapabilityService(
+    required_scope = "note:propose" if name in {"begin_note_edit", "append_note_operations", "finish_note_edit"} else "note:read"
+    service = NoteCapabilityService(
         session,
         keyring,
         issuer=settings.issuer_url,
-        max_lifetime_seconds=settings.page_capability_ttl_seconds,
+        max_lifetime_seconds=settings.note_capability_ttl_seconds,
     )
     try:
         claims = service.verify(token, required_scope=required_scope)
     except CapabilityError:
         session.rollback()
-        return JSONResponse({"detail": {"code": "PAGE_CAPABILITY_DENIED"}}, status_code=403)
+        return JSONResponse({"detail": {"code": "NOTE_CAPABILITY_DENIED"}}, status_code=403)
 
     if method == "initialize":
         return _rpc_result(request_id, {
             "protocolVersion": "2025-06-18",
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "vessel-pages", "version": "0.1.0"},
+            "serverInfo": {"name": "vessel-notes", "version": "0.1.0"},
         })
     if method == "notifications/initialized" or request_id is None:
         return Response(status_code=202)
@@ -243,38 +244,33 @@ async def handle_mcp(
     arguments = params.get("arguments", {})
     if not isinstance(arguments, dict):
         return _tool_result(request_id, {"code": "INVALID_TOOL_ARGUMENTS"}, is_error=True)
-    page_id = claims["page_id"]
+    note_id = claims["note_id"]
     run_id = claims["run_id"]
     owner_user_id = claims["sub"]
     try:
-        if name == "read_current_page":
-            page = session.scalar(
-                select(Page).where(
-                    Page.page_id == page_id,
-                    Page.owner_user_id == owner_user_id,
-                    Page.status == "active",
-                )
-            )
-            if page is None:
-                raise ProposalError("PAGE_NOT_FOUND")
+        if name == "read_current_note":
+            actor = session.get(User, owner_user_id)
+            if actor is None:
+                raise ProposalError("NOTE_NOT_FOUND")
+            note = note_for_user(session, actor, note_id)
             return _tool_result(request_id, {
-                "page_id": page.page_id,
-                "title": page.title,
-                "revision": page.revision,
-                "markdown": page.markdown,
-                "document": page.document_json,
+                "note_id": note.note_id,
+                "title": note.title,
+                "revision": note.revision,
+                "markdown": note.markdown,
+                "document": note.document_json,
             })
 
         if name == "read_current_selection":
-            capability = session.scalar(select(PageCapability).where(PageCapability.jti == claims["jti"]))
+            capability = session.scalar(select(NoteCapability).where(NoteCapability.jti == claims["jti"]))
             return _tool_result(request_id, capability.selection_json if capability and capability.selection_json else {"selected": False})
 
-        if name == "begin_page_edit":
+        if name == "begin_note_edit":
             revision = arguments.get("base_revision")
             if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
                 return _tool_result(request_id, {"code": "INVALID_BASE_REVISION"}, is_error=True)
             proposal = ProposalService(session).begin(
-                page_id=page_id,
+                note_id=note_id,
                 owner_user_id=owner_user_id,
                 run_id=run_id,
                 base_revision=revision,
@@ -288,11 +284,11 @@ async def handle_mcp(
         _proposal_for_capability(
             session,
             proposal_id=proposal_id,
-            page_id=page_id,
+            note_id=note_id,
             run_id=run_id,
             owner_user_id=owner_user_id,
         )
-        if name == "append_page_operations":
+        if name == "append_note_operations":
             operations = arguments.get("operations")
             if not isinstance(operations, list):
                 return _tool_result(request_id, {"code": "INVALID_OPERATIONS"}, is_error=True)
@@ -327,5 +323,5 @@ async def handle_mcp(
         })
     except (ProposalError, OperationError) as error:
         session.rollback()
-        code = error.code if isinstance(error, ProposalError) else "PAGE_OPERATION_INVALID"
+        code = error.code if isinstance(error, ProposalError) else "NOTE_OPERATION_INVALID"
         return _tool_result(request_id, {"code": code, "message": str(error)}, is_error=True)

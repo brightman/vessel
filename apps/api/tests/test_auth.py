@@ -13,9 +13,9 @@ def register(api):
         "POST",
         "/v1/auth/register",
         json={
-            "name": "Pages User",
-            "email": "pages.user@example.test",
-            "password": "pages-demo-2026",
+            "name": "Notes User",
+            "email": "notes.user@example.test",
+            "password": "notes-demo-2026",
         },
     )
 
@@ -29,7 +29,7 @@ def test_registration_creates_a_session_without_returning_refresh_token(api_fact
     body = response.json()
     assert body["token_type"] == "bearer"
     assert body["expires_in"] == 900
-    assert body["user"]["email"] == "pages.user@example.test"
+    assert body["user"]["email"] == "notes.user@example.test"
     assert body["access_token"]
     assert jwt.decode(body["access_token"], options={"verify_signature": False})["aud"] == "vessel-api"
     assert "refresh_token" not in body
@@ -78,7 +78,7 @@ def test_login_does_not_disclose_whether_email_exists(api_factory) -> None:
     wrong_password = api(
         "POST",
         "/v1/auth/login",
-        json={"email": "pages.user@example.test", "password": "wrong-password"},
+        json={"email": "notes.user@example.test", "password": "wrong-password"},
     )
 
     assert unknown_user.status_code == wrong_password.status_code == 401
@@ -161,7 +161,7 @@ def test_development_app_has_ephemeral_signing_key_without_key_file() -> None:
 
     async def request_jwks() -> httpx.Response:
         async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=application), base_url="http://pages.test"
+            transport=httpx.ASGITransport(app=application), base_url="http://notes.test"
         ) as client:
             return await client.get("/.well-known/jwks.json")
 

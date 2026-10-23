@@ -5,5 +5,6 @@ import { App } from "./App";
 import "./styles.css";
 import "./console.css";
 import "./ui.css";
+import "./console-polish.css";
 
 createRoot(document.getElementById("root")!).render(<React.StrictMode><DialogsProvider><App /></DialogsProvider></React.StrictMode>);

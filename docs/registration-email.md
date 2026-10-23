@@ -4,7 +4,7 @@ Self-registration requires an emailed code before account, personal space and re
 
 ## Configuration
 
-Local secrets go in Git-ignored, owner-only `apps/api/.env`. `scripts/dev/start-api.sh` loads it with uv's dotenv support; process environment values take precedence. Set `BREVO_CONFIG_FILE` to select another env file, or to an empty string to disable local file loading. A missing explicitly named file fails startup. Other deployments must inject the same server environment; never expose these values in Vite.
+Local secrets and `NOTES_DATABASE_URL` go in Git-ignored, owner-only `apps/api/.env`. `scripts/dev/start-api.sh` and `scripts/dev/start-files-worker.sh` load it with uv's dotenv support; process environment values take precedence. Set `NOTES_CONFIG_FILE` to select another env file, or to an empty string to disable local file loading. A missing explicitly named file fails startup. Other deployments must inject the same server environment; never expose these values in Vite.
 
 ```dotenv
 BREVO_API_KEY='your-Brevo-API-key'
@@ -20,7 +20,7 @@ Use a key from Brevo **SMTP & API → API Keys**, not SMTP Keys. Authorize the s
 
 Share a stable code secret across instances. Rotating it invalidates pending codes and changes hashed rate keys; avoid rotation during a send window. Production rejects registration with verification disabled. Only isolated local/test configuration may explicitly bypass it. Missing provider/key/code-secret configuration fails sending with 503.
 
-Keep self-registration disabled until configured and verified for the target environment. Enable `PAGES_ALLOW_REGISTRATION=true` using the intended database/issuer; changing a local secret file does not deploy to a remote service.
+Keep self-registration disabled until configured and verified for the target environment. Enable `NOTES_ALLOW_REGISTRATION=true` using the intended database/issuer; changing a local secret file does not deploy to a remote service.
 
 ## HTTP contract
 
@@ -52,7 +52,7 @@ Each call deletes at most 1,000 challenges and 1,000 limits expired more than se
 Run `tests/test_registration_email.py` and affected auth/space/App/console tests. Real PostgreSQL/HTTP/browser harness (no external email):
 
 ```bash
-PAGES_DATABASE_URL='postgresql+psycopg://vessel@127.0.0.1:PORT/vessel_e2e' \
+NOTES_DATABASE_URL='postgresql+psycopg://vessel@127.0.0.1:PORT/vessel_e2e' \
 PYTHONPATH=apps/api/src apps/api/.venv/bin/python scripts/dev/registration_email_http_e2e.py
 ```
 

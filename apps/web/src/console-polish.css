@@ -1,0 +1,244 @@
+/* Console shell and Notes use one visual rhythm. This file loads after the legacy rules. */
+.app-shell {
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #e5e5e7;
+  --canvas: #fafaf9;
+  --green: #245f48;
+  --accent: #eaf2ed;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -.008em;
+  grid-template-columns: 256px minmax(0, 1fr);
+}
+.app-shell.sidebar-collapsed { grid-template-columns: 68px minmax(0, 1fr); }
+.app-shell .sidebar {
+  gap: 18px;
+  padding: 20px 12px 14px;
+  background: #f7f7f6;
+  border-right-color: var(--line);
+}
+.app-shell .sidebar-brand-row { min-height: 42px; gap: 8px; }
+.app-shell .sidebar-brand-row .brand-lockup { gap: 9px; padding: 0 9px; }
+.app-shell .brand-lockup h1 { font-size: 17px; font-weight: 650; letter-spacing: -.035em; }
+.app-shell .brand-symbol { width: 31px; height: 31px; border-radius: 9px; font-size: 15px; }
+.app-shell .space-label { gap: 6px; padding: 0 10px; color: var(--muted); font-size: 10px; font-weight: 630; letter-spacing: .07em; }
+.app-shell .space-label select { min-height: 38px; border-color: var(--line); border-radius: 9px; color: var(--ink); font-size: 13px; font-weight: 550; }
+.app-shell .sidebar nav { gap: 3px; }
+.app-shell .sidebar nav button,
+.app-shell .sidebar-docs-link,
+.app-shell .sidebar-signout-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px !important;
+  margin: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #525357;
+  font-size: 13.5px;
+  font-weight: 520;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-align: left;
+  text-decoration: none;
+}
+.app-shell .sidebar nav button svg,
+.app-shell .sidebar-docs-link svg,
+.app-shell .sidebar-signout-row svg { flex: 0 0 18px; width: 18px; height: 18px; stroke-width: 1.8; }
+.app-shell .sidebar nav button:hover,
+.app-shell .sidebar-docs-link:hover,
+.app-shell .sidebar-signout-row:hover { background: #eaeae8; color: var(--ink); }
+.app-shell .sidebar nav button.active { background: #e7eee9; color: #20583f; font-weight: 620; }
+.app-shell .sidebar nav button:focus-visible,
+.app-shell .sidebar-docs-link:focus-visible,
+.app-shell .sidebar-signout-row:focus-visible,
+.app-shell .sidebar-toggle:focus-visible,
+.app-shell .note-agent-toggle:focus-visible,
+.app-shell .note-agent-collapse:focus-visible { outline: 2px solid #357b57; outline-offset: 2px; }
+.app-shell .sidebar-toggle { width: 33px; height: 33px; border-radius: 8px; color: #696a6e; }
+.app-shell .sidebar-toggle:hover { background: #eaeae8; color: var(--ink); }
+.console-nav-tooltip { pointer-events: none; max-width: 170px; padding: 7px 10px; border-radius: 7px; background: #27282b; color: #fff; font-size: 12px; line-height: 1.2; white-space: nowrap; box-shadow: 0 6px 18px #0002; }
+.app-shell .sidebar-footer { display: grid; gap: 5px; margin-top: auto; }
+.app-shell .account-panel { display: block; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.app-shell .account-identity { display: grid; gap: 3px; padding: 3px 12px 9px; min-width: 0; }
+.app-shell .account-identity strong { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .account-identity > span { overflow: hidden; color: var(--muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .account-identity small { margin-top: 7px; color: #8b8b90; font-size: 10px; letter-spacing: .05em; }
+.app-shell .copy-row { align-items: center; }
+.app-shell .copy-row code { color: var(--muted); }
+.app-shell .sidebar-signout-row { color: #5f6265; }
+.app-shell.sidebar-collapsed .sidebar { gap: 18px; padding: 20px 10px 14px; }
+.app-shell.sidebar-collapsed .sidebar-brand-row { flex-direction: column; gap: 7px; }
+.app-shell.sidebar-collapsed .sidebar-brand-row .brand-lockup { padding: 0; }
+.app-shell.sidebar-collapsed .sidebar nav button,
+.app-shell.sidebar-collapsed .sidebar-docs-link,
+.app-shell.sidebar-collapsed .sidebar-signout-row { justify-content: center !important; width: 46px; min-height: 42px; padding: 0 !important; }
+.app-shell.sidebar-collapsed .account-panel { display: block; padding-top: 8px; }
+.app-shell.sidebar-collapsed .account-identity { display: none; }
+.app-shell.sidebar-collapsed .nav-label { display: none; }
+.app-shell .sidebar-notes-slot { display: none; }
+.app-shell.is-notes-view .sidebar-notes-slot { display: flex; flex: 1; min-height: 0; overflow: hidden; border-top: 1px solid var(--line); padding-top: 15px; }
+.app-shell.is-notes-view .sidebar-spacer { display: none; }
+.app-shell.sidebar-collapsed .sidebar-notes-slot { display: none; }
+.app-shell .notes-sidebar-nav { display: flex; flex-direction: column; gap: 8px; width: 100%; min-height: 0; }
+.app-shell .notes-sidebar-nav .rail-title { padding: 0 11px 4px; }
+.app-shell .notes-sidebar-nav .rail-title h2 { margin: 5px 0 0; font-size: 18px; font-weight: 610; letter-spacing: -.025em; }
+.app-shell .notes-sidebar-nav .eyebrow { color: #83868a; font-size: 10px; font-weight: 640; letter-spacing: .075em; }
+.app-shell .notes-sidebar-nav > .primary { display: flex !important; justify-content: flex-start !important; gap: 9px; min-height: 39px; padding: 0 12px !important; border-radius: 9px; background: #245f48; font-size: 13px; font-weight: 600; }
+.app-shell .notes-sidebar-nav > .primary svg,
+.app-shell .notes-new-folder svg,
+.app-shell .notes-archive-toggle svg { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
+.app-shell .notes-new-folder,
+.app-shell .notes-archive-toggle { display: flex !important; align-items: center; justify-content: flex-start !important; gap: 9px; width: 100%; min-height: 36px; padding: 0 12px !important; border: 0; border-radius: 8px; background: transparent; color: #62656a; font-size: 12.5px; font-weight: 510; }
+.app-shell .notes-new-folder:hover,
+.app-shell .notes-archive-toggle:hover { background: #eaeae8; color: var(--ink); }
+.app-shell .notes-sidebar-nav .resource-list { flex: 1; min-height: 0; margin-top: 8px; padding-right: 2px; scrollbar-width: thin; scrollbar-color: #c8cac8 transparent; }
+.app-shell .notes-sidebar-nav .resource-list button { min-height: 34px; padding: 7px 10px !important; border-radius: 7px; color: #4f5256; font-size: 12.5px; font-weight: 480; line-height: 1.35; }
+.app-shell .notes-sidebar-nav .resource-list button.selected { background: #e7eee9; color: #20583f; font-weight: 620; }
+.app-shell .notes-sidebar-nav .resource-list .directory-selector { margin-top: 12px; color: #6e7275; font-size: 11px; font-weight: 640; letter-spacing: .02em; }
+.app-shell .notes-sidebar-nav .resource-list > .directory-selector { margin-top: 0; }
+.app-shell .notes-sidebar-nav .archive-list { flex: 0 1 auto; max-height: 150px; overflow: auto; }
+.app-shell .main-panel { min-width: 0; background: #fff; }
+.app-shell .primary,
+.app-shell .secondary { min-height: 38px; border-radius: 9px; box-shadow: none; font-size: 13px; font-weight: 600; }
+.app-shell .secondary { border-color: var(--line); color: #45494b; }
+.app-shell .secondary:hover:not(:disabled) { border-color: #d4d6d8; background: #f6f6f5; }
+.app-shell .text-button { color: #286447; font-size: 12.5px; font-weight: 540; }
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell select,
+.app-shell textarea { font-family: inherit; }
+.app-shell .notes-layout { display: grid; grid-template-columns: minmax(0,1fr); height: 100vh; min-height: 560px; }
+.app-shell .notes-layout:has(.note-agent) { grid-template-columns: minmax(0,1fr) minmax(300px,340px); }
+.app-shell .notes-layout.agent-collapsed:has(.note-agent) { grid-template-columns: minmax(0,1fr); }
+.app-shell .notes-layout.agent-collapsed .note-agent { display: none; }
+.app-shell .notes-layout:not(.agent-collapsed) .note-agent-toggle { display: none !important; }
+.app-shell .note-panel { background: #fff; }
+.app-shell .note-actionbar { position: sticky; top: 0; z-index: 4; min-height: 62px; padding: 10px 26px; border-bottom: 1px solid var(--line); background: #fffefa; }
+.app-shell .note-actionbar .breadcrumb { color: #777a7e; font-size: 12px; }
+.app-shell .note-actions { gap: 8px; }
+.app-shell .note-actions > span[role="status"] { font-size: 11.5px; }
+.app-shell .note-actions .primary,
+.app-shell .note-actions .secondary { min-height: 35px; border-radius: 8px; font-size: 12.5px; font-weight: 590; }
+.app-shell .note-agent-toggle,
+.app-shell .note-agent-collapse { display: grid !important; place-items: center; flex: none; width: 34px; height: 34px; padding: 0 !important; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #64666b; }
+.app-shell .note-agent-toggle:hover,
+.app-shell .note-agent-collapse:hover { background: #f2f2f0; color: var(--ink); }
+.app-shell .note-paper { width: min(100%, 860px); margin: 0 auto; padding: 42px clamp(28px,6vw,82px) 105px; }
+.app-shell .note-paper .note-title { margin: 26px 0 15px; color: var(--ink); font-size: clamp(32px,3.5vw,43px); font-weight: 640; line-height: 1.13; letter-spacing: -.04em; }
+.app-shell .note-paper .editor-document .doc { color: #303136; font-size: 16px; line-height: 1.7; }
+.app-shell .note-agent { height: 100vh; border-left: 1px solid var(--line); background: #fbfbfa; }
+.app-shell .note-agent-header { min-height: 62px; padding: 10px 18px; background: #fbfbfa; }
+.app-shell .note-agent-header h2 { margin-top: 3px; font-size: 17px; font-weight: 620; }
+.app-shell .note-agent-status { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #666a6b; font-size: 12px; font-weight: 570; line-height: 1.3; }
+.app-shell .note-agent-status-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: #a5a8aa; }
+.app-shell .note-agent-status-dot.online { background: #2ca564; box-shadow: 0 0 0 3px #2ca5641f; }
+.app-shell .note-agent-status-dot.offline { background: #d94b4b; box-shadow: 0 0 0 3px #d94b4b1c; }
+.app-shell .note-agent-scroll { padding: 19px 18px; }
+.app-shell .note-agent-intro { font-size: 13.5px; line-height: 1.6; }
+.app-shell .note-agent-composer { padding: 14px 16px 17px; border-top-color: var(--line); background: #fbfbfa; }
+.app-shell .note-agent-composer textarea { min-height: 80px; border-color: #d8dadd; border-radius: 10px; font-size: 13.5px; }
+.app-shell .note-agent-modes button { min-height: 32px; font-size: 12.5px; }
+.app-shell .note-agent-user,
+.app-shell .note-agent-reply { border-radius: 10px; font-size: 13px; line-height: 1.55; }
+.app-shell .note-agent-user { background: #eaf1ec; }
+.app-shell .note-agent-reply { border-color: var(--line); }
+.app-shell .content-wrap { max-width: 1100px; padding: 48px clamp(28px,5vw,58px) 80px; }
+.app-shell .section-header h2 { color: var(--ink); font-size: 30px; font-weight: 620; }
+.app-shell .section-header p { font-size: 14px; }
+.app-shell .card { border-color: var(--line); }
+.app-shell .files-layout { background: #fff; }
+.app-shell .files-rail { padding: 23px 12px; border-right-color: var(--line); background: #fbfbfa; }
+.app-shell .files-rail-heading h2 { color: var(--ink); font-size: 19px; font-weight: 620; letter-spacing: -.025em; }
+.app-shell .files-rail > button,
+.app-shell .files-tree button { min-height: 40px; border-radius: 8px; color: #53575a; font-size: 13px; font-weight: 510; }
+.app-shell .files-rail > button.active,
+.app-shell .files-rail > button:hover,
+.app-shell .files-tree button:hover { background: #e7eee9; color: #20583f; }
+.app-shell .files-toolbar { min-height: 62px; border-bottom-color: var(--line); }
+.app-shell .files-content { padding: 33px clamp(22px,3vw,40px); }
+.app-shell .files-content-header h2 { color: var(--ink); font-size: 28px; font-weight: 620; letter-spacing: -.03em; }
+.app-shell .files-table th { background: #fafaf9; color: #777a7d; font-size: 11px; font-weight: 620; letter-spacing: .035em; }
+.app-shell .files-table td,
+.app-shell .files-table th { border-bottom-color: var(--line); }
+.app-shell .files-details { border-left-color: var(--line); }
+.app-shell .vessel-apps { background: #fafaf9; }
+@media (max-width: 1080px) {
+  .app-shell { grid-template-columns: 224px minmax(0,1fr); }
+  .app-shell.sidebar-collapsed { grid-template-columns: 68px minmax(0,1fr); }
+  .app-shell .notes-layout:has(.note-agent) { grid-template-columns: minmax(0,1fr) 300px; }
+}
+@media (max-width: 1050px) {
+  .app-shell .notes-layout:has(.note-agent) { grid-template-columns: minmax(0,1fr); }
+  .app-shell .note-agent { position: fixed; z-index: 30; inset: 0 0 0 auto; width: min(340px,calc(100vw - 68px)); height: 100dvh; box-shadow: -16px 0 44px #0002; }
+  .app-shell .notes-layout.agent-collapsed .note-agent { display: none; }
+}
+@media (max-width: 650px) {
+  .app-shell,
+  .app-shell.sidebar-collapsed { display: block; }
+  .app-shell .sidebar { position: relative; height: auto; min-height: 0; gap: 10px; padding: 12px 14px; }
+  .app-shell .sidebar nav { display: flex; overflow-x: auto; }
+  .app-shell .sidebar nav button { flex: 0 0 auto; width: auto; min-height: 40px; }
+  .app-shell.sidebar-collapsed .sidebar nav,
+  .app-shell.sidebar-collapsed .sidebar-footer,
+  .app-shell.sidebar-collapsed .sidebar-notes-slot { display: none; }
+  .app-shell.sidebar-collapsed .sidebar-brand-row { flex-direction: row; justify-content: space-between; }
+  .app-shell.sidebar-collapsed .sidebar-brand-row h1 { display: block; }
+  .app-shell.is-notes-view .sidebar-notes-slot { min-height: 0; max-height: 225px; padding-top: 10px; }
+  .app-shell .notes-sidebar-nav { min-height: 170px; }
+  .app-shell .notes-layout { display: block; height: auto; min-height: calc(100dvh - 80px); }
+  .app-shell .note-panel { min-height: calc(100dvh - 80px); }
+  .app-shell .note-actionbar { padding: 10px 14px; }
+  .app-shell .note-paper { padding: 30px 24px 72px; }
+  .app-shell .note-agent { width: min(360px,100vw); }
+  .app-shell .content-wrap { padding: 30px 20px 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .sidebar,
+  .app-shell .note-agent { transition: none; }
+}
+
+/* The shared shadcn buttons use important Tailwind utilities. Keep Console geometry
+   in the same layer so those defaults cannot shrink navigation and icon targets. */
+@layer utilities {
+  .app-shell .sidebar nav button,
+  .app-shell .sidebar-signout-row {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    gap: 12px !important;
+    padding: 0 12px !important;
+    font-size: 13.5px !important;
+    font-weight: 520 !important;
+  }
+  .app-shell .sidebar nav button.active { font-weight: 620 !important; }
+  .app-shell .sidebar nav button svg,
+  .app-shell .sidebar-signout-row svg,
+  .app-shell .sidebar-toggle svg,
+  .app-shell .note-agent-toggle svg,
+  .app-shell .note-agent-collapse svg { width: 18px !important; height: 18px !important; }
+  .app-shell.sidebar-collapsed .sidebar nav button,
+  .app-shell.sidebar-collapsed .sidebar-signout-row { justify-content: center !important; padding: 0 !important; }
+  .app-shell:not(.sidebar-collapsed) .sidebar nav button,
+  .app-shell:not(.sidebar-collapsed) .sidebar-signout-row { justify-content: flex-start !important; }
+  .app-shell .notes-sidebar-nav > .primary { justify-content: flex-start !important; min-height: 39px !important; font-size: 13px !important; font-weight: 600 !important; }
+  .app-shell .notes-new-folder,
+  .app-shell .notes-archive-toggle { justify-content: flex-start !important; min-height: 36px !important; font-size: 12.5px !important; font-weight: 510 !important; }
+  .app-shell .notes-sidebar-nav .resource-list button { justify-content: flex-start !important; min-height: 34px !important; font-size: 12.5px !important; font-weight: 480 !important; }
+  .app-shell .notes-sidebar-nav .resource-list button.selected { font-weight: 620 !important; }
+  .app-shell .note-agent-toggle,
+  .app-shell .note-agent-collapse { width: 34px !important; height: 34px !important; padding: 0 !important; }
+  .app-shell .note-actions .primary,
+  .app-shell .note-actions .secondary { min-height: 35px !important; font-size: 12.5px !important; font-weight: 590 !important; }
+  .app-shell .primary,
+  .app-shell .secondary { min-height: 38px !important; font-size: 13px !important; font-weight: 600 !important; }
+  .app-shell .files-rail > button,
+  .app-shell .files-tree button { min-height: 40px !important; font-size: 13px !important; font-weight: 510 !important; }
+}

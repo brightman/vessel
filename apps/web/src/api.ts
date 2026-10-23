@@ -4,8 +4,8 @@ export type Permissions = { role: string; can_read: boolean; can_write: boolean;
 export type Member = { user_id: string; role: string; status: string };
 export type Invitation = { invitation_id: string; space_id: string; invitee_user_id: string; role: string; status: string; expires_at: string };
 export type Directory = { directory_id: string; space_id: string; name: string };
-export type PageRecord = { page_id: string; space_id: string; title: string; directory_id: string | null; document: Record<string, unknown>; markdown: string; revision: number; status: string; updated_at: string };
-export type PageVersion = { version_id: string; revision: number; title: string; markdown: string; created_at: string };
+export type NoteRecord = { note_id: string; space_id: string; title: string; directory_id: string | null; document: Record<string, unknown>; markdown: string; revision: number; status: string; updated_at: string };
+export type NoteVersion = { version_id: string; revision: number; title: string; markdown: string; created_at: string };
 export type FieldDefinition = { type: "text" | "integer" | "numeric" | "boolean" | "timestamp" | "uuid" | "json"; nullable: boolean };
 export type Manifest = { tables: Record<string, { fields: Record<string, FieldDefinition> }> };
 export type VesselApp = { app_id: string; space_id: string; name: string; manifest: Manifest; manifest_version: number; description: string; settings_version: number; status: "active" | "archived" };
@@ -89,16 +89,71 @@ export const revokeInvitation = (spaceId: string, invitationId: string) => json(
 export const updateMember = (spaceId: string, userId: string, role: string) => json("PATCH", `/v1/teams/${id(spaceId)}/members/${id(userId)}`, { role });
 export const removeMember = (spaceId: string, userId: string) => json("DELETE", `/v1/teams/${id(spaceId)}/members/${id(userId)}`);
 
-export const listPages = (spaceId: string, status: "active" | "archived" = "active") => request<{ pages: PageRecord[] }>(`/v1/spaces/${id(spaceId)}/pages?status=${status}`);
+export const listNotes = (spaceId: string, status: "active" | "archived" = "active") => request<{ notes: NoteRecord[] }>(`/v1/spaces/${id(spaceId)}/notes?status=${status}`);
 export const listDirectories = (spaceId: string) => request<{ directories: Directory[] }>(`/v1/spaces/${id(spaceId)}/directories`);
 export const createDirectory = (spaceId: string, name: string) => json<{ directory: Directory }>("POST", `/v1/spaces/${id(spaceId)}/directories`, { name });
-export const createPage = (spaceId: string, title: string, directoryId: string | null) => json<{ page: PageRecord }>("POST", `/v1/spaces/${id(spaceId)}/pages`, { title, directory_id: directoryId, document: { type: "doc", schema_version: 1, content: [{ type: "paragraph", attrs: { block_id: clientBlockId() } }] } });
-export const savePage = (page: PageRecord, title: string, document: Record<string, unknown>, directoryId: string | null) => json<{ page: PageRecord }>("PATCH", `/v1/pages/${id(page.page_id)}`, { expected_revision: page.revision, title, document, directory_id: directoryId });
-export const archivePage = (pageId: string) => json("POST", `/v1/pages/${id(pageId)}/archive`);
-export const restorePage = (pageId: string) => json<{ page: PageRecord }>("POST", `/v1/pages/${id(pageId)}/restore`);
-export const listVersions = (pageId: string) => request<{ versions: PageVersion[] }>(`/v1/pages/${id(pageId)}/versions`);
-export const restoreVersion = (page: PageRecord, versionId: string) => json<{ page: PageRecord }>("POST", `/v1/pages/${id(page.page_id)}/versions/${id(versionId)}/restore`, { expected_revision: page.revision });
-export async function resolvePageAsset(contentUrl: string): Promise<string> {
+export const createNote = (spaceId: string, title: string, directoryId: string | null) => json<{ note: NoteRecord }>("POST", `/v1/spaces/${id(spaceId)}/notes`, { title, directory_id: directoryId, document: { type: "doc", schema_version: 1, content: [{ type: "paragraph", attrs: { block_id: clientBlockId() } }] } });
+export const saveNote = (note: NoteRecord, title: string, document: Record<string, unknown>, directoryId: string | null) => json<{ note: NoteRecord }>("PATCH", `/v1/notes/${id(note.note_id)}`, { expected_revision: note.revision, title, document, directory_id: directoryId });
+export const archiveNote = (noteId: string) => json("POST", `/v1/notes/${id(noteId)}/archive`);
+export const restoreNote = (noteId: string) => json<{ note: NoteRecord }>("POST", `/v1/notes/${id(noteId)}/restore`);
+export const listVersions = (noteId: string) => request<{ versions: NoteVersion[] }>(`/v1/notes/${id(noteId)}/versions`);
+export const restoreVersion = (note: NoteRecord, versionId: string) => json<{ note: NoteRecord }>("POST", `/v1/notes/${id(note.note_id)}/versions/${id(versionId)}/restore`, { expected_revision: note.revision });
+
+export type NoteProposal = { proposal_id: string; note_id: string; base_revision: number; run_id: string; status: string; summary: string | null; preview: { title: string; markdown: string; document: Record<string, unknown> }; operation_count: number; failure_code: string | null };
+export type NoteAgentEvent = { event_type: string; event_id?: string; payload: Record<string, unknown> };
+export type AgentMode = "ask" | "edit" | "auto";
+export type AgentResponse = { schema_version: 1; type: "answer" | "clarification" | "edit"; message: string; sources?: { title: string; url: string }[]; options?: { id: string; label: string }[] };
+export type NoteAgentRun = { run_id: string; mode: AgentMode; status: string; failure_code: string | null; reply: string | null; prompt: string; response: AgentResponse | null; answered_by_run_id?: string | null };
+export const noteAgentStatus = (noteId: string) => request<{ configured: boolean; edit_configured: boolean; online: boolean; active_run: { run_id: string; mode: AgentMode } | null; latest_run: NoteAgentRun | null }>(`/v1/notes/${id(noteId)}/agent/status`);
+export const startNoteAgentRun = (noteId: string, prompt: string, mode: AgentMode = "auto", continuation?: { reply_to_run_id: string; option_id?: string }) => json<{ run_id: string; status: string }>("POST", `/v1/notes/${id(noteId)}/agent/runs`, { message: prompt, mode, ...continuation });
+export const getNoteAgentRun = (noteId: string, runId: string) => request<NoteAgentRun>(`/v1/notes/${id(noteId)}/agent/runs/${id(runId)}`);
+export const cancelNoteAgentRun = (noteId: string, runId: string) => json<{ status: string }>("POST", `/v1/notes/${id(noteId)}/agent/runs/${id(runId)}/cancel`);
+export const listNoteProposals = (noteId: string) => request<{ proposals: NoteProposal[] }>(`/v1/notes/${id(noteId)}/proposals`);
+export const acceptNoteProposal = (noteId: string, proposalId: string, key: string) => json<{ note: NoteRecord }>("POST", `/v1/notes/${id(noteId)}/proposals/${id(proposalId)}/accept`, { idempotency_key: key });
+export const rejectNoteProposal = (noteId: string, proposalId: string) => json<{ proposal: NoteProposal }>("POST", `/v1/notes/${id(noteId)}/proposals/${id(proposalId)}/reject`);
+
+export async function streamNoteAgentRun(
+  noteId: string, runId: string, onEvent: (event: NoteAgentEvent) => void, signal: AbortSignal,
+  retryAuth = true,
+): Promise<void> {
+  const path = `/v1/notes/${id(noteId)}/agent/runs/${id(runId)}/events`;
+  const headers = new Headers({ Accept: "text/event-stream" });
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  const response = await fetch(path, { headers, credentials: "include", signal });
+  if (response.status === 401 && retryAuth && await refreshSession()) return streamNoteAgentRun(noteId, runId, onEvent, signal, false);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: { code?: string } } | null;
+    throw new ApiError(response.status, payload?.detail?.code ?? `HTTP_${response.status}`);
+  }
+  if (!response.body) throw new Error("Agent event stream is unavailable");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const dispatch = (frame: string) => {
+    const lines = frame.split(/\r?\n/);
+    const eventType = lines.find(line => line.startsWith("event:"))?.slice(6).trim();
+    const eventId = lines.find(line => line.startsWith("id:"))?.slice(3).trim();
+    const data = lines.filter(line => line.startsWith("data:")).map(line => line.slice(5).trimStart()).join("\n");
+    if (!eventType || !data) return;
+    try {
+      const parsed = JSON.parse(data) as { payload?: Record<string, unknown>; status?: string };
+      onEvent({ event_type: eventType, event_id: eventId, payload: eventType === "done" ? { status: parsed.status } : parsed.payload ?? {} });
+    } catch { /* Ignore malformed frames; later events can still arrive. */ }
+  };
+  while (!signal.aborted) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    let boundary = buffer.match(/\r?\n\r?\n/);
+    while (boundary?.index !== undefined) {
+      dispatch(buffer.slice(0, boundary.index));
+      buffer = buffer.slice(boundary.index + boundary[0].length);
+      boundary = buffer.match(/\r?\n\r?\n/);
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) dispatch(buffer);
+}
+export async function resolveNoteAsset(contentUrl: string): Promise<string> {
   const response = await fetch(contentUrl, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}, credentials: "include" });
   if (!response.ok) throw new ApiError(response.status, `ASSET_HTTP_${response.status}`);
   return URL.createObjectURL(await response.blob());

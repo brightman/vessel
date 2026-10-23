@@ -47,7 +47,7 @@ test('real HTTP verification creates an account and logs in', async ({ page }) =
   const created = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/v1/auth/register'));
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   expect((await created).status()).toBe(201);
-  await expect(page.getByRole('heading', { name: 'Vessel', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Karama.Cloud', exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Vessel', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Karama.Cloud', exact: true })).toBeVisible();
 });

@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from vessel_service.models import Base, Page, PageVersion, Space, User
+from vessel_service.models import Base, Note, NoteVersion, Space, User
 from vessel_service.proposals.service import ProposalError, ProposalService
 
 
@@ -15,8 +15,8 @@ def session(tmp_path):
     with Session(engine, expire_on_commit=False) as db:
         db.add(User(user_id="user_a", email="a@example.test", name="A", roles=["user"], status="active"))
         db.add(Space(space_id="space_a", kind="personal", name="A Personal", owner_user_id="user_a", created_by_user_id="user_a", status="active"))
-        db.add(Page(
-            page_id="page_a",
+        db.add(Note(
+            note_id="note_a",
             space_id="space_a",
             owner_user_id="user_a",
             title="Draft",
@@ -33,26 +33,26 @@ def session(tmp_path):
 
 def test_proposal_preview_is_persisted_without_changing_authoritative_page(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     proposal = service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[
         {"operation_id": "op_title", "type": "set_title", "title": "Updated"},
         {"operation_id": "op_text", "type": "replace_range", "block_id": "block_a", "expected_text": "Original", "replacement": "Proposed"},
     ])
     proposal = service.finish(proposal_id=proposal.proposal_id, owner_user_id="user_a", summary="Update the draft")
 
-    page = session.get(Page, "page_a")
+    page = session.get(Note, "note_a")
     assert proposal.status == "ready"
     assert proposal.preview_title == "Updated"
     assert "Proposed" in proposal.preview_markdown
     assert page.title == "Draft"
     assert page.revision == 1
     assert "Original" in page.markdown
-    assert session.scalars(select(PageVersion)).all() == []
+    assert session.scalars(select(NoteVersion)).all() == []
 
 
 def test_accept_commits_one_revision_and_retries_idempotently(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[
         {"operation_id": "op_text", "type": "replace_range", "block_id": "block_a", "expected_text": "Original", "replacement": "Accepted"},
     ])
@@ -65,65 +65,65 @@ def test_accept_commits_one_revision_and_retries_idempotently(session):
     assert accepted.markdown == retried.markdown
     assert accepted.title == "Draft"
     assert "Accepted" in accepted.markdown
-    versions = session.scalars(select(PageVersion).where(PageVersion.page_id == "page_a")).all()
+    versions = session.scalars(select(NoteVersion).where(NoteVersion.note_id == "note_a")).all()
     assert [(item.revision, item.source) for item in versions] == [(2, "agent")]
 
 
 def test_accept_rejects_stale_proposal_without_overwriting_newer_page(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[
         {"operation_id": "op_text", "type": "replace_range", "block_id": "block_a", "expected_text": "Original", "replacement": "Proposal"},
     ])
     service.finish(proposal_id=proposal.proposal_id, owner_user_id="user_a", summary="Stale edit")
-    page = session.get(Page, "page_a")
+    page = session.get(Note, "note_a")
     page.title = "Manual edit"
     page.revision = 2
     session.commit()
 
-    with pytest.raises(ProposalError, match="PAGE_REVISION_CONFLICT"):
+    with pytest.raises(ProposalError, match="NOTE_REVISION_CONFLICT"):
         service.accept(proposal_id=proposal.proposal_id, owner_user_id="user_a", idempotency_key="accept_stale")
 
     session.refresh(page)
     assert page.title == "Manual edit"
     assert page.revision == 2
-    assert session.scalars(select(PageVersion)).all() == []
+    assert session.scalars(select(NoteVersion)).all() == []
 
 
 def test_reject_discards_preview_without_committing_page(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[
         {"operation_id": "op_title", "type": "set_title", "title": "Never committed"},
     ])
     rejected = service.reject(proposal_id=proposal.proposal_id, owner_user_id="user_a")
 
     assert rejected.status == "rejected"
-    assert session.get(Page, "page_a").title == "Draft"
-    assert session.scalars(select(PageVersion)).all() == []
+    assert session.get(Note, "note_a").title == "Draft"
+    assert session.scalars(select(NoteVersion)).all() == []
 
 
 def test_terminate_run_closes_streaming_proposal_without_changing_page(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_cancelled", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_cancelled", base_revision=1)
     service.append_operations(
         proposal_id=proposal.proposal_id,
         owner_user_id="user_a",
         operations=[{"operation_id": "op_text", "type": "replace_range", "block_id": "block_a", "expected_text": "Original", "replacement": "Unaccepted"}],
     )
 
-    service.terminate_run(page_id="page_a", run_id="run_cancelled", status="cancelled")
+    service.terminate_run(note_id="note_a", run_id="run_cancelled", status="cancelled")
 
     session.refresh(proposal)
     assert proposal.status == "cancelled"
     assert proposal.failure_code == "AGENT_RUN_CANCELLED"
-    assert session.get(Page, "page_a").markdown == "Original\n"
-    assert session.scalars(select(PageVersion)).all() == []
+    assert session.get(Note, "note_a").markdown == "Original\n"
+    assert session.scalars(select(NoteVersion)).all() == []
 
 
 def test_invalid_batch_does_not_partially_change_persisted_preview(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
 
     with pytest.raises(ProposalError, match="target block was not found"):
         service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[
@@ -138,7 +138,7 @@ def test_invalid_batch_does_not_partially_change_persisted_preview(session):
 
 def test_replaying_operation_in_a_later_batch_does_not_duplicate_operation_history(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     operation = {"operation_id": "title_once", "type": "set_title", "title": "Updated"}
     service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[operation])
     replay = service.append_operations(proposal_id=proposal.proposal_id, owner_user_id="user_a", operations=[operation])
@@ -149,7 +149,7 @@ def test_replaying_operation_in_a_later_batch_does_not_duplicate_operation_histo
 
 def test_duplicate_operation_id_in_one_batch_is_recorded_once(session):
     service = ProposalService(session)
-    proposal = service.begin(page_id="page_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
+    proposal = service.begin(note_id="note_a", owner_user_id="user_a", run_id="run_a", base_revision=1)
     operation = {"operation_id": "title_once", "type": "set_title", "title": "Updated"}
     proposal = service.append_operations(
         proposal_id=proposal.proposal_id,
@@ -161,7 +161,7 @@ def test_duplicate_operation_id_in_one_batch_is_recorded_once(session):
 
 
 def test_full_document_replacement_requires_trusted_proposal_scope(session):
-    denied = ProposalService(session).begin(page_id="page_a", owner_user_id="user_a", run_id="run_denied", base_revision=1)
+    denied = ProposalService(session).begin(note_id="note_a", owner_user_id="user_a", run_id="run_denied", base_revision=1)
     full_rewrite = {
         "operation_id": "rewrite",
         "type": "replace_document",
@@ -170,6 +170,6 @@ def test_full_document_replacement_requires_trusted_proposal_scope(session):
     with pytest.raises(ProposalError, match="explicit full rewrite"):
         ProposalService(session).append_operations(proposal_id=denied.proposal_id, owner_user_id="user_a", operations=[full_rewrite])
 
-    allowed = ProposalService(session).begin(page_id="page_a", owner_user_id="user_a", run_id="run_allowed", base_revision=1, allow_full_rewrite=True)
+    allowed = ProposalService(session).begin(note_id="note_a", owner_user_id="user_a", run_id="run_allowed", base_revision=1, allow_full_rewrite=True)
     changed = ProposalService(session).append_operations(proposal_id=allowed.proposal_id, owner_user_id="user_a", operations=[full_rewrite])
     assert changed.preview_document["content"][0]["attrs"]["block_id"] == "block_b"

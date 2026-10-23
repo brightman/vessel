@@ -6,15 +6,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from vessel_service.models.base import Base
 
 
-class PageAsset(Base):
-    __tablename__ = "page_assets"
+class NoteAsset(Base):
+    __tablename__ = "note_assets"
 
     asset_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     owner_user_id: Mapped[str] = mapped_column(
         ForeignKey("users.user_id", ondelete="RESTRICT"), index=True
     )
-    page_id: Mapped[str] = mapped_column(
-        ForeignKey("pages.page_id", ondelete="CASCADE"), index=True
+    note_id: Mapped[str] = mapped_column(
+        ForeignKey("notes.note_id", ondelete="CASCADE"), index=True
     )
     object_key: Mapped[str] = mapped_column(String(160), unique=True)
     content_type: Mapped[str] = mapped_column(String(32))

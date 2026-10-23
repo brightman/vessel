@@ -20,7 +20,7 @@ def test_scalar_is_primary_docs_using_local_openapi():
     assert result.status_code == 200
     assert "Scalar.createApiReference" in result.text
     assert "/openapi.json" in result.text
-    assert "Vessel API" in result.text
+    assert "Karama.Cloud API" in result.text
 
 
 def test_swagger_remains_usable_and_docs_routes_are_not_business_operations():

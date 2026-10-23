@@ -37,7 +37,7 @@ class BrevoMailer:
 
     def send(self, email: str, code: str) -> str:
         self.ensure_configured()
-        message = f"Your Memory on Cloud verification code is {code}. It expires in 10 minutes. If you did not request this code, ignore this email."
+        message = f"Your Karama.Cloud verification code is {code}. It expires in 10 minutes. If you did not request this code, ignore this email."
         try:
             with httpx.Client(timeout=self.settings.brevo_timeout_seconds, transport=self.transport, trust_env=False) as client:
                 response = client.post("https://api.brevo.com/v3/smtp/email", headers={
@@ -45,9 +45,9 @@ class BrevoMailer:
                     "accept": "application/json", "content-type": "application/json",
                 }, json={
                     "sender": {"email": self.settings.brevo_sender_email, "name": self.settings.brevo_sender_name},
-                    "to": [{"email": email}], "subject": "Your Memory on Cloud verification code",
+                    "to": [{"email": email}], "subject": "Your Karama.Cloud verification code",
                     "textContent": message,
-                    "htmlContent": f"<html><body><h1>Verify your email</h1><p>Your Memory on Cloud verification code:</p><p style='font-size:32px;letter-spacing:6px'><strong>{code}</strong></p><p>Expires in 10 minutes. If you did not request this code, ignore this email.</p></body></html>",
+                    "htmlContent": f"<html><body><h1>Verify your email</h1><p>Your Karama.Cloud verification code:</p><p style='font-size:32px;letter-spacing:6px'><strong>{code}</strong></p><p>Expires in 10 minutes. If you did not request this code, ignore this email.</p></body></html>",
                 })
             if response.status_code != 201:
                 raise MailDeliveryError()

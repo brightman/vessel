@@ -7,15 +7,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from vessel_service.models.base import Base
 
 
-class PageProposal(Base):
-    __tablename__ = "page_proposals"
+class NoteProposal(Base):
+    __tablename__ = "note_proposals"
     __table_args__ = (
-        UniqueConstraint("page_id", "run_id", name="uq_page_proposals_page_run"),
+        UniqueConstraint("note_id", "run_id", name="uq_note_proposals_note_run"),
     )
 
     proposal_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    page_id: Mapped[str] = mapped_column(
-        ForeignKey("pages.page_id", ondelete="CASCADE"), index=True
+    note_id: Mapped[str] = mapped_column(
+        ForeignKey("notes.note_id", ondelete="CASCADE"), index=True
     )
     owner_user_id: Mapped[str] = mapped_column(
         ForeignKey("users.user_id", ondelete="CASCADE"), index=True

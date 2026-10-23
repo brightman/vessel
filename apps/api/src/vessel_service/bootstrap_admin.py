@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     settings = Settings()
     if not settings.database_url:
-        print("PAGES_DATABASE_URL must point to the Vessel database.", file=sys.stderr)
+        print("NOTES_DATABASE_URL must point to the Vessel database.", file=sys.stderr)
         return 2
     name = input("Administrator name: ")
     email = input("Administrator email: ")

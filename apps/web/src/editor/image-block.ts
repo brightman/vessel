@@ -1,7 +1,7 @@
 import { Node } from "@tiptap/core";
 
 export const ImageBlock = Node.create({
-  name: "pagesImage",
+  name: "notesImage",
   group: "block",
   content: "inline*",
   draggable: true,
@@ -18,8 +18,8 @@ export const ImageBlock = Node.create({
         parseHTML: element => element.querySelector("img")?.getAttribute("src") ?? null,
       },
       alt: {
-        default: "Page image",
-        parseHTML: element => element.querySelector("img")?.getAttribute("alt") ?? "Page image",
+        default: "Note image",
+        parseHTML: element => element.querySelector("img")?.getAttribute("alt") ?? "Note image",
       },
     };
   },
@@ -140,13 +140,13 @@ export const ImageBlock = Node.create({
             const pointsToThisBlock = (candidatePos: number | undefined) => {
               if (typeof candidatePos !== "number") return false;
               const candidate = editor.state.doc.nodeAt(candidatePos);
-              return candidate?.type.name === "pagesImage"
+              return candidate?.type.name === "notesImage"
                 && (!blockId || candidate.attrs["block-id"] === blockId);
             };
             if (!pointsToThisBlock(pos) && blockId) {
               pos = undefined;
               editor.state.doc.descendants((candidate, candidatePos) => {
-                if (candidate.type.name === "pagesImage" && candidate.attrs["block-id"] === blockId) {
+                if (candidate.type.name === "notesImage" && candidate.attrs["block-id"] === blockId) {
                   pos = candidatePos;
                   return false;
                 }
@@ -183,7 +183,7 @@ export const ImageBlock = Node.create({
           return mutation.type !== "selection" && !caption.contains(mutation.target);
         },
         update(updated) {
-          if (updated.type.name !== "pagesImage") return false;
+          if (updated.type.name !== "notesImage") return false;
           const changed = updated.attrs.src !== node.attrs.src || updated.attrs.alt !== node.attrs.alt;
           node = updated;
           if (changed) render(updated.attrs.src, updated.attrs.alt);

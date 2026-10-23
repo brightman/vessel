@@ -2,15 +2,15 @@
 
 状态：**文件 HTTP API 已实现，生产未发布**。日期：2026-10-14；实现更新：2026-10-15。运行与验收见 [文件服务运行说明](files-runtime.md)。
 
-设计依据：[文件共享设计](shared-files-design.md)。通用 API 风格对齐 [Pages/Apps 契约](api-contract-pages-apps.md)。仅负责通用文件和文件夹，不修改另一 coding agent 负责的 Page、App、图片、记录或新 Page Agent 契约。首版存储仅 Aliyun OSS。
+设计依据：[文件共享设计](shared-files-design.md)。通用 API 风格对齐 [Notes/Apps 契约](api-contract-notes-apps.md)。仅负责通用文件和文件夹，不修改另一 coding agent 负责的 Note、App、图片、记录或新 Note Agent 契约。首版存储仅 Aliyun OSS。
 
 ## 1. 通用约定与边界
 
 - API 以 `/v1` 开头，所有文件端点使用 `Authorization: Bearer <Vessel access_token>`，audience 为 `vessel-api`。复用现有账号、spaces 和 team_members，不新增登录接口或 Drive 成员系统。
 - 创建和列表显式选空间；按资源 ID 访问时，服务端读取真实 space_id。space_id 创建后不变，不支持跨空间移动或复制。首版没有 `/v1/files` 的隐式个人创建/列表入口。
-- 文件 Folder 使用 `/folders`，不复用 Page 的扁平 `/directories`；通用文件不复用 `/assets`；文件夹不容纳 Page 或 App。
+- 文件 Folder 使用 `/folders`，不复用 Note 的扁平 `/directories`；通用文件不复用 `/assets`；文件夹不容纳 Note 或 App。
 - 文件 Item 的 `file_id`、文件夹 Item 的 `folder_id` 均等于其 `item_id`，不是另一个生成的 ID。所有 ID 是服务端 UUID；客户端不能指定创建者、归属、对象键或当前版本。
-- 成功 JSON 按资源名包裹；204 无正文。业务错误为 `{"detail":{"code":"ERROR_CODE"}}`，可附安全 message；字段验证沿用 FastAPI 原生 422。X-Request-ID 响应头用于请求关联，不改变 Pages/Apps 错误体。
+- 成功 JSON 按资源名包裹；204 无正文。业务错误为 `{"detail":{"code":"ERROR_CODE"}}`，可附安全 message；字段验证沿用 FastAPI 原生 422。X-Request-ID 响应头用于请求关联，不改变 Notes/Apps 错误体。
 - 时间为 UTC ISO 8601。所有列表默认 limit=50、最大 200，响应包含 next_cursor。默认 items 按 normalized_name,item_id 排序；版本按 ordinal DESC,version_id；其他列表按 created_at,id。游标绑定主体、目标、筛选和排序，篡改/错用返回 422 CURSOR_INVALID；每页重新判权，不承诺跨页快照。
 - mutation 请求必须带 Idempotency-Key，最长 128 字符；同主体/操作/目标/key 同请求返回首个稳定结果，不同请求体返回 409 IDEMPOTENCY_CONFLICT。回执保留 7 天，超过期限不承诺去重。相同 key 的并发请求不得双写；执行中重放返回 409 REQUEST_IN_PROGRESS 和 Retry-After。当前授权先于回执返回。
 - download 和 parts/sign 签发短期能力，不属于持久 mutation 幂等回执；每次新签发重新判权。不得把上传/下载 URL 写日志或作为长期业务结果缓存。
@@ -19,7 +19,7 @@
 
 个人 Owner 全权；个人直接/继承共享 viewer 只读，editor 可上传新版本、恢复历史文件版本、重命名，并可在有 editor 权限的共享文件夹内新增子项，不能移动、回收、恢复回收站条目、管理共享或永久删除。创建者只作审计，新文件归父目录空间。
 
-团队 Owner/Admin/Editor 可读写、移动、回收、恢复；Viewer 只读；永久删除仅 Owner/Admin。团队文件对有效成员默认可见，本增量不提供团队文件 ACL、非成员分享或受限子文件夹。个人 ACL 只对已有 active Vessel user_id 生效，不新增邮箱邀请、匿名链接或用户搜索接口。此 ACL 扩展仅适用于文件，不推翻 Pages/Apps 的空间权限契约。
+团队 Owner/Admin/Editor 可读写、移动、回收、恢复；Viewer 只读；永久删除仅 Owner/Admin。团队文件对有效成员默认可见，本增量不提供团队文件 ACL、非成员分享或受限子文件夹。个人 ACL 只对已有 active Vessel user_id 生效，不新增邮箱邀请、匿名链接或用户搜索接口。此 ACL 扩展仅适用于文件，不推翻 Notes/Apps 的空间权限契约。
 
 无查看权限返回 404；可查看但能力不足返回 403。共享文件不会使接收者出现在 GET /v1/spaces，也不会授予 GET /v1/spaces/{id}/permissions 或空间根目录权限。版本列表和下载按文件当前权限；读权包含保留的历史版本。
 
@@ -113,7 +113,7 @@ MovePreview/RestorePreview 包含 preview_id、preview_hash、item_id、target_p
 
 TrashBatch 包含 batch_id、space_id、root_item_id、original_parent_folder_id、status trashed/restored/purging/purged、batch_version、trashed_at、retention_until。已单独回收的子项不加入新批次；恢复只恢复该批次。PurgeJob 包含 purge_id、space_id、batch_id、status pending/running/succeeded/failed、failure_code、created_at、updated_at、status_url；失败由 worker 幂等重试，保留任务记录以便查询。
 
-移回收站会标记 active 子树，不能继续下载；删除不是 Page archive。恢复可能重新激活共享，需预览确认。文件/历史占配额直到物理对象清理完成；不能在进入 purging 时提前释放容量。名称冲突要求显式新位置/名字；跨空间目标拒绝，root 不允许结构变更。
+移回收站会标记 active 子树，不能继续下载；删除不是 Note archive。恢复可能重新激活共享，需预览确认。文件/历史占配额直到物理对象清理完成；不能在进入 purging 时提前释放容量。名称冲突要求显式新位置/名字；跨空间目标拒绝，root 不允许结构变更。
 
 ## 6. 错误、审计与协作边界
 
@@ -131,8 +131,8 @@ TrashBatch 包含 batch_id、space_id、root_item_id、original_parent_folder_id
 
 GET `/v1/spaces/{space_id}/file-audit` 已新增，仅空间 Owner/Admin，响应 `{"events":[AuditEvent],"next_cursor":string|null}`，默认 50/最多 200；不占用未来统一 audit 路由。AuditEvent 包含 event_id、space_id、item_id、actor_user_id、operation、result、before_version、after_version、request_id、created_at，不默认记录内容或签名 URL。
 
-请求时字段验证与业务执行分离；事务中锁当前 Space 并重新查成员/ACL/目标状态，写资源、幂等回执和审计同事务提交。文件签名与异步任务不会复用旧 Page MCP audience/capability。Pages/Apps 的无分页兼容接口不因文件分页而改变。迁移号、auth 公共依赖及 main 路由注册需在实现前与并行开发者协调。
+请求时字段验证与业务执行分离；事务中锁当前 Space 并重新查成员/ACL/目标状态，写资源、幂等回执和审计同事务提交。文件签名与异步任务不会复用旧 Note MCP audience/capability。Notes/Apps 的无分页兼容接口不因文件分页而改变。迁移号、auth 公共依赖及 main 路由注册需在实现前与并行开发者协调。
 
 ## 7. 契约状态与验收
 
-用户已授权开发本契约中的文件共享系统，请求 Schema 与路由已注册到 FastAPI/OpenAPI。个人 ACL、Editor 能力、512 MiB 文件限额和独立 drive_items 按当前设计实现。真实 OSS、PostgreSQL 和故障回归覆盖情况见运行说明；本轮不发布 CLI/MCP，也未修改 Pages/Apps 契约。
+用户已授权开发本契约中的文件共享系统，请求 Schema 与路由已注册到 FastAPI/OpenAPI。个人 ACL、Editor 能力、512 MiB 文件限额和独立 drive_items 按当前设计实现。真实 OSS、PostgreSQL 和故障回归覆盖情况见运行说明；本轮不发布 CLI/MCP，也未修改 Notes/Apps 契约。

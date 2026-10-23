@@ -1,1 +1,1 @@
-"""Personal Page directory API."""
+"""Personal Note directory API."""

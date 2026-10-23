@@ -1,4 +1,4 @@
-"""Authenticated replay endpoint for durable, redacted Page Agent events."""
+"""Authenticated replay endpoint for durable, redacted Note Agent events."""
 
 from __future__ import annotations
 
@@ -13,17 +13,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
-from vessel_service.models import PageAgentEvent, User
-from vessel_service.pages.router import _page_or_404, current_user
+from vessel_service.models import NoteAgentEvent, User
+from vessel_service.notes.router import current_user
+from vessel_service.spaces.resources import note_for_user
 
-router = APIRouter(prefix="/v1/pages/{page_id}/agent", tags=["page-agent-events"])
+router = APIRouter(prefix="/v1/notes/{note_id}/agent", tags=["note-agent-events"])
 
 
-def _sse(event: PageAgentEvent) -> str:
+def _sse(event: NoteAgentEvent) -> str:
     envelope = {
         "event_id": event.event_id,
         "correlation_id": event.correlation_id,
-        "page_id": event.page_id,
+        "note_id": event.note_id,
         "proposal_id": event.proposal_id,
         "run_id": event.run_id,
         "occurred_at": event.created_at.isoformat(),
@@ -33,21 +34,21 @@ def _sse(event: PageAgentEvent) -> str:
 
 
 @router.get("/events")
-def replay_page_agent_events(
-    page_id: str,
+def replay_note_agent_events(
+    note_id: str,
     request: Request,
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
     last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
     wait_seconds: float = Query(default=25, ge=0, le=30),
 ) -> StreamingResponse:
-    _page_or_404(session, user.user_id, page_id)
+    note_for_user(session, user, note_id)
     after_sequence = 0
     if last_event_id:
         cursor = session.scalar(
-            select(PageAgentEvent).where(
-                PageAgentEvent.event_id == last_event_id,
-                PageAgentEvent.page_id == page_id,
+            select(NoteAgentEvent).where(
+                NoteAgentEvent.event_id == last_event_id,
+                NoteAgentEvent.note_id == note_id,
             )
         )
         if cursor is None:
@@ -70,13 +71,20 @@ def replay_page_agent_events(
             if await request.is_disconnected():
                 return
             with session_factory() as polling_session:
+                actor = polling_session.get(User, user.user_id)
+                if actor is None:
+                    return
+                try:
+                    note_for_user(polling_session, actor, note_id)
+                except HTTPException:
+                    return
                 events = list(polling_session.scalars(
-                    select(PageAgentEvent)
+                    select(NoteAgentEvent)
                     .where(
-                        PageAgentEvent.page_id == page_id,
-                        PageAgentEvent.sequence_id > sequence,
+                        NoteAgentEvent.note_id == note_id,
+                        NoteAgentEvent.sequence_id > sequence,
                     )
-                    .order_by(PageAgentEvent.sequence_id)
+                    .order_by(NoteAgentEvent.sequence_id)
                     .limit(100)
                 ).all())
             if events:

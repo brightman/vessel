@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     settings = Settings()
     if not settings.database_url:
-        parser.error("PAGES_DATABASE_URL is required")
+        parser.error("NOTES_DATABASE_URL is required")
     with Session(create_database_engine(settings.database_url)) as session:
         print(cleanup(session, retention_days=args.retention_days, batch_size=args.batch_size))
 

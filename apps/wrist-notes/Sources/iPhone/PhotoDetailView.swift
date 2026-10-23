@@ -45,7 +45,7 @@ struct PhotoDetailView: View {
 
     private func detail(_ moment: PhotoMoment) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("\(moment.capturedAt.formatted(.dateTime.month().day().hour().minute())) · iPhone · \(moment.photos.count) 张图片")
+            Text("\(moment.capturedAt.formatted(.dateTime.month().day().hour().minute())) · \(moment.photos.count) 张图片")
                 .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
                 .padding(.bottom, 18)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: moment.photos.count == 1 ? 1 : 2), spacing: 9) {
@@ -63,6 +63,22 @@ struct PhotoDetailView: View {
                     }
                     .buttonStyle(.plain).accessibilityLabel("查看第 \(index + 1) 张原图")
                 }
+            }
+            ForEach(Array(moment.photos.enumerated()), id: \.element.id) { index, photo in
+                VStack(alignment: .leading, spacing: 10) {
+                    if moment.photos.count > 1 { Text("第 \(index + 1) 张图片").font(.system(size: 11)) }
+                    LabeledContent("拍摄设备", value: photo.capture?.device ?? "设备未知")
+                    if let method = photo.capture?.importMethod { LabeledContent("导入方式", value: String(localized: String.LocalizationValue(method.label))) }
+                    if let date = photo.capture?.capturedAt {
+                        LabeledContent("拍摄时间", value: date.formatted(.dateTime.year().month().day().hour().minute()))
+                        if photo.capture?.timeZoneKnown == false { Text("照片未含时区，按本机时区显示。").font(.system(size: 10)) }
+                    }
+                    if let point = photo.capture?.location { CapturePlaceDetails(point: point) }
+                }.font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).padding(.top, 18)
+            }
+            if let date = moment.importedAt {
+                LabeledContent("导入时间", value: date.formatted(.dateTime.year().month().day().hour().minute()))
+                    .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).padding(.top, 14)
             }
             sectionTitle("补充说明")
             bodyText(moment.caption.isEmpty ? "没有补充说明，也可以先留住画面。" : moment.caption)

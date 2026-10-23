@@ -1,1 +1,1 @@
-"""Page version checkpoint and restore API."""
+"""Note version checkpoint and restore API."""

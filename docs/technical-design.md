@@ -1,6 +1,6 @@
 # Vessel: Agent 原生个人与团队存储服务技术设计
 
-状态：总体设计稿；身份、团队、Files、Pages、Apps API 与 Web 管理控制台已有实现；注册邮箱验证正在开发，独立 Page Agent 待实施。各功能验收状态以对应运行文档为准。
+状态：总体设计稿；身份、团队、Files、Notes、Apps API 与 Web 管理控制台已有实现；Note Agent 的 Vessel 侧 Ask/Edit 接入已实现，远端连通待配置网关身份与 MCP 地址。各功能验收状态以对应运行文档为准。
 
 日期：2026-10-14
 
@@ -11,15 +11,15 @@
 ## 1. 已确认的产品决定
 
 1. Vessel 是供人类用户在 Codex、Claude Code、WorkBuddy 等 Agent 客户端中使用的持久存储服务。
-2. 同时支持个人空间和团队空间；团队有多位成员。团队空间内的文件、表格、Page 对有效成员默认可见，读写由成员角色决定。
+2. 同时支持个人空间和团队空间；团队有多位成员。团队空间内的文件、表格、Note 对有效成员默认可见，读写由成员角色决定。
 3. 文件内容存放在私有 OSS/S3 对象存储，提供类似 Google Drive 的文件管理能力。
-4. 表格参考 Baizhi Apps 的受控 Schema 与数据 API；Page 参考 Baizhi Pages 的分块文档能力。
-5. 产品以 API 为核心，同时提供 Memory on Cloud 官网、Vessel Web 管理控制台和独立 `vessel` CLI；MCP 等 Agent 接入仍按独立增量建设。
+4. 表格参考 Baizhi Apps 的受控 Schema 与数据 API；Note 参考 Baizhi Pages 的分块文档能力。
+5. 产品以 API 为核心，同时提供 Karama.Cloud 官网、Vessel Web 管理控制台和独立 `vessel` CLI；MCP 等 Agent 接入仍按独立增量建设。
 6. Vessel 拥有独立账号系统，不依赖 Baizhi Agent Platform 的用户、Session 或数据库。
 
 本文将尚未逐项确认的工程选择标为“建议”。它们构成可实施的首版契约，评审时可更改。
 
-本轮已确认的 Pages/Apps HTTP 契约见 [API 文档](api-contract-pages-apps.md)。当前 Apps 记录使用 PostgreSQL JSONB，而本总体设计第 7 节的每表物理表方案仍是后续规模化备选；当前应用也不注册迁入的 Baizhi Page Agent 路由。Vessel 按全新数据库部署，不做历史 Page 数据回填。
+本轮已确认的 Notes/Apps HTTP 契约见 [API 文档](api-contract-notes-apps.md)。当前 Apps 记录使用 PostgreSQL JSONB，而本总体设计第 7 节的每表物理表方案仍是后续规模化备选；当前应用注册 Note Agent Run、提案和 MCP 路由，使用空间权限与版本检查。Vessel 按全新数据库部署，不做历史 Note 数据回填。
 
 ## 2. 范围与交付分期
 
@@ -30,9 +30,9 @@ Vessel 是一个产品，但按四个可单独验收的增量实施：
 | A：身份与空间 | 独立账号、Session、个人空间、团队、成员、角色、统一资源目录、审计 | 两人进入同一团队，第三人被拒绝 |
 | B：文件 | OSS/S3 适配、文件夹、上传/下载、版本、移动、重命名、回收站 | Agent 上传文件，另一成员下载并查看版本 |
 | C：表格 | 受控字段定义、Schema 变更、记录 CRUD、筛选和批量导入 | Agent 建表并从文件导入记录 |
-| D：Page 与 Agent 入口 | 分块 Page、修订、引用、CLI/Skill、MCP 适配 | Agent 根据文件和表格写 Page，另一成员读取和编辑 |
+| D：Note 与 Agent 入口 | 分块 Note、修订、引用、CLI/Skill、MCP 适配 | Agent 根据文件和表格写 Note，另一成员读取和编辑 |
 
-每一增量必须有真实 HTTP E2E；完整产品的最终 E2E 串起四个增量。CLI/MCP 是 API 客户端，不持有业务数据库权限。Web 管理控制台已覆盖账号、团队、Files、Pages 和 Apps，包含 Page 编辑器。当前不做实时协同、公开分享链接、匿名访问、任意 SQL、任意代码执行、向量检索、自动 AI 解析流水线或跨团队共享。
+每一增量必须有真实 HTTP E2E；完整产品的最终 E2E 串起四个增量。CLI/MCP 是 API 客户端，不持有业务数据库权限。Web 管理控制台已覆盖账号、团队、Files、Notes 和 Apps，包含 Note 编辑器。当前不做实时协同、公开分享链接、匿名访问、任意 SQL、任意代码执行、向量检索、自动 AI 解析流水线或跨团队共享。
 
 ## 3. 总体架构
 
@@ -46,16 +46,16 @@ flowchart LR
   HTTP --> ITEM[统一目录与审计]
   HTTP --> FILE[文件域]
   HTTP --> TABLE[表格域]
-  HTTP --> PAGE[Page 域]
+  HTTP --> NOTE[Note 域]
   AUTH --> PG[(PostgreSQL 控制数据)]
   ITEM --> PG
   TABLE --> DATA[(PostgreSQL 受控业务表)]
-  PAGE --> PG
+  NOTE --> PG
   FILE --> PG
   FILE --> OBJ[(私有 OSS / S3)]
 ```
 
-Vessel 使用独立 Git 仓库与独立部署单元。FastAPI/Pydantic、SQLAlchemy/Alembic、PostgreSQL、对象存储适配器可沿用熟悉的技术栈；Vessel 不直连 Apps 或 Pages 生产数据库。模块边界是 `identity`、`spaces`、`items`、`files`、`tables`、`pages`、`audit` 和传输适配层。HTTP、CLI、MCP 调用同一应用服务与授权函数。
+Vessel 使用独立 Git 仓库与独立部署单元。FastAPI/Pydantic、SQLAlchemy/Alembic、PostgreSQL、对象存储适配器可沿用熟悉的技术栈；Vessel 不直连 Apps 或 Notes 生产数据库。模块边界是 `identity`、`spaces`、`items`、`files`、`tables`、`notes`、`audit` 和传输适配层。HTTP、CLI、MCP 调用同一应用服务与授权函数。
 
 每个请求的可信上下文由服务端构造：`principal=(user_id, session_id, scopes)`，资源所属空间从数据库读取。客户端不能提交 `actor_user_id`、`team_role` 或 `workspace_id` 来覆盖授权判定；请求路径中的 `space_id` 只是目标，不是权限证明。
 
@@ -64,11 +64,11 @@ Vessel 使用独立 Git 仓库与独立部署单元。FastAPI/Pydantic、SQLAlch
 ```text
 User ──1:1── Personal Space
 User ──N:M── Team ──1:1── Team Space
-Space ──1:N── Item (Folder | File | Table | Page)
+Space ──1:N── Item (Folder | File | Table | Note)
 File Item ──1:N── File Version ──1:1── Private Object
 Table Item ──1:N── Schema Version ──1:N── Record
-Page Item ──1:N── Page Version ──1:N── Block
-Page Block ──0:N── Resource Reference (same Space)
+Note Item ──1:N── Note Version ──1:N── Block
+Note Block ──0:N── Resource Reference (same Space)
 ```
 
 `space_id` 是权限与配额边界，`item_id` 是跨域统一标识。删除团队或账号不能级联立刻擦除对象：需先冻结空间、保留审计，再执行明确的保留期与清理流程。
@@ -96,13 +96,13 @@ HTTP API 使用 Bearer Access Token；本地 MCP 桥接从凭据库获得会话�
 | Editor | 是 | 是 | 是 | 否 | 否 |
 | Viewer | 是 | 否 | 否 | 否 | 否 |
 
-个人空间仅本人拥有 Owner 权限。团队资源由空间持有，创建者记录为审计信息，不形成额外的默认私有权限。首版没有单文件、单 Page、单表格或单记录 ACL；这与已确认的“团队成员默认可见”一致。团队成员被移除或停用后，新 API 请求立即失权。已签发的短期对象下载 URL 可能在剩余有效期内继续可用，建议 URL 有效期不超过 60 秒；若需要严格即时撤销，应使用 API 代理下载。
+个人空间仅本人拥有 Owner 权限。团队资源由空间持有，创建者记录为审计信息，不形成额外的默认私有权限。首版没有单文件、单 Note、单表格或单记录 ACL；这与已确认的“团队成员默认可见”一致。团队成员被移除或停用后，新 API 请求立即失权。已签发的短期对象下载 URL 可能在剩余有效期内继续可用，建议 URL 有效期不超过 60 秒；若需要严格即时撤销，应使用 API 代理下载。
 
 授权顺序固定为：验证会话 → 读取目标资源及空间 → 检查当前成员状态和操作能力 → 执行业务校验 → 在事务中写入并审计。写操作在同一事务中锁住或重新核验成员关系，使移除成员与写入形成明确顺序；移除提交之后不能再接受该成员的新写入。列表、搜索、版本、导出和错误消息遵循相同可见性；跨空间目标返回 404，避免资源枚举。
 
 ## 5. 统一目录与资源标识
 
-`items` 是统一目录索引，字段包括 `item_id`、`space_id`、`parent_folder_id`、`kind=folder|file|table|page`、`name`、`normalized_name`、`status`、`created_by`、`updated_by`、时间戳和版本。不同资源域以同一个 `item_id` 连接自己的数据表。所有文件、表格和 Page 都可以放进文件夹；根目录是 `parent_folder_id=null`。
+`items` 是统一目录索引，字段包括 `item_id`、`space_id`、`parent_folder_id`、`kind=folder|file|table|note`、`name`、`normalized_name`、`status`、`created_by`、`updated_by`、时间戳和版本。不同资源域以同一个 `item_id` 连接自己的数据表。所有文件、表格和 Note 都可以放进文件夹；根目录是 `parent_folder_id=null`。
 
 建议同一文件夹中的有效项目名称经过 Unicode 规范化和大小写折叠后唯一；禁止空名、路径分隔符和控制字符，限制 UTF-8 字节长度；冲突返回 `ITEM_NAME_CONFLICT`。资源 ID 不随重命名或移动变化。客户端显示路径，API 和跨资源引用始终使用 ID。移动时服务端检查同空间、目标是文件夹、无目录环、名称不冲突，并在事务中锁定相关节点。首版不支持跨空间移动；可用显式复制流程后续实现。
 
@@ -139,13 +139,13 @@ Schema 修改分两步：`POST /v1/tables/{id}/schema-proposals` 返回差异、
 
 支持 create/get/query/update/trash/restore、批量 create 与导出。查询只允许声明过的字段、有限运算符、排序和游标分页，默认最多 100 条、上限 200 条；绝不暴露 raw SQL。更新要求 `expected_row_version`；冲突返回 409 和当前版本。批量写入有最大行数与字节数，事务语义明确为整批成功或整批失败。较大 CSV/JSONL 从已上传的文件版本发起 `prepare_import`，生成字段映射、错误和重复项预览；`commit_import` 校验文件及 Manifest 版本后幂等写入。文件内容必须来自同一空间中授权可读的对象，不能传服务器本地路径。
 
-## 8. Page 域
+## 8. Note 域
 
-`pages` 保存标题、规范化分块 JSON、确定性的 Markdown 表示、当前修订号与状态；`page_versions` 保存不可变快照、作者、时间、来源及可选 Agent 客户端请求 ID。借鉴 Pages 的顶层稳定 `block_id`。标题块定义章节边界：一个 heading 到下一个同级或更高级 heading 为一个 section；section ID 就是 heading 的 block ID。因而 Agent 能按 Page、section 或 block 读取，不必每次读取整篇。
+`notes` 保存标题、规范化分块 JSON、确定性的 Markdown 表示、当前修订号与状态；`note_versions` 保存不可变快照、作者、时间、来源及可选 Agent 客户端请求 ID。借鉴 Notes 的顶层稳定 `block_id`。标题块定义章节边界：一个 heading 到下一个同级或更高级 heading 为一个 section；section ID 就是 heading 的 block ID。因而 Agent 能按 Note、section 或 block 读取，不必每次读取整篇。
 
 首版保留段落、标题、列表、引用、代码、表格、图片和安全链接等受支持的节点；文档 `schema_version` 明确标记。文档中的文件或表格引用使用受控的 `resource_ref` 节点，目标为同空间的稳定资源 ID，表格记录可附行 ID。写入时验证目标存在且可读；读取时再次判权；删除目标后渲染为可辨认的失效引用，不悄悄改写历史版本。Markdown 是可导出的文本表示，分块 JSON 是权威格式。
 
-Page 写入接受 `expected_revision`、`idempotency_key` 和有界操作数组：设标题、替换块、替换块内范围、在块后插入、移动块、删除块。范围替换还带预期旧文本或哈希。服务端先验证全部操作，再在事务中推进修订号与版本；冲突返回 `PAGE_REVISION_CONFLICT`，客户端应重读后重做。为适配无 UI 的 Agent 工作流，首版有 `preview` 端点返回差异，但正常写入通过授权的提交 API 完成，不依赖 Pages 现有 Web 编辑器的提案接受流程。全文替换仅用于新建 Page 或显式完整重写请求。
+Note 写入接受 `expected_revision`、`idempotency_key` 和有界操作数组：设标题、替换块、替换块内范围、在块后插入、移动块、删除块。范围替换还带预期旧文本或哈希。服务端先验证全部操作，再在事务中推进修订号与版本；冲突返回 `NOTE_REVISION_CONFLICT`，客户端应重读后重做。为适配无 UI 的 Agent 工作流，首版有 `preview` 端点返回差异，但正常写入通过授权的提交 API 完成，不依赖 Notes 现有 Web 编辑器的提案接受流程。全文替换仅用于新建 Note 或显式完整重写请求。
 
 ## 9. HTTP API 概览
 
@@ -158,7 +158,7 @@ Page 写入接受 `expected_revision`、`idempotency_key` 和有界操作数组�
 | 目录 | `GET/POST /spaces/{id}/items`、`PATCH /items/{id}`、`POST /items/{id}/trash`、`/restore` |
 | 文件 | `POST /spaces/{id}/files/uploads`、`POST /file-uploads/{id}/complete`、`GET /files/{id}/download`、`GET /files/{id}/versions` |
 | 表格 | `POST /spaces/{id}/tables`、`GET /tables/{id}/schema`、`POST /tables/{id}/schema-proposals`、`POST /tables/{id}/records/query`、记录 CRUD 与导入 |
-| Page | `POST /spaces/{id}/pages`、`GET /pages/{id}`、`GET /pages/{id}/sections/{block_id}`、`POST /pages/{id}/operations/preview`、`/commit`、版本与 Markdown 导出 |
+| Note | `POST /spaces/{id}/notes`、`GET /notes/{id}`、`GET /notes/{id}/sections/{block_id}`、`POST /notes/{id}/operations/preview`、`/commit`、版本与 Markdown 导出 |
 | 审计 | `GET /spaces/{id}/audit`，仅 Owner/Admin |
 
 各增量实施前冻结该增量的 Pydantic 请求/响应 Schema 与 OpenAPI 契约。`401` 表示未认证，`403` 表示空间内已知资源但角色不足，`404` 表示不存在或不可见，`409` 表示版本/名称/幂等冲突，`413` 表示超额，`422` 表示结构或类型错误。日志保留 `request_id`、主体 ID、空间 ID、资源 ID 和错误码，不默认记录正文、密码或 Token。
@@ -189,7 +189,7 @@ Content-Type: application/json
 }
 ```
 
-Page 块操作必须绑定读取时的修订号，并以稳定 block ID 定位。提交成功后返回新的修订号和版本 ID；同一幂等键重放不再生成版本：
+Note 块操作必须绑定读取时的修订号，并以稳定 block ID 定位。提交成功后返回新的修订号和版本 ID；同一幂等键重放不再生成版本：
 
 ```json
 {
@@ -211,36 +211,36 @@ Page 块操作必须绑定读取时的修订号，并以稳定 block ID 定位�
 }
 ```
 
-错误体形状统一为 `{"error":{"code":"PAGE_REVISION_CONFLICT","message":"Page changed","request_id":"req_..."}}`。业务错误不得在 `message` 中泄露不可见资源的名称、存在性或正文。
+错误体形状统一为 `{"error":{"code":"NOTE_REVISION_CONFLICT","message":"Note changed","request_id":"req_..."}}`。业务错误不得在 `message` 中泄露不可见资源的名称、存在性或正文。
 
 ## 10. Agent 客户端接入
 
-`vessel` CLI v1 已实现并打包，提供 `auth`、`spaces`、`files`、`apps`、`pages` 命令，使用 Vessel HTTP API 和系统凭据库，命令默认输出 JSON。每次网络操作显式选择命名环境；大文件通过本地路径上传或下载，正文不经模型参数。生产写操作要求 `--confirm`；Schema apply 也需要明确确认。完整认证 HTTP 流程和真实 OSS 传输仍需目标环境验收。
+`vessel` CLI v1 已实现并打包，提供 `auth`、`spaces`、`files`、`apps`、`notes` 命令，使用 Vessel HTTP API 和系统凭据库，命令默认输出 JSON。每次网络操作显式选择命名环境；大文件通过本地路径上传或下载，正文不经模型参数。生产写操作要求 `--confirm`；Schema apply 也需要明确确认。完整认证 HTTP 流程和真实 OSS 传输仍需目标环境验收。
 
-为支持 MCP 客户端，可提供本地 stdio MCP 桥接：它从 Vessel CLI 的凭据库读取会话，工具调用转发到相同 HTTP API；不提供本地数据库或 OSS 密钥。工具分组按空间与资源动态发现，至少有 list/search/get、文件上传/下载、表格 Schema/记录和 Page 区块操作。MCP 工具标记读写效果，遵循宿主客户端审批机制；服务端始终独立执行身份、成员与版本校验。WorkBuddy 的具体 CLI/MCP 支持方式在集成时实测，不能仅因协议存在就宣称兼容。
+为支持 MCP 客户端，可提供本地 stdio MCP 桥接：它从 Vessel CLI 的凭据库读取会话，工具调用转发到相同 HTTP API；不提供本地数据库或 OSS 密钥。工具分组按空间与资源动态发现，至少有 list/search/get、文件上传/下载、表格 Schema/记录和 Note 区块操作。MCP 工具标记读写效果，遵循宿主客户端审批机制；服务端始终独立执行身份、成员与版本校验。WorkBuddy 的具体 CLI/MCP 支持方式在集成时实测，不能仅因协议存在就宣称兼容。
 
 Vessel 不运行 Agent 模型，不保存 Agent 客户端的会话，也不代替人类用户决定任务。Agent 在当前用户授权下操作，并通过审计中的 `client_name` 与 `request_id` 标明来源。
 
 ## 11. 数据库与事务边界
 
-控制面建议表：`users`、`user_credentials`、`refresh_sessions`、`teams`、`team_invitations`、`team_memberships`、`spaces`、`items`、`files`、`file_versions`、`file_uploads`、`tables`、`table_schema_versions`、`table_schema_proposals`、`pages`、`page_versions`、`idempotency_receipts`、`audit_events` 和 `outbox_events`。外键均包含或验证空间归属；核心列表索引以 `(space_id, parent_folder_id, status, normalized_name)` 为起点。
+控制面建议表：`users`、`user_credentials`、`refresh_sessions`、`teams`、`team_invitations`、`team_memberships`、`spaces`、`items`、`files`、`file_versions`、`file_uploads`、`tables`、`table_schema_versions`、`table_schema_proposals`、`notes`、`note_versions`、`idempotency_receipts`、`audit_events` 和 `outbox_events`。外键均包含或验证空间归属；核心列表索引以 `(space_id, parent_folder_id, status, normalized_name)` 为起点。
 
-PostgreSQL 是元数据与 Page 的权威库。对象存储和数据库不能共享事务：上传采取“待上传 → 校验 → ready”的状态机，失败通过幂等重试与过期清理收敛；删除对象由数据库事务写 outbox 后异步执行，可重放且不能误删仍有引用的版本。表格 Schema DDL 与 Manifest 使用同一个 PostgreSQL 事务。Page 修改、版本、幂等回执和审计在一个事务提交。团队成员移除与权限判定不能依赖长期缓存。
+PostgreSQL 是元数据与 Note 的权威库。对象存储和数据库不能共享事务：上传采取“待上传 → 校验 → ready”的状态机，失败通过幂等重试与过期清理收敛；删除对象由数据库事务写 outbox 后异步执行，可重放且不能误删仍有引用的版本。表格 Schema DDL 与 Manifest 使用同一个 PostgreSQL 事务。Note 修改、版本、幂等回执和审计在一个事务提交。团队成员移除与权限判定不能依赖长期缓存。
 
 ## 12. 安全、限额与运行
 
 - 每次对象 URL 签发前按当前用户和空间重新授权；私有 Bucket 禁止公开 ACL。下载 URL 很短，上传意图绑定长度、类型、目标与期限。
-- 所有文本和文档节点做大小、深度、节点类型与 URL 协议限制；不执行文件、Page 代码块或表格内容。Markdown/HTML 导出时转义不可信内容。
-- API 按账号和 IP 限速登录、注册、上传意图与查询；空间配额分别记录对象字节、文件数、表格行数、Page 数、最大请求体和批量操作数。
+- 所有文本和文档节点做大小、深度、节点类型与 URL 协议限制；不执行文件、Note 代码块或表格内容。Markdown/HTML 导出时转义不可信内容。
+- API 按账号和 IP 限速登录、注册、上传意图与查询；空间配额分别记录对象字节、文件数、表格行数、Note 数、最大请求体和批量操作数。
 - 备份 PostgreSQL 与对象存储版本；记录恢复点和演练步骤。密钥由部署环境注入并支持轮换，不进入仓库。
-- `/healthz` 只说明进程存活；`/readyz` 检查数据库与必要配置。对象存储故障时文件上传/下载返回可区分错误，已持久化的 Page/表格读写可继续服务。
+- `/healthz` 只说明进程存活；`/readyz` 检查数据库与必要配置。对象存储故障时文件上传/下载返回可区分错误，已持久化的 Note/表格读写可继续服务。
 - 审计记录身份、资源、操作、结果、前后版本与关联请求 ID；默认不记录内容或凭据。Owner/Admin 可按空间查询，平台运维访问另有明确流程。
 
 ## 13. 验收与测试
 
 按工作区 `AGENTS.md` 的开发规则，每个增量先跑直接对应的专项测试，再跑受影响核心链路；大改动两者合计不超过 100 个测试用例，最后执行至少一条真实 E2E。纯设计文档只检查结构、链接、格式和差异。
 
-完整 E2E 使用隔离 PostgreSQL、测试 OSS/S3 兼容端点和真实 Vessel HTTP 进程：用户 A 登录并建团队 → 邀请 B 为 Editor、C 为 Viewer → B/C 接受邀请 → A 通过 CLI 上传文件并完成校验 → B 下载并创建表格、导入记录 → B 创建带文件与表格引用的 Page → A 读取并以预期修订号编辑 → C 可读但写入被拒绝 → 非成员 D 不能枚举资源 → B 被移除后 API 立即失权。另验证上传重试、Page 修订冲突、Schema 版本冲突和对象清理重试。E2E 未实际跑通前不得宣称产品实现完成。
+完整 E2E 使用隔离 PostgreSQL、测试 OSS/S3 兼容端点和真实 Vessel HTTP 进程：用户 A 登录并建团队 → 邀请 B 为 Editor、C 为 Viewer → B/C 接受邀请 → A 通过 CLI 上传文件并完成校验 → B 下载并创建表格、导入记录 → B 创建带文件与表格引用的 Note → A 读取并以预期修订号编辑 → C 可读但写入被拒绝 → 非成员 D 不能枚举资源 → B 被移除后 API 立即失权。另验证上传重试、Note 修订冲突、Schema 版本冲突和对象清理重试。E2E 未实际跑通前不得宣称产品实现完成。
 
 ## 14. 与现有代码的复用边界
 
@@ -248,7 +248,7 @@ PostgreSQL 是元数据与 Page 的权威库。对象存储和数据库不能共
 | --- | --- | --- |
 | `src/baizhi_agent_runtime/apps/manifest.py`、`data_store.py`、`service.py` | 字段白名单、受控 DDL/CRUD、迁移提案、幂等与审计 | 移除 App/H5/Agent Runtime 绑定，改为团队空间权限；不照搬逐行 public/private |
 | `tools/baizhi-apps-cli` | 独立 CLI、命名环境、系统凭据库、稳定 JSON | 更换为 Vessel 身份与资源 API，支持文件二进制传输 |
-| Baizhi Pages 的 `document/codec.py`、`pages/router.py`、`page_version.py` | 分块验证、稳定 ID、Markdown、修订与版本 | 增加 team space、section 读取与资源引用；首版 API 写入不依赖 Web 提案 |
+| Baizhi Pages 的 `document/codec.py`、`notes/router.py`、`note_version.py` | 分块验证、稳定 ID、Markdown、修订与版本 | 增加 team space、section 读取与资源引用；首版 API 写入不依赖 Web 提案 |
 | Baizhi Pages 的 `assets/storage.py` | 路径/对象键安全、原子写与校验意识 | 通用文件改用私有 OSS/S3、分段上传与版本，不复用仅限图片的本地存储 |
 
 实现时可以移植经验证的纯领域函数并保留许可与来源说明，避免 Vessel 在运行时依赖两个既有服务的内部模块。跨项目行为通过 Vessel 自己的契约测试验证。
@@ -259,7 +259,7 @@ PostgreSQL 是元数据与 Page 的权威库。对象存储和数据库不能共
 
 1. **账号开通**：本地邮箱/密码加邮箱验证；生产默认邀请加入团队，未验证邮箱不能获得团队权限。
 2. **资源粒度**：首版只按空间角色共享，不做单项私有、外部分享或行级 ACL。
-3. **目录**：统一文件夹可包含文件、表格和 Page；同一文件夹名称唯一。
+3. **目录**：统一文件夹可包含文件、表格和 Note；同一文件夹名称唯一。
 4. **文件搜索**：首版查名称/元数据；正文索引另做增量。
 5. **Agent 写入**：授权后可直接提交版本化变更；客户端展示预览并按自身审批机制放行。Vessel 服务器负责权限、冲突、幂等和审计。
 6. **首个生产对象存储**：S3 与 OSS 都有适配器契约；先选一个真实提供商完成端到端发布，另一个以兼容性测试与独立验收交付。

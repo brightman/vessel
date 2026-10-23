@@ -1,1 +1,1 @@
-"""Canonical Pages document validation and serialization."""
+"""Canonical Notes document validation and serialization."""

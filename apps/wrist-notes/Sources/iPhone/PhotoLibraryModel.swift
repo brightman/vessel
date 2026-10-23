@@ -8,18 +8,24 @@ import Vision
 final class PhotoLibraryModel: ObservableObject {
     @Published private(set) var moments: [PhotoMoment] = []
     @Published var errorMessage: String?
-    private let root: URL
+    private let openRepository: () throws -> PhotoRepository
+    private var lifecycleObservation: AnyCancellable?
     private var repository: PhotoRepository?
+    var storageIsAvailable: Bool { repository != nil }
 
-    init(root: URL? = nil) {
-        self.root = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    init(root: URL? = nil, openRepository: (() throws -> PhotoRepository)? = nil) {
+        let directory = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PhotoMoments", isDirectory: true)
+        self.openRepository = openRepository ?? { try PhotoRepository(root: directory) }
+        lifecycleObservation = NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)
+            .merge(with: NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification))
+            .sink { [weak self] _ in Task { @MainActor [weak self] in self?.reload() } }
         reload()
     }
 
     func reload() {
         do {
-            let opened = try PhotoRepository(root: root)
+            let opened = try openRepository()
             repository = opened
             moments = opened.moments.sorted { $0.capturedAt > $1.capturedAt }
             errorMessage = nil
@@ -61,6 +67,16 @@ final class PhotoLibraryModel: ObservableObject {
             moments = repository.moments.sorted { $0.capturedAt > $1.capturedAt }
             errorMessage = "删除照片失败：\(error.localizedDescription)"
         }
+    }
+
+    @discardableResult
+    func setAddress(_ address: CaptureAddress, photoID: UUID, matching point: CaptureLocation) -> Bool {
+        do {
+            guard let repository else { return false }
+            let saved = try repository.setAddress(address, photoID: photoID, matching: point)
+            moments = repository.moments.sorted { $0.capturedAt > $1.capturedAt }
+            return saved
+        } catch { errorMessage = "地点地址未保存：\(error.localizedDescription)"; return false }
     }
 }
 

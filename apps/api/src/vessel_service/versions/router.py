@@ -9,11 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from vessel_service.auth.router import get_session
-from vessel_service.models import Page, PageVersion, User
-from vessel_service.pages.router import current_user, serialize_page
-from vessel_service.spaces.resources import page_for_user
+from vessel_service.models import Note, NoteVersion, User
+from vessel_service.notes.router import current_user, serialize_note
+from vessel_service.spaces.resources import note_for_user
 
-router = APIRouter(prefix="/v1/pages/{page_id}/versions", tags=["page-versions"])
+router = APIRouter(prefix="/v1/notes/{note_id}/versions", tags=["note-versions"])
 
 
 class CheckpointRequest(BaseModel):
@@ -24,10 +24,10 @@ class RestoreRequest(BaseModel):
     expected_revision: int = Field(ge=1)
 
 
-def serialize_version(version: PageVersion) -> dict[str, object]:
+def serialize_version(version: NoteVersion) -> dict[str, object]:
     return {
         "version_id": version.version_id,
-        "page_id": version.page_id,
+        "note_id": version.note_id,
         "revision": version.revision,
         "title": version.title,
         "document": version.document_json,
@@ -41,44 +41,44 @@ def serialize_version(version: PageVersion) -> dict[str, object]:
 
 @router.get("")
 def list_versions(
-    page_id: str,
+    note_id: str,
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:
-    page_for_user(session, user, page_id)
+    note_for_user(session, user, note_id)
     versions = session.scalars(
-        select(PageVersion)
-        .where(PageVersion.page_id == page_id)
-        .order_by(PageVersion.revision.desc())
+        select(NoteVersion)
+        .where(NoteVersion.note_id == note_id)
+        .order_by(NoteVersion.revision.desc())
     ).all()
     return {"versions": [serialize_version(version) for version in versions]}
 
 
 @router.post("/checkpoint", status_code=201, response_model=None)
 def create_checkpoint(
-    page_id: str,
+    note_id: str,
     payload: CheckpointRequest,
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, dict[str, object]] | JSONResponse:
-    page = page_for_user(session, user, page_id, write=True)
-    if page.revision != payload.expected_revision:
-        raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
+    note = note_for_user(session, user, note_id, write=True)
+    if note.revision != payload.expected_revision:
+        raise HTTPException(status_code=409, detail={"code": "NOTE_REVISION_CONFLICT"})
     existing = session.scalar(
-        select(PageVersion).where(
-            PageVersion.page_id == page_id,
-            PageVersion.revision == page.revision,
+        select(NoteVersion).where(
+            NoteVersion.note_id == note_id,
+            NoteVersion.revision == note.revision,
         )
     )
     if existing:
         return JSONResponse(status_code=200, content={"version": serialize_version(existing)})
-    version = PageVersion(
+    version = NoteVersion(
         version_id=str(uuid4()),
-        page_id=page.page_id,
-        revision=page.revision,
-        title=page.title,
-        document_json=page.document_json,
-        markdown=page.markdown,
+        note_id=note.note_id,
+        revision=note.revision,
+        title=note.title,
+        document_json=note.document_json,
+        markdown=note.markdown,
         source="human",
         actor_user_id=user.user_id,
         created_at=datetime.now(UTC),
@@ -89,9 +89,9 @@ def create_checkpoint(
     except IntegrityError:
         session.rollback()
         existing = session.scalar(
-            select(PageVersion).where(
-                PageVersion.page_id == page_id,
-                PageVersion.revision == payload.expected_revision,
+            select(NoteVersion).where(
+                NoteVersion.note_id == note_id,
+                NoteVersion.revision == payload.expected_revision,
             )
         )
         if existing:
@@ -103,32 +103,32 @@ def create_checkpoint(
 
 @router.post("/{version_id}/restore")
 def restore_version(
-    page_id: str,
+    note_id: str,
     version_id: str,
     payload: RestoreRequest,
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
 ) -> dict[str, dict[str, object]]:
-    page = page_for_user(session, user, page_id, write=True)
-    if page.revision != payload.expected_revision:
-        raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
+    note = note_for_user(session, user, note_id, write=True)
+    if note.revision != payload.expected_revision:
+        raise HTTPException(status_code=409, detail={"code": "NOTE_REVISION_CONFLICT"})
     source = session.scalar(
-        select(PageVersion).where(
-            PageVersion.version_id == version_id,
-            PageVersion.page_id == page_id,
+        select(NoteVersion).where(
+            NoteVersion.version_id == version_id,
+            NoteVersion.note_id == note_id,
         )
     )
     if source is None:
-        raise HTTPException(status_code=404, detail={"code": "PAGE_VERSION_NOT_FOUND"})
-    next_revision = page.revision + 1
+        raise HTTPException(status_code=404, detail={"code": "NOTE_VERSION_NOT_FOUND"})
+    next_revision = note.revision + 1
     now = datetime.now(UTC)
     result = session.execute(
-        update(Page)
+        update(Note)
         .where(
-            Page.page_id == page_id,
-            Page.space_id == page.space_id,
-            Page.status == "active",
-            Page.revision == payload.expected_revision,
+            Note.note_id == note_id,
+            Note.space_id == note.space_id,
+            Note.status == "active",
+            Note.revision == payload.expected_revision,
         )
         .values(
             title=source.title,
@@ -140,11 +140,11 @@ def restore_version(
     )
     if result.rowcount != 1:
         session.rollback()
-        raise HTTPException(status_code=409, detail={"code": "PAGE_REVISION_CONFLICT"})
+        raise HTTPException(status_code=409, detail={"code": "NOTE_REVISION_CONFLICT"})
     session.add(
-        PageVersion(
+        NoteVersion(
             version_id=str(uuid4()),
-            page_id=page_id,
+            note_id=note_id,
             revision=next_revision,
             title=source.title,
             document_json=source.document_json,
@@ -155,5 +155,5 @@ def restore_version(
         )
     )
     session.commit()
-    updated = page_for_user(session, user, page_id)
-    return {"page": serialize_page(updated)}
+    updated = note_for_user(session, user, note_id)
+    return {"note": serialize_note(updated)}

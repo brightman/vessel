@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { documentBlocks, moveBlockRange, sectionEnd, visibleBlockIndices, type BlockInfo } from "./sections";
 
-type PageState = { pageId: string; collapsed: Set<string>; editable: boolean; onCollapse: (ids: string[]) => void };
+type NoteState = { noteId: string; collapsed: Set<string>; editable: boolean; onCollapse: (ids: string[]) => void };
 type ActiveDrag = { start: number; end: number; boundary: number | null };
 
 export function mountSectionControls(editor: Editor) {
@@ -18,9 +18,9 @@ export function mountSectionControls(editor: Editor) {
   menu.hidden = true;
   document.body.append(menu);
   const visibilityStyle = document.createElement("style");
-  visibilityStyle.dataset.pagesSectionVisibility = "";
+  visibilityStyle.dataset.notesSectionVisibility = "";
   document.head.append(visibilityStyle);
-  let page: PageState | null = null;
+  let note: NoteState | null = null;
   let drag: ActiveDrag | null = null;
   let hovered = "";
   let suppressNextClick = false;
@@ -89,9 +89,9 @@ export function mountSectionControls(editor: Editor) {
   }
 
   function boundaryNear(clientY: number, blocks: BlockInfo[]): { index: number; y: number } | null {
-    if (!page) return null;
+    if (!note) return null;
     const children = elements();
-    const visible = visibleBlockIndices(blocks, page.collapsed);
+    const visible = visibleBlockIndices(blocks, note.collapsed);
     const boundaries: { index: number; y: number }[] = [];
     for (const index of visible) {
       const rect = children[index]?.getBoundingClientRect();
@@ -189,19 +189,19 @@ export function mountSectionControls(editor: Editor) {
 
   function render() {
     gutter.replaceChildren();
-    if (!page) {
+    if (!note) {
       visibilityStyle.textContent = "";
       return;
     }
     const body = editor.view.dom;
     const blocks = documentBlocks(editor.state.doc);
     const children = elements();
-    const visible = new Set(visibleBlockIndices(blocks, page.collapsed));
+    const visible = new Set(visibleBlockIndices(blocks, note.collapsed));
     visibilityStyle.textContent = blocks
       .filter(block => !visible.has(block.index))
-      .map(block => `#pageBody > :nth-child(${block.index + 1}) { display: none !important; }`)
+      .map(block => `#noteBody > :nth-child(${block.index + 1}) { display: none !important; }`)
       .join("\n");
-    if (!page.editable) return;
+    if (!note.editable) return;
     const gutterRect = gutter.getBoundingClientRect();
     for (const block of blocks) {
       const element = children[block.index];
@@ -210,7 +210,7 @@ export function mountSectionControls(editor: Editor) {
       const rect = element.getBoundingClientRect();
       const top = rect.top - gutterRect.top + Math.max(0, (rect.height - 22) / 2);
       if (block.level && block.text) {
-        const folded = page.collapsed.has(block.id);
+        const folded = note.collapsed.has(block.id);
         const toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "section-toggle";
@@ -219,13 +219,13 @@ export function mountSectionControls(editor: Editor) {
         toggle.setAttribute("aria-label", `${folded ? "Expand" : "Collapse"} ${block.text}`);
         toggle.setAttribute("aria-expanded", String(!folded));
         toggle.addEventListener("click", () => {
-          if (!page) return;
-          if (page.collapsed.has(block.id)) page.collapsed.delete(block.id);
+          if (!note) return;
+          if (note.collapsed.has(block.id)) note.collapsed.delete(block.id);
           else {
-            page.collapsed.add(block.id);
+            note.collapsed.add(block.id);
             editor.commands.setTextSelection(block.from + 1);
           }
-          page.onCollapse([...page.collapsed]);
+          note.onCollapse([...note.collapsed]);
           render();
         });
         gutter.append(toggle);
@@ -252,8 +252,8 @@ export function mountSectionControls(editor: Editor) {
   }
 
   function onPointerOver(event: PointerEvent) {
-    if (drag || !page) return;
-    const block = (event.target as Element).closest("#pageBody > *");
+    if (drag || !note) return;
+    const block = (event.target as Element).closest("#noteBody > *");
     const index = elements().indexOf(block as HTMLElement);
     const id = documentBlocks(editor.state.doc)[index]?.id ?? "";
     if (id === hovered) return;
@@ -271,10 +271,10 @@ export function mountSectionControls(editor: Editor) {
   window.addEventListener("resize", render);
 
   return {
-    setPage(pageId: string, collapsedIds: string[], editable: boolean, onCollapse: (ids: string[]) => void) {
+    setNote(noteId: string, collapsedIds: string[], editable: boolean, onCollapse: (ids: string[]) => void) {
       cancelDrag();
       closeMenu();
-      page = { pageId, collapsed: new Set(collapsedIds), editable, onCollapse };
+      note = { noteId, collapsed: new Set(collapsedIds), editable, onCollapse };
       requestAnimationFrame(render);
     },
     refresh: render,

@@ -229,15 +229,15 @@ def test_email_settings_accept_unprefixed_names(monkeypatch):
         monkeypatch.delenv(name)
 
 
-def test_email_settings_ignore_pages_prefixed_names(monkeypatch):
+def test_email_settings_ignore_notes_prefixed_names(monkeypatch):
     legacy = {
-        "PAGES_BREVO_API_KEY": "legacy-api-key",
-        "PAGES_BREVO_SENDER_EMAIL": "legacy@example.test",
-        "PAGES_BREVO_SENDER_NAME": "Legacy",
-        "PAGES_BREVO_TIMEOUT_SECONDS": "14",
-        "PAGES_REGISTRATION_CODE_SECRET": SECRET,
-        "PAGES_REGISTRATION_EMAIL_VERIFICATION_REQUIRED": "false",
-        "PAGES_REGISTRATION_EMAIL_DAILY_LIMIT": "234",
+        "NOTES_BREVO_API_KEY": "legacy-api-key",
+        "NOTES_BREVO_SENDER_EMAIL": "legacy@example.test",
+        "NOTES_BREVO_SENDER_NAME": "Legacy",
+        "NOTES_BREVO_TIMEOUT_SECONDS": "14",
+        "NOTES_REGISTRATION_CODE_SECRET": SECRET,
+        "NOTES_REGISTRATION_EMAIL_VERIFICATION_REQUIRED": "false",
+        "NOTES_REGISTRATION_EMAIL_DAILY_LIMIT": "234",
     }
     for name, value in legacy.items():
         monkeypatch.setenv(name, value)

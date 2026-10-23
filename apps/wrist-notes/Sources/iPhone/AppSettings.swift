@@ -21,6 +21,9 @@ final class AppSettings: ObservableObject {
     @Published var appearance: AppAppearance {
         didSet { defaults.set(appearance.rawValue, forKey: "appearance") }
     }
+    @Published var requiresRemoteAIConfirmation: Bool {
+        didSet { defaults.set(requiresRemoteAIConfirmation, forKey: "requiresRemoteAIConfirmation") }
+    }
     @Published var localeIdentifier: String {
         didSet {
             defaults.set(localeIdentifier, forKey: "transcriptionLocale")
@@ -32,21 +35,29 @@ final class AppSettings: ObservableObject {
         }
     }
     @Published private(set) var transcription: TranscriptionConfiguration
+    @Published private(set) var aiRevision = 0
     @Published private(set) var ai: AIConfiguration
     private let defaults: UserDefaults
     private let secrets: any SecretStore
+    let chatGPT: ChatGPTAccountModel
+    private var chatGPTObservation: AnyCancellable?
 
-    init(defaults: UserDefaults = .standard, secrets: any SecretStore = KeychainSecretStore()) {
+    init(defaults: UserDefaults = .standard, secrets: any SecretStore = KeychainSecretStore(), chatGPT: ChatGPTAccountModel? = nil) {
         self.defaults = defaults
         self.secrets = secrets
+        self.chatGPT = chatGPT ?? .shared
         interfaceLanguage = AppLanguage(rawValue: defaults.string(forKey: "interfaceLanguage") ?? "") ?? .chinese
         appearance = AppAppearance(rawValue: defaults.string(forKey: "appearance") ?? "") ?? .system
+        requiresRemoteAIConfirmation = defaults.object(forKey: "requiresRemoteAIConfirmation") as? Bool ?? true
         localeIdentifier = defaults.string(forKey: "transcriptionLocale") ?? "zh-CN"
         transcription = defaults.data(forKey: "transcriptionConfiguration")
             .flatMap { try? JSONDecoder().decode(TranscriptionConfiguration.self, from: $0) }
             ?? TranscriptionConfiguration(appleLocale: defaults.string(forKey: "transcriptionLocale") ?? "zh-CN")
         ai = defaults.data(forKey: "aiConfiguration").flatMap { try? JSONDecoder().decode(AIConfiguration.self, from: $0) } ?? AIConfiguration()
         localeIdentifier = transcription.appleLocale
+        chatGPTObservation = self.chatGPT.$revision.dropFirst().sink { [weak self] _ in
+            if self?.ai.mode == .chatgpt { self?.aiRevision += 1 }
+        }
     }
 
     var transcriptionLabel: String {
@@ -69,12 +80,32 @@ final class AppSettings: ObservableObject {
     }
     func apiKey() throws -> String { try secrets.read() }
 
+    /// nil means no confirmation was presented; false means a displayed request became stale.
+    /// A stale request never inherits the saved opt-out, and only a valid confirmation saves it.
+    func authorizeRemoteAISend(confirmationIsCurrent: Bool?, rememberChoice: Bool = false) -> Bool {
+        if let confirmationIsCurrent {
+            guard confirmationIsCurrent else { return false }
+            if rememberChoice { requiresRemoteAIConfirmation = false }
+            return true
+        }
+        return !requiresRemoteAIConfirmation
+    }
+
     func saveAI(_ configuration: AIConfiguration, apiKey: String) throws {
         let saved: AIConfiguration
         if configuration.mode == .custom {
             saved = try configuration.validated(apiKey: apiKey)
             // Store the secret first; a Keychain failure must not enable a broken configuration.
             try secrets.write(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if configuration.mode == .chatgpt {
+            guard chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID) else {
+                throw AIServiceError.invalidConfiguration("请先连接 ChatGPT、确认套餐提示并选择可用模型。")
+            }
+            var connected = ai
+            connected.mode = .chatgpt
+            connected.chatGPTModel = configuration.chatGPTModel
+            connected.chatGPTAccountID = configuration.chatGPTAccountID
+            saved = connected
         } else {
             // Returning to local mode discards unsaved edits to the remote settings.
             var local = ai
@@ -84,5 +115,6 @@ final class AppSettings: ObservableObject {
         let data = try JSONEncoder().encode(saved)
         defaults.set(data, forKey: "aiConfiguration")
         ai = saved
+        aiRevision += 1
     }
 }

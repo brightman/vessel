@@ -11,7 +11,7 @@ enum AppAppearance: String, CaseIterable {
 }
 
 struct AIConfiguration: Codable, Equatable {
-    enum Mode: String, Codable { case local, custom }
+    enum Mode: String, Codable { case local, chatgpt, custom }
     enum APIProtocol: String, Codable, CaseIterable {
         case openai, anthropic
 
@@ -29,14 +29,24 @@ struct AIConfiguration: Codable, Equatable {
     var model = ""
     var baseURL = ""
     var apiProtocol: APIProtocol = .openai
+    var chatGPTModel = ""
+    var chatGPTAccountID = ""
 
-    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol }
+    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol, chatGPTModel, chatGPTAccountID }
 
-    var label: String { mode == .local ? "Apple 本地模型" : "\(model) · \(apiProtocol == .openai ? "OpenAI" : "Anthropic")" }
+    var label: String {
+        switch mode {
+        case .local: "Apple 本地模型"
+        case .chatgpt: "ChatGPT · \(chatGPTModel)"
+        case .custom: "\(model) · \(apiProtocol == .openai ? "OpenAI" : "Anthropic")"
+        }
+    }
+    var isRemote: Bool { mode != .local }
     // Use only after validation, immediately before making a request.
     var endpoint: URL { URL(string: baseURL)!.appendingPathComponent(apiProtocol.endpointPath) }
 
     func validated(apiKey: String) throws -> AIConfiguration {
+        guard mode == .custom else { throw AIServiceError.invalidConfiguration("请选择自定义模型后再测试服务连接。") }
         var value = self
         value.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
         value.baseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -72,6 +82,8 @@ extension AIConfiguration {
         model = try values.decode(String.self, forKey: .model)
         baseURL = try values.decode(String.self, forKey: .baseURL)
         apiProtocol = try values.decodeIfPresent(APIProtocol.self, forKey: .apiProtocol) ?? .openai
+        chatGPTModel = try values.decodeIfPresent(String.self, forKey: .chatGPTModel) ?? ""
+        chatGPTAccountID = try values.decodeIfPresent(String.self, forKey: .chatGPTAccountID) ?? ""
     }
 }
 

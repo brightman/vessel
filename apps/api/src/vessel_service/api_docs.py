@@ -40,13 +40,17 @@ API_TAGS = [
         "name": "files",
         "description": "Folders, sharing, uploads, file versions and trash.",
     },
-    {"name": "pages", "description": "Read and edit block-based documents."},
-    {"name": "directories", "description": "Organize Pages within a space."},
+    {"name": "notes", "description": "Read and edit block-based documents."},
+    {"name": "note-agent-runs", "description": "Start, stream and cancel Note Agent Runs."},
+    {"name": "note-proposals", "description": "Review and accept Agent edit proposals."},
+    {"name": "note-agent-events", "description": "Replay Note Agent proposal lifecycle events."},
+    {"name": "private-notes-mcp", "description": "Run-scoped MCP tools for the configured Note Agent."},
+    {"name": "directories", "description": "Organize Notes within a space."},
     {
-        "name": "page-versions",
-        "description": "Page history, checkpoints and restoration.",
+        "name": "note-versions",
+        "description": "Note history, checkpoints and restoration.",
     },
-    {"name": "assets", "description": "Images attached to Pages."},
+    {"name": "assets", "description": "Images attached to Notes."},
     {"name": "apps", "description": "Structured tables, manifests and records."},
     {"name": "system", "description": "Service liveness and database readiness."},
 ]
@@ -58,7 +62,7 @@ def add_api_docs(app: FastAPI) -> None:
         root_path = request.scope.get("root_path", "").rstrip("/")
         return get_scalar_api_reference(
             openapi_url=f"{root_path}{app.openapi_url}",
-            title="Vessel API Reference",
+            title="Karama.Cloud API Reference",
             scalar_js_url=SCALAR_JS_URL,
             scalar_favicon_url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23252521'/%3E%3Cpath d='m8 9 8 15 8-15' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E",
             theme=Theme.DEFAULT,

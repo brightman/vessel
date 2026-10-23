@@ -5,6 +5,7 @@ struct PhotoAttachment: Codable, Equatable, Identifiable, Sendable {
     let filename: String
     let recognizedText: String
     var recognitionError: String? = nil
+    var capture: PhotoCaptureMetadata? = nil
 }
 
 struct PhotoMoment: Codable, Equatable, Identifiable, Sendable {
@@ -13,6 +14,12 @@ struct PhotoMoment: Codable, Equatable, Identifiable, Sendable {
     let caption: String
     let recognizedText: String
     let photos: [PhotoAttachment]
+    var importedAt: Date? = nil
+
+    var captureDevice: String {
+        let devices = Set(photos.map { $0.capture?.device ?? "设备未知" })
+        return devices.count == 1 ? devices.first! : "多种设备"
+    }
 
     var title: String {
         let text = caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -28,4 +35,5 @@ struct PhotoImport: Sendable {
     let jpegData: Data
     var recognizedText: String = ""
     var recognitionError: String? = nil
+    var capture: PhotoCaptureMetadata? = nil
 }

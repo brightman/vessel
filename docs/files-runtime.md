@@ -12,13 +12,13 @@
 - 移动/恢复权限变化预览、回收站批次、递归永久清理。
 - PostgreSQL outbox worker、租约 fencing、故障重试、上传过期处理、延迟暂存清理、孤立复制对象对账。
 
-公共契约见 [api-contract-files.md](api-contract-files.md)；目录/权限语义见 [shared-files-design.md](shared-files-design.md)。文件夹不是 Page directory，文件共享不授予 Page 或 App 权限。本轮只增加文件路由注册与模型注册，不改写 Pages/Apps 行为。
+公共契约见 [api-contract-files.md](api-contract-files.md)；目录/权限语义见 [shared-files-design.md](shared-files-design.md)。文件夹不是 Note directory，文件共享不授予 Note 或 App 权限。本轮只增加文件路由注册与模型注册，不改写 Notes/Apps 行为。
 
 ## 数据库与依赖
 
-从 `apps/api` 运行 `uv sync` 安装锁定依赖。使用 Vessel 专用 PostgreSQL，然后设置 PAGES_DATABASE_URL 并执行 `.venv/bin/alembic upgrade head`。新增迁移为 `0009_shared_files`，依赖现有 `0008_space_resources`。
+从 `apps/api` 运行 `uv sync` 安装锁定依赖。使用 Vessel 专用 PostgreSQL，然后设置 NOTES_DATABASE_URL 并执行 `.venv/bin/alembic upgrade head`。新增迁移为 `0009_shared_files`，依赖现有 `0008_space_resources`。
 
-迁移包含文件域表、同空间父子外键、有效名称/个人根目录唯一索引，以及文件当前版本的复合延迟外键。禁止用回退迁移删除生产文件元数据，恢复使用备份。旧 Pages 基线的空库约束仍由 `0008` 执行，文件增量不改变它。
+迁移包含文件域表、同空间父子外键、有效名称/个人根目录唯一索引，以及文件当前版本的复合延迟外键。禁止用回退迁移删除生产文件元数据，恢复使用备份。旧 Notes 基线的空库约束仍由 `0008` 执行，文件增量不改变它。
 
 ## OSS 配置
 
@@ -39,15 +39,14 @@ export VESSEL_FILES_OSS_ALLOW_UNVERSIONED=true
 
 ## 启动
 
-根目录运行 `bash scripts/dev/start-api.sh`（沿用 PAGES_DATABASE_URL/PAGES_PORT 等主服务配置）。没有文件 OSS 配置时，文件目录功能仍可用，签发上传/下载返回明确的文件存储不可用错误；Page/Apps 继续独立工作。
+根目录运行 `bash scripts/dev/start-api.sh`。脚本从 `apps/api/.env` 读取 `NOTES_DATABASE_URL` 等配置，进程环境变量可覆盖；可用 `NOTES_CONFIG_FILE` 指定另一份配置。没有文件 OSS 配置时，文件目录功能仍可用，签发上传/下载返回明确的文件存储不可用错误；Note/Apps 继续独立工作。
 
 **必须另运行文件 worker**，HTTP complete/cancel/purge 的后台调度只是低延迟触发；进程重启后的恢复、延迟清理和上传到期都依赖 worker。与 API 使用同一数据库及 OSS 配置：
 
 ```sh
-cd apps/api
-PYTHONPATH=src .venv/bin/python -m vessel_service.files.worker
+bash scripts/dev/start-files-worker.sh
 # 单批运维检查：
-PYTHONPATH=src .venv/bin/python -m vessel_service.files.worker --once
+bash scripts/dev/start-files-worker.sh --once
 ```
 
 worker 每 2 秒轮询，按 Space → outbox 的锁顺序执行状态变更；网络请求不持有 Space 锁。任务失败保留 failure_code、attempts 和下次执行时间，采用退避重试；租约过期可接管，旧 attempt 不得覆盖新 attempt 的业务状态或完成标记。
@@ -64,7 +63,7 @@ worker 每 2 秒轮询，按 Space → outbox 的锁顺序执行状态变更；�
 
 | 验证 | 结果 |
 | --- | --- |
-| 文件专项 + 账号、团队、Page、Apps 受影响核心测试 | 95 passed；1 条上游 oss2 datetime 弃用提示 |
+| 文件专项 + 账号、团队、Note、Apps 受影响核心测试 | 95 passed；1 条上游 oss2 datetime 弃用提示 |
 | 全新隔离 PostgreSQL 的 Alembic 迁移 | 0001 至 0009 全部成功，包含当前版本复合延迟外键 |
 | 真实 HTTP + OSS E2E，run `8fc9348a` | 通过上述链路，另含 PostgreSQL 并发交叉移动：一个提交成功、另一个冲突；文件三个逻辑版本与历史恢复 |
 | PostgreSQL 递归可见性与分页 | 共享给我、继承搜索、连续游标分页通过 |

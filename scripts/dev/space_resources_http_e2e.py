@@ -1,4 +1,4 @@
-"""Real HTTP smoke for Vessel Page/App team authorization on isolated PostgreSQL."""
+"""Real HTTP smoke for Vessel Note/App team authorization on isolated PostgreSQL."""
 
 import asyncio
 import sys
@@ -36,18 +36,18 @@ def main(base_url: str) -> None:
             "type": "paragraph", "attrs": {"block_id": "intro"},
             "content": [{"type": "text", "text": "Shared"}],
         }]}
-        page = client.post(f"/v1/spaces/{space_id}/pages", headers=owner,
+        page = client.post(f"/v1/spaces/{space_id}/notes", headers=owner,
                            json={"title": "E2E note", "document": document})
         assert page.status_code == 201, page.text
-        page_id = page.json()["page"]["page_id"]
-        assert client.get(f"/v1/pages/{page_id}", headers=viewer).status_code == 200
-        assert client.get(f"/v1/pages/{page_id}", headers=outsider).status_code == 404
-        assert client.patch(f"/v1/pages/{page_id}", headers=viewer,
+        note_id = page.json()["note"]["note_id"]
+        assert client.get(f"/v1/notes/{note_id}", headers=viewer).status_code == 200
+        assert client.get(f"/v1/notes/{note_id}", headers=outsider).status_code == 404
+        assert client.patch(f"/v1/notes/{note_id}", headers=viewer,
                             json={"expected_revision": 1, "title": "Denied"}).status_code == 403
-        edited = client.patch(f"/v1/pages/{page_id}", headers=editor,
+        edited = client.patch(f"/v1/notes/{note_id}", headers=editor,
                               json={"expected_revision": 1, "title": "Edited"})
         assert edited.status_code == 200, edited.text
-        assert edited.json()["page"]["revision"] == 2
+        assert edited.json()["note"]["revision"] == 2
 
         app = client.post(f"/v1/spaces/{space_id}/apps", headers=owner, json={
             "name": "E2E table", "manifest": {"tables": {"leads": {"fields": {
@@ -120,7 +120,7 @@ def main(base_url: str) -> None:
 
             async with httpx.AsyncClient(base_url=base_url, timeout=5) as concurrent:
                 upload = asyncio.create_task(concurrent.post(
-                    f"/v1/pages/{page_id}/assets", headers={**editor, "Content-Type": "image/png"},
+                    f"/v1/notes/{note_id}/assets", headers={**editor, "Content-Type": "image/png"},
                     content=image_stream(),
                 ))
                 try:
@@ -137,14 +137,14 @@ def main(base_url: str) -> None:
 
         changed = asyncio.run(downgrade_during_upload())
         assert changed.status_code == 200, changed.text
-        assert client.patch(f"/v1/pages/{page_id}", headers=editor,
+        assert client.patch(f"/v1/notes/{note_id}", headers=editor,
                             json={"expected_revision": 2, "title": "Denied"}).status_code == 403
         assert client.post(records, headers=editor, json={"values": {"company": "Denied"}}).status_code == 403
         assert client.delete(f"/v1/teams/{space_id}/members/{editor_id}", headers=owner).status_code == 204
-        assert client.get(f"/v1/pages/{page_id}", headers=editor).status_code == 404
+        assert client.get(f"/v1/notes/{note_id}", headers=editor).status_code == 404
         assert client.get(f"{records}/{record_id}", headers=editor).status_code == 404
-        assert client.get(f"/v1/pages/{page_id}/agent/status", headers=owner).status_code == 404
-        print("PASS real HTTP: register, team invite, Page/App read-write, numeric query, deletion-safe cursor, slow upload revocation, role downgrade, removal")
+        assert client.get(f"/v1/notes/{note_id}/agent/status", headers=owner).status_code == 404
+        print("PASS real HTTP: register, team invite, Note/App read-write, numeric query, deletion-safe cursor, slow upload revocation, role downgrade, removal")
 
 
 if __name__ == "__main__":

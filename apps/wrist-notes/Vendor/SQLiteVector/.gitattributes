@@ -1,0 +1,3 @@
+# Preserve upstream bytes and whitespace in the pinned vendor source.
+src/** -whitespace
+libs/** -whitespace

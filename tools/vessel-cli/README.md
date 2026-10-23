@@ -1,4 +1,4 @@
-# vessel CLI
+# Karama.Cloud CLI (`vessel`)
 
 `vessel` lets Codex operate a signed-in user's Vessel space through the HTTP API. It never connects to the database or uses OSS service keys.
 
@@ -13,7 +13,7 @@ vessel auth whoami --env local
 
 The install command above adds `vessel` to `apps/api/.venv/bin`. Re-run it after updating the package. To install it as a user-level command instead, use `uv tool install ./tools/vessel-cli`.
 
-Login prompts for the password without echo. Access and refresh tokens go only to the operating system credential manager. An unavailable or insecure keyring is an error; there is no plaintext fallback. `vessel auth logout --env local` revokes and removes that session. Hosts are stored in `~/.config/vessel/hosts.json` (or `XDG_CONFIG_HOME/vessel/hosts.json`); this file contains origins only. Supported names are `local`, `test`, `staging`, and `production`. Production requires HTTPS. Every network command needs `--env` or `VESSEL_ENV`.
+Login prompts for the password without echo. The CLI stores the access token, refresh token, and expiry in plaintext in `~/.config/vessel/.env` (or `$XDG_CONFIG_HOME/vessel/.env`), scoped to the selected environment and host. The file is written atomically with mode `0600`; the `vessel` config directory is mode `0700`. The CLI loads the file itself, so credentials persist across commands without shell setup. Before login or token refresh it verifies that the file can be written, read, and cleaned up. `vessel auth logout --env local` revokes the session and removes its token entries. Do not commit or share this file. Hosts are stored in `~/.config/vessel/hosts.json` (or `XDG_CONFIG_HOME/vessel/hosts.json`); this file contains origins only. Supported names are `local`, `test`, `staging`, and `production`. Production requires HTTPS. Every network command needs `--env` or `VESSEL_ENV`.
 
 ## Common commands
 
@@ -25,10 +25,10 @@ vessel files list SPACE_ID --parent FOLDER_ID --env local
 vessel files search SPACE_ID --name report --env local
 vessel files upload SPACE_ID FOLDER_ID ./report.pdf --env local
 vessel files download FILE_ID ./report.pdf --env local
-vessel pages list SPACE_ID --env local
-vessel pages get PAGE_ID --env local
-vessel pages create SPACE_ID "Research" ./document.json --env local
-vessel pages update-markdown PAGE_ID ./page.md --expected-revision 2 --env local
+vessel notes list SPACE_ID --env local
+vessel notes get NOTE_ID --env local
+vessel notes create SPACE_ID "Research" ./document.json --env local
+vessel notes update-markdown NOTE_ID ./note.md --expected-revision 2 --env local
 vessel apps list SPACE_ID --env local
 vessel apps create SPACE_ID "Project tracker" ./manifest.json --env local
 vessel apps tables APP_ID --env local

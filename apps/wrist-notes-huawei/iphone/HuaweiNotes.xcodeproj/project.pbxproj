@@ -1,0 +1,395 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		12CB6C214C03CD89CAE4AC0B /* RecordingFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C8A0694439AE02D06657818 /* RecordingFormat.swift */; };
+		14DBEEA4609F0C1374159E12 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685B987C80912A2B7CCFCB2A /* OnDeviceTranscriber.swift */; };
+		187B2BC9214FEFBBA2A267E4 /* HuaweiSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0637F521888DA122BF520A82 /* HuaweiSettingsView.swift */; };
+		280C9649F1A89E32C794B72A /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F3E9D29233267DE661E378 /* AudioPlayback.swift */; };
+		3431A60D2B0182248A8F186B /* VoiceNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FBE3B60E2E25D3CFE3DEA6 /* VoiceNote.swift */; };
+		4C667F7DBCB228571325E1A9 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA48D3941B8A9A896E9C14E6 /* NoteDetailView.swift */; };
+		4CF16C13B2D48B666770D440 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 78D4133D6C549661BC4B0BC6 /* Assets.xcassets */; };
+		6C62D6108FC3D6AB88636CA2 /* HuaweiRecordingReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7A33EF66042975EACBFA7B /* HuaweiRecordingReceiver.swift */; };
+		6F22FFA9CD13B8DCCE5D77BB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E0B645EA46725B629D9F2C7 /* Foundation.framework */; };
+		84025F80067A80C729EEC94A /* NotesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6089B690E90CEE589916DCC3 /* NotesModel.swift */; };
+		A584AFC42A54A68115E4BD13 /* HuaweiNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB5DD82756AE450AE2BDEF4 /* HuaweiNotesApp.swift */; };
+		DCE54982A37275D8E3414E91 /* NoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15B70C3C2522F38565A2ADA /* NoteRepository.swift */; };
+		F059A756C7F43F57830AA8CC /* OnDeviceSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431B404D70C00B5671CDBB9B /* OnDeviceSummarizer.swift */; };
+		F426A438870AB2A76C9F65FB /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02080E4A59EA657A5156E4B5 /* NotesListView.swift */; };
+		FED6B24F5CBE3308518825E8 /* NotesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2028B7BA7853AA0097046264 /* NotesStyle.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		02080E4A59EA657A5156E4B5 /* NotesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
+		0637F521888DA122BF520A82 /* HuaweiSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HuaweiSettingsView.swift; sourceTree = "<group>"; };
+		2028B7BA7853AA0097046264 /* NotesStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesStyle.swift; sourceTree = "<group>"; };
+		2C7A33EF66042975EACBFA7B /* HuaweiRecordingReceiver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HuaweiRecordingReceiver.swift; sourceTree = "<group>"; };
+		3F434091C8596932027E4871 /* HuaweiNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HuaweiNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		431B404D70C00B5671CDBB9B /* OnDeviceSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceSummarizer.swift; sourceTree = "<group>"; };
+		55F3E9D29233267DE661E378 /* AudioPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioPlayback.swift; sourceTree = "<group>"; };
+		6089B690E90CEE589916DCC3 /* NotesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesModel.swift; sourceTree = "<group>"; };
+		685B987C80912A2B7CCFCB2A /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
+		6CB5DD82756AE450AE2BDEF4 /* HuaweiNotesApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HuaweiNotesApp.swift; sourceTree = "<group>"; };
+		78D4133D6C549661BC4B0BC6 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8C8A0694439AE02D06657818 /* RecordingFormat.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingFormat.swift; sourceTree = "<group>"; };
+		9E0B645EA46725B629D9F2C7 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		AA48D3941B8A9A896E9C14E6 /* NoteDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteDetailView.swift; sourceTree = "<group>"; };
+		E0FBE3B60E2E25D3CFE3DEA6 /* VoiceNote.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceNote.swift; sourceTree = "<group>"; };
+		F15B70C3C2522F38565A2ADA /* NoteRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteRepository.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9D3A551A6E07D13458AE4D1D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F22FFA9CD13B8DCCE5D77BB /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3C09355A740F1182854CFB85 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				9E0B645EA46725B629D9F2C7 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		68B461DDCF49B43AF369F3C0 = {
+			isa = PBXGroup;
+			children = (
+				846D846A86E719958BD249A8 /* Products */,
+				CEDA5A3670B750B6C5437C89 /* Frameworks */,
+				6EB41AD3ED02755C1D4CBB37 /* Sources */,
+			);
+			sourceTree = "<group>";
+		};
+		6EB41AD3ED02755C1D4CBB37 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				7872D2B7D87E74F3FE4DAC11 /* Shared */,
+				CAB8D3939940B6B7B093E726 /* iPhone */,
+			);
+			name = Sources;
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		7872D2B7D87E74F3FE4DAC11 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				8C8A0694439AE02D06657818 /* RecordingFormat.swift */,
+				E0FBE3B60E2E25D3CFE3DEA6 /* VoiceNote.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		846D846A86E719958BD249A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3F434091C8596932027E4871 /* HuaweiNotes.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CAB8D3939940B6B7B093E726 /* iPhone */ = {
+			isa = PBXGroup;
+			children = (
+				55F3E9D29233267DE661E378 /* AudioPlayback.swift */,
+				6CB5DD82756AE450AE2BDEF4 /* HuaweiNotesApp.swift */,
+				2C7A33EF66042975EACBFA7B /* HuaweiRecordingReceiver.swift */,
+				0637F521888DA122BF520A82 /* HuaweiSettingsView.swift */,
+				AA48D3941B8A9A896E9C14E6 /* NoteDetailView.swift */,
+				F15B70C3C2522F38565A2ADA /* NoteRepository.swift */,
+				02080E4A59EA657A5156E4B5 /* NotesListView.swift */,
+				6089B690E90CEE589916DCC3 /* NotesModel.swift */,
+				2028B7BA7853AA0097046264 /* NotesStyle.swift */,
+				431B404D70C00B5671CDBB9B /* OnDeviceSummarizer.swift */,
+				685B987C80912A2B7CCFCB2A /* OnDeviceTranscriber.swift */,
+				78D4133D6C549661BC4B0BC6 /* Assets.xcassets */,
+			);
+			name = iPhone;
+			path = iPhone;
+			sourceTree = "<group>";
+		};
+		CEDA5A3670B750B6C5437C89 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				3C09355A740F1182854CFB85 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A31F13CD60BDE64DA611054E /* HuaweiNotes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D5B87B605BB242BB3A85601B /* Build configuration list for PBXNativeTarget "HuaweiNotes" */;
+			buildPhases = (
+				94B5A424349B05D45F66010E /* Sources */,
+				9D3A551A6E07D13458AE4D1D /* Frameworks */,
+				1DEFB1927909210FFFE2755A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HuaweiNotes;
+			productName = HuaweiNotes;
+			productReference = 3F434091C8596932027E4871 /* HuaweiNotes.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C0EDCD79802CEDEBFDD97897 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2630;
+			};
+			buildConfigurationList = 4E4806B154BABAB87712EB43 /* Build configuration list for PBXProject "HuaweiNotes" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 68B461DDCF49B43AF369F3C0;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 846D846A86E719958BD249A8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A31F13CD60BDE64DA611054E /* HuaweiNotes */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1DEFB1927909210FFFE2755A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CF16C13B2D48B666770D440 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		94B5A424349B05D45F66010E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				12CB6C214C03CD89CAE4AC0B /* RecordingFormat.swift in Sources */,
+				3431A60D2B0182248A8F186B /* VoiceNote.swift in Sources */,
+				280C9649F1A89E32C794B72A /* AudioPlayback.swift in Sources */,
+				A584AFC42A54A68115E4BD13 /* HuaweiNotesApp.swift in Sources */,
+				6C62D6108FC3D6AB88636CA2 /* HuaweiRecordingReceiver.swift in Sources */,
+				187B2BC9214FEFBBA2A267E4 /* HuaweiSettingsView.swift in Sources */,
+				4C667F7DBCB228571325E1A9 /* NoteDetailView.swift in Sources */,
+				DCE54982A37275D8E3414E91 /* NoteRepository.swift in Sources */,
+				F426A438870AB2A76C9F65FB /* NotesListView.swift in Sources */,
+				84025F80067A80C729EEC94A /* NotesModel.swift in Sources */,
+				FED6B24F5CBE3308518825E8 /* NotesStyle.swift in Sources */,
+				F059A756C7F43F57830AA8CC /* OnDeviceSummarizer.swift in Sources */,
+				14DBEEA4609F0C1374159E12 /* OnDeviceTranscriber.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0B2CA37C95F91F6BF0AAC0A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		796515E830C9F7B0F8D4B468 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "腕记·华为";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes.huawei;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		9AAC9F96AD0C5AD033221F3F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B5B22F2B7C43B2500DC469AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "腕记·华为";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vessel.wristnotes.huawei;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4E4806B154BABAB87712EB43 /* Build configuration list for PBXProject "HuaweiNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B2CA37C95F91F6BF0AAC0A8 /* Debug */,
+				9AAC9F96AD0C5AD033221F3F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D5B87B605BB242BB3A85601B /* Build configuration list for PBXNativeTarget "HuaweiNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B5B22F2B7C43B2500DC469AC /* Release */,
+				796515E830C9F7B0F8D4B468 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C0EDCD79802CEDEBFDD97897 /* Project object */;
+}

@@ -49,6 +49,13 @@ enum SpeechResourceState: Equatable {
 enum TranscriptionResourceError: LocalizedError {
     case missing, downloadFailed, invalidFiles, unsupported, reservationLimit, emptyTranscript
     case http(Int)
+    static var appleUnavailableMessage: String {
+        #if targetEnvironment(simulator)
+        "当前模拟器无法使用 Apple 端上转写。请在 iPhone 真机测试，或到设置 → 语音转写模型选择 Whisper。"
+        #else
+        "这台设备暂不支持 Apple 端上转写，可到设置 → 语音转写模型选择 Whisper。"
+        #endif
+    }
     var errorDescription: String? {
         switch self {
         case .missing: "请先到设置 → 语音转文本，下载所选模型的语言资源。"

@@ -8,14 +8,14 @@ from vessel_service.settings import Settings
 
 async def _get_health() -> httpx.Response:
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://pages.test"
+        transport=httpx.ASGITransport(app=app), base_url="http://notes.test"
     ) as client:
         return await client.get("/healthz")
 
 
 async def _get_ready(application) -> httpx.Response:
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=application), base_url="http://pages.test"
+        transport=httpx.ASGITransport(app=application), base_url="http://notes.test"
     ) as client:
         return await client.get("/readyz")
 
@@ -25,7 +25,7 @@ def test_health_endpoint_returns_ok_status() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-    assert app.title == "Vessel API"
+    assert app.title == "Karama.Cloud API"
 
 
 def test_readiness_endpoint_reports_missing_database_configuration() -> None:

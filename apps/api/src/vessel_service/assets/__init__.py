@@ -1,1 +1,1 @@
-"""Private Page asset storage and delivery."""
+"""Private Note asset storage and delivery."""

@@ -50,7 +50,7 @@ import Foundation
             guard generation == version, !Task.isCancelled else { return }
             languages = available
             if config.engine == .apple && !available.contains(where: { $0.id == config.appleLocale }) {
-                state = .unavailable(available.isEmpty ? "这台设备暂不支持系统端上转写，可选择 Whisper。" : "请选择这台 iPhone 支持的转写语言。")
+                state = .unavailable(available.isEmpty ? TranscriptionResourceError.appleUnavailableMessage : "请选择这台 iPhone 支持的转写语言。")
                 return
             }
             let status = try await resources.status(config)
@@ -80,6 +80,7 @@ import Foundation
                 let status = try await resources.status(config)
                 guard let self, self.generation == version else { return }
                 self.state = status == .ready ? .ready : .failed("下载结束，但资源尚未就绪，请重试。")
+                if status == .ready { NotificationCenter.default.post(name:.init("WiseLife.TranscriptionResourcesDidChange"),object:nil,userInfo:["resourceID":config.resourceID]) }
             } catch {
                 guard let self, self.generation == version, !Task.isCancelled else { return }
                 self.state = .failed(error.localizedDescription)

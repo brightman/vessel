@@ -1,0 +1,4 @@
+Daily insight remote consent, auto generation, provider isolation and stale completion tests passed
+Daybook daily insight: passed
+Daily insight service OpenAI/Anthropic routing, exact preview and validation passed (stub transport, no network)
+SQLite persistence: rollback, WAL/FK, row roundtrip, once migration, corruption preservation, domain isolation, atomic reservation passed

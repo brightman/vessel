@@ -1,0 +1,78 @@
+PhoneRecordingSession tests passed
+Watch pairing, sync persistence, failure evidence and retry policy passed
+Watch recording launcher: 12 lifecycle, permission and routing scenarios passed
+Recording button interaction: 8 scenarios passed
+RecordMergeSelectionSmoke passed
+NoteRepositorySmoke passed
+creating fixtures
+AudioRecordingMergerSmoke passed
+Audio duration: real AAC import, SQLite repair, duplicate/orphan recovery, rollback and original preservation passed
+Speaker audio budget: real multi-hour header rejected before allocation; short audio still decodes
+Recording sessions: boundary, 2000 random buffers, validation, Codable, source ranges, V1 compatibility passed
+AAC fixture: effective=16001 decoded=16001 padding=0
+Watch session store smoke passed
+Segmented capture synthetic smoke passed: 9600017 effective frames, three chunks
+RecordingSessionRepositorySmoke passed: ordering, sparse gaps, pairing receipts, conflicts, COMMIT/publication/reclamation recovery, deletion and ranges
+RecordingChunkTransferSmoke passed
+Session model lifecycle passed: pagination, old day/month query, notification reload, verified ranges and full-session deletion
+RecordingSessionPresentationSmoke passed: unique sessions, gap mapping, exact seeks, midnight/DST, legacy dedupe and untimed end
+AudioProcessingSmoke passed: bounded/gapped/append plans, timestamp ownership, SQLite atomic rollback/reopen, leases, versions, outcomes, cancellation and tombstones
+Recording title policy, stale guards, local fallback and persistence passed
+Note editing: 5 scenarios passed
+Recording title coordinator: consent, automatic/manual generation, dedupe, temporary upgrade, stale text, manual edits, permission and model races passed
+Daily recap evidence and SQLite tests passed
+Daily recap coordinator consent, stale output, retry and privacy tests passed
+Daily recap service bounded batching and citation checks passed (stub transport, no network)
+Watch connectivity status smoke passed
+Recording button interaction: 8 scenarios passed
+Watch project source membership: passed
+Watch app icon resource: passed
+Watch localized session resources: passed
+iPhone project source membership: passed
+Recording session shared source membership: passed
+Recording widget and shared intent source membership: passed
+Watch complication target, source separation, URL registration and embedding: passed
+Debug idle timer smoke passed
+Note editing: 5 scenarios passed
+Speaker persistence, legacy decoding, alignment, rename, editing and revision protection: passed
+Owner persistence, manual override and transcription reset passed
+Clean speech overlap, enrollment validation, clipping, windowing and short-input rejection passed
+VoiceIdentity storage and policy PASS
+Voice profile recovery: reopen, unavailable state, retained identity, retry, cancellation and explicit deletion passed
+AI settings: validation, persistence, request/response, errors, long text, test races and Watch status passed
+Transcription settings: migration, ready/save gate, failure/retry, shared language resource, stale completion, persistence passed
+Apple speech reservations: cancellation, shared leases, normalization, reuse, capacity eviction and serialization passed
+Whisper model store: failure/cancel resume, persistent verified cache, FIFO installs, corruption and incomplete-model checks passed
+PhotoRepositorySmoke passed: persistence, OCR status, reopen, deletion, input validation, import rollback, failed-delete preservation, path and symlink validation
+Daybook reminders: validation, permission denial, durable create/edit/cancel/complete/delete, scheduling and disk rollback, reconciliation, concurrency, corrupt storage and preferences passed
+Requested content scope: old date, 121 rows, read failure and late invalidation passed
+Durable legacy deletion: cache fence, pending loader and prepared remote send invalidation passed
+Remote AI confirmation preference: default, cancel, stale preview, unchecked/checked send, reload, skip, restore, data revocation and local AI passed
+Conversation review regressions: restored follow-up date, local evidence fallback and combined read/write recovery passed
+Conversation retention: new records, SQLite reopen, absent sources and date changes passed
+Conversation paging: SQL 10/10/10/5, timestamp ties, insert/update during pagination, reopen and indexed cursor passed
+Daybook SQL payload freshness and live grounding: passed
+Daybook semantic Ask races and remembered confirmation: passed
+DaybookAssistantModel smoke passed: no-data/count bypass, deletion, cancellation, late response, permissions, per-request remote confirmation
+DaybookConversation smoke passed: restart, cross-date history, follow-up re-grounding/date retention, edits, clear race, permissions, exact remote preview, config invalidation, corrupt storage, save retry, unpruned storage
+Conversation lifecycle: question-first commit, success/failure/cancel/interruption, write rollback/retry, privacy redaction and stale retries passed
+DaybookRetrievalSmoke passed: date boundaries, Chinese search, bounded snippets, complete-day counts, source invalidation, privacy, DST
+Daybook suggestions: daily caps, quiet/off gating, source revocation, edits/deletions, rollover, snooze, dismissal, relaunch and bounded content-free state passed
+Life source aggregation, DST, atomic persistence, pause/restart, empty/stale/error and suppression checks passed
+Life source lifecycle: no launch permissions/queries, pause and foreground races, empty reconciliation, legacy location retention without save-time acquisition and independent AI permissions passed
+Daybook daily insight: passed
+SQLite persistence: rollback, WAL/FK, row roundtrip, once migration, corruption preservation, domain isolation, atomic reservation passed
+MetadataSQLiteSmoke passed: migration, rollback, retry, lossless voice payload, stale instances, tombstones, photo attachments, reminder diffs, date indices and schema compatibility
+Daybook full text and resumable chunks: passed
+Daybook full range vector scan: passed (4097 candidates)
+Daybook real tokenizer failure and capability recovery: passed
+Daybook unavailable state, resource retry, and v1 migration: passed
+Durable legacy deletion: vector/FTS generation and stale-input fence passed
+Daybook semantic SQLite Vector: passed
+Capture metadata: validation, transfer, legacy decode, SQLite reopen/delete passed
+Capture lifecycle: opt-in, denial, authorization, stale fixes, one-shot, cancel, pause, camera timestamp passed
+Photo metadata: original date/timezone/device, GPS hemispheres, opt-out, missing/invalid metadata, real JPEG passed
+Places projection: device, missing-location omission, original time, parent link, separate AI permissions passed
+Health refresh: consent, app-lifetime observers, burst coalescing, in-flight changes, background SQLite commits, deletion reconciliation, selected-day catch-up, failures, unlock, timeout and pause races passed
+Capture addresses: SQLite persistence, original coordinate/text preservation, deleted/stale writes, photo rollback and legacy decoding passed
+Capture address resolution: consent, deduplication, persistent-cache reuse, cancellation, offline retry, language isolation and explicit prior-day evidence passed

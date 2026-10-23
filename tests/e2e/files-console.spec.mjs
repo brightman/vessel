@@ -131,7 +131,7 @@ test("owner updates and revokes a personal file share through the console", asyn
   await ownerPage.getByRole("button", { name: "Files" }).click();
   await ownerPage.getByRole("row", { name: /share-console.txt/ }).click();
   await ownerPage.getByRole("tab", { name: "Sharing" }).click();
-  await ownerPage.getByLabel("Vessel user ID").fill(recipient.userId);
+  await ownerPage.getByLabel("Karama.Cloud user ID").fill(recipient.userId);
   await ownerPage.getByRole("button", { name: "Add share" }).click();
 
   await recipientPage.getByRole("button", { name: "Files" }).click();
@@ -227,7 +227,7 @@ test("an upload finishing after logout does not reload a Files view", async ({ p
   await page.getByLabel("Choose files to upload").setInputFiles({ name: "logout-pending.txt", mimeType: "text/plain", buffer: Buffer.from("logout while polling") });
   await statusIsHeld;
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to Karama.Cloud" })).toBeVisible();
   loggedOut = true;
   releaseStatus();
   await page.waitForTimeout(2_000);
@@ -364,7 +364,7 @@ test("move picker rejects an item's own descendant", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Select Source child" })).toBeDisabled();
 });
 
-test("move picker loads later destination pages", async ({ page }) => {
+test("move picker loads later destination notes", async ({ page }) => {
   const actor = await register(page, "Move Pagination Owner");
   const root = (await fileApi(page, actor, "GET", `/v1/spaces/${actor.spaceId}/folders/root`)).folder;
   for (let index = 0; index < 49; index += 1) await fileApi(page, actor, "POST", `/v1/spaces/${actor.spaceId}/folders`, { name: `A destination ${String(index).padStart(2, "0")}`, parent_folder_id: root.item_id });

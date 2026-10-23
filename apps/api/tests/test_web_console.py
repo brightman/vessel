@@ -7,7 +7,7 @@ from vessel_service.main import create_app
 from vessel_service.settings import Settings
 
 
-def test_marketing_homepage_and_console_use_separate_bundles(tmp_path: Path) -> None:
+def test_marketing_homenote_and_console_use_separate_bundles(tmp_path: Path) -> None:
     console_dist = tmp_path / "console"
     marketing_dist = tmp_path / "marketing"
     (console_dist / "assets").mkdir(parents=True)

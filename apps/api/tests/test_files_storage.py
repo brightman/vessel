@@ -460,7 +460,7 @@ def test_publication_versions_paginates_and_excludes_delete_markers(storage):
     bucket = BUCKETS["final"]
     calls = []
 
-    def pages(**kwargs):
+    def notes(**kwargs):
         calls.append(kwargs)
         if not kwargs["key_marker"]:
             return SimpleNamespace(
@@ -478,7 +478,7 @@ def test_publication_versions_paginates_and_excludes_delete_markers(storage):
             is_truncated=False,
         )
 
-    bucket.list_object_versions = pages
+    bucket.list_object_versions = notes
     assert [v["oss_version_id"] for v in storage.publication_versions(u)] == ["1", "2"]
     assert calls[1]["key_marker"] == u["final_key"]
     assert calls[1]["versionid_marker"] == "1"

@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 
 from vessel_service.assets.storage import LocalAssetStorage
 from vessel_service.auth.router import get_session, get_settings
-from vessel_service.models import Page, PageAsset, User
-from vessel_service.pages.router import current_user
-from vessel_service.spaces.resources import page_for_user
+from vessel_service.models import Note, NoteAsset, User
+from vessel_service.notes.router import current_user
+from vessel_service.spaces.resources import note_for_user
 from vessel_service.settings import Settings
 
 router = APIRouter(prefix="/v1", tags=["assets"])
@@ -61,9 +61,9 @@ def _asset_not_found() -> HTTPException:
     return HTTPException(status_code=404, detail={"code": "ASSET_NOT_FOUND"})
 
 
-@router.post("/pages/{page_id}/assets", status_code=201)
-async def upload_page_asset(
-    page_id: str,
+@router.post("/notes/{note_id}/assets", status_code=201)
+async def upload_note_asset(
+    note_id: str,
     request: Request,
     user: User = Depends(current_user),
     session: Session = Depends(get_session),
@@ -74,15 +74,15 @@ async def upload_page_asset(
     content = await _read_bounded_body(request, settings.max_asset_upload_bytes)
     if not content or not _IMAGE_SIGNATURES[content_type](content):
         raise HTTPException(status_code=415, detail={"code": "ASSET_CONTENT_TYPE_MISMATCH"})
-    page = page_for_user(session, user, page_id, write=True)
+    note = note_for_user(session, user, note_id, write=True)
 
     asset_id = str(uuid4())
-    object_key = storage.make_key(page.space_id, page_id, asset_id)
+    object_key = storage.make_key(note.space_id, note_id, asset_id)
     checksum = hashlib.sha256(content).hexdigest()
-    asset = PageAsset(
+    asset = NoteAsset(
         asset_id=asset_id,
         owner_user_id=user.user_id,
-        page_id=page_id,
+        note_id=note_id,
         object_key=object_key,
         content_type=content_type,
         size_bytes=len(content),
@@ -100,7 +100,7 @@ async def upload_page_asset(
     return {
         "asset": {
             "asset_id": asset_id,
-            "page_id": page_id,
+            "note_id": note_id,
             "content_type": content_type,
             "size_bytes": len(content),
             "sha256": checksum,
@@ -116,11 +116,11 @@ def read_asset_content(
     session: Session = Depends(get_session),
     storage: LocalAssetStorage = Depends(get_asset_storage),
 ) -> Response:
-    asset = session.scalar(select(PageAsset).where(PageAsset.asset_id == asset_id))
+    asset = session.scalar(select(NoteAsset).where(NoteAsset.asset_id == asset_id))
     if asset is None:
         raise _asset_not_found()
     try:
-        page_for_user(session, user, asset.page_id)
+        note_for_user(session, user, asset.note_id)
     except HTTPException as error:
         if error.status_code == 404:
             raise _asset_not_found() from error

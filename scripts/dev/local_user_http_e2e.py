@@ -11,8 +11,8 @@ import httpx
 
 
 def main(base_url: str) -> None:
-    if not os.environ.get("PAGES_DATABASE_URL"):
-        raise SystemExit("Set PAGES_DATABASE_URL to an isolated local test database")
+    if not os.environ.get("NOTES_DATABASE_URL"):
+        raise SystemExit("Set NOTES_DATABASE_URL to an isolated local test database")
     email = f"local-{uuid4().hex[:10]}@example.test"
     password = secrets.token_urlsafe(24)
     api_dir = Path(__file__).resolve().parents[2] / "apps" / "api"

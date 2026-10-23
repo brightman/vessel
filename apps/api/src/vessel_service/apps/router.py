@@ -27,7 +27,7 @@ from vessel_service.apps.release_storage import AppReleaseStorageError
 from vessel_service.auth.router import bearer, get_keyring, get_session, get_settings
 from vessel_service.auth.tokens import KeyRing
 from vessel_service.models import User, VesselApp, VesselAppAuditEvent, VesselAppRecord, VesselAppRelease
-from vessel_service.pages.router import current_user
+from vessel_service.notes.router import current_user
 from vessel_service.settings import Settings
 from vessel_service.spaces.permissions import space_access
 

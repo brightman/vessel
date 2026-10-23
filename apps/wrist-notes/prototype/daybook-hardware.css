@@ -21,6 +21,19 @@
 .device-facts strong{font-weight:550;font-variant-numeric:tabular-nums}
 .device-facts strong span{color:inherit}
 .hardware-multiple-hint,.hardware-retention{font-size:11px;line-height:1.8;color:var(--secondary);margin:19px 0}
+.hardware-compatibility{margin:18px 0;padding:14px 15px;border:1px solid var(--line);border-radius:14px;background:var(--blue-soft)}
+.hardware-compatibility h3{margin:0 0 11px;font-size:12px;font-weight:600}
+.hardware-compatibility dl{display:grid;gap:9px;margin:0}
+.hardware-compatibility dl>div{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;align-items:start}
+.hardware-compatibility dt,.hardware-compatibility dd{margin:0;font-size:10px;line-height:1.65}
+.hardware-compatibility dt{color:var(--secondary)}
+.hardware-compatibility dd{color:var(--ink)}
+.hardware-compatibility>p{margin:10px 0 0;color:var(--secondary);font-size:9px;line-height:1.6}
 .hardware-retention{text-align:center;margin:12px 0 0}
 .hardware-demo-note{margin-bottom:0}
 #hardwareList{margin-bottom:28px}
+
+/* Keep the compact sync label on one line beside the Watch icon. */
+.watch-pill #watchLabel{white-space:nowrap;line-height:1.2}
+.watch-pill .status-dot,.hardware-pill-icons,.toolbar-right,.toolbar .demo-label{flex-shrink:0}
+.watch-sync-error{font-size:12px;line-height:1.7;color:#aa5b18;margin:14px 0}

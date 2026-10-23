@@ -1,0 +1,39 @@
+green
+Life moments: whole-night sleep, overlap, source choice, nap, missing data, archive identity and SQLite confirmation passed
+
+health
+Health refresh: consent, app-lifetime observers, burst coalescing, in-flight changes, background SQLite commits, deletion reconciliation, selected-day catch-up, failures, unlock, timeout and pause races passed
+
+regressions
+Life source aggregation, DST, atomic persistence, pause/restart, empty/stale/error and suppression checks passed
+Life source lifecycle: no launch permissions/queries, pause and foreground races, empty reconciliation, legacy location retention without save-time acquisition and independent AI permissions passed
+SQLite persistence: rollback, WAL/FK, row roundtrip, once migration, corruption preservation, domain isolation, atomic reservation passed
+
+places
+Capture metadata: validation, transfer, legacy decode, SQLite reopen/delete passed
+Capture lifecycle: opt-in, denial, authorization, stale fixes, one-shot, cancel, pause, camera timestamp passed
+Photo metadata: original date/timezone/device, GPS hemispheres, opt-out, missing/invalid metadata, real JPEG passed
+Places projection: device, missing-location omission, original time, parent link, separate AI permissions passed
+
+addresses
+Capture addresses: SQLite persistence, original coordinate/text preservation, deleted/stale writes, photo rollback and legacy decoding passed
+Capture address resolution: consent, deduplication, persistent-cache reuse, cancellation, offline retry, language isolation and explicit prior-day evidence passed
+
+metadata
+MetadataSQLiteSmoke passed: migration, rollback, retry, lossless voice payload, stale instances, tombstones, photo attachments, reminder diffs, date indices and schema compatibility
+
+movement
+Location movements: threshold, source evidence, stable identity, city labels, accuracy, speed, bounce and deletion passed
+Structured addresses: legacy cache refresh and durable no-city completion passed
+
+membership
+Watch project source membership: passed
+Watch app icon resource: passed
+Watch localized session resources: passed
+iPhone project source membership: passed
+Recording session shared source membership: passed
+Recording widget and shared intent source membership: passed
+
+iOS Simulator workspace build
+** BUILD SUCCEEDED **
+CODE_SIGNING_ALLOWED=NO; no installation or UI automation.

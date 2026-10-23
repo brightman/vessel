@@ -15,10 +15,10 @@ import { ImageBlock } from "./editor/image-block";
 import { createSlashExtension } from "./editor/slash";
 import { mountSectionControls } from "./editor/drag";
 import { mountTableControls } from "./editor/table-controls";
-import { resolvePageAsset, type PageRecord } from "./api";
+import { resolveNoteAsset, type NoteRecord } from "./api";
 
 type Props = {
-  page: PageRecord;
+  note: NoteRecord;
   collapsedSectionIds: string[];
   onCollapse: (ids: string[]) => void;
   onDocumentChange: (document: Record<string, unknown>) => void;
@@ -35,7 +35,7 @@ function toEditorDocument(value: Record<string, unknown>): Record<string, unknow
       : undefined;
     return {
       ...node,
-      ...(node.type === "image" ? { type: "pagesImage" } : {}),
+      ...(node.type === "image" ? { type: "notesImage" } : {}),
       ...(attrs ? { attrs } : {}),
       ...(content ? { content } : {}),
     };
@@ -68,7 +68,7 @@ function applyBlockStyle(editor: TiptapEditor, style: string): void {
   else if (style === "code-block") chain.toggleCodeBlock().run();
 }
 
-export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentChange, readOnly }: Props) {
+export function NoteEditor({ note, collapsedSectionIds, onCollapse, onDocumentChange, readOnly }: Props) {
   const { prompt } = useDialogs();
   const styleChosen = useRef(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -78,9 +78,9 @@ export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentCh
   const sectionsRef = useRef<ReturnType<typeof mountSectionControls> | null>(null);
   onChangeRef.current = onDocumentChange;
   onCollapseRef.current = onCollapse;
-  const initialContent = useMemo(() => toEditorDocument(page.document), []);
+  const initialContent = useMemo(() => toEditorDocument(note.document), []);
   const editorProps = useMemo(() => ({
-    attributes: { id: "pageBody", class: "doc", "data-testid": "page-body", "aria-label": "Page document" },
+    attributes: { id: "noteBody", class: "doc", "data-testid": "note-body", "aria-label": "Note document" },
   }), []);
   const extensions = useMemo(() => [
     StarterKit,
@@ -90,11 +90,11 @@ export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentCh
     CodeBlockTab,
     ImageBlock.configure({
       uploadAsset: null,
-      resolveAsset: (contentUrl: string) => resolvePageAsset(contentUrl),
+      resolveAsset: (contentUrl: string) => resolveNoteAsset(contentUrl),
     }),
     UniqueID.configure({
       attributeName: "block-id",
-      types: ["paragraph", "heading", "blockquote", "bulletList", "orderedList", "codeBlock", "horizontalRule", "taskList", "table", "pagesImage"],
+      types: ["paragraph", "heading", "blockquote", "bulletList", "orderedList", "codeBlock", "horizontalRule", "taskList", "table", "notesImage"],
     }),
     createSlashExtension(),
   ], []);
@@ -119,18 +119,18 @@ export function PageEditor({ page, collapsedSectionIds, onCollapse, onDocumentCh
 
   useEffect(() => {
     if (!editor) return;
-    editor.commands.setContent(toEditorDocument(page.document), { emitUpdate: false });
-  }, [editor, page.page_id]);
+    editor.commands.setContent(toEditorDocument(note.document), { emitUpdate: false });
+  }, [editor, note.note_id]);
 
   useEffect(() => {
     if (!editor) return;
-    sectionsRef.current?.setPage(
-      page.page_id,
+    sectionsRef.current?.setNote(
+      note.note_id,
       collapsedSectionIds,
       true,
       ids => onCollapseRef.current(ids),
     );
-  }, [editor, page.page_id, collapsedSectionIds]);
+  }, [editor, note.note_id, collapsedSectionIds]);
 
   return <div className="editor-canvas">
     <div id="sectionGutter" aria-label="Section controls" />

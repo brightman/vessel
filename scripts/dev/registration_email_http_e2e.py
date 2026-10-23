@@ -28,7 +28,7 @@ from vessel_service.settings import Settings
 
 
 def main():
-    database_url = os.environ["PAGES_DATABASE_URL"]
+    database_url = os.environ["NOTES_DATABASE_URL"]
     if urlsplit(database_url).path != "/vessel_e2e" or not database_url.startswith("postgresql"):
         raise SystemExit("Use only a dedicated PostgreSQL database named vessel_e2e")
     listener = socket.socket()

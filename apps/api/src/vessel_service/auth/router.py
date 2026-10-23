@@ -268,6 +268,16 @@ def refresh(
     return _auth_response(user, session, response, settings, keyring)
 
 
+@router.get("/v1/auth/session")
+def session_identity(
+    response: Response,
+    user: User = Depends(refresh_session_user),
+) -> dict[str, object]:
+    """Expose the current account to same-origin pages without rotating its cookie."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"user": _user_payload(user)}
+
+
 @router.post("/v1/auth/logout", status_code=204)
 def logout(
     request: Request,

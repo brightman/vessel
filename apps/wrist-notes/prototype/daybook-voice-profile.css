@@ -1,0 +1,42 @@
+/* Voice enrollment shares the settings sheet and appearance tokens. */
+.voice-profile-demo{display:inline-flex;align-items:center;gap:6px;font-size:10px;line-height:1.5;color:var(--secondary);border:1px solid var(--line);border-radius:7px;padding:5px 8px;margin:6px 0 0}
+.voice-profile-hero{text-align:center;padding:22px 0 17px}
+.voice-profile-mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 16px;border-radius:50%;background:var(--blue-soft);color:var(--accent)}
+.voice-profile-mark .icon{width:29px;height:29px}
+.voice-profile-hero h3{font-size:21px;line-height:1.45;letter-spacing:-.5px;font-weight:580;margin:0 0 9px}
+.voice-profile-hero p{font-size:12px;line-height:1.85;color:var(--secondary);margin:0}
+.voice-profile-facts{display:flex;justify-content:center;gap:16px;font-size:11px;color:var(--secondary);margin:16px 0 0}
+.voice-profile-facts span{display:flex;align-items:center;gap:5px}.voice-profile-facts .icon{width:13px;height:13px}
+.voice-profile-tips{padding:0;margin:0;list-style:none;border-top:1px solid var(--line)}
+.voice-profile-tips li{display:flex;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.voice-profile-tips li>span{color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.voice-profile-tips strong{font-size:12px;font-weight:550}.voice-profile-tips p{font-size:11px;line-height:1.75;color:var(--secondary);margin:4px 0 0}
+.voice-profile-prompt{background:var(--blue-soft);border-radius:14px;padding:15px;margin:17px 0}
+.voice-profile-prompt strong{font-size:11px;font-weight:550}.voice-profile-prompt p{font-size:12px;line-height:1.85;margin:7px 0 0;color:var(--secondary)}
+.voice-profile-privacy{display:flex;align-items:flex-start;gap:8px;font-size:10px;line-height:1.8;color:var(--secondary);margin:16px 0}
+.voice-profile-privacy .icon{width:15px;height:15px;margin-top:2px;color:var(--green)}
+.voice-profile-actions{display:flex;gap:10px;margin-top:20px}.voice-profile-actions button{min-height:44px;flex:1;white-space:normal;border-radius:14px;font-size:12px;line-height:1.5;padding:12px}
+.voice-profile-actions .voice-profile-record{background:#bd454c;color:#fff}.voice-profile-actions .voice-profile-record:hover:not(:disabled){background:#a33640}
+.voice-profile-note{font-size:10px;line-height:1.8;color:var(--secondary);margin:13px 0 0}
+.voice-profile-timer{display:block;font-size:49px;font-weight:350;font-variant-numeric:tabular-nums;letter-spacing:-1.8px;margin:13px 0 6px}
+.voice-profile-wave{height:42px;display:flex;align-items:center;justify-content:center;gap:4px;margin:13px 0;color:var(--red)}
+.voice-profile-wave span{width:3px;border-radius:3px;background:currentColor;height:var(--height)}
+.voice-profile-wave.is-recording span{animation:voice-profile-wave 1.1s ease-in-out infinite alternate;animation-delay:var(--delay)}
+.voice-profile-progress{height:5px;position:relative;margin:21px 0 8px;background:var(--line);border-radius:4px}
+.voice-profile-progress>span{display:block;height:100%;width:0;background:var(--red);border-radius:4px;transition:width .2s linear}
+.voice-profile-progress::after{content:"";position:absolute;left:50%;top:-3px;width:1px;height:11px;background:var(--secondary)}
+.voice-profile-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--secondary);font-variant-numeric:tabular-nums}
+.voice-profile-status{color:var(--secondary);font-size:11px;line-height:1.8;margin:15px 0 0;min-height:20px;text-align:center}
+.voice-profile-demo-controls{border-top:1px solid var(--line);padding-top:12px;margin-top:20px;color:var(--secondary);font-size:10px}
+.voice-profile-demo-controls summary{cursor:pointer}.voice-profile-demo-controls>div{display:flex;gap:8px;margin-top:12px}.voice-profile-demo-controls button{flex:1;min-height:44px;font-size:10px}
+.voice-profile-confirm{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.8;padding:14px 0;cursor:pointer}
+.voice-profile-confirm input{accent-color:var(--accent);width:17px;height:17px;margin:2px 0 0;flex-shrink:0}
+.voice-profile-success{color:var(--green)}
+.voice-profile-sample{margin-top:17px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:15px 0}
+.voice-profile-sample>strong{font-size:11px;color:var(--secondary);font-weight:500}
+.voice-profile-sample p{font-size:12px;line-height:1.8;margin:13px 0 0}.voice-profile-sample p>span{display:inline-block;font-size:10px;margin-right:8px;padding:2px 7px;border-radius:6px;background:var(--blue-soft);color:var(--accent)}
+.voice-profile-meta{font-size:11px;line-height:1.8;color:var(--secondary);margin:0}.voice-profile-meta>div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:10px 0}.voice-profile-meta dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums}
+.voice-profile-delete{display:block;min-height:44px;margin:9px auto 0;font-size:12px;color:var(--red)}
+#dayMyVoiceLabel[data-enrolled="true"]{color:var(--green)}
+@keyframes voice-profile-wave{from{transform:scaleY(.4);opacity:.6}to{transform:scaleY(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.voice-profile-wave.is-recording span{animation:none}.voice-profile-progress>span{transition:none}}

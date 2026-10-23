@@ -1,1 +1,1 @@
-"""Private Pages MCP transport and scoped capability helpers."""
+"""Private Notes MCP transport and scoped capability helpers."""

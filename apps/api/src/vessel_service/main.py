@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -14,19 +16,22 @@ from vessel_service.database import create_database_engine
 from vessel_service.settings import Settings
 
 
+logger = logging.getLogger(__name__)
+
+
 def create_app(
     settings: Settings | None = None,
     engine: Engine | None = None,
     engine_factory: Callable[[str], Engine] = create_database_engine,
     session_factory: sessionmaker[Session] | None = None,
     keyring: KeyRing | None = None,
-    testing_legacy_pages_agent: bool = False,
+    testing_legacy_notes_agent: bool = False,
     web_dist_path: Path | None = None,
     marketing_dist_path: Path | None = None,
 ) -> FastAPI:
     configured = settings or Settings()
-    if testing_legacy_pages_agent and configured.environment != "test":
-        raise ValueError("Legacy Pages Agent routes are test-only")
+    if testing_legacy_notes_agent and configured.environment != "test":
+        raise ValueError("Legacy Notes Agent routes are test-only")
     database_engine = engine
     if database_engine is None and configured.database_url:
         database_engine = engine_factory(configured.database_url)
@@ -40,8 +45,8 @@ def create_app(
         active_keyring = KeyRing.for_development()
 
     application = FastAPI(
-        title="Vessel API",
-        description="Personal and team storage for files, Pages and structured Apps.",
+        title="Karama.Cloud API",
+        description="Personal and team storage for files, Notes and structured Apps.",
         docs_url="/swagger",
         openapi_tags=API_TAGS,
         swagger_ui_oauth2_redirect_url="/swagger/oauth2-redirect",
@@ -126,6 +131,29 @@ def create_app(
     application.state.database_engine = database_engine
     application.state.session_factory = database_sessions
     application.state.keyring = active_keyring
+    if database_sessions is not None and configured.environment != "test":
+        from vessel_service.agent_platform import reconcile_pending_runs
+
+        async def reconcile_agent_runs() -> None:
+            while True:
+                try:
+                    await asyncio.to_thread(reconcile_pending_runs, database_sessions, configured)
+                except Exception:
+                    logger.exception("Note Agent Run reconciliation failed")
+                await asyncio.sleep(5)
+
+        @application.on_event("startup")
+        async def start_agent_reconciler() -> None:
+            application.state.agent_reconciler = asyncio.create_task(reconcile_agent_runs())
+
+        @application.on_event("shutdown")
+        async def stop_agent_reconciler() -> None:
+            task = application.state.agent_reconciler
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
     from vessel_service.files.storage import FilesSettings, OSSStorage
 
     file_settings = FilesSettings()
@@ -174,8 +202,8 @@ def create_app(
     from vessel_service.apps.router import router as apps_router
     from vessel_service.assets.router import router as assets_router
     from vessel_service.directories.router import router as directories_router, space_router as space_directories_router
-    from vessel_service.pages.router import router as pages_router
-    from vessel_service.pages.space_router import router as space_pages_router
+    from vessel_service.notes.router import router as notes_router
+    from vessel_service.notes.space_router import router as space_notes_router
     from vessel_service.spaces.router import router as spaces_router
     from vessel_service.versions.router import router as versions_router
 
@@ -187,21 +215,19 @@ def create_app(
     application.include_router(assets_router)
     application.include_router(directories_router)
     application.include_router(space_directories_router)
-    application.include_router(pages_router)
-    application.include_router(space_pages_router)
+    application.include_router(notes_router)
+    application.include_router(space_notes_router)
     application.include_router(spaces_router)
     application.include_router(versions_router)
-    if testing_legacy_pages_agent:
-        # Keep imported source tests executable. Vessel never exposes these routes.
-        from vessel_service.agent_events import router as agent_events_router
-        from vessel_service.agent_platform import router as agent_platform_router
-        from vessel_service.mcp.server import router as mcp_router
-        from vessel_service.proposals.router import router as proposals_router
+    from vessel_service.agent_events import router as agent_events_router
+    from vessel_service.agent_platform import router as agent_platform_router
+    from vessel_service.mcp.server import router as mcp_router
+    from vessel_service.proposals.router import router as proposals_router
 
-        application.include_router(agent_events_router)
-        application.include_router(agent_platform_router)
-        application.include_router(mcp_router)
-        application.include_router(proposals_router)
+    application.include_router(agent_events_router)
+    application.include_router(agent_platform_router)
+    application.include_router(mcp_router)
+    application.include_router(proposals_router)
     return application
 
 

@@ -21,7 +21,7 @@ BLOCK_TYPES = {
     "tableHeader",
     "tableCell",
     "image",
-    "pagesImage",
+    "notesImage",
 }
 INLINE_TYPES = {"text", "hardBreak"}
 ALLOWED_TYPES = BLOCK_TYPES | INLINE_TYPES | {"doc"}
@@ -57,7 +57,7 @@ def normalize_document(value: Any) -> dict[str, Any]:
         if not isinstance(node, dict) or node.get("type") not in ALLOWED_TYPES - {"doc"}:
             raise DocumentValidationError("Document contains an unsupported node")
         node_type = node["type"]
-        if node_type == "pagesImage":
+        if node_type == "notesImage":
             node["type"] = "image"
             node_type = "image"
         if node_type == "text" and not isinstance(node.get("text"), str):
@@ -169,7 +169,14 @@ def render_list(node: dict[str, Any], depth: int = 0) -> str:
 
 
 def render_table_cell(cell: dict[str, Any]) -> str:
-    return render_inline(cell.get("content", [])).replace("|", "\\|").replace("\n", "<br>")
+    children = cell.get("content", [])
+    # Editor and MCP cells contain paragraph blocks; Markdown imports may
+    # still contain direct inline nodes. Preserve both representations.
+    if any(child.get("type") not in INLINE_TYPES for child in children):
+        rendered = "\n".join(render_block(child) for child in children)
+    else:
+        rendered = render_inline(children)
+    return rendered.replace("|", "\\|").replace("\n", "<br>")
 
 
 def render_inline(nodes: list[dict[str, Any]]) -> str:
@@ -199,7 +206,7 @@ def render_inline(nodes: list[dict[str, Any]]) -> str:
 
 
 def markdown_to_document(markdown: str) -> dict[str, Any]:
-    """Parse the Pages Markdown subset into the canonical ProseMirror document tree."""
+    """Parse the Notes Markdown subset into the canonical ProseMirror document tree."""
     if not isinstance(markdown, str):
         raise DocumentValidationError("Markdown content must be text")
     if len(markdown) > 2_000_000:

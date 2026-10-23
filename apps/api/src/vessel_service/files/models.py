@@ -1,4 +1,4 @@
-"""Persistent file-domain state; deliberately independent of Page and App models."""
+"""Persistent file-domain state; deliberately independent of Note and App models."""
 
 from datetime import UTC, datetime
 

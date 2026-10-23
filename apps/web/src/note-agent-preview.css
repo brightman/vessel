@@ -1,0 +1,99 @@
+.note-paper-preview {
+  position: relative;
+  padding-bottom: 100px;
+}
+.note-preview-banner {
+  color: var(--accent, #205d40);
+  background: #edf5ee;
+  border-left: 3px solid #558569;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.note-preview-actions {
+  position: sticky;
+  bottom: 24px;
+  z-index: 15;
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 32px auto 0;
+  padding: 10px 12px;
+  border: 1px solid #cfdbd0;
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #17342320;
+}
+.note-preview-actions > span {
+  font-size: 12px;
+  color: #54715b;
+  margin-right: 8px;
+}
+.note-change-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.note-change-comparison section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dbe1dc;
+  border-radius: 8px;
+}
+.note-change-comparison section:first-child {
+  background: #fff5f3;
+}
+.note-change-comparison section:last-child {
+  background: #f0f8f1;
+}
+.note-change-comparison pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.note-agent-source {
+  display: block;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px solid #d6dfd7;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #205d40;
+  text-decoration: none;
+}
+.note-agent-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.note-paper-preview .doc > .agent-changed-block {
+  background: #eaf6ed;
+  box-shadow: -3px 0 #70a77c;
+  border-radius: 3px;
+}
+@media (max-width: 750px) {
+  .note-change-comparison {
+    grid-template-columns: 1fr;
+  }
+  .note-preview-actions {
+    bottom: 8px;
+  }
+}
+.note-agent-markdown { overflow-wrap: anywhere; font-size: 14px; }
+.note-agent-markdown p { white-space: normal; }
+.note-agent-markdown ul { list-style: disc; padding-left: 20px; }
+.note-agent-markdown ol { list-style: decimal; padding-left: 20px; }
+.note-agent-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 12px 0; }
+.note-agent-markdown th, .note-agent-markdown td { border: 1px solid #d6dfd7; padding: 6px 8px; text-align: left; }
+.note-agent-markdown pre { overflow-x: auto; padding: 10px; background: #f3f5f3; border-radius: 6px; }
+.note-agent-markdown a { color: #205d40; text-decoration: underline; }
+/* Preview is read-only, but retains the final document's visual contrast. */
+.note-preview-banner { color: #28583f; }
+.note-paper-preview .note-title:disabled { opacity: 1; color: #242624; -webkit-text-fill-color: #242624; }
+.app-shell .note-paper-preview input.note-title:disabled { opacity: 1; color: #242624; -webkit-text-fill-color: #242624; }

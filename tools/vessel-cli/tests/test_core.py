@@ -1,4 +1,6 @@
 import json
+import os
+import stat
 from pathlib import Path
 
 import httpx
@@ -7,18 +9,6 @@ import pytest
 from vessel_cli.config import Config, CliError, normalize_origin
 from vessel_cli.credentials import CredentialStore
 from vessel_cli.client import VesselClient
-
-
-class FakeBackend:
-    priority = 5
-    def __init__(self):
-        self.values = {}
-    def get_password(self, service, key):
-        return self.values.get((service, key))
-    def set_password(self, service, key, value):
-        self.values[(service, key)] = value
-    def delete_password(self, service, key):
-        self.values.pop((service, key), None)
 
 
 def test_config_requires_named_environment_and_https_production(tmp_path):
@@ -33,21 +23,28 @@ def test_config_requires_named_environment_and_https_production(tmp_path):
     assert "token" not in (tmp_path / "hosts.json").read_text()
 
 
-def test_credentials_isolate_environment_and_origin():
-    backend = FakeBackend()
-    store = CredentialStore(backend=backend, allow_test_backend=True)
+def test_credentials_store_env_sessions_with_private_permissions(tmp_path):
+    path = tmp_path / "vessel" / "credentials.env"
+    store = CredentialStore(path=path)
     session = {"access_token": "short", "refresh_token": "long", "expires_at": 9999999999}
     store.save("local", "http://localhost:1", session)
     assert store.load("local", "http://localhost:1") == session
+    content = path.read_text(encoding="utf-8")
+    assert "VESSEL_ACCESS_TOKEN_LOCAL_" in content
+    assert "short" in content and "long" in content
     with pytest.raises(CliError, match="NOT_LOGGED_IN"):
         store.load("test", "http://localhost:1")
     with pytest.raises(CliError, match="NOT_LOGGED_IN"):
         store.load("local", "http://localhost:2")
-    with pytest.raises(CliError, match="CREDENTIAL_STORE_UNAVAILABLE"):
-        CredentialStore(backend=backend)
+    if os.name != "nt":
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    store.delete("local", "http://localhost:1")
+    with pytest.raises(CliError, match="NOT_LOGGED_IN"):
+        store.load("local", "http://localhost:1")
 
 
-def test_login_refresh_and_api_error_redaction():
+def test_login_refresh_and_api_error_redaction(tmp_path):
     requests = []
     def handler(request):
         requests.append(request)
@@ -59,15 +56,86 @@ def test_login_refresh_and_api_error_redaction():
         if request.url.path == "/v1/spaces":
             assert request.headers["authorization"] == "Bearer second"
             return httpx.Response(200, json={"spaces": []})
-        return httpx.Response(409, json={"detail": {"code": "PAGE_REVISION_CONFLICT", "message": "secret1"}})
-    store = CredentialStore(backend=FakeBackend(), allow_test_backend=True)
+        return httpx.Response(409, json={"detail": {"code": "NOTE_REVISION_CONFLICT", "message": "secret1"}})
+    store = CredentialStore(path=tmp_path / "credentials.env")
     client = VesselClient("local", "http://localhost:1", store, transport=httpx.MockTransport(handler), now=lambda: 100)
     result = client.login("a@example.com", "password")
     assert result == {"user": {"user_id": "u"}}
     assert store.load("local", "http://localhost:1")["refresh_token"] == "secret1"
+    assert "secret1" in (tmp_path / "credentials.env").read_text(encoding="utf-8")
     assert client.request("GET", "/v1/spaces") == {"spaces": []}
     assert store.load("local", "http://localhost:1")["refresh_token"] == "secret2"
     with pytest.raises(CliError) as caught:
         client.request("GET", "/v1/missing")
-    assert caught.value.code == "PAGE_REVISION_CONFLICT"
+    assert caught.value.code == "NOTE_REVISION_CONFLICT"
     assert "secret1" not in str(caught.value)
+
+
+@pytest.mark.parametrize("operation", ["login", "refresh"])
+def test_auth_preflights_env_file_writes_before_network(operation, tmp_path):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        if request.url.path == "/v1/auth/login":
+            return httpx.Response(
+                200,
+                json={"access_token": "new", "expires_in": 900, "user": {}},
+                headers={"set-cookie": "vessel_refresh=new-refresh; Path=/; HttpOnly"},
+            )
+        return httpx.Response(
+            200,
+            json={"access_token": "new", "expires_in": 900, "user": {}},
+            headers={"set-cookie": "vessel_refresh=new-refresh; Path=/; HttpOnly"},
+        )
+
+    path = tmp_path / "credentials" / "sessions.env"
+    store = CredentialStore(path=path)
+    if operation == "refresh":
+        store.save("local", "http://localhost:1", {
+            "access_token": "old", "refresh_token": "old-refresh", "expires_at": 1000,
+        })
+        store.delete("local", "http://localhost:1")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.rmdir()
+    path.parent.write_text("directory replaced with a file", encoding="utf-8")
+    client = VesselClient(
+        "local", "http://localhost:1", store,
+        transport=httpx.MockTransport(handler), now=lambda: 100,
+    )
+
+    with pytest.raises(CliError) as caught:
+        if operation == "login":
+            client.login("a@example.com", "password")
+        else:
+            client.refresh()
+
+    assert caught.value.code == "CREDENTIAL_STORE_WRITE_FAILED"
+    assert requests == []
+
+
+def test_env_probe_removes_only_its_temporary_entry(tmp_path):
+    path = tmp_path / "credentials.env"
+    path.write_text("KEEP_THIS=unchanged\n", encoding="utf-8")
+    store = CredentialStore(path=path)
+    store.probe()
+    content = path.read_text(encoding="utf-8")
+    assert content == "KEEP_THIS=unchanged\n"
+
+
+def test_auth_login_sends_request_after_env_preflight(tmp_path):
+    requests = []
+    store = CredentialStore(path=tmp_path / "credentials.env")
+    client = VesselClient(
+        "local", "http://localhost:1", store,
+        transport=httpx.MockTransport(lambda request: requests.append(request) or httpx.Response(
+            200,
+            json={"access_token": "issued", "expires_in": 900, "user": {}},
+            headers={"set-cookie": "vessel_refresh=issued-refresh; Path=/; HttpOnly"},
+        )),
+        now=lambda: 100,
+    )
+
+    client.login("a@example.com", "password")
+    assert [request.url.path for request in requests] == ["/v1/auth/login"]
+    assert store.load("local", "http://localhost:1")["access_token"] == "issued"

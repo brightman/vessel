@@ -52,20 +52,17 @@ struct PhotoRepositorySmoke {
         check(try PhotoRepository(root: root).moments.isEmpty)
     }
 
-    // A real filesystem index failure must leave the old record intact and remove newly written images.
+    // A real SQLite failure must leave the old record intact and remove newly written images.
     static func failedIndexCommitRollsBackImages(_ root: URL) throws {
         let store = try PhotoRepository(root: root)
         let original = try store.save(caption: "Keep me", photos: [PhotoImport(jpegData: jpeg)])
-        let index = root.appendingPathComponent("moments.json")
-        let backup = try Data(contentsOf: index)
-        try FileManager.default.removeItem(at: index)
-        try FileManager.default.createDirectory(at: index, withIntermediateDirectories: false)
+        let database = try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
+        try database.execute("CREATE TRIGGER fail_photo_insert BEFORE INSERT ON photo_attachments WHEN NEW.position=1 BEGIN SELECT RAISE(ABORT,'injected'); END")
         try expectFailure { _ = try store.save(caption: "Must roll back", photos: [PhotoImport(jpegData: jpeg), PhotoImport(jpegData: jpeg)]) }
         check(store.moments == [original])
         let files = try FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Images").path)
         check(files == [original.photos[0].filename])
-        try FileManager.default.removeItem(at: index)
-        try backup.write(to: index)
+        try database.execute("DROP TRIGGER fail_photo_insert")
         check(try PhotoRepository(root: root).moments == [original])
     }
 
@@ -74,9 +71,8 @@ struct PhotoRepositorySmoke {
         let store = try PhotoRepository(root: root)
         let original = try store.save(caption: "Keep me", photos: [PhotoImport(jpegData: jpeg)])
         let url = try store.imageURL(for: original.photos[0])
-        let index = root.appendingPathComponent("moments.json")
-        try FileManager.default.removeItem(at: index)
-        try FileManager.default.createDirectory(at: index, withIntermediateDirectories: false)
+        let database = try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
+        try database.execute("CREATE TRIGGER fail_photo_delete BEFORE DELETE ON photo_moments BEGIN SELECT RAISE(ABORT,'injected'); END")
         try expectFailure { try store.delete(id: original.id) }
         check(store.moments == [original])
         check(try Data(contentsOf: url) == jpeg)
@@ -88,8 +84,10 @@ struct PhotoRepositorySmoke {
         let attachment = PhotoAttachment(id: UUID(), filename: "../../outside.jpg", recognizedText: "")
         try expectFailure { _ = try store.imageURL(for: attachment) }
         let invalid = PhotoMoment(id: UUID(), capturedAt: .now, caption: "", recognizedText: "", photos: [attachment])
-        try JSONEncoder().encode([invalid]).write(to: root.appendingPathComponent("moments.json"))
-        try expectFailure { _ = try PhotoRepository(root: root) }
+        let legacyRoot = root.appendingPathComponent("invalid-legacy")
+        try FileManager.default.createDirectory(at: legacyRoot, withIntermediateDirectories: true)
+        try JSONEncoder().encode([invalid]).write(to: legacyRoot.appendingPathComponent("moments.json"))
+        try expectFailure { _ = try PhotoRepository(root: legacyRoot) }
     }
 
     // A syntactically valid filename must not allow reading a symlink outside the local library.

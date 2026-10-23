@@ -19,34 +19,34 @@ async function registerTestUser(page) {
     page.getByRole("button", { name: "Create account" }).click(),
   ]);
   expect(response.status()).toBe(201);
-  await expect(page.getByRole("heading", { name: "Vessel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karama.Cloud" })).toBeVisible();
   return (await response.json()).access_token;
 }
 
-test("selecting a Page folder creates the new Page inside that folder", async ({ page }) => {
+test("selecting a Note folder creates the new Note inside that folder", async ({ page }) => {
   await registerTestUser(page);
-  await page.getByRole("button", { name: "Pages", exact: true }).click();
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
 
   await page.getByRole("button", { name: "＋ New folder" }).click();
   await page.getByRole("dialog").getByRole("textbox").fill("Research");
   await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
 
   await page.getByRole("button", { name: "Select folder Research" }).click();
-  const createResponse = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/pages$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "New Page" }).click();
+  const createResponse = page.waitForResponse(response => response.request().method() === "POST" && /\/v1\/spaces\/[^/]+\/notes$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "New Note" }).click();
 
   const created = await (await createResponse).json();
-  await expect(page.getByLabel("Page folder")).toHaveValue(created.page.directory_id);
+  await expect(page.getByLabel("Note folder")).toHaveValue(created.page.directory_id);
   expect(created.page.directory_id).toBeTruthy();
 });
 
-test("registration, team sharing, Pages editing and Apps records use Vessel API", async ({ browser }) => {
+test("registration, team sharing, Notes editing and Apps records use Vessel API", async ({ browser }) => {
   const suffix = Date.now().toString(36);
   const ownerEmail = `owner-${suffix}@example.test`;
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
   await ownerPage.goto("/register");
-  await expect(ownerPage.getByRole("heading", { name: "Create your Vessel account" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: "Create your Karama.Cloud account" })).toBeVisible();
   await ownerPage.getByLabel("Name").fill("Vessel Owner");
   await ownerPage.getByLabel("Email").fill(ownerEmail);
   await ownerPage.getByLabel("Password").fill("vessel-e2e-password");
@@ -56,7 +56,7 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   ]);
   expect(ownerRegistration.status()).toBe(201);
   const ownerToken = (await ownerRegistration.json()).access_token;
-  await expect(ownerPage.getByRole("heading", { name: "Vessel" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: "Karama.Cloud" })).toBeVisible();
   const ownerId = await ownerPage.getByTestId("current-user-id").textContent();
   expect(ownerId).toMatch(/^[0-9a-f-]{36}$/);
 
@@ -77,7 +77,7 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   ]);
   expect(viewerRegistration.status()).toBe(201);
   const viewerToken = (await viewerRegistration.json()).access_token;
-  await expect(viewerPage.getByRole("heading", { name: "Vessel" })).toBeVisible();
+  await expect(viewerPage.getByRole("heading", { name: "Karama.Cloud" })).toBeVisible();
   const viewerId = await viewerPage.getByTestId("current-user-id").textContent();
 
   await ownerPage.getByLabel("Invitee user ID").fill(viewerId);
@@ -95,22 +95,22 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   await viewerPage.getByLabel("Current space").selectOption({ label: "Research Team" });
   await expect(viewerPage.getByRole("heading", { name: "Research Team" })).toBeVisible();
 
-  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
-  await ownerPage.getByRole("button", { name: "New Page" }).click();
-  await ownerPage.getByLabel("Page title").fill("Team Notes");
-  const body = ownerPage.getByLabel("Page document");
+  await ownerPage.getByRole("button", { name: "Notes", exact: true }).click();
+  await ownerPage.getByRole("button", { name: "New Note" }).click();
+  await ownerPage.getByLabel("Note title").fill("Team Notes");
+  const body = ownerPage.getByLabel("Note document");
   await body.click();
   await body.pressSequentially("Shared note");
-  await ownerPage.getByRole("button", { name: "Save Page" }).click();
-  await expect(ownerPage.getByRole("status", { name: "Page save status" })).toContainText("Saved");
-  if (process.env.VESSEL_E2E_SCREENSHOTS_DIR) await ownerPage.screenshot({ path: `${process.env.VESSEL_E2E_SCREENSHOTS_DIR}/pages.png`, fullPage: true });
+  await ownerPage.getByRole("button", { name: "Save Note" }).click();
+  await expect(ownerPage.getByRole("status", { name: "Note save status" })).toContainText("Saved");
+  if (process.env.VESSEL_E2E_SCREENSHOTS_DIR) await ownerPage.screenshot({ path: `${process.env.VESSEL_E2E_SCREENSHOTS_DIR}/notes.png`, fullPage: true });
   await ownerPage.reload();
-  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
-  await expect(ownerPage.getByLabel("Page document")).toContainText("Shared note");
+  await ownerPage.getByRole("button", { name: "Notes", exact: true }).click();
+  await expect(ownerPage.getByLabel("Note document")).toContainText("Shared note");
 
-  await viewerPage.getByRole("button", { name: "Pages", exact: true }).click();
-  await expect(viewerPage.getByLabel("Page document")).toContainText("Shared note");
-  await expect(viewerPage.getByRole("button", { name: "Save Page" })).toBeDisabled();
+  await viewerPage.getByRole("button", { name: "Notes", exact: true }).click();
+  await expect(viewerPage.getByLabel("Note document")).toContainText("Shared note");
+  await expect(viewerPage.getByRole("button", { name: "Save Note" })).toBeDisabled();
 
   await ownerPage.getByRole("button", { name: "Apps" }).click();
   await ownerPage.getByLabel("App name").fill("Contacts");
@@ -148,28 +148,28 @@ test("registration, team sharing, Pages editing and Apps records use Vessel API"
   await viewerPage.getByRole("button", { name: "Apps" }).click();
   await expect(viewerPage.getByRole("button", { name: "New record", exact: true })).toBeEnabled();
 
-  const pagesResponse = await ownerPage.request.get(`/v1/spaces/${teamId}/pages`, { headers: { Authorization: `Bearer ${ownerToken}` } });
-  const savedPage = (await pagesResponse.json()).pages.find(item => item.title === "Team Notes");
-  await ownerPage.getByRole("button", { name: "Pages", exact: true }).click();
-  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes");
-  const concurrentChange = await ownerPage.request.patch(`/v1/pages/${savedPage.page_id}`, {
+  const notesResponse = await ownerPage.request.get(`/v1/spaces/${teamId}/notes`, { headers: { Authorization: `Bearer ${ownerToken}` } });
+  const savedPage = (await notesResponse.json()).notes.find(item => item.title === "Team Notes");
+  await ownerPage.getByRole("button", { name: "Notes", exact: true }).click();
+  await expect(ownerPage.getByLabel("Note title")).toHaveValue("Team Notes");
+  const concurrentChange = await ownerPage.request.patch(`/v1/notes/${savedPage.note_id}`, {
     headers: { Authorization: `Bearer ${ownerToken}` },
     data: { expected_revision: savedPage.revision, title: "Team Notes on server" },
   });
   expect(concurrentChange.status()).toBe(200);
-  await ownerPage.getByLabel("Page title").fill("Team Notes local draft");
-  await ownerPage.getByRole("button", { name: "Save Page" }).click();
-  await expect(ownerPage.getByRole("status", { name: "Page save status" })).toContainText("Save conflict");
-  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes local draft");
+  await ownerPage.getByLabel("Note title").fill("Team Notes local draft");
+  await ownerPage.getByRole("button", { name: "Save Note" }).click();
+  await expect(ownerPage.getByRole("status", { name: "Note save status" })).toContainText("Save conflict");
+  await expect(ownerPage.getByLabel("Note title")).toHaveValue("Team Notes local draft");
   await ownerPage.getByRole("button", { name: "Discard draft and reload" }).click();
-  await expect(ownerPage.getByLabel("Page title")).toHaveValue("Team Notes on server");
+  await expect(ownerPage.getByLabel("Note title")).toHaveValue("Team Notes on server");
 
   await ownerPage.getByRole("button", { name: "Sign out" }).click();
-  await expect(ownerPage.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: "Sign in to Karama.Cloud" })).toBeVisible();
   await ownerPage.getByLabel("Email").fill(ownerEmail);
   await ownerPage.getByLabel("Password").fill("vessel-e2e-password");
   await ownerPage.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(ownerPage.getByRole("heading", { name: "Vessel" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: "Karama.Cloud" })).toBeVisible();
 
   await owner.close();
   await viewer.close();
@@ -185,32 +185,32 @@ test("mobile console keeps account controls visible", async ({ browser }) => {
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByTestId("current-user-id")).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("heading", { name: "Sign in to Vessel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to Karama.Cloud" })).toBeVisible();
   await context.close();
 });
 
-test("Page keeps a draft in memory, locks editing during save, and warns before discarding it", async ({ page }) => {
+test("Note keeps a draft in memory, locks editing during save, and warns before discarding it", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("vessel.page.draft.v1:legacy", "old team secret"));
   await registerTestUser(page);
   expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("vessel.page.draft")))).toEqual([]);
-  await page.getByRole("button", { name: "New Page" }).click();
-  const title = page.getByLabel("Page title");
+  await page.getByRole("button", { name: "New Note" }).click();
+  const title = page.getByLabel("Note title");
   await title.fill("First draft");
   expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("vessel.page.draft")))).toEqual([]);
 
   let releasePatch;
   const gate = new Promise(resolve => { releasePatch = resolve; });
-  await page.route("**/v1/pages/*", async route => {
+  await page.route("**/v1/notes/*", async route => {
     if (route.request().method() === "PATCH") await gate;
     await route.continue();
   });
-  await page.getByRole("button", { name: "Save Page" }).click();
+  await page.getByRole("button", { name: "Save Note" }).click();
   try {
-    await expect(page.getByRole("status", { name: "Page save status" })).toContainText("Saving");
+    await expect(page.getByRole("status", { name: "Note save status" })).toContainText("Saving");
     await expect(title).toBeDisabled();
-    await expect(page.getByLabel("Page document")).toHaveAttribute("contenteditable", "false");
+    await expect(page.getByLabel("Note document")).toHaveAttribute("contenteditable", "false");
   } finally { releasePatch(); }
-  await expect(page.getByRole("status", { name: "Page save status" })).toContainText("Saved");
+  await expect(page.getByRole("status", { name: "Note save status" })).toContainText("Saved");
 
   await title.fill("Unsaved changes");
   let warning = "";
@@ -225,7 +225,7 @@ test("failed logout keeps the authenticated console visible", async ({ page }) =
   await registerTestUser(page);
   await page.route("**/v1/auth/logout", route => route.fulfill({ status: 503, contentType: "application/json", body: '{"detail":{"code":"TEMPORARY_FAILURE"}}' }));
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("heading", { name: "Vessel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karama.Cloud" })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Request failed");
 });
 
@@ -553,14 +553,14 @@ test("App data bulk conflicts reload explicitly and pagination survives deletion
   await expect(page.getByLabel(`Select record ${records[2].id}`)).toBeVisible();
 });
 
-test("Page title and formatting dropdown retain typography, selection and keyboard focus", async ({ page }) => {
+test("Note title and formatting dropdown retain typography, selection and keyboard focus", async ({ page }) => {
   await registerTestUser(page);
-  await page.getByRole("button", { name: "Pages", exact: true }).click();
-  await page.getByRole("button", { name: "New Page", exact: true }).click();
-  const title = page.getByLabel("Page title");
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
+  await page.getByRole("button", { name: "New Note", exact: true }).click();
+  const title = page.getByLabel("Note title");
   expect(parseFloat(await title.evaluate(element => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(32);
   await expect(title).toHaveCSS("border-top-width", "0px");
-  const body = page.getByLabel("Page document");
+  const body = page.getByLabel("Note document");
   await body.fill("Selected text");
   for (let i = 0; i < 13; i++) await body.press("Shift+ArrowLeft");
   const trigger = page.getByRole("button", { name: "Text", exact: true });

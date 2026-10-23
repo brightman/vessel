@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="PAGES_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="NOTES_", extra="ignore")
 
     environment: Literal["development", "test", "production"] = "development"
     database_url: str | None = None
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     )
     access_token_ttl_seconds: int = 900
     refresh_token_ttl_seconds: int = 2_592_000
-    page_capability_ttl_seconds: int = 86_400
-    asset_storage_path: Path = Path("var/pages-assets")
+    note_capability_ttl_seconds: int = 86_400
+    asset_storage_path: Path = Path("var/notes-assets")
     app_release_storage_path: Path = Path("var/app-releases")
     app_release_origin: str | None = None
     h5_preview_secret: str | None = None
@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool = True
     signing_keys_file: Path | None = None
     agent_platform_url: str | None = None
+    agent_id: str | None = None
+    agent_gateway_secret: SecretStr | None = None
+    agent_gateway_user_id: str | None = None
     agent_platform_audience: str = "baizhi-agent-platform"
     agent_platform_request_timeout_seconds: float = 15.0
 
@@ -68,18 +71,28 @@ class Settings(BaseSettings):
         parsed = urlsplit(self.app_release_origin)
         host = parsed.hostname
         if not host:
-            raise ValueError("PAGES_APP_RELEASE_ORIGIN must be an origin URL")
+            raise ValueError("NOTES_APP_RELEASE_ORIGIN must be an origin URL")
         return f"{parsed.scheme}://{app_id}.{host}{f':{parsed.port}' if parsed.port else ''}"
 
     @model_validator(mode="after")
     def validate_production_configuration(self) -> "Settings":
+        if self.agent_id is not None and not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", self.agent_id):
+            raise ValueError("NOTES_AGENT_ID must be one opaque Agent ID")
+        if self.agent_platform_url:
+            parsed_agent = urlsplit(self.agent_platform_url)
+            if parsed_agent.scheme not in {"http", "https"} or not parsed_agent.netloc or parsed_agent.path not in {"", "/"} or parsed_agent.query or parsed_agent.fragment or parsed_agent.username or parsed_agent.password:
+                raise ValueError("NOTES_AGENT_PLATFORM_URL must be an origin URL")
+            if self.environment == "production" and parsed_agent.scheme != "https":
+                raise ValueError("NOTES_AGENT_PLATFORM_URL must use https in production")
+        if self.agent_gateway_user_id is not None and not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", self.agent_gateway_user_id):
+            raise ValueError("NOTES_AGENT_GATEWAY_USER_ID must be one Agent Platform user ID")
         release_origin = None
         if self.app_release_origin:
             parsed = urlsplit(self.app_release_origin)
             try:
                 port = parsed.port
             except ValueError as error:
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN must be an origin URL") from error
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN must be an origin URL") from error
             if (
                 parsed.scheme not in {"http", "https"}
                 or not parsed.hostname
@@ -89,13 +102,13 @@ class Settings(BaseSettings):
                 or parsed.username
                 or parsed.password
             ):
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN must be an origin URL")
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN must be an origin URL")
             try:
                 ip_address(parsed.hostname)
             except ValueError:
                 pass
             else:
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN must use a DNS hostname for App subdomains")
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN must use a DNS hostname for App subdomains")
             host = parsed.hostname.lower()
             if ":" in host:
                 host = f"[{host}]"
@@ -104,27 +117,27 @@ class Settings(BaseSettings):
             release_origin = f"{parsed.scheme}://{host}"
             issuer_host = urlsplit(self.issuer_url).hostname
             if parsed.hostname == issuer_host:
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN must use a host distinct from PAGES_ISSUER_URL")
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN must use a host distinct from NOTES_ISSUER_URL")
             self.app_release_origin = release_origin
         if self.environment == "production":
             if self.allow_registration and not self.registration_email_verification_required:
                 raise ValueError("Production self-registration requires email verification")
             if not self.database_url:
-                raise ValueError("PAGES_DATABASE_URL is required in production")
+                raise ValueError("NOTES_DATABASE_URL is required in production")
             if not self.signing_keys_file:
-                raise ValueError("PAGES_SIGNING_KEYS_FILE is required in production")
+                raise ValueError("NOTES_SIGNING_KEYS_FILE is required in production")
             if not self.refresh_cookie_secure:
-                raise ValueError("PAGES_REFRESH_COOKIE_SECURE must be true in production")
+                raise ValueError("NOTES_REFRESH_COOKIE_SECURE must be true in production")
             if not self.h5_preview_secret:
-                raise ValueError("PAGES_H5_PREVIEW_SECRET is required in production")
+                raise ValueError("NOTES_H5_PREVIEW_SECRET is required in production")
             if not release_origin:
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN is required in production")
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN is required in production")
             if not release_origin.startswith("https://"):
-                raise ValueError("PAGES_APP_RELEASE_ORIGIN must use https in production")
+                raise ValueError("NOTES_APP_RELEASE_ORIGIN must use https in production")
         if (
             self.access_token_ttl_seconds < 60
             or self.refresh_token_ttl_seconds < 300
-            or not 60 <= self.page_capability_ttl_seconds <= 86_400
+            or not 60 <= self.note_capability_ttl_seconds <= 86_400
         ):
             raise ValueError("Token lifetimes are outside the supported range")
         if not 1_024 <= self.max_asset_upload_bytes <= 26_214_400:

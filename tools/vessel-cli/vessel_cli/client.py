@@ -56,11 +56,13 @@ class VesselClient:
                                                                 "expires_at": int(self.now() + ttl)})
 
     def login(self, email: str, password: str) -> dict:
+        self.credentials.probe()
         data, response = self._send("POST", "/v1/auth/login", body={"email": email, "password": password})
         self._save_session(data, response)
         return {"user": data.get("user")}
 
     def refresh(self) -> dict:
+        self.credentials.probe()
         data, response = self._send("POST", "/v1/auth/refresh", refresh=True)
         self._save_session(data, response)
         return self.credentials.load(self.environment, self.origin)

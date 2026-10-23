@@ -2,7 +2,7 @@
 
 日期：2026-10-14；实现更新：2026-10-15。状态：文件 HTTP API 已实现，生产未发布。运行及验收见 [文件服务运行说明](files-runtime.md)。
 
-本设计限定文件与文件夹功能；Page、Apps/表格由其他增量开发，本增量不修改其模型、接口、迁移和 MCP。文件能力通过 HTTP API 和现有 Web 管理控制台使用，CLI 与本地 MCP 接入留待后续。类 Google Drive 指目录、共享入口和版本管理体验；不承诺复制 Google Drive 的全部权限语义。
+本设计限定文件与文件夹功能；Note、Apps/表格由其他增量开发，本增量不修改其模型、接口、迁移和 MCP。文件能力通过 HTTP API 和现有 Web 管理控制台使用，CLI 与本地 MCP 接入留待后续。类 Google Drive 指目录、共享入口和版本管理体验；不承诺复制 Google Drive 的全部权限语义。
 
 ## 1. 实施前代码起点与本次范围（2026-10-14 快照）
 
@@ -10,16 +10,16 @@
 | --- | --- | --- |
 | `spaces/permissions.py` | personal/team 空间、Owner/Admin/Editor/Viewer；可锁空间行后判权 | 复用身份和团队成员，不另建 Team/Drive 身份系统 |
 | `models/space.py`、迁移 `0007` | Space 和 TeamMember；个人空间唯一，团队由成员共同持有 | 每个空间一个文件根目录；空间是归属和配额边界 |
-| `directories/router.py`、`models/directory.py` | 个人 Page 的扁平目录；归档目录会将 Page 移回根目录 | 不能用来实现递归文件夹；保留现有接口 |
-| `assets/router.py`、`assets/storage.py`、`main.py` | 个人 Page 图片附件；开发环境本地存储，生产未配置附件存储 | 不能当成通用文件上传服务；新增独立 files 模块与 OSS 配置 |
-| `pages/router.py`、`versions/router.py` | 按个人 Owner 判权，Page 修订与快照 | 本增量不迁移 Page，不把文件共享权限自动赋给 Page |
-| `mcp/capabilities.py`、`mcp/server.py` | 单 Page/Run capability，独立 audience，Owner 查询 | 文件不使用这条 capability 授权路径 |
+| `directories/router.py`、`models/directory.py` | 个人 Note 的扁平目录；归档目录会将 Note 移回根目录 | 不能用来实现递归文件夹；保留现有接口 |
+| `assets/router.py`、`assets/storage.py`、`main.py` | 个人 Note 图片附件；开发环境本地存储，生产未配置附件存储 | 不能当成通用文件上传服务；新增独立 files 模块与 OSS 配置 |
+| `notes/router.py`、`versions/router.py` | 按个人 Owner 判权，Note 修订与快照 | 本增量不迁移 Note，不把文件共享权限自动赋给 Note |
+| `mcp/capabilities.py`、`mcp/server.py` | 单 Note/Run capability，独立 audience，Owner 查询 | 文件不使用这条 capability 授权路径 |
 
 现有 `technical-design.md` 规划统一 items，但尚未实现。本设计提出资源级共享，超出该文档“首版无单项 ACL”的范围；它是文件增量的候选新契约，尚不替换已批准的全局范围。
 
 首版支持：嵌套文件夹、任意二进制文件、个人空间、团队空间、向已有 active Vessel 用户共享个人文件/文件夹、Viewer/Editor 权限、权限继承、共享给我、文件版本、回收站、名称/元数据搜索、OSS 单段/分段直传。
 
-首版不支持：匿名链接、未注册邮箱邀请、团队文件向非成员分享、跨空间移动/所有权转移、单项 deny/受限团队文件夹、评论角色、在线预览/Office 编辑、同步盘/FUSE、内容全文索引、Page/Apps 共享改造、S3 适配。用户引用文件 ID 的链接需要登录并判权，本身不授予访问能力。
+首版不支持：匿名链接、未注册邮箱邀请、团队文件向非成员分享、跨空间移动/所有权转移、单项 deny/受限团队文件夹、评论角色、在线预览/Office 编辑、同步盘/FUSE、内容全文索引、Note/Apps 共享改造、S3 适配。用户引用文件 ID 的链接需要登录并判权，本身不授予访问能力。
 
 ## 2. 方案比较与推荐
 
@@ -97,7 +97,7 @@ ACL 可选 expires_at；过期每次判权计算。只允许 Owner 给 active �
 
 ## 6. 数据模型与团队开发边界
 
-为避免与 Page/Apps 正在开发的统一 items 冲突，首版用文件域专用 `drive_items`，其含义是文件和文件夹的权威目录。未来接统一资源目录时保留 item_id，不另建第二套文件权限来源。字段命名与预留接口应先同步给其他开发者；本设计不自动向其他 chat 发消息。
+为避免与 Note/Apps 正在开发的统一 items 冲突，首版用文件域专用 `drive_items`，其含义是文件和文件夹的权威目录。未来接统一资源目录时保留 item_id，不另建第二套文件权限来源。字段命名与预留接口应先同步给其他开发者；本设计不自动向其他 chat 发消息。
 
 | 新表 | 关键字段与约束 |
 | --- | --- |
@@ -111,9 +111,9 @@ ACL 可选 expires_at；过期每次判权计算。只允许 Owner 给 active �
 | drive_idempotency_receipts | actor、operation、target、key、request_hash、状态、稳定结果、expires_at；唯一约束和事务保证并发不双写 |
 | drive_audit_events / drive_outbox | actor、space/item、动作、前后版本、request_id；异步任务有唯一业务键、重试、租约与失败记录 |
 
-新增 `drive_space_state(space_id PK/FK, root_item_id, acl_revision)`，避免直接改变由 identity/Page/Apps 共用的 Space 模型。ACL、移动、回收变更推进 acl_revision；它不替代团队当前成员检查。首版不持久化逐用户有效权限展开表，使用有界递归祖先查询；索引至少包含 `(space_id,parent_id,status)`、`(user_id,revoked_at,item_id)`、`(item_id,ordinal)` 和待执行 outbox 状态。
+新增 `drive_space_state(space_id PK/FK, root_item_id, acl_revision)`，避免直接改变由 identity/Note/Apps 共用的 Space 模型。ACL、移动、回收变更推进 acl_revision；它不替代团队当前成员检查。首版不持久化逐用户有效权限展开表，使用有界递归祖先查询；索引至少包含 `(space_id,parent_id,status)`、`(user_id,revoked_at,item_id)`、`(item_id,ordinal)` 和待执行 outbox 状态。
 
-建议模块：`files/router.py`（传输契约）、`files/service.py`（事务）、`files/permissions.py`（有效权限与 SQL 可见性谓词）、`files/models.py`、`files/oss_storage.py`、`files/jobs.py`。API 依赖现有 auth 和 Space/TeamMember；不得让 auth 反向依赖 files。当前 current_user 放在 pages/router.py，文件首版可复用其依赖，迁至 auth 公共模块需与另一 agent 协商，不同时修改。
+建议模块：`files/router.py`（传输契约）、`files/service.py`（事务）、`files/permissions.py`（有效权限与 SQL 可见性谓词）、`files/models.py`、`files/oss_storage.py`、`files/jobs.py`。API 依赖现有 auth 和 Space/TeamMember；不得让 auth 反向依赖 files。当前 current_user 放在 notes/router.py，文件首版可复用其依赖，迁至 auth 公共模块需与另一 agent 协商，不同时修改。
 
 迁移号 `0008` 以后由并行开发者协商分配，不在本设计预占 Alembic revision。共用 main.py 注册路由及 models/__init__.py 的修改应集中合并，避免双 head/覆盖。
 
@@ -121,7 +121,7 @@ ACL 可选 expires_at；过期每次判权计算。只允许 Owner 给 active �
 
 ### 7.1 首版配置
 
-仅实现 Aliyun OSS，使用独立 `VESSEL_FILES_*` 配置，不复用 Page 图片路径。客户端只取得精确操作的短期签名指令，无 Bucket 列表、删除或最终键写权限。推荐独立私有暂存/版本 Bucket；版本区开启版本控制。按本轮用户明确选择，也支持复用 baizhi-agent 的现有未版本化 Bucket：须显式设置 `VESSEL_FILES_OSS_ALLOW_UNVERSIONED=true` 并使用独立前缀，客户端只写暂存区，最终键由服务端复制并禁止覆盖，再次校验最终字节。暂停版本控制状态拒绝；不修改现有 Bucket 设置。新对象请求 SSE-OSS，传输使用 TLS。
+仅实现 Aliyun OSS，使用独立 `VESSEL_FILES_*` 配置，不复用 Note 图片路径。客户端只取得精确操作的短期签名指令，无 Bucket 列表、删除或最终键写权限。推荐独立私有暂存/版本 Bucket；版本区开启版本控制。按本轮用户明确选择，也支持复用 baizhi-agent 的现有未版本化 Bucket：须显式设置 `VESSEL_FILES_OSS_ALLOW_UNVERSIONED=true` 并使用独立前缀，客户端只写暂存区，最终键由服务端复制并禁止覆盖，再次校验最终字节。暂停版本控制状态拒绝；不修改现有 Bucket 设置。新对象请求 SSE-OSS，传输使用 TLS。
 
 暂存键为 `{prefix}/uploads/{upload_id}`；发布键为 `{prefix}/files/{space_id}/{publication_id}`，ID 由服务端随机生成，名称和路径不进入对象键。版本化模式绑定实际 OSS versionId；显式未版本化模式存储字符串 `null`，使用独立、禁止覆盖的最终键。签名只允许服务端选择的 method/key/uploadId/partNumber 和必要 headers，禁止客户端传 endpoint、bucket、key 或 URL。
 
@@ -157,15 +157,15 @@ committed_bytes 按空间内仍被逻辑版本引用的不同物理对象版本�
 
 ## 8. API 契约草案
 
-完整请求、响应、状态和错误定义见 [文件 API 契约](api-contract-files.md)，通用风格对齐 [Pages/Apps API 契约](api-contract-pages-apps.md)。文件端点已注册；不改变 Pages/Apps 已确认的接口与权限范围。
+完整请求、响应、状态和错误定义见 [文件 API 契约](api-contract-files.md)，通用风格对齐 [Notes/Apps API 契约](api-contract-notes-apps.md)。文件端点已注册；不改变 Notes/Apps 已确认的接口与权限范围。
 
-采用 `/v1/spaces/{space_id}/file-items`、`/folders` 和 `/file-uploads` 作为空间入口；按 ID 使用 `/v1/file-items/{item_id}`、`/v1/folders/{folder_id}`、`/v1/files/{file_id}`、`/v1/file-uploads/{upload_id}`。不使用 `/v1/drive` 前缀，也不占用 Pages 的 `/v1/directories` 或 `/v1/assets`。首版没有隐式个人空间创建路径，客户端先选择 space_id。
+采用 `/v1/spaces/{space_id}/file-items`、`/folders` 和 `/file-uploads` 作为空间入口；按 ID 使用 `/v1/file-items/{item_id}`、`/v1/folders/{folder_id}`、`/v1/files/{file_id}`、`/v1/file-uploads/{upload_id}`。不使用 `/v1/drive` 前缀，也不占用 Notes 的 `/v1/directories` 或 `/v1/assets`。首版没有隐式个人空间创建路径，客户端先选择 space_id。
 
-使用 Vessel Bearer Token、服务端 UUID、UTC ISO 8601、资源名包裹的成功响应和现有 `{"detail":{"code":"..."}}` 业务错误体；FastAPI 字段验证沿用原生 422。请求关联 ID 使用 X-Request-ID 响应头，不改 Pages/Apps 错误体。
+使用 Vessel Bearer Token、服务端 UUID、UTC ISO 8601、资源名包裹的成功响应和现有 `{"detail":{"code":"..."}}` 业务错误体；FastAPI 字段验证沿用原生 422。请求关联 ID 使用 X-Request-ID 响应头，不改 Notes/Apps 错误体。
 
 文件分页默认 50、最大 200；游标绑定空间/文件夹、筛选与排序，每页重新判权。元数据变更要求 expected_metadata_version，文件版本切换要求 expected_current_version_id，共享变更要求 expected_acl_revision。状态机、幂等重试与 OSS 指令由独立文件契约明确定义。
 
-个人资源 ACL 是文件增量扩展：共享接收者可访问指定文件而不加入源空间；共享给我只返回可见入口，不能据此浏览空间根目录。Page、App、Page 图片和记录不会继承文件共享权。
+个人资源 ACL 是文件增量扩展：共享接收者可访问指定文件而不加入源空间；共享给我只返回可见入口，不能据此浏览空间根目录。Note、App、Note 图片和记录不会继承文件共享权。
 
 ## 9. 验收、发布与实施顺序
 
@@ -175,7 +175,7 @@ committed_bytes 按空间内仍被逻辑版本引用的不同物理对象版本�
 
 第三阶段：个人文件/文件夹共享、继承、共享给我、移动预览和撤权；ACL 查询和所有文件端点一起上线，不能仅开放授予接口。
 
-第四阶段：回收站批次恢复与永久清理；文件 CLI/MCP 与完整 E2E。CLI/MCP 输出和凭据库另有契约，不宣称现有 Page MCP 已兼容文件工具。
+第四阶段：回收站批次恢复与永久清理；文件 CLI/MCP 与完整 E2E。CLI/MCP 输出和凭据库另有契约，不宣称现有 Note MCP 已兼容文件工具。
 
 必测场景：
 
@@ -193,7 +193,7 @@ committed_bytes 按空间内仍被逻辑版本引用的不同物理对象版本�
 12. 校验失败不 ready；并发上传不能超预约额度；取消和过期后迟到对象不泄露、不长期遗留。
 13. 回收父目录并恢复不复活先前单独回收的子项；冲突需指定目标；恢复预览显示重新生效的共享。
 14. 历史恢复保留对象引用，永久清理只删无引用的精确 OSS versionId，失败可重试。
-15. 文件夹多层继承、共享入口分页及搜索不会泄露未授权项；Page/Apps 原有 API 回归不受影响。
+15. 文件夹多层继承、共享入口分页及搜索不会泄露未授权项；Note/Apps 原有 API 回归不受影响。
 
 运行 mock/unit 测试不等于 OSS 验收；必须使用隔离 PostgreSQL、真实 OSS 的测试 Bucket 或明确批准的独立对象前缀及真实 HTTP 服务完成上传/分段/发布/下载/撤权/回收/清理。不得清理其他前缀或修改既有 Bucket 设置。需报告内容校验和故障回归结果；版本化模式另记录具体 versionId，日志不包含签名 URL。本轮按用户授权复用既有 OSS，结果见运行说明。
 
@@ -205,7 +205,7 @@ committed_bytes 按空间内仍被逻辑版本引用的不同物理对象版本�
 2. 团队继续默认共享，无私密子文件夹，也不向非成员授予文件权限。
 3. 个人共享 Editor 不可移动或删除；团队 Editor 可在本团队移动/回收。
 4. 同目录名称规范化后唯一；首版文件最大 512 MiB，默认空间 10 GiB、回收 30 天。
-5. 文件域先独立 drive_items；与 Page/Apps 统一目录作为后续明确协作契约。
+5. 文件域先独立 drive_items；与 Note/Apps 统一目录作为后续明确协作契约。
 
 ## 11. 官方资料与核验范围
 

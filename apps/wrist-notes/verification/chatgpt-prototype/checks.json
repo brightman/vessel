@@ -1,0 +1,26 @@
+{
+  "passed": [
+    "ChatGPT immediately below Apple and above custom",
+    "cancel authorization does not enable save",
+    "closing authorization cancels pending connection",
+    "network, eligibility and returned-cancel errors block save",
+    "connected account stays; cancelling draft preserves saved provider and model",
+    "exact question/evidence preview, cancel keeps draft, confirmed answer attributes ChatGPT",
+    "cross-day sleep evidence and Escape cancellation",
+    "disabling audio scope removes all transcript records from remote preview",
+    "expired and limited accounts block inference, usage management is primary",
+    "disconnect confirmation, old answer provenance preserved, no silent fallback",
+    "explicit local switch works without remote preview",
+    "custom configuration validation and simulated test/save still work",
+    "ASR and My Voice settings remain accessible",
+    "390px light Chinese, 390px dark English, 320px dark Japanese; translated new card and no sheet overflow",
+    "refresh clears connection; no account/token persisted",
+    "zero JavaScript errors; zero external requests"
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "persistedKeys": [
+    "wisenote.appearance",
+    "wisenote.interfaceLanguage"
+  ]
+}

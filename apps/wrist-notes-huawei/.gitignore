@@ -1,0 +1,11 @@
+.DS_Store
+DerivedData/
+build/
+node_modules/
+**/xcuserdata/
+local.properties
+*.p12
+*.p7b
+*.cer
+*.mobileprovision
+*.hap

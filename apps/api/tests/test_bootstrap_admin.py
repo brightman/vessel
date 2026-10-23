@@ -13,7 +13,7 @@ def test_bootstrap_admin_creates_a_hashed_admin_account(tmp_path) -> None:
 
     with Session(engine) as session:
         user = create_bootstrap_admin(
-            session, name="Pages Admin", email=" ADMIN@EXAMPLE.TEST ", password="strong-local-pass"
+            session, name="Notes Admin", email=" ADMIN@EXAMPLE.TEST ", password="strong-local-pass"
         )
 
         assert user.email == "admin@example.test"
@@ -29,7 +29,7 @@ def test_bootstrap_admin_refuses_to_replace_an_existing_account(tmp_path) -> Non
 
     with Session(engine) as session:
         create_bootstrap_admin(
-            session, name="Pages Admin", email="admin@example.test", password="strong-local-pass"
+            session, name="Notes Admin", email="admin@example.test", password="strong-local-pass"
         )
         with pytest.raises(ValueError, match="already exists"):
             create_bootstrap_admin(

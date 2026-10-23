@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>WiseNote</string>
+	<string>WiseLife</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,13 +13,22 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>WiseNote</string>
+	<string>WiseLife</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>6</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cloud.karama.wisenote.watch.recording</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>wiselife-watch</string></array>
+		</dict>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>用于在 Apple Watch 上录制语音笔记。</string>
 	<key>UIBackgroundModes</key>
@@ -28,11 +37,9 @@
 	</array>
 	<key>WKApplication</key>
 	<true/>
-	<key>WKBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>cloud.karama.wisenote</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>开启地点后，在录音开始时记录位置，并随录音传到配对 iPhone，便于回看。</string>
 </dict>
 </plist>

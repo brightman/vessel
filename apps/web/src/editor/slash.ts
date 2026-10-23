@@ -29,14 +29,14 @@ function applyItem(editor: Editor, range: { from: number; to: number }, item: Sl
   else if (item.id === "quote") chain.toggleBlockquote().run();
   else if (item.id === "code") chain.toggleCodeBlock().run();
   else if (item.id === "table") chain.insertTable({ rows: 1, cols: 2, withHeaderRow: false }).run();
-  else if (item.id === "image") chain.insertContent({ type: "pagesImage" }).run();
+  else if (item.id === "image") chain.insertContent({ type: "notesImage" }).run();
   else if (item.id === "divider") chain.setHorizontalRule().run();
   else chain.setParagraph().run();
 }
 
 export function createSlashExtension(): Extension {
   return Extension.create({
-    name: "pagesSlash",
+    name: "notesSlash",
     addProseMirrorPlugins() {
       return [
         Suggestion<SlashItem, SlashItem>({
@@ -68,7 +68,7 @@ export function createSlashExtension(): Extension {
               props.items.forEach((item, index) => {
                 const button = document.createElement("button");
                 button.type = "button";
-                button.id = `pages-slash-option-${index}`;
+                button.id = `notes-slash-option-${index}`;
                 button.setAttribute("role", "option");
                 button.setAttribute("aria-selected", String(index === activeIndex));
                 button.textContent = item.label;
@@ -96,7 +96,7 @@ export function createSlashExtension(): Extension {
                 menu.style.top = `${Math.max(edge, Math.min(desiredTop, window.innerHeight - height - edge))}px`;
                 menu.style.bottom = "auto";
               }
-              if (props.items.length) props.editor.view.dom.setAttribute("aria-activedescendant", `pages-slash-option-${activeIndex}`);
+              if (props.items.length) props.editor.view.dom.setAttribute("aria-activedescendant", `notes-slash-option-${activeIndex}`);
               else props.editor.view.dom.removeAttribute("aria-activedescendant");
               menu.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
             };
@@ -137,7 +137,7 @@ export function createSlashExtension(): Extension {
                 current = null;
                 const menu = menuElement();
                 if (menu) menu.hidden = true;
-                document.getElementById("pageBody")?.removeAttribute("aria-activedescendant");
+                document.getElementById("noteBody")?.removeAttribute("aria-activedescendant");
               },
             };
           },

@@ -3,13 +3,21 @@ import { Button, Input } from "./components/controls";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiError, authOptions, getPermissions, listSpaces, login, logout, refreshSession, register, type Permissions, type Space, type User } from "./api";
 import { Teams } from "./Teams";
-import { Pages, clearPageDrafts } from "./Pages";
+import { Notes, clearNoteDrafts } from "./Notes";
 import { Apps } from "./Apps";
 import { Files } from "./files/Files";
 import { clearTransfers } from "./files/Transfers";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
+import { BookOpen, Files as FilesIcon, LayoutGrid, LogOut, NotebookText, PanelLeftClose, PanelLeftOpen, UsersRound } from "lucide-react";
 
-type View = "teams" | "pages" | "apps" | "files";
+type View = "teams" | "notes" | "apps" | "files";
 const selectedKey = "vessel.console.space.v1";
+const sidebarKey = "vessel.console.sidebar.collapsed.v1";
+
+function viewFromHistory(): View {
+  const saved = history.state?.consoleView;
+  return saved === "notes" || saved === "apps" || saved === "teams" || saved === "files" ? saved : "files";
+}
 
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
@@ -20,7 +28,16 @@ export function message(error: unknown): string {
       EMAIL_CODE_RATE_LIMITED: "Too many verification requests. Please wait before trying again.",
       EMAIL_DELIVERY_UNAVAILABLE: "Verification email is temporarily unavailable. Please try again later.",
       REGISTRATION_DISABLED: "Registration is not available.", SPACE_PERMISSION_DENIED: "Your role does not allow this action.",
-      PAGE_REVISION_CONFLICT: "This Page was changed by someone else. Copy your changes, then reload.",
+      NOTE_REVISION_CONFLICT: "This Note was changed by someone else. Copy your changes, then reload.",
+      NOTE_AGENT_NOT_CONFIGURED: "Note Agent is not configured on the server yet.",
+      AGENT_GATEWAY_NOT_CONFIGURED: "Note Agent gateway identity is not configured yet.",
+      NOTE_AGENT_MCP_NOT_CONFIGURED: "Note Agent Edit needs a reachable Vessel MCP address.",
+      NOTE_AGENT_RUN_ACTIVE: "An Agent Run is already active for this Note. Wait for it to finish or stop it.",
+      NOTE_AGENT_CONTEXT_TOO_LARGE: "This Note is too large to send to Note Agent.",
+      AGENT_THREAD_BUSY: "The previous Agent Run still occupies this Note's conversation. Resume or stop it before retrying.",
+      AGENT_PLATFORM_RUN_START_FAILED: "Note Agent could not start. Check the Agent gateway identity and Agent ID.",
+      AGENT_PLATFORM_EVENTS_UNAVAILABLE: "The Note Agent event stream is unavailable.",
+      AGENT_PLATFORM_CANCEL_FAILED: "The Note Agent Run could not be stopped.",
       APP_MANAGER_REQUIRED: "Only a space Owner or Admin can manage Apps.",
       APP_SETTINGS_VERSION_CONFLICT: "App settings changed. Reload before saving or changing its status.",
       APP_RELEASE_NOT_PUBLISHABLE: "This draft cannot be published. Check its validation and Manifest version.",
@@ -50,8 +67,23 @@ export function App() {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [spaceId, setSpaceId] = useState("");
   const [permissions, setPermissions] = useState<Permissions | null>(null);
-  const [view, setView] = useState<View>("pages");
+  const [view, setView] = useState<View>(viewFromHistory);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(sidebarKey) === "true");
+  const [notesSidebarHost, setNotesSidebarHost] = useState<HTMLDivElement | null>(null);
   const [error, setError] = useState("");
+  const notesSidebarRef = useCallback((node: HTMLDivElement | null) => setNotesSidebarHost(node), []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed(value => {
+      localStorage.setItem(sidebarKey, String(!value));
+      return !value;
+    });
+  }
+
+  function openView(next: View) {
+    setView(next);
+    history.replaceState({ ...(history.state ?? {}), consoleView: next }, "", window.location.href);
+  }
 
   const reloadSpaces = useCallback(async (preferred?: string) => {
     const result = await listSpaces();
@@ -64,7 +96,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    clearPageDrafts();
+    clearNoteDrafts();
     let live = true;
     void Promise.all([refreshSession(), authOptions().catch(() => ({ registration_enabled: false, registration_email_verification_required: true }))]).then(async ([restored, options]) => {
       if (!live) return;
@@ -98,6 +130,7 @@ export function App() {
         ? await register(String(form.get("name") ?? ""), email, password, emailChallenge ?? undefined, String(form.get("verification_code") ?? "") || undefined)
         : await login(email, password);
       setUser(signed);
+      setView("files");
       history.replaceState(null, "", "/console");
       await reloadSpaces();
     } catch (problem) { setAuthError(message(problem)); }
@@ -106,18 +139,18 @@ export function App() {
 
   async function signOut() {
     try { await logout(); } catch (problem) { setError(message(problem)); return; }
-    clearPageDrafts();
+    clearNoteDrafts();
     if (user) clearTransfers(user.user_id);
-    setUser(null); setSpaces([]); setSpaceId(""); setPermissions(null); setAuthMode("login");
+    setUser(null); setSpaces([]); setSpaceId(""); setPermissions(null); setAuthMode("login"); setView("files");
     localStorage.removeItem(selectedKey);
     history.replaceState(null, "", "/console");
   }
 
-  if (booting) return <main className="boot-screen">Connecting to Vessel…</main>;
+  if (booting) return <main className="boot-screen">Connecting to Karama.Cloud…</main>;
   if (!user) return <main className="auth-screen"><section className="auth-card">
-    <div className="brand-lockup"><span className="brand-symbol">V</span><span>Vessel</span></div>
-    <h1>{authMode === "register" ? "Create your Vessel account" : "Sign in to Vessel"}</h1>
-    <p className="subtle">Manage Files, Pages, and Apps in personal and team spaces.</p>
+    <div className="brand-lockup"><span className="brand-symbol">K</span><span>Karama.Cloud</span></div>
+    <h1>{authMode === "register" ? "Create your Karama.Cloud account" : "Sign in to Karama.Cloud"}</h1>
+    <p className="subtle">Manage Files, Notes, and Apps in personal and team spaces.</p>
     <form onSubmit={event => void authenticate(event)} className="stacked-form">
       {authMode === "register" && <label>Name<Input name="name" required maxLength={120} autoComplete="name" /></label>}
       <label>Email<Input name="email" type="email" value={authEmail} onChange={event => { setAuthEmail(event.target.value); setAuthError(""); }} required autoComplete="email" /></label>
@@ -132,26 +165,30 @@ export function App() {
   </section></main>;
 
   const space = spaces.find(item => item.space_id === spaceId);
-  return <div className="app-shell">
+  const docsLink = <a className="sidebar-docs-link" href="/docs" aria-label="API Docs"><BookOpen size={18} aria-hidden="true" /><span className="nav-label">API Docs</span></a>;
+  return <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}${view === "notes" ? " is-notes-view" : ""}`}>
     <aside className="sidebar">
-      <div className="brand-lockup"><span className="brand-symbol">V</span><h1>Vessel</h1></div>
+      <div className="sidebar-brand-row"><div className="brand-lockup"><span className="brand-symbol">K</span><h1>Karama.Cloud</h1></div><Button className="sidebar-toggle" type="button" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} tooltipSide="right" aria-expanded={!sidebarCollapsed} aria-controls="console-sidebar-navigation console-note-navigation" onClick={toggleSidebar}>{sidebarCollapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}</Button></div>
       <label className="space-label">CURRENT SPACE<select aria-label="Current space" value={spaceId} onChange={event => {
         setSpaceId(event.target.value); localStorage.setItem(selectedKey, event.target.value);
       }}>{spaces.map(item => <option key={item.space_id} value={item.space_id}>{item.name}</option>)}</select></label>
-      <nav aria-label="Primary navigation">
-        <Button className={view === "files" ? "active" : ""} onClick={() => setView("files")}>Files</Button>
-        <Button className={view === "pages" ? "active" : ""} onClick={() => setView("pages")}>Pages</Button>
-        <Button className={view === "apps" ? "active" : ""} onClick={() => setView("apps")}>Apps</Button>
-        <Button className={view === "teams" ? "active" : ""} onClick={() => setView("teams")}>Teams</Button>
+      <nav aria-label="Primary navigation" id="console-sidebar-navigation">
+        <Button className={view === "files" ? "active" : ""} title={sidebarCollapsed ? "Files" : undefined} tooltipSide="right" aria-label="Files" onClick={() => openView("files")}><FilesIcon size={18} aria-hidden="true" /><span className="nav-label">Files</span></Button>
+        <Button className={view === "notes" ? "active" : ""} title={sidebarCollapsed ? "Notes" : undefined} tooltipSide="right" aria-label="Notes" onClick={() => openView("notes")}><NotebookText size={18} aria-hidden="true" /><span className="nav-label">Notes</span></Button>
+        <Button className={view === "apps" ? "active" : ""} title={sidebarCollapsed ? "Apps" : undefined} tooltipSide="right" aria-label="Apps" onClick={() => openView("apps")}><LayoutGrid size={18} aria-hidden="true" /><span className="nav-label">Apps</span></Button>
+        <Button className={view === "teams" ? "active" : ""} title={sidebarCollapsed ? "Teams" : undefined} tooltipSide="right" aria-label="Teams" onClick={() => openView("teams")}><UsersRound size={18} aria-hidden="true" /><span className="nav-label">Teams</span></Button>
       </nav>
+      <div className="sidebar-notes-slot" id="console-note-navigation" ref={notesSidebarRef} />
       <div className="sidebar-spacer" />
-      <div className="account-panel"><strong>{user.name}</strong><span>{user.email}</span><small>YOUR USER ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><Button aria-label="Copy user ID" title="Copy user ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>Copy</Button></div><Button className="text-button" onClick={() => void signOut()}>Sign out</Button></div>
+      <div className="sidebar-footer">{sidebarCollapsed ? <TooltipProvider delayDuration={350}><Tooltip><TooltipTrigger asChild>{docsLink}</TooltipTrigger><TooltipContent className="console-nav-tooltip" side="right" sideOffset={10}>API Docs</TooltipContent></Tooltip></TooltipProvider> : docsLink}
+        <div className="account-panel"><div className="account-identity"><strong>{user.name}</strong><span>{user.email}</span><small>YOUR USER ID</small><div className="copy-row"><code data-testid="current-user-id">{user.user_id}</code><Button aria-label="Copy user ID" onClick={() => void navigator.clipboard.writeText(user.user_id)}>Copy</Button></div></div><Button className="sidebar-signout-row" type="button" aria-label="Sign out" title={sidebarCollapsed ? "Sign out" : undefined} tooltipSide="right" onClick={() => void signOut()}><LogOut size={18} aria-hidden="true" /><span className="nav-label">Sign out</span></Button></div>
+      </div>
     </aside>
     <main className="main-panel">
       {error && <div role="alert" className="error-banner">{error}<Button onClick={() => setError("")}>Close</Button></div>}
       {space && permissions ? <>
         {view === "teams" && <Teams space={space} permissions={permissions} user={user} reloadSpaces={reloadSpaces} onError={setError} />}
-        {view === "pages" && <Pages key={space.space_id} space={space} permissions={permissions} user={user} onError={setError} />}
+        {view === "notes" && <Notes key={space.space_id} space={space} permissions={permissions} user={user} sidebarHost={notesSidebarHost} onError={setError} />}
         {view === "apps" && <Apps key={space.space_id} space={space} permissions={permissions} onError={setError} />}
         {view === "files" && <Files key={`${user.user_id}:${space.space_id}`} space={space} user={user} onError={setError} />}
       </> : <div className="loading-panel">Loading space…</div>}

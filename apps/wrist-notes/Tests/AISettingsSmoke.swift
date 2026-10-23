@@ -114,6 +114,20 @@ struct AISettingsSmoke {
         }
         try await client.testConnection(configuration: normalized, apiKey: "fake-key")
         expect(requests == [CustomAISummarizer.testPrompt], "test sends only fixed probe text")
+        StubProtocol.handler = { request in
+            let payload = try requestPayload(request)
+            let messages = payload["messages"] as! [[String: String]]
+            expect(messages[0]["content"] == CustomAISummarizer.answerInstruction, "previewed instruction reaches provider verbatim")
+            expect(messages[1]["content"] == "问题：那接下来呢？\n\n检索到的本地资料：\n[1] 客户需要报价\n先前对话：用户询问客户需求", "previewed question, evidence and history reach provider verbatim")
+            return (200, Data(#"{"choices":[{"message":{"content":"整理报价 [1]"},"finish_reason":"stop"}]}"#.utf8))
+        }
+        _ = try await client.answer(question: "那接下来呢？", context: "[1] 客户需要报价\n先前对话：用户询问客户需求", configuration: normalized, apiKey: "fake-key")
+        StubProtocol.handler = { request in
+            let payload = try requestPayload(request)
+            let messages = payload["messages"] as! [[String: String]]
+            requests.append(messages.last!["content"]!)
+            return (200, Data(#"{"choices":[{"message":{"content":"总结结果"},"finish_reason":"stop"}]}"#.utf8))
+        }
         requests = []
         let transcript = String(repeating: "这是一条语音笔记。", count: 850) + "最后的行动项：周五确认。"
         let summary = try await client.summarize(transcript, configuration: normalized, apiKey: "fake-key")
@@ -175,6 +189,32 @@ struct AISettingsSmoke {
         do { try await client.testConnection(configuration: normalized, apiKey: "fake-key"); fatalError("accepted offline") }
         catch let error as AIServiceError { expect(error == .network, "safe offline message") }
 
+        // Title generation must send the exact bounded excerpts, to the selected protocol, only while current.
+        let titleTranscript = String(repeating: "甲", count: 450) + String(repeating: "乙", count: 450)
+            + String(repeating: "丙", count: 450) + String(repeating: "丁", count: 450) + String(repeating: "戊", count: 450)
+        let expectedExcerpts = String(repeating: "甲", count: 450) + "\n[…]\n" + String(repeating: "丙", count: 450) + "\n[…]\n" + String(repeating: "戊", count: 450)
+        expect(CustomAISummarizer.recordingTitleExcerpts(titleTranscript) == expectedExcerpts, "title input samples beginning, middle and end, with bounded size")
+        for configuration in [normalized, anthropic] {
+            var titleRequests = 0
+            StubProtocol.handler = { request in
+                titleRequests += 1
+                let payload = try requestPayload(request)
+                let messages = payload["messages"] as! [[String: String]]
+                expect(messages.last?["content"] == expectedExcerpts, "provider receives exactly the title preview excerpts")
+                if configuration.apiProtocol == .openai {
+                    expect(messages.first?["role"] == "system" && request.url?.path == "/v1/chat/completions", "OpenAI title protocol")
+                    return (200, Data(#"{"choices":[{"message":{"content":"首版发布计划"},"finish_reason":"stop"}]}"#.utf8))
+                }
+                expect(payload["system"] as? String == CustomAISummarizer.recordingTitleInstruction && request.url?.path == "/v1/messages", "Anthropic title protocol")
+                return (200, Data(#"{"type":"message","role":"assistant","content":[{"type":"text","text":"首版发布计划"}],"stop_reason":"end_turn"}"#.utf8))
+            }
+            let title = try await client.recordingTitle(titleTranscript, configuration: configuration, apiKey: "fake-key", isCurrent: { true })
+            expect(title == "首版发布计划" && titleRequests == 1, "one request generates a title")
+            do { _ = try await client.recordingTitle(titleTranscript, configuration: configuration, apiKey: "fake-key", isCurrent: { false }); fatalError("sent stale title content") }
+            catch is CancellationError {}
+            expect(titleRequests == 1, "stale title content must never reach the provider")
+        }
+
         var finish: CheckedContinuation<Void, Error>?
         let editor = AISettingsModel(settings: settings, test: { _, _ in
             try await withCheckedThrowingContinuation { finish = $0 }
@@ -216,6 +256,9 @@ struct AISettingsSmoke {
         expect(settings.ai.mode == .local && secrets.value == "fake-key", "returning local retains saved custom credentials")
 
         expect(PhoneWatchStatus(isSupported: false).title.contains("不可用"), "unsupported device")
+        let asleep = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: false)
+        let awake = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: true)
+        expect(asleep.title == awake.title && asleep.title.contains("已配对"), "wrist wake must not change pairing/sync label")
         expect(!PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: false).isConnected, "paired is not reachable")
         expect(PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: true).isConnected, "live reachability")
         print("AI settings: validation, persistence, request/response, errors, long text, test races and Watch status passed")

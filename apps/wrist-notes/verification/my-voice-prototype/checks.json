@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "Settings order and initial enrollment",
+    "30-second boundary, solo confirmation, saving and registered state",
+    "Cancel and Escape discard drafts, stop timers and preserve saved profile",
+    "60-second automatic stop, replacement, delete cancellation and confirmed deletion",
+    "Demo shortcuts and adjacent model settings still work",
+    "Light/dark appearance, Chinese/English/Japanese, 390px and 320px screens",
+    "Refresh clears demo profile; no browser JavaScript errors",
+    "Localized Done and Back controls verified in Chinese, English and Japanese"
+  ],
+  "errors": []
+}

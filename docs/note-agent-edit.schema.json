@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "base_revision": { "type": "integer" },
+    "operations": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": { "type": { "type": "string", "enum": ["set_title"] }, "title": { "type": "string" } },
+            "required": ["type", "title"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["replace_range"] },
+              "block_id": { "type": "string" },
+              "expected_text": { "type": "string" },
+              "replacement": { "type": "string" }
+            },
+            "required": ["type", "block_id", "expected_text", "replacement"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["replace_block"] },
+              "block_id": { "type": "string" },
+              "block_json": { "type": "string" }
+            },
+            "required": ["type", "block_id", "block_json"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["insert_blocks_after"] },
+              "after_block_id": { "type": ["string", "null"] },
+              "blocks_json": { "type": "string" }
+            },
+            "required": ["type", "after_block_id", "blocks_json"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["delete_blocks"] },
+              "block_ids": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["type", "block_ids"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["move_block"] },
+              "block_id": { "type": "string" },
+              "after_block_id": { "type": ["string", "null"] }
+            },
+            "required": ["type", "block_id", "after_block_id"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "summary": { "type": "string" }
+  },
+  "required": ["base_revision", "operations", "summary"],
+  "additionalProperties": false
+}

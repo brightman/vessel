@@ -1,12 +1,12 @@
 # WiseLife product website
 
-Updated: 2026-10-19
+Updated: 2026-10-23
 
 Entry: [iphone-day.html](iphone-day.html)
 
 ## Design and scope
 
-Consumer product website extending the existing graphite, cool white and muted blue prototype. Native HTML/CSS/JS; existing Lucide symbols; no additional runtime dependencies, trackers, remote fonts or image requests.
+Consumer product website extending the existing graphite, cool white and muted blue prototype. Native HTML/CSS/JS; existing Lucide symbols; no additional runtime dependencies, trackers, remote fonts or remote image requests.
 
 Design settings: variance 6, motion 4, density 3. Keep the blue-gray brand and live app; lead with a clear value proposition and a woodland photograph, then show concrete use cases and an original product walkthrough. Natural scrolling, keyboard controls, reduced-motion support, local media and a sticky header are retained.
 
@@ -14,10 +14,11 @@ Design settings: variance 6, motion 4, density 3. Keep the blue-gray brand and l
 2. `#moments`: thought / conversation / reflection tabs, each with an actual prototype screenshot and a working entry into the app. Arrow keys, Home and End change tabs.
 3. `#walkthrough`: approximately 27-second original screen recording. User-initiated play, native controls, chapter seeking, three caption languages, pause when offscreen or page hidden. Silent, sample-data demo; no microphone or hardware access.
 4. `#product`: existing interactive app with voice summary/transcript, AI and device flows. Desktop/tablet device framing keeps a 390:844 aspect ratio at 330–390 px width; width follows available height. Small mobile screens retain the direct full-width app view. Compact metrics use the phone container width for layout, rather than the outer browser width.
-5. `#hardware`: Apple Watch and EurekaRing, with an entry into the Ring connection demo. Existing always-visible Watch compatibility information retained.
-6. `#ownership`: local storage, on-device models and optional user-configured external AI. Processing-mode buttons explain data flow without changing settings or transmitting content.
-7. `#questions`: six accessible FAQ disclosures covering devices, offline use, data flow, sources, recording/health boundaries, and availability/cost.
-8. `#pricing`: US$9.9, one-time purchase for lifetime use, no subscription. Optional external AI provider usage is billed separately. Prototype/video links precede the photo-credit footer; purchasing opens at release.
+5. `#mac`: local prelaunch teaser for WiseLife Companion, with a proposed Watch/iPhone/Mac workflow and Muse Glimmer 30B as an unverified single-Mac candidate.
+6. `#hardware`: Apple Watch and EurekaRing, with an entry into the Ring connection demo. Existing always-visible Watch compatibility information retained.
+7. `#ownership`: local storage, on-device models and optional user-configured external AI. Processing-mode buttons explain data flow without changing settings or transmitting content.
+8. `#questions`: six accessible FAQ disclosures covering devices, offline use, data flow, sources, recording/health boundaries, and availability/cost.
+9. `#pricing`: US$19.99 regular price and a one-time US$9.99 launch offer through 2026-12-31. No subscription; optional external AI provider usage is billed separately. Prototype/video links precede the photo-credit footer.
 
 Implementation: `wiselife-story.css`, `wiselife-story.js` and `wiselife-story-locales.js` extend the existing website layer. Locale processing also translates image alternative text. The prototype remains dependency-free at runtime.
 
@@ -33,9 +34,9 @@ The owner confirmed these values on 2026-10-19:
 2. Let AI use permitted daily records for reflection and suggestions.
 3. Keep data and AI on the phone in on-device mode. External AI is optional, with the content-sharing boundary stated next to that choice.
 4. Support Apple Watch and EurekaRing, using hardware the customer already owns.
-5. US$9.9, one payment for lifetime use, no subscription. Users own their data and may bring their own AI; external provider fees are separate.
+5. US$19.99 regular price, with a one-time US$9.99 launch offer through 2026-12-31. No subscription. Users own their data and may bring their own AI; external provider fees are separate.
 
-These values now guide the hero, scenarios, hardware, ownership, FAQ and pricing. The prototype has no payment or App Store purchase link yet.
+These values now guide the hero, scenarios, hardware, ownership, FAQ and pricing. The prototype has no payment or App Store purchase link yet. The limited-time price was confirmed by the owner on 2026-10-20.
 
 ## Capability boundaries
 
@@ -65,7 +66,7 @@ Retrieved 2026-10-19. Product imagery remains the respective owners' material, u
 - Screen images, poster and video: produced from our own interactive prototype with its sample records. They are product demonstrations, not footage of real device synchronization. Screenshot UI and baked video text are Chinese; website copy and selectable captions support Chinese, English and Japanese.
 - Reference site: [Auday](https://auday.ai/). Borrowed presentation principles; no Auday text, photographs, videos, 3D assets or code reused.
 - Existing Apple / Eureka product image provenance and limitations remain above.
-- Canva image generation was unavailable due to reauthentication; no generated image is included.
+- Earlier Canva image generation was unavailable due to reauthentication. The 2026-10-23 Companion teaser uses the first built-in generated Watch + iPhone + Mac mini-style desktop concept composition as one local image.
 
 ### Regenerate the product media
 
@@ -93,3 +94,25 @@ The capture script writes source PNGs, raw WebM and cue timings to `/private/tmp
 - Evidence: [verification record](../verification/wiselife-website-refresh/README.md).
 - Design comparison: [Auday review](../docs/2026-10-19-wiselife-auday-review.md).
 - Preview: http://127.0.0.1:8767/iphone-day.html . Changes are local HTML prototype work; not deployed.
+
+## App Store legal pages and launch pricing (2026-10-20)
+
+- Added standalone `privacy/index.html` and `terms/index.html` pages with shared responsive styling, and linked both from the site footer. The app's About screen links to `https://wiselife.cloud/privacy`, `https://wiselife.cloud/terms`, and `mailto:hello@wiselife.cloud`.
+- Policy copy reflects current app behavior: local-first records, optional HealthKit/calendar/location access, explicit confirmation before user-selected external AI receives text, deletion controls, third-party boundaries, and the reduced iCloud backup scope for Application Support data.
+- Pricing copy now says US$19.99 regular price and US$9.99 one-time launch offer through 2026-12-31, with App Store regional pricing governing.
+- These pages are local source only and are not deployed. The privacy URL must be publicly reachable before App Store submission.
+- `python3 -m unittest apps/wrist-notes/Tests/test_website_legal_pages.py` passes (4 tests); visual browser review and production URL check are still required after deployment.
+
+## Cloud-service wording (2026-10-20)
+
+- The site and privacy policy now state plainly that the WiseLife app provides no cloud service, account, cloud storage or sync; app-created records, transcripts, photos, summaries and insights default to iPhone storage, and Apple Watch recordings transfer to the paired iPhone for storage.
+- The copy distinguishes third-party AI from WiseLife infrastructure: selected text leaves the device only when the user chooses an external AI provider and confirms sending. Recordings and photos are not sent to external AI. Apple device backup remains separately controlled by Apple settings.
+- Chinese, English and Japanese homepage strings were updated together. Local source and tests are updated; production deployment and public URL verification remain pending.
+
+## WiseLife Companion prelaunch teaser (2026-10-23)
+
+- Added a local prelaunch section for WiseLife Companion (WiseLife Mac 伴侣) showing Watch, iPhone and Mac mini in a proposed personal local-AI workflow.
+- Muse Glimmer 30B is named as a single-Mac candidate only. Compatibility and performance remain unverified; the teaser labels the app as in development.
+- The planned iPhone-to-nearby-Mac path is described as bypassing WiseLife cloud services. The existing disclosure for user-confirmed external AI remains on the site.
+- Local visual asset: `assets/wiselife/mac-companion-teaser-first.jpg` is the first generated, complete Watch + iPhone + Mac mini-style desktop concept image. The complete composition is labeled as product concept artwork; it is not an official Apple product photo.
+- This update is local website source only; it is not deployed and does not implement the Mac app.

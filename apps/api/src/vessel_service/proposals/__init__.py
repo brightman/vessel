@@ -1,1 +1,1 @@
-"""Page edit proposal domain logic."""
+"""Note edit proposal domain logic."""
