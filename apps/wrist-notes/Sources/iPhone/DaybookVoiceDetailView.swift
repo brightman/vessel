@@ -145,6 +145,7 @@ struct DaybookVoiceDetailView: View {
         let pending = isSummary ? model.summaryModels[id] != nil : note.transcriptionState == .running
         let state = isSummary ? note.summaryState : note.transcriptionState
         return VStack(alignment: .leading, spacing: 12) {
+            if isSummary { DesktopSummaryPanel(recordID: "legacyNote:" + note.id.uuidString) }
             if pending {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.mini)

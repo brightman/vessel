@@ -34,6 +34,7 @@ struct WristNotesApp: App {
                 .environmentObject(sessions)
                 .environmentObject(WiseLifeRuntime.shared.content)
                 .environmentObject(WiseLifeRuntime.shared.processing)
+                .environmentObject(WiseLifeRuntime.shared.desktopSync)
                 .environmentObject(model.settings)
                 .environmentObject(recorder)
                 .environmentObject(recording)

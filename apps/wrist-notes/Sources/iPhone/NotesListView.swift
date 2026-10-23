@@ -105,6 +105,7 @@ struct NotesListView: View {
                 case .transcription: TranscriptionSettingsView(settings: settings)
                 case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile)
                 case .ai: AISettingsView(settings: settings)
+                case .desktopSync: DesktopSyncSettingsView()
                 case .about: AboutView()
                 }
             }

@@ -56,7 +56,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "拍摄并保存你选择记录的这一刻。"
+            "value" : "拍摄并保存你选择记录的这一刻，或扫描 Mac 上的 WiseLife 配对二维码。"
           }
         }
       }
@@ -92,7 +92,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "连接你在 AI 设置中指定的本地模型服务。"
+            "value" : "与配对的 Mac 加密同步录音文字和总结，以及连接你指定的本地模型服务。"
           }
         }
       }

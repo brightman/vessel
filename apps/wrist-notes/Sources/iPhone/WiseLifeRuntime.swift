@@ -15,6 +15,7 @@ final class WiseLifeRuntime {
     let notes: NotesModel
     let content: ContentSegmentModel
     let processing: AudioProcessingModel
+    let desktopSync: PhoneDesktopSyncModel
     let recorder: PhoneRecorder
     let recording: PhoneRecordingSession
     private let activities: RecordingActivityManager
@@ -29,6 +30,7 @@ final class WiseLifeRuntime {
         let activities = RecordingActivityManager()
         self.notes = notes
         self.processing = processing
+        self.desktopSync = PhoneDesktopSyncModel(notes: notes)
         self.content = ContentSegmentModel(processing:processing)
         self.recorder = recorder
         self.activities = activities

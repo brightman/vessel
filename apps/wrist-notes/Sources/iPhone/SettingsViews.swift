@@ -1,7 +1,7 @@
 import SwiftUI
 import FoundationModels
 
-enum SettingsRoute: Hashable { case settings, transcription, myVoice, ai, about }
+enum SettingsRoute: Hashable { case settings, transcription, myVoice, ai, desktopSync, about }
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
@@ -58,6 +58,9 @@ struct SettingsView: View {
                 }
             }
             SettingsSection("录音") {
+                NavigationLink(value: SettingsRoute.desktopSync) {
+                    SettingsRow(symbol: "desktopcomputer", title: "Mac 桌面同步", subtitle: "同步录音文字，在 Mac 上整理总结")
+                }.settingsCard()
                 Button(action: importAudio) {
                     SettingsRow(symbol: "square.and.arrow.down", title: "导入音频文件", subtitle: "从“文件”添加已有录音")
                 }

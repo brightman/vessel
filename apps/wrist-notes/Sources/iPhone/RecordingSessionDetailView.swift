@@ -43,6 +43,7 @@ struct RecordingSessionDetailView: View {
                         }
                     }
                     Section("内容片段") {
+                        DesktopSummaryPanel(recordID: "session:" + sessionID.uuidString)
                         ContentSegmentSourceListView(sourceID:.init(kind:.session,id:sessionID),playbackAllowed:playbackAllowed)
                     }
                     Section("分片与缺口") {

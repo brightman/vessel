@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>NSLocalNetworkUsageDescription</key><string>与已配对的 iPhone 在局域网内加密同步录音转写文字和总结。</string>
+<key>NSBonjourServices</key><array><string>_wiselife-sync._tcp</string></array>
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
+<key>NSHighResolutionCapable</key><true/>
+<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+<key>NSHumanReadableCopyright</key><string>WiseLife</string>
+</dict></plist>

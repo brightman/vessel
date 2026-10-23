@@ -26,6 +26,7 @@ phone = sources.new_group('iPhone', 'iPhone')
 watch = sources.new_group('Watch', 'Watch')
 shared_files = %w[VoiceNote.swift WatchSyncSnapshot.swift RecordingFormat.swift CaptureMetadata.swift CaptureLocationService.swift RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift].map { |name| shared.new_file(name) }
 phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
+                 PhoneDesktopSyncRepository.swift PhoneDesktopSyncModel.swift DesktopSyncViews.swift
                  NoteRepository.swift AudioProcessing.swift AudioProcessingCoordinator.swift AudioProcessingModel.swift AudioAdaptiveInference.swift AudioWindowPlanner.swift AudioProcessingRepository.swift ContentSegmentation.swift ContentSegmentRepository.swift ContentEnrichmentService.swift ContentSegmentPresentation.swift ContentSegmentModel.swift ContentSegmentDetailView.swift RecordingSessionRepository.swift RecordingChunkReceiver.swift
                  RecordingSessionModel.swift RecordingSessionDetailView.swift RecordingRangePlayback.swift RecordingSessionPresentation.swift
                  PhoneConnectivity.swift OnDeviceTranscriber.swift
@@ -46,6 +47,11 @@ phone_target = project.new_target(:application, 'WristNotes', :ios, '26.0')
 phone_target.product_reference.path = 'WiseNote.app'
 shared_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 phone_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
+desktop_sync = project.main_group.new_group('DesktopSync', '../../desktop/Shared')
+Dir.glob(File.join(root, '../../desktop/Shared/*.swift')).sort.each do |path|
+  next if File.basename(path) == 'SyncSQLite.swift'
+  phone_target.source_build_phase.add_file_reference(desktop_sync.new_file(File.basename(path)))
+end
 if File.directory?(File.join(root, 'Sources/iPhone/Assets.xcassets'))
   phone_target.resources_build_phase.add_file_reference(phone.new_file('Assets.xcassets'))
 end
@@ -183,6 +189,7 @@ test_target.source_build_phase.add_file_reference(tests_group.new_file('NotesDia
 test_target.source_build_phase.add_file_reference(tests_group.new_file('SpeakerResourceTests.swift'))
 test_target.source_build_phase.add_file_reference(tests_group.new_file('VoiceEnrollmentTests.swift'))
 test_target.source_build_phase.add_file_reference(tests_group.new_file('PhoneRecorderEnrollmentTests.swift'))
+test_target.source_build_phase.add_file_reference(tests_group.new_file('DesktopSyncIntegrationTests.swift'))
 test_target.resources_build_phase.add_file_reference(tests_group.new_file('Fixtures/sdk-opus-16k-mono.bin'))
 test_target.add_dependency(phone_target)
 test_target.build_configurations.each do |configuration|
@@ -191,6 +198,7 @@ test_target.build_configurations.each do |configuration|
   configuration.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote'
   configuration.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
+  configuration.build_settings['SWIFT_INCLUDE_PATHS'] = ['$(inherited)', '$(SRCROOT)/Vendor/SQLiteVector']
 end
 WristNotesBuildFeatures.apply(project, enabled: WristNotesBuildFeatures.enabled?(root))
 project.save

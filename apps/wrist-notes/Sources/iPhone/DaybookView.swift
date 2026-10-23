@@ -11,7 +11,7 @@ private struct DaybookReminderDraft: Hashable {
     let initialDate: Date?
 }
 private enum DaybookSheet: Hashable, Identifiable {
-    case capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, preferences, reminders
+    case capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, desktopSync, preferences, reminders
 #if WISELIFE_EUREKA_RING
     case ring
 #endif
@@ -442,6 +442,7 @@ struct DaybookView: View {
                 Button { present(.transcription) } label: { DaybookOptionRow(icon: "AudioLines", title: "语音转写模型", subtitle: settings.transcriptionLabel) }
                 MyVoiceSettingsEntry(profile: model.voiceProfile, open: { present(.myVoice) })
                 Button { present(.aiSettings) } label: { DaybookOptionRow(icon: "MessageCircle", title: "AI 模型", subtitle: settings.ai.label) }
+                Button { present(.desktopSync) } label: { DaybookOptionRow(icon: "ArrowUpRight", title: "Mac 桌面同步", subtitle: "同步录音文字，在 Mac 上整理总结") }
                 Button { present(.preferences) } label: { DaybookOptionRow(icon: "Bell", title: "AI 偏好与提醒", subtitle: "主动建议、免打扰和数据范围") }
             }.overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
             Text("硬件").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 16)
@@ -574,6 +575,7 @@ struct DaybookView: View {
         case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile, recordingBlocked: recording.phase != .idle || recorder.requestingPermission)
         case .quickRecording: QuickRecordingSettingsView()
         case .aiSettings: AISettingsView(settings: settings)
+        case .desktopSync: DesktopSyncSettingsView()
         case .preferences: DaybookPreferencesView(preferences: preferences, reminders: reminders, onOpenRecord: openRecord, sourceTitle: sourceTitle)
         case .reminders: DaybookReminderListView(store: reminders, onOpenRecord: openRecord, sourceTitle: sourceTitle)
         case .reminder(let draft): DaybookReminderEditor(store: reminders, proposedTitle: draft.title, sourceID: draft.sourceID,

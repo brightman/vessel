@@ -31,6 +31,7 @@ struct ContentSegmentDetailView: View {
                     Section {
                         Picker("内容",selection:$tab) { Text("总结").tag(0); Text("全文").tag(1) }.pickerStyle(.segmented)
                         if tab == 0 {
+                            DesktopSummaryPanel(recordID: detail.segment.sourceID.key)
                             Text(detail.segment.summary.isEmpty ? "尚无本机总结，可查看全文或稍后重试。" : detail.segment.summary).textSelection(.enabled)
                         } else {
                             ForEach(Array(detail.spans.enumerated()),id:\.offset) { _, span in

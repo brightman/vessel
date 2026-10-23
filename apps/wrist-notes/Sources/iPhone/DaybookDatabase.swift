@@ -192,7 +192,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 9 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 10 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -301,6 +301,28 @@ final class DaybookDatabase: @unchecked Sendable {
             try execute("CREATE TABLE IF NOT EXISTS content_enrichment_checkpoints (cache_key TEXT NOT NULL, unit TEXT NOT NULL, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, segment_id TEXT, text TEXT NOT NULL, accepted_revision INTEGER, PRIMARY KEY(cache_key,unit))")
             try execute("CREATE TABLE IF NOT EXISTS content_topic_decisions (source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, signature TEXT NOT NULL, position REAL NOT NULL, decision TEXT NOT NULL, model_key TEXT NOT NULL, PRIMARY KEY(source_key,signature,position))")
             try execute("PRAGMA user_version = 9")
+        }
+
+        if version < 10 {
+            for sql in [
+                "CREATE TABLE IF NOT EXISTS desktop_sync_dirty (source_key TEXT PRIMARY KEY)",
+                "CREATE TABLE IF NOT EXISTS desktop_sync_projection (record_id TEXT PRIMARY KEY, content_hash TEXT NOT NULL, payload BLOB NOT NULL)",
+                "CREATE TABLE IF NOT EXISTS desktop_sync_events (sequence INTEGER PRIMARY KEY AUTOINCREMENT, record_id TEXT NOT NULL UNIQUE, payload BLOB)",
+                "CREATE TABLE IF NOT EXISTS desktop_sync_identity (id TEXT PRIMARY KEY)",
+                "CREATE TABLE IF NOT EXISTS desktop_sync_peers (server_id TEXT PRIMARY KEY, acknowledged INTEGER NOT NULL DEFAULT 0, summary_cursor INTEGER NOT NULL DEFAULT 0, last_synced REAL)",
+                "CREATE TABLE IF NOT EXISTS desktop_summaries (record_id TEXT PRIMARY KEY, input_hash TEXT NOT NULL, payload BLOB NOT NULL)",
+                "INSERT OR IGNORE INTO desktop_sync_dirty SELECT 'legacyNote:' || id FROM voice_notes",
+                "INSERT OR IGNORE INTO desktop_sync_dirty SELECT source_key FROM audio_processing_sources"
+            ] { try execute(sql) }
+            // Dirty markers commit with the source mutation, including writes by other workers.
+            for (table, key) in [("voice_notes", "'legacyNote:' || $ROW.id"), ("audio_processing_sources", "$ROW.source_key"), ("content_segments", "$ROW.source_key"), ("recording_sessions", "'session:' || $ROW.id")] {
+                for operation in ["INSERT", "UPDATE", "DELETE"] {
+                    let row = operation == "DELETE" ? "OLD" : "NEW"
+                    let expression = key.replacingOccurrences(of: "$ROW", with: row)
+                    try execute("CREATE TRIGGER IF NOT EXISTS desktop_sync_\(table)_\(operation.lowercased()) AFTER \(operation) ON \(table) BEGIN INSERT INTO desktop_sync_dirty(source_key) VALUES (\(expression)) ON CONFLICT(source_key) DO NOTHING; END")
+                }
+            }
+            try execute("PRAGMA user_version = 10")
         }
 
     }

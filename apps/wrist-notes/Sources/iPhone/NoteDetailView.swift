@@ -155,6 +155,7 @@ struct NoteDetailView: View {
 
     private func summaryPanel(_ note: VoiceNote) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            DesktopSummaryPanel(recordID: "legacyNote:" + note.id.uuidString).padding(.bottom, 12)
             HStack {
                 Text("内容概览").foregroundStyle(Color.secondary)
                 Spacer()
