@@ -7,6 +7,32 @@ enum RecordingKind: String, Codable, CaseIterable {
     var label: String { self == .long ? "长录音" : "语音闪念" }
 }
 
+enum RecordingMergeSelection {
+    static func canAdd(_ candidate: UUID, to selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>) -> Bool {
+        guard orderedIDs.contains(candidate), eligibleIDs.contains(candidate), Set(orderedIDs).count == orderedIDs.count else { return false }
+        if selectedIDs.contains(candidate) { return true }
+        let next = selectedIDs.union([candidate])
+        return next.count == 1 || isContiguous(next, orderedIDs: orderedIDs, eligibleIDs: eligibleIDs)
+    }
+
+    static func canMerge(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>) -> Bool {
+        selectedIDs.count >= 2 && isContiguous(selectedIDs, orderedIDs: orderedIDs, eligibleIDs: eligibleIDs)
+    }
+
+    static func orderedSelection(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>) -> [UUID]? {
+        guard canMerge(selectedIDs, orderedIDs: orderedIDs, eligibleIDs: eligibleIDs) else { return nil }
+        return orderedIDs.filter(selectedIDs.contains)
+    }
+
+    private static func isContiguous(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>) -> Bool {
+        guard !selectedIDs.isEmpty, Set(orderedIDs).count == orderedIDs.count,
+              selectedIDs.isSubset(of: eligibleIDs) else { return false }
+        let indexes = selectedIDs.compactMap { orderedIDs.firstIndex(of: $0) }.sorted()
+        guard indexes.count == selectedIDs.count, let first = indexes.first, let last = indexes.last else { return false }
+        return indexes.count == last - first + 1
+    }
+}
+
 enum SimulatorAudioChunks {
     static let maximumChunkSize = 48 * 1024
 
@@ -65,6 +91,16 @@ struct RecordingOrigin: Codable, Equatable {
     let deviceID: String
     let fileName: String
     let recordingTimeIsEstimated: Bool
+}
+
+struct MergedRecordingSource: Codable, Equatable, Identifiable {
+    let recordingID: UUID
+    let capturedAt: Date
+    let duration: TimeInterval
+    let origin: RecordingOrigin?
+
+    var id: UUID { recordingID }
+    var deviceName: String { origin?.device ?? "设备未知" }
 }
 
 /// Text retains its original whitespace so joining timed pieces is lossless.
@@ -139,6 +175,8 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var summaryState: ProcessingState
     var processingMessage: String?
     var origin: RecordingOrigin?
+    // Optional so records written before audio merging remain decodable.
+    var mergedSources: [MergedRecordingSource]? = nil
     var location: CaptureLocation?
     // Optional for JSON written by older iPhone/Watch versions.
     var transcriptSegments: [TranscriptSegment]?

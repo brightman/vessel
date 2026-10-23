@@ -70,13 +70,19 @@ struct RecordingSessionSmoke {
         let valid = descriptor()
         try valid.validate()
         precondition(valid.audioFilename == "22222222-2222-2222-2222-222222222222_0000.m4a")
+        // Ten-minute descriptors coexist with unchanged old five-minute bytes.
+        let modern = descriptor(frames: 9_600_000)
+        try modern.validate()
+        let modernData = try JSONEncoder().encode(modern)
+        let modernDecoded = try JSONDecoder().decode(RecordingChunkDescriptor.self, from: modernData)
+        precondition(modernDecoded == modern)
         let data = try JSONEncoder().encode(valid)
         let decoded = try JSONDecoder().decode(RecordingChunkDescriptor.self, from: data)
         precondition(decoded == valid)
         for bad in [descriptor(ordinal: -1), descriptor(ordinal: 100_001), descriptor(started: .init(timeIntervalSinceReferenceDate: .infinity)),
                     descriptor(captured: .init(timeIntervalSinceReferenceDate: .nan)), descriptor(zone: "bogus/zone"),
                     descriptor(offset: -1), descriptor(offset: .infinity), descriptor(frames: 0), descriptor(frames: -1),
-                    descriptor(frames: 4_800_001), descriptor(rate: 0), descriptor(rate: -.infinity), descriptor(rate: .nan),
+                    descriptor(frames: 9_600_001), descriptor(rate: 0), descriptor(rate: -.infinity), descriptor(rate: .nan),
                     descriptor(bytes: 0), descriptor(hash: String(repeating: "z", count: 64)), descriptor(hash: "ab")] {
             mustThrow { try bad.validate() }
         }

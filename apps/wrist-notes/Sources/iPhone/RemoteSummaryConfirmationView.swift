@@ -44,7 +44,7 @@ struct RemoteAISendControls: View {
             .buttonStyle(.plain)
             .accessibilityAddTraits(doNotAskAgain ? .isSelected : [])
             .accessibilityIdentifier("ai.send.doNotAskAgain")
-            Text("适用于外部 AI 问答、总结与长录音标题。开启免提示后，长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。")
+            Text("适用于外部 AI 问答、总结、每日回顾、每日洞察与长录音整理。开启免提示后，每日回顾、每日洞察和录音主题、标题、总结会自动生成；录音整理会使用转写及已有时间、地点信息。可在「设置 → AI 模型」中恢复确认。")
                 .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(5)
             Button { onConfirm(doNotAskAgain) } label: { Text(buttonTitle) }
                 .buttonStyle(DaybookPrimaryButtonStyle(wide: true)).accessibilityIdentifier(accessibilityID)

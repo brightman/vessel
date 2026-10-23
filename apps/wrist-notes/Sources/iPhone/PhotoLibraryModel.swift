@@ -11,6 +11,7 @@ final class PhotoLibraryModel: ObservableObject {
     private let openRepository: () throws -> PhotoRepository
     private var lifecycleObservation: AnyCancellable?
     private var repository: PhotoRepository?
+    var storageIsAvailable: Bool { repository != nil }
 
     init(root: URL? = nil, openRepository: (() throws -> PhotoRepository)? = nil) {
         let directory = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

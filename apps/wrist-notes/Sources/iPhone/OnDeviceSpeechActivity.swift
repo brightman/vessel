@@ -26,8 +26,13 @@ enum PyannoteActivityDecoder {
                 var active = false, uncertain = false
                 for speaker in 0..<shape[2] {
                     let key = [index,frame,speaker].map(NSNumber.init(value:))
-                    let id = ids[key].doubleValue, probability = probabilities[key].doubleValue
-                    guard id.isFinite, id == 0 || id == 1, probability.isFinite, (0...1).contains(probability) else { throw SpeechActivityError.invalidOutput }
+                    let id = ids[key].doubleValue, rawProbability = probabilities[key].doubleValue
+                    // The FP16 segmenter can return 1.0009765625 (one ULP above 1).
+                    // Accept only this bounded upper rounding error. Negative, nonfinite,
+                    // or larger outputs remain invalid; high confidence never becomes silence.
+                    guard id.isFinite, id == 0 || id == 1, rawProbability.isFinite,
+                          (0...(1 + 1.0 / 1024)).contains(rawProbability) else { throw SpeechActivityError.invalidOutput }
+                    let probability = min(1, rawProbability)
                     active = active || id == 1
                     uncertain = uncertain || probability >= 0.2
                 }

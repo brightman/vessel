@@ -15,7 +15,7 @@ struct WatchContentView: View {
     }
 
     private var sessionIDs: [UUID] {
-        let ids = Set(recorder.sessionChunks.map(\.sessionID) + recorder.sessionEnds.map(\.sessionID) + recorder.sessionSyncStates.map(\.id))
+        let ids = Set(recorder.sessionChunks.map(\.sessionID) + recorder.sessionEnds.map(\.sessionID) + recorder.sessionSyncStates.map(\.id) + [recorder.activeRecordingSessionID].compactMap { $0 })
         return ids.sorted { left, right in
             let a = recorder.sessionChunks.first { $0.sessionID == left }?.sessionStartedAt ?? .distantPast
             let b = recorder.sessionChunks.first { $0.sessionID == right }?.sessionStartedAt ?? .distantPast
@@ -107,6 +107,9 @@ struct WatchContentView: View {
         let chunks = recorder.sessionChunks.filter { $0.sessionID == id }.sorted { $0.ordinal < $1.ordinal }
         let state = recorder.sessionSyncStates.first { $0.id == id }
         let end = recorder.sessionEnds.first { $0.sessionID == id }
+        let progress = RecordingSessionSyncPresentation(sessionID: id, activeSessionID: recorder.activeRecordingSessionID,
+            savedChunkCount: state?.savedChunkCount ?? 0, sealedChunkCount: chunks.count,
+            hasEnd: end != nil, syncComplete: state?.isComplete == true)
         let expanded = expandedSessionIDs.contains(id)
         return VStack(alignment: .leading, spacing: 6) {
             Button {
@@ -118,7 +121,10 @@ struct WatchContentView: View {
                         if let start = chunks.first?.sessionStartedAt { Text(start, style: .time).font(.caption2) }
                         else { Text("录音时间待同步").font(.caption2) }
                         Text(RecordingFormat.duration(chunks.reduce(0) { $0 + $1.duration })).font(.caption2).monospacedDigit()
-                        Text(LocalizedStringKey(state?.isComplete == true ? "已同步到当前 iPhone" : "会话尚未同步完成"))
+                        Text(LocalizedStringKey(progress.phase == .recording ? "录音进行中" :
+                            (progress.isComplete ? "已同步到当前 iPhone" : "会话尚未同步完成")))
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Text("已保存 \(progress.savedChunkCount)/\(progress.sealedChunkCount) 个已封口分片到 iPhone")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
@@ -132,9 +138,8 @@ struct WatchContentView: View {
                 ForEach(chunks) { chunk in
                     Text("分片 \(chunk.ordinal + 1) · \(RecordingFormat.duration(chunk.duration))").font(.caption2)
                 }
-                Text("已保存 \(state?.savedChunkCount ?? 0) 个分片到当前 iPhone").font(.caption2)
-                if end == nil { Text("录音结束状态待同步").font(.caption2) }
-                else if state?.isComplete != true { Text("会话尚未同步完成").font(.caption2) }
+                if progress.phase == .awaitingEnd { Text("录音结束状态待同步").font(.caption2) }
+                else if progress.phase == .syncing { Text("会话尚未同步完成").font(.caption2) }
                 if end?.interrupted == true { Text("录音已中断").font(.caption2).foregroundStyle(.orange) }
             }
         }

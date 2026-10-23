@@ -26,6 +26,19 @@ struct DaybookVoiceDetailView: View {
                     if note.kind == .long { RecordingTitleAction(note: note).padding(.bottom, 14) }
                     LabeledContent("录制设备", value: note.origin?.device ?? "设备未知")
                         .font(.system(size: 12)).padding(.bottom, 14)
+                    if let sources = note.mergedSources, !sources.isEmpty {
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text("原录音来源").font(.system(size: 10, weight: .medium)).foregroundStyle(DaybookStyle.secondary)
+                            ForEach(sources) { source in
+                                HStack(spacing: 8) {
+                                    Text(source.deviceName)
+                                    Spacer(minLength: 8)
+                                    Text("\(RecordingFormat.date(source.capturedAt)) · \(RecordingFormat.duration(source.duration))")
+                                        .monospacedDigit()
+                                }.font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                            }
+                        }.padding(.bottom, 14)
+                    }
                     if let point = note.location { CapturePlaceDetails(point: point).padding(.bottom, 14) }
                     if let origin = note.origin, origin.recordingTimeIsEstimated {
                         Text("来自 \(origin.device)\(origin.recordingTimeIsEstimated ? " · 录制时间缺失，按同步时间显示" : "")")

@@ -154,6 +154,24 @@ struct NotesListView: View {
                     VStack(alignment: .leading, spacing: 9) {
                         Text(model.watchStatus.title).font(.headline)
                         Text(model.watchStatus.message).font(.subheadline).foregroundStyle(Color.secondary)
+                        ForEach(model.watchStatus.recordingTransfers) { transfer in
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack(spacing: 7) {
+                                    Circle()
+                                        .fill(transfer.isComplete ? NotesStyle.green : NotesStyle.red)
+                                        .frame(width: 6, height: 6)
+                                    Text(transfer.stageLabel).font(.caption.weight(.semibold))
+                                }
+                                Text(transfer.segmentLabel).font(.caption)
+                                if let fraction = transfer.currentChunkFraction.flatMap(WatchSessionSyncSnapshot.validProgressFraction),
+                                   let label = transfer.currentChunkLabel {
+                                    Text(label).font(.caption2).foregroundStyle(Color.secondary)
+                                    ProgressView(value: fraction).tint(NotesStyle.green)
+                                }
+                                Text(transfer.reportedAtLabel).font(.caption2).foregroundStyle(Color.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
                         ForEach(model.watchStatus.issueMessages, id: \.self) { issue in
                             Text(issue).font(.caption).foregroundStyle(.orange)
                         }

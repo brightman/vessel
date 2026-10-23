@@ -146,7 +146,7 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         let migrated = try DaybookReminderRepository(root: legacyRoot)
         expect(migrated.items == [old], "v3 migration preserves local reminders")
         let db = try DaybookDatabase(url: databaseURL)
-        expect(try db.query("PRAGMA user_version").first?.requiredDouble("user_version") == 9, "schema migrates to current version")
+        expect(try db.query("PRAGMA user_version").first?.requiredDouble("user_version") == 10, "schema migrates to current version")
         print("Apple reminder persistence, recovery and synchronization tests passed")
     }
 }

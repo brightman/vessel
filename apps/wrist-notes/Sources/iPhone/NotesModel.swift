@@ -19,6 +19,7 @@ final class NotesModel: ObservableObject {
     var durableAudioDeleted: ((UUID) -> Void)?
 
     private var repository: NoteRepository?
+    var storageIsAvailable: Bool { repository != nil }
     private var connectivity: PhoneConnectivity?
     private let openRepository: () throws -> NoteRepository
     private let openConnectivity: (() throws -> PhoneConnectivity)?
@@ -197,6 +198,99 @@ final class NotesModel: ObservableObject {
             durableAudioDeleted?(id)
             refresh()
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    func canMergeLongRecording(_ id: UUID) -> Bool {
+        guard let note = note(id), note.kind == .long, note.duration > 0,
+              note.transcriptionState != .running, !activeTranscriptions.contains(id), summaryModels[id] == nil,
+              !generatingTitleIDs.contains(id), let file = audioURL(id) else { return false }
+        return FileManager.default.fileExists(atPath: file.path)
+    }
+
+    /// Saves a playable merged file first, then removes all selected source notes atomically.
+    /// Post-processing uses the same on-device transcription, summary and title pipeline as new recordings.
+    func mergeLongRecordings(_ sourceIDs: [UUID]) async -> UUID? {
+        guard let repository else {
+            errorMessage = "本地笔记暂不可用，请解锁设备后重试。"
+            return nil
+        }
+        guard sourceIDs.count >= 2, Set(sourceIDs).count == sourceIDs.count else {
+            errorMessage = String(localized: "请选择至少两条相邻长录音。")
+            return nil
+        }
+        let snapshots = sourceIDs.compactMap(note)
+        guard snapshots.count == sourceIDs.count, snapshots.allSatisfy({ canMergeLongRecording($0.id) }) else {
+            errorMessage = String(localized: "所选录音正在处理或已变化，请稍后重新选择。")
+            return nil
+        }
+        let ordered = snapshots.sorted(by: {
+            $0.capturedAt == $1.capturedAt ? $0.id.uuidString < $1.id.uuidString : $0.capturedAt < $1.capturedAt
+        })
+        let sourceURLs = ordered.compactMap { audioURL($0.id) }
+        guard sourceURLs.count == ordered.count else { errorMessage = String(localized: "找不到所选录音文件。"); return nil }
+
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        do {
+            let duration = try await AudioRecordingMerger.merge(sourceURLs, to: temporary)
+            guard ordered.allSatisfy({ stillMatchesForAudioMerge($0) }) else {
+                errorMessage = String(localized: "所选录音在合并期间发生变化，请重新选择。")
+                return nil
+            }
+            let mergedID = UUID()
+            let first = ordered[0]
+            let mergedSources = ordered.map {
+                MergedRecordingSource(recordingID: $0.id, capturedAt: $0.capturedAt, duration: $0.duration, origin: $0.origin)
+            }
+            var sourceDeviceNames: [String] = []
+            for source in mergedSources where !sourceDeviceNames.contains(source.deviceName) {
+                sourceDeviceNames.append(source.deviceName)
+            }
+            let mergedOrigin = RecordingOrigin(device: sourceDeviceNames.joined(separator: " · "), deviceID: "",
+                fileName: "merged-recording.m4a", recordingTimeIsEstimated: ordered.contains { $0.origin?.recordingTimeIsEstimated == true })
+            let merged = try repository.importRecording(id: mergedID, from: temporary, kind: .long,
+                capturedAt: first.capturedAt, duration: duration,
+                origin: mergedOrigin, mergedSources: mergedSources)
+            do {
+                try repository.delete(ids: ordered.map(\.id))
+            } catch {
+                refresh()
+                errorMessage = String(localized: "合并录音已保存，但原条目未能全部删除。")
+                Task { await self.processMergedRecording(merged.id) }
+                return merged.id
+            }
+            refresh()
+            Task { await self.processMergedRecording(merged.id) }
+            return merged.id
+        } catch {
+            errorMessage = String(localized: "合并录音失败，请保留原条目并重试。")
+            return nil
+        }
+    }
+
+    private func stillMatchesForAudioMerge(_ snapshot: VoiceNote) -> Bool {
+        guard let current = note(snapshot.id) else { return false }
+        return current.id == snapshot.id && current.kind == snapshot.kind && current.capturedAt == snapshot.capturedAt &&
+            current.duration == snapshot.duration && current.audioFilename == snapshot.audioFilename &&
+            current.transcriptRevision == snapshot.transcriptRevision && current.transcriptionState == snapshot.transcriptionState
+    }
+
+    private func processMergedRecording(_ id: UUID) async {
+        await transcribe(id)
+        guard let merged = note(id), merged.transcriptionState == .ready else { return }
+        if settings.ai.isRemote && settings.requiresRemoteAIConfirmation {
+            if let fallback = RecordingTitleText.fallback(from: merged.transcript) {
+                _ = edit(id) {
+                    guard $0.titleManuallyEdited != true else { return }
+                    $0.title = fallback
+                    $0.titleSource = .transcriptExcerpt
+                    $0.titleRevision = $0.transcriptRevision
+                    $0.titleManuallyEdited = false
+                }
+            }
+            return
+        }
+        await summarize(id)
     }
 
     @discardableResult

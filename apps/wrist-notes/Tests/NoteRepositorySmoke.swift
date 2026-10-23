@@ -54,6 +54,51 @@ struct NoteRepositorySmoke {
         precondition(retried.id == retryID)
         let afterRetry = try NoteRepository(root: root)
         precondition(afterRetry.notes.count == 2)
+
+        let mergeSourceIDs = [UUID(), UUID()]
+        let sourceOrigins = [
+            RecordingOrigin(device: "Apple Watch", deviceID: "watch-se", fileName: "watch-part.m4a", recordingTimeIsEstimated: false),
+            RecordingOrigin(device: "iPhone", deviceID: "phone-15", fileName: "phone-part.m4a", recordingTimeIsEstimated: false)
+        ]
+        for (index, id) in mergeSourceIDs.enumerated() {
+            let source = root.appendingPathComponent("merge-\(id.uuidString).m4a")
+            try Data([10, 11, 12]).write(to: source)
+            _ = try afterRetry.importRecording(id: id, from: source, kind: .long, capturedAt: .now, duration: 1,
+                origin: sourceOrigins[index])
+        }
+        let mergeDatabase = try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
+        try mergeDatabase.execute("CREATE TRIGGER fail_voice_delete BEFORE DELETE ON voice_notes WHEN OLD.id='\(mergeSourceIDs[1].uuidString)' BEGIN SELECT RAISE(ABORT,'injected'); END")
+        do {
+            try afterRetry.delete(ids: mergeSourceIDs)
+            preconditionFailure("batch deletion should fail atomically")
+        } catch {}
+        precondition(mergeSourceIDs.allSatisfy { id in afterRetry.notes.contains { $0.id == id } },
+                     "a failed batch delete must retain every source note")
+        precondition(mergeSourceIDs.allSatisfy { id in
+            guard let note = afterRetry.notes.first(where: { $0.id == id }) else { return false }
+            return FileManager.default.fileExists(atPath: afterRetry.audioURL(for: note).path)
+        }, "a failed batch delete must retain every source audio file")
+        try mergeDatabase.execute("DROP TRIGGER fail_voice_delete")
+        try afterRetry.delete(ids: mergeSourceIDs)
+        precondition(mergeSourceIDs.allSatisfy { id in !afterRetry.notes.contains { $0.id == id } },
+                     "all selected source notes are removed together")
+        precondition(mergeSourceIDs.allSatisfy { id in !FileManager.default.fileExists(atPath: root.appendingPathComponent("Audio/\(id.uuidString).m4a").path) },
+                     "source audio files are removed after the database commit")
+        let mergedID = UUID()
+        let mergedAudio = root.appendingPathComponent("merged-audio.m4a")
+        try Data([14, 15, 16]).write(to: mergedAudio)
+        let mergedSources = zip(mergeSourceIDs, sourceOrigins).map { id, origin in
+            MergedRecordingSource(recordingID: id, capturedAt: Date(timeIntervalSince1970: 100), duration: 1, origin: origin)
+        }
+        _ = try afterRetry.importRecording(id: mergedID, from: mergedAudio, kind: .long, capturedAt: .now, duration: 2,
+            origin: RecordingOrigin(device: "Apple Watch · iPhone", deviceID: "", fileName: "merged-recording.m4a", recordingTimeIsEstimated: false),
+            mergedSources: mergedSources)
+        let reopenedMerge = try NoteRepository(root: root)
+        let restoredSources = reopenedMerge.notes.first { $0.id == mergedID }?.mergedSources
+        precondition(restoredSources?.compactMap(\.origin?.device) == ["Apple Watch", "iPhone"],
+                     "merged source devices remain available after database reload")
+        precondition(restoredSources?.map(\.recordingID) == mergeSourceIDs,
+                     "merged source IDs remain available after original entries are deleted")
         print("NoteRepositorySmoke passed")
     }
 }

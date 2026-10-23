@@ -22,7 +22,7 @@ struct ContentSegmentDetailView: View {
             List {
                 if let detail {
                     Section {
-                        Text(detail.segment.title.isEmpty ? "录音片段" : detail.segment.title).font(.title2.bold())
+                        Text(detail.segment.displayTitle).font(.title2.bold())
                         Text(detail.source.capturedAt.addingTimeInterval(detail.segment.ranges.first?.sessionStartOffset ?? 0),style:.date)
                         Text(RecordingFormat.duration(playback.duration)).monospacedDigit()
                         if !detail.segment.isFinal { Text("片段仍在处理中，边界与文字可能更新。").foregroundStyle(.secondary) }
@@ -31,7 +31,8 @@ struct ContentSegmentDetailView: View {
                     Section {
                         Picker("内容",selection:$tab) { Text("总结").tag(0); Text("全文").tag(1) }.pickerStyle(.segmented)
                         if tab == 0 {
-                            Text(detail.segment.summary.isEmpty ? "尚无本机总结，可查看全文或稍后重试。" : detail.segment.summary).textSelection(.enabled)
+                            Text(detail.segment.summary.isEmpty ?
+                                (!detail.segment.hasText && detail.segment.isFinal ? "这段录音未识别到文字，可回听原音频；无文字不表示无人声。" : "尚无总结，可查看全文或整理录音后重试。") : detail.segment.summary).textSelection(.enabled)
                         } else {
                             ForEach(Array(detail.spans.enumerated()),id:\.offset) { _, span in
                                 VStack(alignment:.leading) {
@@ -48,7 +49,7 @@ struct ContentSegmentDetailView: View {
                     Section("编辑片段") {
                         Button("在播放位置拆分") { split(detail) }.disabled(!playbackAllowed || playback.position <= 0 || playback.position >= playback.duration)
                         ForEach(detail.neighbors.filter { $0.id != segmentID }) { neighbor in
-                            Button("与相邻片段合并：\(neighbor.title.isEmpty ? "录音片段" : neighbor.title)") { merge(detail.segment,neighbor) }
+                            Button("与相邻片段合并：\(neighbor.displayTitle)") { merge(detail.segment,neighbor) }
                         }
                         Button("撤销上次片段编辑") { Task { if await content.mutate(sourceID:detail.segment.sourceID,{ try $0.undo(sourceID:detail.segment.sourceID) }) { dismiss() } } }
                         Button("查看完整录音") { playback.stop(); showOriginal = true }
@@ -128,6 +129,8 @@ struct AudioSourceProcessingView: View {
     @EnvironmentObject private var content: ContentSegmentModel
     @EnvironmentObject private var settings: AppSettings
     @State private var showSettings = false
+    @State private var enrichmentConfirmation: ContentEnrichmentConfirmation?
+    @State private var enrichmentError: String?
     var body: some View {
         VStack(alignment:.leading,spacing:10) {
             if let status = processing.statuses[sourceID] {
@@ -144,23 +147,40 @@ struct AudioSourceProcessingView: View {
                 Button("重试处理") { processing.retry(sourceID) }
                 Button("取消转写处理") { processing.cancel(sourceID) }
             }
-            Button("重试本机总结") { processing.retryEnrichment(sourceID) }
+            Text("整理模型：\(settings.ai.label)").font(.caption).foregroundStyle(.secondary)
+            Button("整理主题与总结") {
+                Task {
+                    do { enrichmentError=nil; enrichmentConfirmation=try await processing.prepareEnrichment(sourceID) }
+                    catch { enrichmentError="录音数据已更新，请重试。" }
+                }
+            }.disabled(processing.enrichmentStatuses[sourceID] == .running)
+            if let enrichmentError { Text(enrichmentError).foregroundStyle(.orange) }
             Button("语音转写模型设置") { showSettings = true }
             if content.records.contains(where:{ $0.contentProvenance?.sourceID == sourceID.id }) {
                 Text("内容片段已显示在时间轴；完整录音仍可回听。").font(.footnote)
             }
         }
         .sheet(isPresented:$showSettings) { TranscriptionSettingsView(settings:settings) }
+        .sheet(item:$enrichmentConfirmation) { request in
+            ContentEnrichmentConfirmationView(request:request,onCancel:{ enrichmentConfirmation=nil },onConfirm:{ remember in
+                enrichmentConfirmation=nil
+                Task {
+                    do { try await processing.approveEnrichment(request,rememberChoice:remember); enrichmentError=nil }
+                    catch { enrichmentError="录音或模型已更新，请重新确认发送内容。" }
+                }
+            })
+        }
     }
     private func enrichmentLabel(_ status: ContentEnrichmentStatus) -> String {
         switch status {
-        case .idle: "等待本机总结"
-        case .running: "正在本机整理主题与总结"
-        case .complete: "本机总结已完成"
-        case .unavailable: "本机总结模型暂不可用"
+        case .idle: "等待整理主题与总结"
+        case .running: "正在整理主题与总结"
+        case .complete: "主题与总结已完成"
+        case .unavailable: "所选总结模型暂不可用"
+        case .awaitingConsent: "章节已在本机生成，AI 整理等待发送确认"
         case .stale: "内容已更新，等待重新整理"
-        case .failed: "本机总结失败，可重试"
-        case .cancelled: "本机总结已暂停"
+        case .failed: "主题与总结整理失败，可重试"
+        case .cancelled: "主题与总结整理已暂停"
         }
     }
 }
@@ -177,7 +197,7 @@ struct ContentSegmentSourceListView: View {
     var body: some View {
         VStack(alignment:.leading,spacing:10) {
             ForEach(segments) { segment in
-                Button(segment.title.isEmpty ? "录音片段" : segment.title) { selectedSegment = segment }
+                Button(segment.displayTitle) { selectedSegment = segment }
             }
             if segments.isEmpty { Text("暂无可显示片段，完整录音仍可回听。").font(.footnote) }
             if hasMore { Button("载入更多片段") { limit += 50; Task { await reload() } } }

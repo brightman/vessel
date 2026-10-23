@@ -102,3 +102,59 @@ struct PhotoCaptureMetadata: Codable, Equatable, Sendable {
     var location: CaptureLocation?
     var timeZoneKnown: Bool? = nil
 }
+
+/// Independent observation: late fixes never rewrite immutable audio descriptors.
+struct RecordingLocationSample: Codable, Equatable, Sendable, Identifiable {
+    let id: UUID
+    let sessionID: UUID
+    /// Requested audio-boundary association, not a claim that GPS fixed at this exact offset.
+    /// The actual observation time is location.measuredAt; requestedAt is the boundary date.
+    let sessionOffset: TimeInterval
+    let requestedAt: Date
+    let location: CaptureLocation
+    let sourceDevice: String
+
+    func validate() throws {
+        guard sessionOffset.isFinite, sessionOffset >= 0,
+              requestedAt.timeIntervalSinceReferenceDate.isFinite,
+              !sourceDevice.isEmpty, sourceDevice.utf8.count <= 256,
+              [.watchRecording, .phoneRecording].contains(location.source),
+              location.accuracy != nil, location.isNearCapture(requestedAt) else {
+            throw RecordingLocationError.invalidSample
+        }
+    }
+    private enum CodingKeys: String, CodingKey { case id, sessionID, sessionOffset, requestedAt, location, sourceDevice }
+    init(id: UUID = UUID(), sessionID: UUID, sessionOffset: TimeInterval, requestedAt: Date,
+         location: CaptureLocation, sourceDevice: String) {
+        self.id = id; self.sessionID = sessionID; self.sessionOffset = sessionOffset
+        self.requestedAt = requestedAt; self.location = location; self.sourceDevice = sourceDevice
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try c.decode(UUID.self, forKey: .id), sessionID: try c.decode(UUID.self, forKey: .sessionID),
+                  sessionOffset: try c.decode(Double.self, forKey: .sessionOffset), requestedAt: try c.decode(Date.self, forKey: .requestedAt),
+                  location: try c.decode(CaptureLocation.self, forKey: .location), sourceDevice: try c.decode(String.self, forKey: .sourceDevice))
+        try validate()
+    }
+}
+enum RecordingLocationError: Error { case invalidSample }
+
+/// Sampled audio time drives ten-minute requests, independent of wall-clock changes.
+struct RecordingLocationSchedule {
+    private var nextBoundary: TimeInterval = 0
+    private var stopped = false
+    mutating func dueOffsets(through duration: TimeInterval) -> [TimeInterval] {
+        guard !stopped, duration.isFinite, duration >= 0 else { return [] }
+        var result: [TimeInterval] = []
+        while nextBoundary <= duration {
+            result.append(nextBoundary); nextBoundary += 600
+        }
+        return result
+    }
+    mutating func stopOffset(at duration: TimeInterval) -> TimeInterval? {
+        guard !stopped, duration.isFinite, duration >= 0 else { return nil }
+        stopped = true
+        return duration
+    }
+
+}

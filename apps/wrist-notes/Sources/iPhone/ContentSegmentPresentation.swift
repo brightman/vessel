@@ -9,7 +9,7 @@ enum ContentSegmentPresentation {
     static func record(_ segment: ContentSegment, source: AudioSourceSnapshot, spans: [AudioTranscriptSpan]) -> DayRecord {
         let intervals = segment.ranges.map { DateInterval(start:source.capturedAt.addingTimeInterval($0.sessionStartOffset),duration:$0.duration) }
         var value = DayRecord(id:segment.id,capturedAt:intervals.first?.start ?? source.capturedAt,kind:.voice,
-            title:segment.title.isEmpty ? "录音片段" : segment.title,text:spans.map(\.text).joined(separator:"\n"),summary:segment.summary,
+            title:segment.displayTitle,text:spans.map(\.text).joined(separator:"\n"),summary:segment.summary,
             duration:segment.ranges.reduce(0) { $0 + $1.duration },intervals:intervals)
         value.recordingSessionID = source.id.kind == .session ? source.id.id : nil
         value.captureDevice = source.origin?.device

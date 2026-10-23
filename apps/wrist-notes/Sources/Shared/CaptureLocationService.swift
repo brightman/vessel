@@ -6,9 +6,16 @@ import Foundation
 enum CaptureLocationSettings {
     static let key = "WiseLife.captureLocationEnabled"
     static let changed = Notification.Name("WiseLife.captureLocationChanged")
+    private static let revisionLock = NSLock()
+    private static var policyRevision: UInt64 = 0
+    /// In-process generation also invalidates work queued across a quick off/on toggle.
+    static var revision: UInt64 { revisionLock.withLock { policyRevision } }
     static var enabled: Bool { UserDefaults.standard.bool(forKey: key) }
     static func setEnabled(_ value: Bool) {
-        UserDefaults.standard.set(value, forKey: key)
+        revisionLock.withLock {
+            if UserDefaults.standard.bool(forKey: key) != value { policyRevision &+= 1 }
+            UserDefaults.standard.set(value, forKey: key)
+        }
         NotificationCenter.default.post(name: changed, object: value)
     }
 }

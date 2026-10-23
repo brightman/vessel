@@ -144,6 +144,39 @@ import AVFAudio
             precondition(recoveryStore.sessionEnds == [revised], "repeated recovery must not manufacture revisions")
             precondition(FileManager.default.fileExists(atPath: partial.path), "recovery retains original partial")
         }
+        // Recovery must not retain the old five-minute frame ceiling. Each
+        // checkpoint restores a real AAC prefix while keeping original bytes.
+        let longAudio = root.appendingPathComponent("long-partial.m4a")
+        do {
+            let writer = try AVAudioFile(forWriting: longAudio, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000])
+            pcm.frameLength = 16000
+            for _ in 0..<600 { try writer.write(from: pcm) }
+        }
+        let longOriginal = try Data(contentsOf: longAudio)
+        for frames: Int64 in [4_816_000, 9_600_000] {
+            let longStore = WatchRecordingSessionStore(root: root.appendingPathComponent("long-recovery-\(frames)"))
+            let sid = UUID()
+            let context = RecordingCaptureContext(sessionID: sid, startedAt: descriptor.sessionStartedAt,
+                timeZoneIdentifier: "UTC", origin: descriptor.origin, location: nil)
+            let intent = RecordingCaptureIntent(id: UUID(), context: context, ordinal: 0,
+                sessionStartOffset: 0, effectiveFrames: frames)
+            let folder = longStore.root.appendingPathComponent(sid.uuidString)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let partial = folder.appendingPathComponent(intent.partialFilename)
+            try FileManager.default.copyItem(at: longAudio, to: partial)
+            try JSONEncoder().encode(intent).write(to: partial.appendingPathExtension("capture.json"))
+            try longStore.recover()
+            precondition(longStore.chunks.map(\.frameCount) == [frames],
+                "readable partial checkpoints over 300 s through 600 s must recover")
+            _ = try RecordingAudioFile.validate(longStore.chunks[0], at: longStore.audioURL(for: longStore.chunks[0]))
+            let retained = try Data(contentsOf: partial)
+            precondition(retained == longOriginal, "long partial recovery retains original bytes")
+            let reopened = WatchRecordingSessionStore(root: longStore.root)
+            try reopened.recover()
+            precondition(reopened.chunks == longStore.chunks && reopened.sessionEnds == longStore.sessionEnds,
+                "long recovered checkpoint and interrupted end survive restart")
+        }
         let exhaustedStore = WatchRecordingSessionStore(root: root.appendingPathComponent("exhausted-revision"))
         let exhaustedID = UUID()
         let exhaustedEnd = RecordingSessionEnd(sessionID: exhaustedID, finalOrdinal: nil, endedAt: descriptor.capturedAt,

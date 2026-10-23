@@ -8,7 +8,10 @@ enum RecordingChunkProtocol {
     static let receiptKey = "wiseLifeRecordingReceiptV2"
     static let endKey = "wiseLifeRecordingEndV2"
     static let capabilityKey = "wiseLifeRecordingProtocolVersions"
-    static let chunkDuration: TimeInterval = 300
+    static let legacyChunkDuration: TimeInterval = 300
+    static let chunkDuration: TimeInterval = 600
+    static let captureSampleRate: Double = 16_000
+    static let maximumChunkFrames = Int64(chunkDuration * captureSampleRate)
     // Bounds untrusted manifests; receivers must still avoid ordinal-sized allocations.
     static let maximumOrdinal = 100_000
 }

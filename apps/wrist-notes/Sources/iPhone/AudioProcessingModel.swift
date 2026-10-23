@@ -3,6 +3,13 @@ import Combine
 import Foundation
 import UIKit
 
+struct ContentEnrichmentConfirmation: Identifiable {
+    let id = UUID()
+    let scope: ContentEnrichmentScope
+    let configuration: AIConfiguration
+    let configurationRevision: Int
+}
+
 /// App-lifetime observable facade. File discovery, validation, hashing and SQLite run on its actor worker.
 @MainActor final class AudioProcessingModel: ObservableObject {
     static let enrichmentDidChange = Notification.Name("WiseLife.ContentEnrichmentDidChange")
@@ -28,15 +35,7 @@ import UIKit
     private var enrichmentTask: Task<Void,Never>?
     private var enrichmentSuspended = false
     private var enrichmentCapturePaused = false
-    private lazy var enrichmentService: ContentEnrichmentService = {
-        let worker = coordinator
-        return ContentEnrichmentService(modelKey:FoundationContentTextModel.configurationKey,
-            model:{ try await FoundationContentTextModel().respond($0) },store:{ command in
-                try await worker.withRepository { repository in
-                    try ContentSegmentRepository(database:repository.derivedDatabase).enrichment(command)
-                }
-            })
-    }()
+    private var enrichmentApprovals: [AudioSourceID:ContentEnrichmentConfirmation] = [:]
     private let discovery: AudioSourceDiscovery
     private lazy var coordinator = AudioProcessingCoordinator(open: { [discovery] in try discovery.open() },
         configuration:settings.transcription,discover: { [discovery] ids in try discovery.sources(explicit:ids) },
@@ -57,9 +56,15 @@ import UIKit
         for name in [Self.sourceDidChange,RecordingChunkReceiver.didChange] {
             observations.append(NotificationCenter.default.publisher(for:name).sink { [weak self] notification in
                 let deleted = notification.userInfo?["deletedSessionID"] as? UUID
+                let located = notification.userInfo?["locationUpdated"] as? Bool == true ? notification.userInfo?["sessionID"] as? UUID : nil
                 Task { @MainActor [weak self] in
                     if let deleted { self?.delete(.init(kind:.session,id:deleted)) }
-                    else { self?.refresh() }
+                    else {
+                        self?.refresh()
+                        // Locations have their own durable rows and never change the audio
+                        // fingerprint. Explicitly wake text enrichment for a late fix.
+                        if let located { self?.scheduleEnrichment(.init(kind:.session,id:located)) }
+                    }
                 }
             })
         }
@@ -67,10 +72,15 @@ import UIKit
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.enrichmentTask?.cancel()
-                await self.enrichmentService.retryAvailability()
                 await self.coordinator.refresh(configuration:configuration)
             }
         })
+        observations.append(Publishers.CombineLatest(settings.$aiRevision,settings.$requiresRemoteAIConfirmation)
+            .dropFirst().sink { [weak self] _ in
+                self?.enrichmentApprovals.removeAll()
+                self?.enrichmentTask?.cancel()
+                Task { @MainActor [weak self] in await self?.retryEnrichmentAvailability() }
+            })
         observations.append(NotificationCenter.default.publisher(for:Self.resourcesDidChange).sink { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -111,6 +121,7 @@ import UIKit
     func cancel(_ sourceID: AudioSourceID) { Task { await coordinator.cancel(sourceID) } }
     func delete(_ sourceID: AudioSourceID) {
         pendingEnrichment.remove(sourceID)
+        enrichmentApprovals.removeValue(forKey:sourceID)
         enrichmentStatuses.removeValue(forKey:sourceID)
         pendingDerivation.remove(sourceID)
         deletedSources.insert(sourceID)
@@ -143,12 +154,71 @@ import UIKit
 
     /// Explicit manual/resource/foreground retries release the local-model availability latch.
     func retryEnrichment(_ sourceID: AudioSourceID) {
-        Task { await enrichmentService.retryAvailability(); scheduleEnrichment(sourceID) }
+        scheduleEnrichment(sourceID)
     }
     private func retryEnrichmentAvailability() async {
-        await enrichmentService.retryAvailability()
         for id in statuses.keys where !deletedSources.contains(id) { pendingEnrichment.insert(id) }
         startEnrichment()
+    }
+    func prepareEnrichment(_ sourceID: AudioSourceID) async throws -> ContentEnrichmentConfirmation? {
+        let configuration=settings.ai, revision=settings.aiRevision
+        if !configuration.isRemote || !settings.requiresRemoteAIConfirmation { retryEnrichment(sourceID); return nil }
+        guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:sourceID) }),
+              settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
+        return .init(scope:scope,configuration:configuration,configurationRevision:revision)
+    }
+    func approveEnrichment(_ confirmation: ContentEnrichmentConfirmation, rememberChoice: Bool) async throws {
+        let id=confirmation.scope.sourceID
+        let current=try await withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }
+        let matches=current == confirmation.scope && settings.ai == confirmation.configuration && settings.aiRevision == confirmation.configurationRevision
+        guard settings.authorizeRemoteAISend(confirmationIsCurrent:matches,rememberChoice:rememberChoice) else { throw ContentSegmentError.staleRevision }
+        enrichmentApprovals[id]=confirmation; scheduleEnrichment(id)
+    }
+    private func enrichSource(_ id: AudioSourceID) async -> ContentEnrichmentStatus {
+        do {
+            let configuration=settings.ai, revision=settings.aiRevision
+            guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }) else { return .stale }
+            let approval=enrichmentApprovals[id]
+            let confirmed=approval.map { $0.scope == scope && $0.configuration == configuration && $0.configurationRevision == revision } ?? false
+            let allowed: @MainActor () async throws -> Bool = { [weak self] in
+                guard let self, self.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }
+                if !self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil) {
+                    throw ContentEnrichmentFailure.confirmationRequired
+                }
+                let current=try await self.withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }
+                return current == scope && self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil)
+            }
+            let router=ConfiguredContentTextModel(configuration:configuration,authorized:allowed,
+                apiKey:{ [settings] in try settings.apiKey() },
+                local:{ try await FoundationContentTextModel().respond($0) },
+                chat:{ [weak self,settings] instruction,text,configuration in
+                    try await settings.chatGPT.complete(instruction:instruction,content:text,modelID:configuration.chatGPTModel,
+                        accountID:configuration.chatGPTAccountID,isCurrent:{ [weak self] in
+                            self?.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil) ?? false
+                        },sourceIsCurrent:allowed)
+                })
+            let worker=coordinator
+            let service=ContentEnrichmentService(modelKey:ConfiguredContentTextModel.configurationKey(configuration),
+                model:{ try await router.respond($0) },store:{ [weak self] command in
+                    try Task.checkCancellation()
+                    guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
+                    return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
+                })
+            let result=await service.enrich(sourceID:id)
+            if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
+            return result
+        } catch is CancellationError { return .cancelled }
+        catch ContentSegmentError.staleRevision { return .stale }
+        catch { return .failed }
+    }
+    private func enrichmentCurrent(_ id: AudioSourceID, configuration: AIConfiguration, revision: Int, confirmationID: UUID?) -> Bool {
+        guard enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }
+        return !configuration.isRemote || !settings.requiresRemoteAIConfirmation ||
+            (confirmationID != nil && enrichmentApprovals[id]?.id == confirmationID)
+    }
+    private func enrichmentConfigurationCurrent(_ id: AudioSourceID, configuration: AIConfiguration, revision: Int) -> Bool {
+        !deletedSources.contains(id) && !enrichmentSuspended && !enrichmentCapturePaused && captureIDs.isEmpty &&
+            settings.ai == configuration && settings.aiRevision == revision
     }
     private func scheduleEnrichment(_ sourceID: AudioSourceID) {
         guard !deletedSources.contains(sourceID) else { return }
@@ -163,7 +233,7 @@ import UIKit
                 self.pendingEnrichment.remove(id)
                 guard !self.deletedSources.contains(id) else { continue }
                 self.publishEnrichment(id,status:.running)
-                let result=await self.enrichmentService.enrich(sourceID:id)
+                let result=await self.enrichSource(id)
                 guard !self.deletedSources.contains(id) else { continue }
                 self.publishEnrichment(id,status:result)
                 if result == .cancelled && Task.isCancelled { self.pendingEnrichment.insert(id) }
@@ -219,6 +289,11 @@ import UIKit
                     self.revision += 1
                     self.scheduleEnrichment(id)
                     NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id,"revision":progress.revision,"configurationKey":progress.configurationKey ?? ""])
+                } catch ContentSegmentError.staleRevision {
+                    // Another connection edited the source/chapters while the read
+                    // snapshot was being derived. Recompute against its committed state.
+                    self.pendingDerivation.insert(id)
+                    await Task.yield()
                 } catch { self.storageUnavailable = true }
             }
         }

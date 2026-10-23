@@ -185,10 +185,10 @@ struct AISettingsView: View {
                 Toggle("发送给外部 AI 前确认", isOn: $settings.requiresRemoteAIConfirmation)
                     .font(.system(size: 14)).tint(DaybookStyle.accent)
                     .accessibilityIdentifier("ai.settings.confirmBeforeSending")
-                SettingsFootnote(text: "即时生效。关闭后，外部 AI 问答与总结直接发送允许使用的文字，长录音转写后自动发送摘录生成标题；可随时重新开启。")
+                SettingsFootnote(text: "即时生效。关闭后，外部 AI 问答与总结直接发送允许使用的文字，每日回顾、每日洞察和长录音标题可自动生成；可随时重新开启。")
             }.padding(.top, 24)
             DaybookSemanticSettingsView().padding(.top, 20)
-            SettingsFootnote(text: "模型配置保存后用于下一次总结与问答。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")
+            SettingsFootnote(text: "模型配置保存后用于下一次总结、问答、每日回顾与每日洞察。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")
                 .padding(.top, 20)
         }
         .onDisappear { editor.invalidateTest() }

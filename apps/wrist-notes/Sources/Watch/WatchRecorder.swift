@@ -7,6 +7,10 @@ import WatchKit
 
 final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, WCSessionDelegate {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "cloud.karama.wisenote.watchkitapp", category: "WatchConnectivity")
+    /// Local capture identity; received/pending metadata alone cannot imply active capture.
+    var activeRecordingSessionID: UUID? {
+        isRecording && !isFinishingSession && currentKind == .long ? currentID : nil
+    }
     @Published private(set) var isRecording = false
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var pending: [PendingRecording] = []
@@ -33,6 +37,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private let indexURL: URL
     private var recorder: AVAudioRecorder?
     private let captureLocation = CaptureLocationService()
+    // A new recording's start request cannot replace the prior recording's pending stop fix.
+    private let stopCaptureLocation = CaptureLocationService()
+    private var locationSchedule = RecordingLocationSchedule()
+    private var locationSourceDevice = "Watch"
     private var capturedLocation: CaptureLocation?
     private var timer: Timer?
     private var startedAt: Date?
@@ -80,7 +88,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         }
         if WCSession.isSupported() {
             WCSession.default.delegate = self
-            logger.notice("Watch session activating; companion installed: \(WCSession.default.isCompanionAppInstalled, privacy: .public)")
+            logger.notice("Watch session activating")
             WCSession.default.activate()
         } else {
             logger.error("Watch session is not supported")
@@ -89,7 +97,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 
     func start(_ kind: RecordingKind) {
         guard !isRecording, !permissionRequestInFlight else { return }
-        if kind == .long && SegmentedAudioCapture.developerEnabled && sessionRecoveryInProgress {
+        if kind == .long && sessionRecoveryInProgress {
             message = "正在恢复已保存录音，请稍后开始"
             return
         }
@@ -212,7 +220,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.record, mode: .default)
             try session.setActive(true)
-            if kind == .long && SegmentedAudioCapture.developerEnabled {
+            if kind == .long {
                 try beginContinuousCapture(sessionID: id)
                 return
             }
@@ -252,6 +260,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         let deviceKey = "WiseLifeRecordingDeviceID"
         let deviceID = UserDefaults.standard.string(forKey: deviceKey) ?? UUID().uuidString
         UserDefaults.standard.set(deviceID, forKey: deviceKey)
+        locationSourceDevice = deviceID
         let origin = RecordingOrigin(device: WKInterfaceDevice.current().model, deviceID: deviceID,
                                      fileName: "continuous-capture", recordingTimeIsEstimated: false)
         let capture = SegmentedAudioCapture(root: store.root.appendingPathComponent(sessionID.uuidString), origin: origin) { [weak self] chunk, url in
@@ -274,20 +283,50 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         currentID = sessionID; currentKind = .long; startedAt = .now
         elapsed = 0; isRecording = true; message = nil
         capturedLocation = nil
-        captureLocation.begin(at: startedAt!, source: .watchRecording) { [weak self, weak capture] point in
-            guard let self, self.currentID == sessionID, self.isRecording else { return }
-            self.capturedLocation = point
-            capture?.updateLocation(point)
+        locationSchedule = RecordingLocationSchedule()
+        for offset in locationSchedule.dueOffsets(through: 0) {
+            requestSessionLocation(sessionID: sessionID, offset: offset)
         }
         WKInterfaceDevice.current().play(.start)
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self, weak capture] _ in
-            self?.elapsed = capture?.sampledDuration ?? 0
+            guard let self else { return }
+            self.elapsed = capture?.sampledDuration ?? 0
+            for offset in self.locationSchedule.dueOffsets(through: self.elapsed) {
+                // A suspended UI timer cannot reconstruct historical GPS fixes.
+                guard self.elapsed - offset <= 20 else { continue }
+                self.requestSessionLocation(sessionID: sessionID, offset: offset,
+                    requestedAt: Date.now.addingTimeInterval(offset - self.elapsed))
+            }
+        }
+    }
+
+    /// GPS and its independent durable journal never participate in the audio worker's failure path.
+    private func requestSessionLocation(sessionID: UUID, offset: TimeInterval, requestedAt: Date = .now, forStop: Bool = false) {
+        let device = locationSourceDevice, store = recordingSessionStore
+        let policyRevision = CaptureLocationSettings.revision
+        let service = forStop ? stopCaptureLocation : captureLocation
+        service.begin(at: requestedAt, source: .watchRecording) { [weak self] point in
+            guard let self else { return }
+            let sample = RecordingLocationSample(sessionID: sessionID, sessionOffset: offset,
+                requestedAt: requestedAt, location: point, sourceDevice: device)
+            self.sessionWorker.async { [weak self] in
+                guard CaptureLocationSettings.enabled, CaptureLocationSettings.revision == policyRevision else { return }
+                do {
+                    try store.saveLocationSample(sample)
+                    DispatchQueue.main.async { self?.refreshChunkTransfers() }
+                } catch {
+                    DispatchQueue.main.async { self?.message = "位置暂未保存，录音继续保留" }
+                }
+            }
         }
     }
 
     private func finishContinuousCapture(_ capture: SegmentedAudioCapture, sessionID: UUID) {
         isFinishingSession = true
         captureLocation.cancel()
+        if let offset = locationSchedule.stopOffset(at: capture.sampledDuration) {
+            requestSessionLocation(sessionID: sessionID, offset: offset, forStop: true)
+        }
         timer?.invalidate(); timer = nil
         WKInterfaceDevice.current().play(.stop)
         Task { @MainActor in
@@ -304,7 +343,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             continuousCapture = nil; isRecording = false; isFinishingSession = false
             currentID = nil; currentKind = nil; startedAt = nil; elapsed = 0
             if let failure { recordingError = failure.localizedDescription; message = "录音已中断，已封口的片段保留在手表" }
-            else { message = "长录音已保存在手表" }
+            else {
+                message = chunkQueue?.requiresCompanionUpdate == true
+                    ? "长录音已保留，请更新 iPhone 上的 WiseLife" : "长录音已保存在手表"
+            }
         }
     }
 
@@ -357,6 +399,13 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                     guard WCSession.isSupported(), WCSession.default.activationState == .activated,
                           WCSession.default.isCompanionAppInstalled else { throw RecordingTransportError.unavailable }
                     WCSession.default.transferUserInfo([RecordingChunkProtocol.endKey: try JSONEncoder().encode(value)])
+                }, sendLocation: { value in
+                    guard WCSession.isSupported(), WCSession.default.activationState == .activated,
+                          WCSession.default.isCompanionAppInstalled else { throw RecordingTransportError.unavailable }
+                    let payload: [String: Any] = [RecordingChunkWire.locationKey: try JSONEncoder().encode(value)]
+                    if !WCSession.default.outstandingUserInfoTransfers.contains(where: { ($0.userInfo[RecordingChunkWire.locationKey] as? Data) == (payload[RecordingChunkWire.locationKey] as? Data) }) {
+                        WCSession.default.transferUserInfo(payload)
+                    }
                 })
         } catch { message = "长录音同步记录暂时不可用，录音仍保存在手表" }
         chunkRetryTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.refreshChunkTransfers() }
@@ -383,11 +432,14 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         guard let chunkQueue else { return }
         do {
             let store = recordingSessionStore
-            try chunkQueue.update(chunks: sessionChunks, ends: sessionEnds, audioURL: { store.audioURL(for: $0) })
+            try chunkQueue.update(chunks: sessionChunks, ends: sessionEnds, locations: store.locationSamples, audioURL: { store.audioURL(for: $0) })
             if chunkQueue.binding == nil { sendChunkHello() }
             else { try chunkQueue.pump(force: force) }
         } catch { message = "长录音同步待重试，原件保留在手表" }
         sessionSyncStates = chunkQueue.sessionStates
+        if chunkQueue.requiresCompanionUpdate {
+            message = "长录音已保留，请更新 iPhone 上的 WiseLife"
+        }
         updateConnectivityStatus()
     }
     private func handleChunkReply(_ message: [String: Any]) {
@@ -397,6 +449,8 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                 try chunkQueue.accept(RecordingChunkWire.decode(RecordingCapabilityReply.self, key: RecordingChunkProtocol.capabilityKey, from: message))
             } else if message[RecordingChunkProtocol.receiptKey] != nil {
                 try chunkQueue.receive(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSavedChunk>.self, key: RecordingChunkProtocol.receiptKey, from: message))
+            } else if message[RecordingChunkWire.locationReceiptKey] != nil {
+                try chunkQueue.receive(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingLocationSample>.self, key: RecordingChunkWire.locationReceiptKey, from: message))
             } else if message[RecordingChunkWire.endReceiptKey] != nil {
                 try chunkQueue.receive(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSessionEnd>.self, key: RecordingChunkWire.endReceiptKey, from: message))
             } else { throw RecordingTransportError.invalidEnvelope }
@@ -409,9 +463,31 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private func publishSessionSnapshot() {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               let chunkQueue, let binding = chunkQueue.binding else { return }
+        let fileTransfers: [(descriptor: RecordingChunkDescriptor, transfer: WCSessionFileTransfer)] =
+            WCSession.default.outstandingFileTransfers.compactMap { transfer in
+                guard let envelope = try? RecordingChunkWire.decode(
+                    RecordingWireEnvelope<RecordingChunkDescriptor>.self,
+                    key: RecordingChunkProtocol.chunkKey,
+                    from: transfer.file.metadata ?? [:]
+                ), (try? envelope.validate(binding: binding)) != nil else { return nil }
+                return (descriptor: envelope.payload, transfer: transfer)
+            }
         let pending = chunkQueue.sessionStates.filter { !$0.isComplete }.map { value in
-            WatchSessionSyncSnapshot.Pending(sessionID: value.id,
-                lastOrdinal: sessionChunks.filter { $0.sessionID == value.id }.map(\.ordinal).max(), end: value.end)
+            let sessionTransfers = fileTransfers.filter { $0.descriptor.sessionID == value.id }
+            let activeTransfers = sessionTransfers.filter { $0.transfer.isTransferring }
+                .sorted { $0.descriptor.ordinal < $1.descriptor.ordinal }
+            let current = activeTransfers.first
+            let phase = WatchSessionSyncSnapshot.phase(
+                outstandingCount: sessionTransfers.count,
+                transferringCount: activeTransfers.count
+            )
+            return WatchSessionSyncSnapshot.Pending(sessionID: value.id,
+                lastOrdinal: sessionChunks.filter { $0.sessionID == value.id }.map(\.ordinal).max(),
+                end: value.end, totalChunkCount: value.chunkCount, phase: phase,
+                transferringChunkOrdinal: current?.descriptor.ordinal,
+                currentChunkFraction: current.flatMap {
+                    WatchSessionSyncSnapshot.validProgressFraction($0.transfer.progress.fractionCompleted)
+                })
         }
         let session = WCSession.default
         let previous = WatchSessionSyncSnapshot.decode(session.applicationContext, binding: binding)
@@ -431,12 +507,14 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         }
         let session = WCSession.default
         updateConnectivityStatus()
-        logger.notice("Queue check; activation: \(session.activationState.rawValue, privacy: .public), companion installed: \(session.isCompanionAppInstalled, privacy: .public), pending: \(self.pendingCount, privacy: .public)")
-        guard session.activationState == .activated else {
+        let isActivated = session.activationState == .activated
+        let companionInstalled = isActivated && session.isCompanionAppInstalled
+        logger.notice("Queue check; activation: \(session.activationState.rawValue, privacy: .public), companion installed: \(companionInstalled, privacy: .public), pending: \(self.pendingCount, privacy: .public)")
+        guard isActivated else {
             logger.notice("Deferring transfers until Watch session activation")
             return
         }
-        guard session.isCompanionAppInstalled else {
+        guard companionInstalled else {
             logger.notice("Deferring transfers until companion app installation")
             return
         }
@@ -546,10 +624,11 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private func updateConnectivityStatus() {
         let supported = WCSession.isSupported()
         let session = supported ? WCSession.default : nil
+        let isActivated = session?.activationState == .activated
         connectivityStatus = WatchConnectivityStatus.message(
             isSupported: supported,
-            isActivated: session?.activationState == .activated,
-            companionInstalled: session?.isCompanionAppInstalled == true,
+            isActivated: isActivated,
+            companionInstalled: isActivated && (session?.isCompanionAppInstalled == true),
             pendingCount: pendingCount,
             transferCount: queuedIDs.count,
             missingFileCount: missingAudioFileCount,
@@ -694,7 +773,9 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 
     func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async { [weak self] in
-            self?.logger.notice("Watch session activation completed with state \(state.rawValue, privacy: .public), companion installed: \(session.isCompanionAppInstalled, privacy: .public), error: \(error != nil, privacy: .public)")
+            let isActivated = state == .activated
+            let companionInstalled = isActivated && session.isCompanionAppInstalled
+            self?.logger.notice("Watch session activation completed with state \(state.rawValue, privacy: .public), companion installed: \(companionInstalled, privacy: .public), error: \(error != nil, privacy: .public)")
             self?.startChunkHandshake()
             self?.updateConnectivityStatus()
             self?.applyPhoneContext(session.receivedApplicationContext)
@@ -703,7 +784,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     }
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async { [weak self] in
-            self?.logger.notice("Watch reachability changed: \(session.isReachable, privacy: .public), companion installed: \(session.isCompanionAppInstalled, privacy: .public)")
+            let isActivated = session.activationState == .activated
+            let isReachable = isActivated && session.isReachable
+            let companionInstalled = isActivated && session.isCompanionAppInstalled
+            self?.logger.notice("Watch reachability changed: \(isReachable, privacy: .public), companion installed: \(companionInstalled, privacy: .public)")
             self?.updateConnectivityStatus()
             self?.applyPhoneContext(session.receivedApplicationContext)
             self?.queuePending()
@@ -715,11 +799,13 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.startChunkHandshake()
-            self.logger.notice("Companion app installation changed: \(session.isCompanionAppInstalled, privacy: .public)")
+            let isActivated = session.activationState == .activated
+            let companionInstalled = isActivated && session.isCompanionAppInstalled
+            self.logger.notice("Companion app installation changed: \(companionInstalled, privacy: .public)")
             self.updateConnectivityStatus()
             guard WatchConnectivityStatus.shouldRetryPendingTransfers(
-                isActivated: session.activationState == .activated,
-                companionAppInstalled: session.isCompanionAppInstalled
+                isActivated: isActivated,
+                companionAppInstalled: companionInstalled
             ) else { return }
             self.queuePending()
         }

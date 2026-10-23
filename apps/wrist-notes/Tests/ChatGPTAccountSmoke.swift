@@ -184,6 +184,23 @@ struct ChatGPTAccountSmoke {
             precondition(count.2 == 0, "no inference after consent invalidates during refresh/catalog")
         }
         let summaryStore = MemoryChatGPTStore(vault()), summaryAPI = FixtureChatGPTAPI()
+        // Model/account selection can remain current while newly received GPS or ASR
+        // changes the approved source during credential/catalog suspension.
+        for expired in [true,false] {
+            let sourceAPI=FixtureChatGPTAPI()
+            let sourceAccount=ChatGPTAccountModel(storage:MemoryChatGPTStore(vault(expired:expired)),api:sourceAPI,defaults:defaults,isEnabled:true)
+            var sourceRevision=1
+            let pending=Task { try await sourceAccount.complete(instruction:"Fixture",content:"Approved source",modelID:"fixture-model",accountID:"fixture-client",isCurrent:{ true },sourceIsCurrent:{ await Task.yield(); return sourceRevision == 1 }) }
+            while true {
+                let count=await sourceAPI.counts()
+                if expired ? count.0 > 0 : count.1 > 0 { break }
+                await Task.yield()
+            }
+            sourceRevision=2
+            do { _ = try await pending.value; fatalError("changed source sent after account await") } catch is CancellationError {}
+            let count=await sourceAPI.counts()
+            precondition(count.2 == 0,"async source authorization prevents stale payload before transport")
+        }
         let summaryAccount = ChatGPTAccountModel(storage: summaryStore, api: summaryAPI, defaults: defaults, isEnabled: true)
         await summaryAccount.loadModels()
         var summaryCurrent = true

@@ -179,6 +179,50 @@ final class RecordingSessionRepository {
         return Date(timeIntervalSinceReferenceDate: try row.requiredDouble("saved_at"))
     }
 
+    /// Independently committed observations may arrive before audio or after the end marker.
+    /// Returning successfully proves COMMIT; a tombstone prevents delayed resurrection.
+    func importLocationSample(_ sample: RecordingLocationSample, pairingID: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        try sample.validate(); try validatePairing(pairingID)
+        try db.transaction {
+            try requireLive(sample.sessionID)
+            if let row = try db.query("SELECT payload FROM recording_location_samples WHERE id=?", [.text(sample.id.uuidString)]).first {
+                guard try DaybookDatabase.decode(RecordingLocationSample.self, row["payload"]) == sample else { throw RepositoryError.conflict }
+                return
+            }
+            try ensureSession(sample.sessionID)
+            try db.execute("INSERT INTO recording_location_samples(id,session_id,session_offset,requested_at,payload) VALUES (?,?,?,?,?)", [
+                .text(sample.id.uuidString), .text(sample.sessionID.uuidString), .real(sample.sessionOffset),
+                .real(sample.requestedAt.timeIntervalSinceReferenceDate), try DaybookDatabase.json(sample)])
+        }
+    }
+
+    func locationSamples(sessionID: UUID) throws -> [RecordingLocationSample] {
+        try db.query("SELECT s.id,s.session_id,s.session_offset,s.requested_at,s.payload,a.payload AS address FROM recording_location_samples s LEFT JOIN recording_location_addresses a ON a.sample_id=s.id WHERE s.session_id=? ORDER BY s.session_offset,s.requested_at,s.id", [.text(sessionID.uuidString)]).map { row in
+            let sample = try DaybookDatabase.decode(RecordingLocationSample.self, row["payload"])
+            guard sample.sessionID == sessionID, row["id"] == .text(sample.id.uuidString),
+                  row["session_offset"] == .real(sample.sessionOffset),
+                  row["requested_at"] == .real(sample.requestedAt.timeIntervalSinceReferenceDate) else { throw RepositoryError.invalidStorage }
+            guard let address = try? DaybookDatabase.decode(CaptureAddress.self, row["address"]) else { return sample }
+            var point = sample.location; point.address = address
+            return RecordingLocationSample(id: sample.id, sessionID: sample.sessionID, sessionOffset: sample.sessionOffset,
+                requestedAt: sample.requestedAt, location: point, sourceDevice: sample.sourceDevice)
+        }
+    }
+
+    /// Cache is independently derived. Compare original capture identity inside the write transaction.
+    @discardableResult func applyLocationAddress(_ address: CaptureAddress, sampleID: UUID, matching point: CaptureLocation) throws -> Bool {
+        try db.transaction {
+            guard let row = try db.query("SELECT payload FROM recording_location_samples WHERE id=?", [.text(sampleID.uuidString)]).first else { return false }
+            let sample = try DaybookDatabase.decode(RecordingLocationSample.self, row["payload"])
+            try requireLive(sample.sessionID)
+            guard sample.location.matchesCapture(point) else { return false }
+            try db.execute("INSERT INTO recording_location_addresses(sample_id,payload) VALUES (?,?) ON CONFLICT(sample_id) DO UPDATE SET payload=excluded.payload", [
+                .text(sampleID.uuidString), try DaybookDatabase.json(address)])
+            return true
+        }
+    }
+
     /// Metadata only; limits are bounded and no audio is read or hashed.
     func sessions(limit: Int = 50, offset: Int = 0) throws -> [RecordingSessionSummary] {
         try summaries(whereSQL: "", values: [], limit: limit, offset: offset)

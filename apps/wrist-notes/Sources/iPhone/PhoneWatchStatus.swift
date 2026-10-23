@@ -1,12 +1,56 @@
 import Foundation
 
 struct PhoneWatchStatus: Equatable {
+    struct TransferRow: Equatable, Identifiable {
+        let sessionID: UUID
+        let receivedChunkCount: Int
+        let totalChunkCount: Int?
+        let phase: WatchTransferPhase?
+        let transferringChunkOrdinal: Int?
+        let currentChunkFraction: Double?
+        let reportedAt: Date
+        let isComplete: Bool
+
+        var id: UUID { sessionID }
+        var stageLabel: String {
+            if isComplete { return String(localized: "iPhone 已完整保存") }
+            switch phase {
+            case .some(.queued): return String(localized: "系统排队中")
+            case .some(.transferring): return String(localized: "后台传输中")
+            case .some(.waiting), .none: return String(localized: "等待手表继续传输")
+            }
+        }
+        var segmentLabel: String {
+            if let totalChunkCount {
+                String(localized: "iPhone 已收到 \(receivedChunkCount)/\(totalChunkCount) 段")
+            } else {
+                String(localized: "iPhone 已收到 \(receivedChunkCount) 段")
+            }
+        }
+        var currentChunkLabel: String? {
+            guard !isComplete, phase == .transferring,
+                  let transferringChunkOrdinal,
+                  let currentChunkFraction = currentChunkFraction.flatMap(WatchSessionSyncSnapshot.validProgressFraction) else { return nil }
+            let percent = Int((currentChunkFraction * 100).rounded())
+            return "\(String(localized: "分片 \(transferringChunkOrdinal + 1)")) · \(percent)%"
+        }
+        var reportedAtLabel: String {
+            let formatter = DateFormatter()
+            formatter.locale = .current
+            formatter.timeZone = .current
+            formatter.dateStyle = .none
+            formatter.timeStyle = .short
+            return String(localized: "状态更新于 \(formatter.string(from: reportedAt))")
+        }
+    }
+
     var isSupported = true
     var isPaired = false
     var isInstalled = false
     var isActivated = false
     var isReachable = false
     var pendingCount: Int?
+    var recordingTransfers: [TransferRow] = []
     var lastSyncedAt: Date?
     var reportedAt: Date?
     var transferFailureCount = 0
@@ -16,8 +60,11 @@ struct PhoneWatchStatus: Equatable {
 
     // Transport capability only; never use this as a user-facing connection indicator.
     var isConnected: Bool { isSupported && isPaired && isInstalled && isActivated && isReachable }
-    var hasPairedWatch: Bool { isSupported && isPaired }
+    var hasPairedWatch: Bool { isSupported && isActivated && isPaired }
     var canRetrySync: Bool { hasPairedWatch && isInstalled && isActivated }
+    static func canRequestSyncRetry(isSupported: Bool, isActivated: Bool, hasPairingID: Bool, isPaired: Bool, isInstalled: Bool) -> Bool {
+        isSupported && isActivated && hasPairingID && isPaired && isInstalled
+    }
     var issueMessages: [String] {
         guard hasPairedWatch, isInstalled else { return [] }
         var issues: [String] = []
@@ -28,6 +75,7 @@ struct PhoneWatchStatus: Equatable {
     }
     var title: String {
         if !isSupported { return String(localized: "Watch 通信不可用") }
+        if !isActivated { return String(localized: "检查中") }
         if !isPaired { return String(localized: "未配对 Apple Watch") }
         if !isInstalled { return String(localized: "已配对 · 手表 App 未安装") }
         if let pendingCount, pendingCount > 0 { return String(localized: "已配对 · 待同步 \(pendingCount) 条") }
@@ -36,6 +84,7 @@ struct PhoneWatchStatus: Equatable {
     }
     var compactLabel: String {
         if !isSupported { return String(localized: "Watch 不可用") }
+        if !isActivated { return String(localized: "检查中") }
         if !isPaired { return String(localized: "未配对") }
         if !isInstalled { return String(localized: "待安装 App") }
         if let pendingCount, pendingCount > 0 { return String(localized: "待同步\(pendingCount)条") }
@@ -58,9 +107,10 @@ struct PhoneWatchStatus: Equatable {
     }
     var message: String {
         if !isSupported { return String(localized: "当前设备不支持 Apple Watch 通信。") }
+        if !isActivated { return String(localized: "同步服务正在准备，请稍后刷新状态。") }
         if !isPaired { return String(localized: "请先在 iPhone 的 Watch App 中配对手表。") }
         if !isInstalled { return String(localized: "请在 Apple Watch 上安装“WiseLife”，录音会自动传到这里。") }
-        return String(localized: "显示最近收到的手表同步状态，后台更新可能延迟。录音结束后由系统安排传输，无需保持手表亮屏；最近同步时间以 iPhone 成功保存录音为准。")
+        return String(localized: "显示最近收到的手表同步状态，后台更新可能延迟。长录音期间，每个已封口的片段会自动交由系统安排同步，结束后继续同步尾段；无需保持手表亮屏。未收到结束状态时，iPhone 仅能确认已保存的部分；最近同步时间以 iPhone 成功保存录音为准。")
     }
     private static func format(_ date: Date) -> String {
         date.formatted(date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened)

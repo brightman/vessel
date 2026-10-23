@@ -17,6 +17,7 @@ final class AudioProcessingRepository {
             let previous = try sourceRow(source.id)
             let oldConfiguration = previous?["configuration_key"]?.string
             let cancelled = previous?["cancelled"]?.double == 1
+            try bridgeContentSnapshot(previous:previous)
             if previous == nil {
                 try db.execute("INSERT INTO audio_processing_sources(source_key,kind,source_id,session_id,note_id,descriptor,fingerprint,configuration_key) VALUES (?,?,?,?,?,?,?,?)", [
                     .text(source.id.key), .text(source.id.kind.rawValue), .text(source.id.id.uuidString),
@@ -27,19 +28,80 @@ final class AudioProcessingRepository {
                 let materialChange = (try? DaybookDatabase.decode(AudioSourceSnapshot.self, previous?["descriptor"])) != source || oldConfiguration != configurationKey
                 try db.execute("UPDATE audio_processing_sources SET descriptor=?,fingerprint=?,configuration_key=?,revision=revision+? WHERE source_key=?", [try DaybookDatabase.json(source), .text(source.fingerprint), .text(configurationKey), .integer(materialChange ? 1 : 0), .text(source.id.key)])
             }
+            // Keep historical row IDs and their stage/speaker rows. Reuse requires exact semantic
+            // identity; a matching filename or a neighboring timestamp is insufficient.
+            var retained: [(AudioProcessingWindow, DaybookDatabase.Row?)] = []
+            for window in windows {
+                let candidates = try db.query("SELECT rowid,* FROM audio_processing_jobs WHERE source_key=? AND configuration_key=? AND core_start=? AND core_end=? ORDER BY active DESC,(result IS NOT NULL) DESC,rowid DESC",[.text(source.id.key),.text(configurationKey),.real(window.coreStart),.real(window.coreEnd)])
+                var match: DaybookDatabase.Row?, bestEvidence = -1
+                for row in candidates {
+                    let historical = try DaybookDatabase.decode(AudioProcessingWindow.self,row["window"])
+                    guard historical.contentIdentity == window.contentIdentity else { continue }
+                    let result = row["result"] != .null && row["result"] != nil ? try DaybookDatabase.decode(AudioWindowResult.self,row["result"]) : nil
+                    // ASR is the durable text source; then prefer VAD and speaker evidence. Keep
+                    // the whole coherent snapshot/mapping, and prefer active rows on equal evidence.
+                    let evidence = (result?.asr == .success ? 4 : 0) + (result?.vad == .success ? 2 : 0) + (result?.speaker == .success ? 1 : 0)
+                    if evidence > bestEvidence { match = row; bestEvidence = evidence }
+                }
+                let id = try match?.requiredString("id") ?? window.id
+                retained.append((.init(id:id,sourceID:window.sourceID,configurationKey:window.configurationKey,coreStart:window.coreStart,coreEnd:window.coreEnd,ranges:window.ranges),match))
+            }
+            // v9 may already have replaced active jobs/descriptor without reconciling content.
+            // Prove the stored topic/content snapshot against the recovered history before its
+            // locator evidence is refreshed. A partial or mixed history cannot authorize a bridge.
+            if retained.allSatisfy({ $0.1 != nil }) {
+                try bridgeContentSnapshot(previous:previous,recovered:retained.compactMap { $0.1 })
+            }
             // Remove membership without deleting historical results. Leases of obsolete inputs are revoked.
-            let newIDs = Set(windows.map(\.id))
-            for row in try db.query("SELECT id FROM audio_processing_jobs WHERE source_key=? AND active=1", [.text(source.id.key)]) {
+            let newIDs = Set(retained.map { $0.0.id })
+            let activeRows = try db.query("SELECT id FROM audio_processing_jobs WHERE source_key=? AND active=1", [.text(source.id.key)])
+            if previous != nil, Set(try activeRows.map { try $0.requiredString("id") }) != newIDs {
+                // Restoring history can change evidence even when discovery returns the same URL.
+                try bump(source.id)
+            }
+            for row in activeRows {
                 let id = try row.requiredString("id")
                 if !newIDs.contains(id) {
                     try db.execute("UPDATE audio_processing_jobs SET active=0,lease=NULL,state=CASE WHEN state='running' THEN 'cancelled' ELSE state END WHERE id=?", [.text(id)])
                 }
             }
-            for window in windows {
+            for (window, previousJob) in retained {
                 try db.execute("INSERT OR IGNORE INTO audio_processing_jobs(id,source_key,configuration_key,core_start,core_end,window,state,active) VALUES (?,?,?,?,?,?,?,1)", [.text(window.id), .text(source.id.key), .text(configurationKey), .real(window.coreStart), .real(window.coreEnd), try DaybookDatabase.json(window), .text(cancelled ? "cancelled" : "pending")])
-                try db.execute("UPDATE audio_processing_jobs SET active=1 WHERE id=?", [.text(window.id)])
+                let relocated = try previousJob.map { try DaybookDatabase.decode(AudioProcessingWindow.self,$0["window"]) != window || $0["active"]?.double != 1 } ?? false
+                if relocated {
+                    // A worker holding the previous file URL must reclaim before committing.
+                    try db.execute("UPDATE audio_processing_jobs SET active=1,window=?,lease=NULL,state=CASE WHEN state='completed' THEN state WHEN ?=1 THEN 'cancelled' WHEN state IN ('running','cancelled') THEN 'pending' ELSE state END WHERE id=?",[try DaybookDatabase.json(window),.integer(cancelled ? 1 : 0),.text(window.id)])
+                } else {
+                    try db.execute("UPDATE audio_processing_jobs SET active=1 WHERE id=?", [.text(window.id)])
+                }
             }
         }
+    }
+
+    private func bridgeContentSnapshot(previous: DaybookDatabase.Row?, recovered: [DaybookDatabase.Row]? = nil) throws {
+        guard let previous, let key = previous["configuration_key"]?.string else { return }
+        var source = try DaybookDatabase.decode(AudioSourceSnapshot.self,previous["descriptor"])
+        guard let content = try db.query("SELECT signature,semantic_signature FROM content_segment_sources WHERE source_key=?",[.text(source.id.key)]).first,
+              content["semantic_signature"] == .null else { return }
+        let rows = try recovered ?? db.query("SELECT window,result_hash FROM audio_processing_jobs WHERE source_key=? AND configuration_key=? AND active=1 ORDER BY core_start,id",[.text(source.id.key),.text(key)])
+        let jobs = try rows.map {
+            (try DaybookDatabase.decode(AudioProcessingWindow.self,$0["window"]),$0["result_hash"]?.string ?? "")
+        }
+        if recovered != nil {
+            guard jobs.allSatisfy({ $0.0.sourceID == source.id && $0.0.configurationKey == key }) else { return }
+            var ranges: [AudioSourceRange] = []
+            for range in source.ranges {
+                let urls = Set(jobs.flatMap { $0.0.ranges }.filter {
+                    $0.chunkID == range.chunkID && $0.contentHash == range.contentHash && $0.sampleRate == range.sampleRate && $0.discontinuityBefore == range.discontinuityBefore
+                }.map(\.url))
+                guard urls.count == 1, let url = urls.first else { return }
+                ranges.append(try .init(range:.init(chunkID:range.chunkID,url:url,startFrame:range.startFrame,endFrame:range.endFrame,sampleRate:range.sampleRate,sessionStartOffset:range.sessionStartOffset,discontinuityBefore:range.discontinuityBefore),contentHash:range.contentHash))
+            }
+            guard let historical = try? AudioSourceSnapshot(id:source.id,capturedAt:source.capturedAt,title:source.title,origin:source.origin,location:source.location,ranges:ranges,complete:source.complete) else { return }
+            source = historical
+        }
+        guard content["signature"]?.string == AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs,legacy:true) else { return }
+        try db.execute("UPDATE content_segment_sources SET semantic_signature=? WHERE source_key=?",[.text(AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs)),.text(source.id.key)])
     }
 
     func claimNext() throws -> AudioProcessingJob? {

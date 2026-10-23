@@ -4,7 +4,8 @@ private func expect(_ condition: Bool, _ message: String) { if !condition { fata
 @MainActor private final class SuspendedInsight: DaybookInsightGenerating {
     var pending: [CheckedContinuation<DaybookInsightOutput, Error>] = []
     var requests: [(DaybookRetrieval.Prepared, String)] = []
-    func generate(_ evidence: DaybookRetrieval.Prepared, language: String, now: Date) async throws -> DaybookInsightOutput {
+    func generate(_ evidence: DaybookRetrieval.Prepared, configuration: AIConfiguration, apiKey: String?, language: String, now: Date,
+                  isCurrent: @escaping @MainActor () -> Bool) async throws -> DaybookInsightOutput {
         requests.append((evidence, language))
         return try await withCheckedThrowingContinuation { pending.append($0) }
     }

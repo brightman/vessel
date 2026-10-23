@@ -3,6 +3,7 @@ import Foundation
 
 @main struct RecordingChunkTransferSmoke {
     static func main() throws {
+        try tenMinuteCompatibility()
         func expect(_ condition: @autoclosure () throws -> Bool, _ message: String) rethrows {
             if try !condition() { fatalError(message) }
         }
@@ -446,4 +447,143 @@ import Foundation
         expect(corruptACKs == 0 && !FileManager.default.fileExists(atPath: corruptTemp.path), "invalid audio stays in durable inbox without ACK")
         print("RecordingChunkTransferSmoke passed")
     }
+    // Removing duration negotiation must block this real 600 s file or send it
+    // unsafely to an older phone. Only actual durable receiver ACKs release it.
+    static func tenMinuteCompatibility() throws {
+        let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let source = root.appendingPathComponent("ten-minute.m4a")
+        let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
+        do {
+            let writer = try AVAudioFile(forWriting: source, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000])
+            let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 8000)!
+            pcm.frameLength = 8000
+            for i in 0..<8000 { pcm.floatChannelData![0][i] = Float(sin(Double(i) * 0.1) * 0.1) }
+            for _ in 0..<1200 { try writer.write(from: pcm) }
+        }
+        let original = try Data(contentsOf: source)
+        let info = try RecordingAudioFile.inspect(source)
+        let long = RecordingChunkDescriptor(id: UUID(), sessionID: UUID(), ordinal: 0,
+            sessionStartedAt: Date(timeIntervalSince1970: 1700000000), capturedAt: Date(timeIntervalSince1970: 1700000000),
+            timeZoneIdentifier: "UTC", sessionStartOffset: 0, frameCount: 9_600_000, sampleRate: 16000,
+            byteCount: info.byteCount, sha256: info.sha256,
+            origin: .init(device: "synthetic", deviceID: "fixture", fileName: "original.m4a", recordingTimeIsEstimated: false), location: nil)
+        var files: [(URL, RecordingWireEnvelope<RecordingChunkDescriptor>)] = []
+        var ends: [RecordingWireEnvelope<RecordingSessionEnd>] = []
+        let ledger = root.appendingPathComponent("watch-ledger")
+        let queue = try WatchChunkTransferQueue(root: ledger,
+            sendFile: { files.append(($0, $1)) }, sendEnd: { ends.append($0) })
+        let repository = try RecordingSessionRepository(root: root.appendingPathComponent("phone-audio"),
+            database: DaybookDatabase(url: root.appendingPathComponent("metadata.sqlite3")))
+        var acks: [RecordingTransferAcknowledgement] = []
+        let receiver = try RecordingChunkReceiver(root: root.appendingPathComponent("receiver"),
+            openRepository: { repository }, send: { acks.append($0) })
+        try queue.update(chunks: [long], ends: [], audioURL: { _ in source })
+        let hello = try queue.beginHandshake()
+        let modern = try receiver.negotiate(hello, systemPairingID: "synthetic-pair")
+        precondition(modern.maximumChunkDuration == 600, "modern receiver explicitly advertises ten-minute files")
+        try queue.accept(modern)
+        try queue.pump()
+        precondition(files.count == 1 && ends.isEmpty, "600 s file must upload while recording has no end marker")
+        let temp = root.appendingPathComponent("wire.m4a")
+        try FileManager.default.copyItem(at: source, to: temp)
+        try receiver.stage(files[0].1, temporaryFile: temp)
+        precondition(acks.isEmpty, "staging is not a durable save")
+        try receiver.drain()
+        guard case .chunk(let saved) = acks.removeLast() else { fatalError("missing durable save") }
+        try queue.receive(saved)
+        precondition(queue.sessionStates.first?.savedChunkCount == 1 && queue.pendingCount == 1,
+            "durable early save cannot finalize active capture")
+
+        let blocked = RecordingChunkDescriptor(id: UUID(), sessionID: UUID(), ordinal: 0,
+            sessionStartedAt: long.sessionStartedAt, capturedAt: long.capturedAt, timeZoneIdentifier: "UTC",
+            sessionStartOffset: 0, frameCount: 9_600_000, sampleRate: 16000, byteCount: info.byteCount,
+            sha256: info.sha256, origin: long.origin, location: nil)
+        let end = RecordingSessionEnd(sessionID: blocked.sessionID, finalOrdinal: 0,
+            endedAt: blocked.capturedAt.addingTimeInterval(600), interrupted: false, revision: 0)
+        let legacyHello = try queue.beginHandshake()
+        let advertised = try receiver.negotiate(legacyHello, systemPairingID: "synthetic-pair")
+        var legacyJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(advertised)) as! [String: Any]
+        legacyJSON.removeValue(forKey: "maximumChunkDuration")
+        let legacy = try JSONDecoder().decode(RecordingCapabilityReply.self,
+            from: JSONSerialization.data(withJSONObject: legacyJSON))
+        precondition(legacy.maximumChunkDuration == nil, "old V2 reply decodes without a new field")
+        try queue.accept(legacy)
+        precondition(queue.maximumChunkDuration == 300 && !queue.requiresCompanionUpdate,
+            "legacy fallback must not flag already durably saved ten-minute audio")
+        try queue.update(chunks: [long, blocked], ends: [end], audioURL: { _ in source })
+        files.removeAll(); ends.removeAll()
+        try queue.pump(force: true)
+        precondition(files.isEmpty && ends.isEmpty, "missing maximum means 300 s: retain long file and its end")
+        precondition(queue.requiresCompanionUpdate, "unsaved unsupported audio requires companion update")
+        let ledgerFolder = ledger.appendingPathComponent(legacy.binding.counterpart.key)
+        let persisted = try FileManager.default.contentsOfDirectory(atPath: ledgerFolder.path)
+        precondition(!persisted.contains("chunk_\(blocked.id.uuidString).retry.json") &&
+            !persisted.contains("end_\(blocked.sessionID.uuidString)_0.retry.json"),
+            "unsupported work must not consume retry budget")
+        // Old short media remains sendable under the exact same legacy handshake.
+        let shortURL = root.appendingPathComponent("short.m4a")
+        do {
+            let writer = try AVAudioFile(forWriting: shortURL, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000])
+            let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1600)!
+            pcm.frameLength = 1600
+            for i in 0..<1600 { pcm.floatChannelData![0][i] = 0 }
+            for _ in 0..<3000 { try writer.write(from: pcm) }
+        }
+        let shortInfo = try RecordingAudioFile.inspect(shortURL)
+        let short = RecordingChunkDescriptor(id: UUID(), sessionID: UUID(), ordinal: 0,
+            sessionStartedAt: long.sessionStartedAt, capturedAt: long.capturedAt, timeZoneIdentifier: "UTC",
+            sessionStartOffset: 0, frameCount: 4_800_000, sampleRate: 16000, byteCount: shortInfo.byteCount,
+            sha256: shortInfo.sha256, origin: long.origin, location: nil)
+        try queue.update(chunks: [long, blocked, short], ends: [end], audioURL: { $0.id == short.id ? shortURL : source })
+        try queue.pump(force: true)
+        precondition(files.map { $0.1.payload.id } == [short.id] && ends.isEmpty,
+            "legacy companion must still receive compatible short audio")
+        files.removeAll()
+        let upgradedHello = try queue.beginHandshake()
+        try queue.accept(receiver.negotiate(upgradedHello, systemPairingID: "synthetic-pair"))
+        precondition(!queue.requiresCompanionUpdate && queue.maximumChunkDuration == 600,
+            "fresh capability releases update-needed state")
+        try queue.pump(force: true)
+        precondition(Set(files.map { $0.1.payload.id }) == Set([blocked.id, short.id]) && ends.count == 1,
+            "new handshake releases blocked original without retransmitting durable early save")
+        for (url, envelope) in files {
+            let wire = root.appendingPathComponent(UUID().uuidString + ".m4a")
+            try FileManager.default.copyItem(at: url, to: wire)
+            try receiver.stage(envelope, temporaryFile: wire)
+        }
+        try receiver.stage(ends[0]); try receiver.drain()
+        for ack in acks {
+            switch ack { case .chunk(let value): try queue.receive(value); case .end(let value): try queue.receive(value); case .location(let value): try queue.receive(value) }
+        }
+        precondition(queue.sessionStates.first { $0.id == blocked.sessionID }?.isComplete == true,
+            "upgraded durable file and end ACKs complete retained session")
+        let retained = try Data(contentsOf: source)
+        precondition(retained == original, "negotiation and retries preserve original AAC bytes")
+        for bad in [0.0, -1.0] {
+            let hello = try queue.beginHandshake()
+            let reply = try receiver.negotiate(hello, systemPairingID: "synthetic-pair")
+            var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(reply)) as! [String: Any]
+            json["maximumChunkDuration"] = bad
+            do {
+                try queue.accept(JSONDecoder().decode(RecordingCapabilityReply.self,
+                    from: JSONSerialization.data(withJSONObject: json)))
+                fatalError("invalid negotiated duration accepted")
+            } catch {}
+            precondition(queue.binding == nil, "malformed duration must not establish a binding")
+        }
+        for bad in [Double.nan, .infinity, -.infinity] {
+            let hello = try queue.beginHandshake()
+            let valid = try receiver.negotiate(hello, systemPairingID: "synthetic-pair")
+            do {
+                try queue.accept(.init(version: 2, versions: [2], binding: valid.binding, maximumChunkDuration: bad))
+                fatalError("nonfinite negotiated duration accepted")
+            } catch {}
+            precondition(queue.binding == nil, "nonfinite duration cannot establish a binding")
+        }
+    }
+
 }

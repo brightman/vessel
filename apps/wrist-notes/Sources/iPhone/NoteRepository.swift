@@ -1,4 +1,4 @@
-import AVFAudio
+import AVFoundation
 import Foundation
 import os
 
@@ -34,14 +34,19 @@ final class NoteRepository {
 
     @discardableResult
     func importRecording(id: UUID, from source: URL, kind: RecordingKind, capturedAt: Date, duration: TimeInterval,
-                         origin: RecordingOrigin? = nil, location: CaptureLocation? = nil) throws -> VoiceNote {
+                         origin: RecordingOrigin? = nil, location: CaptureLocation? = nil,
+                         mergedSources: [MergedRecordingSource]? = nil) throws -> VoiceNote {
         var copied: URL?
         let result: (VoiceNote, [VoiceNote])
         do {
             result = try db.transaction {
                 let current = try load()
                 var note = current.first { $0.id == id } ?? VoiceNote(id: id, kind: kind, capturedAt: capturedAt, duration: duration)
-                if !current.contains(where: { $0.id == id }) { note.origin = origin; note.location = location }
+                if !current.contains(where: { $0.id == id }) {
+                    note.origin = origin
+                    note.location = location
+                    note.mergedSources = mergedSources
+                }
                 let destination = try validatedURL(for: note)
                 if !files.fileExists(atPath: destination.path) {
                     try rejectSymlink(source)
@@ -101,16 +106,27 @@ final class NoteRepository {
     }
 
     func delete(id: UUID) throws {
+        try delete(ids: [id])
+    }
+
+    func delete(ids: [UUID]) throws {
+        let uniqueIDs = Array(Set(ids))
         let revised = try db.transaction {
-            if let note = try load().first(where: { $0.id == id }) {
+            let existing = try load()
+            var deletedIDs: [UUID] = []
+            for id in uniqueIDs {
+                guard let note = existing.first(where: { $0.id == id }) else { continue }
                 _ = try validatedURL(for: note)
                 try db.execute("INSERT OR REPLACE INTO media_tombstones(kind,id,filename,deleted_at) VALUES ('voice',?,?,?)", [.text(id.uuidString), .text(note.audioFilename), .real(Date.now.timeIntervalSinceReferenceDate)])
                 try db.execute("DELETE FROM voice_notes WHERE id=?", [.text(id.uuidString)])
+                deletedIDs.append(id)
             }
-            return try load()
+            return (try load(), deletedIDs)
         }
-        notes = revised
-        NotificationCenter.default.post(name:.init("WiseLife.LegacyAudioSourceDeleted"),object:nil,userInfo:["legacyNoteID":id])
+        notes = revised.0
+        for id in revised.1 {
+            NotificationCenter.default.post(name:.init("WiseLife.LegacyAudioSourceDeleted"),object:nil,userInfo:["legacyNoteID":id])
+        }
         cleanupTombstones()
     }
 
@@ -197,4 +213,62 @@ final class NoteRepository {
         if (try? files.attributesOfItem(atPath: url.path)[.type] as? FileAttributeType) == .typeSymbolicLink { throw invalidStorage() }
     }
     private func invalidStorage() -> DaybookDatabase.Failure { .init(code: 11, detail: "本地录音记录或路径无效，原始文件已保留") }
+}
+
+enum AudioRecordingMerger {
+    enum Failure: LocalizedError {
+        case insufficientSources
+        case missingAudio(URL)
+        case invalidAudio(URL)
+        case cannotExport
+        case exportFailed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .insufficientSources: String(localized: "至少选择两条长录音才能合并。")
+            case .missingAudio: String(localized: "有录音文件已不存在，请刷新列表后重试。")
+            case .invalidAudio: String(localized: "有录音文件无法读取，原条目仍已保留。")
+            case .cannotExport: String(localized: "无法创建合并录音，请检查设备可用空间。")
+            case .exportFailed: String(localized: "音频拼接失败，请保留原条目并稍后重试。")
+            }
+        }
+    }
+
+    static func merge(_ sources: [URL], to destination: URL) async throws -> TimeInterval {
+        guard sources.count >= 2 else { throw Failure.insufficientSources }
+        let composition = AVMutableComposition()
+        guard let destinationTrack = composition.addMutableTrack(withMediaType: .audio,
+            preferredTrackID: kCMPersistentTrackID_Invalid) else { throw Failure.cannotExport }
+
+        var insertionTime = CMTime.zero
+        for source in sources {
+            guard FileManager.default.fileExists(atPath: source.path) else { throw Failure.missingAudio(source) }
+            let asset = AVURLAsset(url: source)
+            let sourceTracks = try await asset.loadTracks(withMediaType: .audio)
+            guard let sourceTrack = sourceTracks.first else { throw Failure.invalidAudio(source) }
+            let timeRange = try await sourceTrack.load(.timeRange)
+            guard timeRange.duration.isValid, timeRange.duration.seconds.isFinite,
+                  timeRange.duration.seconds > 0 else { throw Failure.invalidAudio(source) }
+            do {
+                try destinationTrack.insertTimeRange(timeRange, of: sourceTrack, at: insertionTime)
+            } catch {
+                throw Failure.invalidAudio(source)
+            }
+            insertionTime = CMTimeAdd(insertionTime, timeRange.duration)
+        }
+
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        guard let exporter = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetAppleM4A) else {
+            throw Failure.cannotExport
+        }
+        do { try await exporter.export(to: destination, as: .m4a) }
+        catch { throw Failure.exportFailed(String(describing: error)) }
+        guard FileManager.default.fileExists(atPath: destination.path),
+              let output = try? AVAudioFile(forReading: destination), output.length > 0 else {
+            throw Failure.exportFailed("没有生成可播放的合并录音")
+        }
+        return insertionTime.seconds
+    }
 }

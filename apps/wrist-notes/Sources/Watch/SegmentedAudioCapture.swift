@@ -36,8 +36,8 @@ final class RecordingChunkWriter {
     private var stopped = false
     private(set) var effectiveFrames: Int64 = 0
     private let scratch: AVAudioPCMBuffer
-    static let sampleRate = 16_000.0
-    static let framesPerChunk: Int64 = 4_800_000
+    static let sampleRate = RecordingChunkProtocol.captureSampleRate
+    static let framesPerChunk = RecordingChunkProtocol.maximumChunkFrames
 
     init(sessionID: UUID, root: URL, startedAt: Date = .now,
          origin: RecordingOrigin = .init(device: "Watch", deviceID: "synthetic", fileName: "continuous-capture", recordingTimeIsEstimated: false),
@@ -231,7 +231,8 @@ final class RecordingCapturePipeline: @unchecked Sendable {
     func updateLocation(_ location: CaptureLocation) {
         worker.async {
             guard !self.finished else { return }
-            do { try self.writer.updateLocation(location) } catch { self.fail(error) }
+            // Optional metadata must never enter the terminal audio failure path.
+            try? self.writer.updateLocation(location)
         }
     }
     func interrupt(_ error: Error) { worker.async { self.fail(error) } }
@@ -310,13 +311,6 @@ final class SegmentedAudioCapture {
             case .storageUnavailable: "无法确认剩余存储空间，录音已停止"
             }
         }
-    }
-    static var developerEnabled: Bool {
-#if DEBUG
-        UserDefaults.standard.bool(forKey: "WiseLifeContinuousCaptureValidation")
-#else
-        false
-#endif
     }
     private let root: URL
     private let origin: RecordingOrigin

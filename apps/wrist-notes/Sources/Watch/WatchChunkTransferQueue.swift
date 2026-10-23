@@ -18,6 +18,10 @@ final class WatchChunkTransferQueue {
     private let now: () -> Date
     private let sendHello: (RecordingCapabilityHello) throws -> Void
     private let sendFile: (URL, RecordingWireEnvelope<RecordingChunkDescriptor>) throws -> Void
+    private let sendLocation: (RecordingWireEnvelope<RecordingLocationSample>) throws -> Void
+    private var locations: [RecordingLocationSample] = []
+    private var locationReceipts: [UUID: RecordingLocationSample] = [:]
+    private var supportsLocationSamples = false
     private let sendEnd: (RecordingWireEnvelope<RecordingSessionEnd>) throws -> Void
     private let outstandingFileCount: () -> Int
     private let isOutstanding: (UUID, Bool, RecordingTransferBinding) -> Bool
@@ -29,6 +33,11 @@ final class WatchChunkTransferQueue {
     private var challenge: RecordingCapabilityHello?
     private(set) var binding: RecordingTransferBinding?
     private(set) var unsupported = false
+    private(set) var maximumChunkDuration: TimeInterval?
+    var requiresCompanionUpdate: Bool {
+        guard binding != nil, let maximumChunkDuration else { return false }
+        return chunks.contains { chunkReceipts[$0.id] == nil && $0.duration > maximumChunkDuration }
+    }
     let watchID: UUID
     var lastSavedAt: Date? { chunkReceipts.values.map(\.savedAt).max() }
     var sessionStates: [WatchChunkSessionState] {
@@ -53,9 +62,11 @@ final class WatchChunkTransferQueue {
          isOutstanding: @escaping (UUID, Bool, RecordingTransferBinding) -> Bool = { _, _, _ in false },
          sendHello: @escaping (RecordingCapabilityHello) throws -> Void = { _ in },
          sendFile: @escaping (URL, RecordingWireEnvelope<RecordingChunkDescriptor>) throws -> Void,
-         sendEnd: @escaping (RecordingWireEnvelope<RecordingSessionEnd>) throws -> Void) throws {
+         sendEnd: @escaping (RecordingWireEnvelope<RecordingSessionEnd>) throws -> Void,
+         sendLocation: @escaping (RecordingWireEnvelope<RecordingLocationSample>) throws -> Void = { _ in }) throws {
         self.root = root; self.now = now; self.isOutstanding = isOutstanding
         self.outstandingFileCount = outstandingFileCount
+        self.sendLocation = sendLocation
         self.sendHello = sendHello; self.sendFile = sendFile; self.sendEnd = sendEnd
         try RecordingTransportDisk.directory(root)
         let identity = root.appendingPathComponent("watch.json")
@@ -67,7 +78,7 @@ final class WatchChunkTransferQueue {
         } else { watchID = UUID(); try RecordingTransportDisk.write(Identity(id: watchID, generation: 0), to: identity) }
     }
     @discardableResult func beginHandshake() throws -> RecordingCapabilityHello {
-        binding = nil; unsupported = false; chunkReceipts = [:]; endReceipts = [:]; challenge = nil
+        binding = nil; supportsLocationSamples = false; locationReceipts = [:]; maximumChunkDuration = nil; unsupported = false; chunkReceipts = [:]; endReceipts = [:]; challenge = nil
         guard generation < Int.max else { throw RecordingTransportError.invalidStorage }
         let next = generation + 1
         try RecordingTransportDisk.write(Identity(id: watchID, generation: next), to: root.appendingPathComponent("watch.json"))
@@ -85,21 +96,28 @@ final class WatchChunkTransferQueue {
         guard reply.version == 2, let hello = challenge,
               reply.binding.nonce == hello.nonce, reply.binding.watchID == watchID else { throw RecordingTransportError.invalidEnvelope }
         guard reply.versions.contains(2) else { unsupported = true; throw RecordingTransportError.unsupported }
+        let maximum = reply.maximumChunkDuration ?? RecordingChunkProtocol.legacyChunkDuration
+        guard maximum.isFinite, maximum > 0 else { throw RecordingTransportError.invalidEnvelope }
+        supportsLocationSamples = reply.supportsLocationSamples == true
+        maximumChunkDuration = maximum
         binding = reply.binding; challenge = nil; unsupported = false
         try loadReceipts()
     }
-    func update(chunks: [RecordingChunkDescriptor], ends: [RecordingSessionEnd],
+    func update(chunks: [RecordingChunkDescriptor], ends: [RecordingSessionEnd], locations: [RecordingLocationSample] = [],
                 audioURL: @escaping (RecordingChunkDescriptor) -> URL) throws {
-        self.chunks = chunks; self.ends = ends; self.audioURL = audioURL
+        self.chunks = chunks; self.ends = ends; self.locations = locations; self.audioURL = audioURL
         if binding != nil { try loadReceipts() }
     }
     func pump(force: Bool = false) throws {
-        guard let binding, let audioURL else { return }
+        guard let binding, let audioURL, let maximumChunkDuration else { return }
         var firstError: Error?
         // Small in-flight batch. Completion/periodic wake drives subsequent work.
         var submitted = max(outstandingFileCount(), chunks.filter { isOutstanding($0.id, false, binding) }.count)
         for chunk in chunks where chunkReceipts[chunk.id] == nil {
-            guard submitted < 4, !isOutstanding(chunk.id, false, binding) else { continue }
+            // Capability blocking is not a transport attempt: retain both media
+            // and retry budget until a fresh handshake advertises support.
+            guard chunk.duration <= maximumChunkDuration,
+                  submitted < 4, !isOutstanding(chunk.id, false, binding) else { continue }
             do {
                 let key = "chunk_\(chunk.id.uuidString)"
                 guard try due(key, force: force) else { continue }
@@ -111,7 +129,9 @@ final class WatchChunkTransferQueue {
             } catch { firstError = firstError ?? error }
         }
         for end in ends where endReceipts[end.sessionID] != end {
-            guard !isOutstanding(end.sessionID, true, binding) else { continue }
+            guard !chunks.contains(where: {
+                $0.sessionID == end.sessionID && chunkReceipts[$0.id] == nil && $0.duration > maximumChunkDuration
+            }), !isOutstanding(end.sessionID, true, binding) else { continue }
             do {
                 let key = "end_\(end.sessionID.uuidString)_\(end.revision)"
                 guard try due(key, force: force) else { continue }
@@ -119,6 +139,19 @@ final class WatchChunkTransferQueue {
                 try schedule(key)
                 try sendEnd(.init(binding: binding, payload: end))
             } catch { firstError = firstError ?? error }
+        }
+        if supportsLocationSamples {
+            // Independent bounded batch; GPS failures never prevent audio/end submission above.
+            var submittedLocations = 0
+            for sample in locations where locationReceipts[sample.id] == nil && submittedLocations < 4 {
+                do {
+                    let key = "location_\(sample.id.uuidString)"
+                    guard try due(key, force: force) else { continue }
+                    try sample.validate(); try schedule(key)
+                    try sendLocation(.init(binding: binding, payload: sample))
+                    submittedLocations += 1
+                } catch { firstError = firstError ?? error }
+            }
         }
         if let firstError { throw firstError }
     }
@@ -141,6 +174,13 @@ final class WatchChunkTransferQueue {
         guard ends.contains(value.payload) else { throw RecordingTransportError.conflict }
         try RecordingTransportDisk.write(value.payload, to: ledger("end_\(value.payload.sessionID.uuidString).json", binding: binding))
         endReceipts[value.payload.sessionID] = value.payload
+    }
+    func receive(_ value: RecordingWireEnvelope<RecordingLocationSample>) throws {
+        guard let binding else { throw RecordingTransportError.unavailable }
+        try value.validate(binding: binding); try value.payload.validate()
+        guard locations.contains(value.payload) else { throw RecordingTransportError.conflict }
+        try RecordingTransportDisk.write(value.payload, to: ledger("location_\(value.payload.id.uuidString).json", binding: binding))
+        locationReceipts[value.payload.id] = value.payload
     }
     private func ledger(_ name: String, binding: RecordingTransferBinding) -> URL {
         root.appendingPathComponent(binding.counterpart.key).appendingPathComponent(name)
@@ -177,6 +217,16 @@ final class WatchChunkTransferQueue {
             let value = try RecordingTransportDisk.read(RecordingSessionEnd.self, at: url)
             if value == end { completed[end.sessionID] = value }
         }
+        var observed: [UUID: RecordingLocationSample] = [:]
+        for sample in locations {
+            let url = ledger("location_\(sample.id.uuidString).json", binding: binding)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            // Optional metadata ledger damage cannot hold the audio upload queue.
+            // Retain the bytes and replay the independently stored observation.
+            guard let value = try? RecordingTransportDisk.read(RecordingLocationSample.self, at: url), value == sample else { continue }
+            observed[sample.id] = value
+        }
+        locationReceipts = observed
         chunkReceipts = saved; endReceipts = completed
     }
 }

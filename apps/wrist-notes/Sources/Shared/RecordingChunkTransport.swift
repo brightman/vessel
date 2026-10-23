@@ -22,6 +22,9 @@ struct RecordingCapabilityReply: Codable {
     let version: Int
     let versions: [Int]
     let binding: RecordingTransferBinding
+    // Missing in older V2 peers. Optional decoding preserves their wire reply.
+    var maximumChunkDuration: TimeInterval? = nil
+    var supportsLocationSamples: Bool? = nil
 }
 struct RecordingWireEnvelope<Payload: Codable & Equatable>: Codable, Equatable {
     var version = 2
@@ -42,19 +45,23 @@ struct RecordingSavedChunk: Codable, Equatable {
 enum RecordingTransferAcknowledgement {
     case chunk(RecordingWireEnvelope<RecordingSavedChunk>)
     case end(RecordingWireEnvelope<RecordingSessionEnd>)
+    case location(RecordingWireEnvelope<RecordingLocationSample>)
     var binding: RecordingTransferBinding {
-        switch self { case .chunk(let v): v.binding; case .end(let v): v.binding }
+        switch self { case .chunk(let v): v.binding; case .end(let v): v.binding; case .location(let v): v.binding }
     }
     func message() throws -> [String: Any] {
         switch self {
         case .chunk(let value): return [RecordingChunkProtocol.receiptKey: try JSONEncoder().encode(value)]
         case .end(let value): return [RecordingChunkWire.endReceiptKey: try JSONEncoder().encode(value)]
+        case .location(let value): return [RecordingChunkWire.locationReceiptKey: try JSONEncoder().encode(value)]
         }
     }
 }
 enum RecordingTransportError: Error { case invalidEnvelope, unsupported, unavailable, conflict, invalidStorage }
 
 enum RecordingChunkWire {
+    static let locationKey = "wiseLifeRecordingLocationV2"
+    static let locationReceiptKey = "wiseLifeRecordingLocationReceiptV2"
     static let endReceiptKey = "wiseLifeRecordingEndReceiptV2"
     static let offerKey = "wiseLifeRecordingCapabilityOfferV2"
     static let maximumMetadataBytes = 128 * 1024

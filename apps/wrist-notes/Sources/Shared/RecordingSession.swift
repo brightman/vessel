@@ -43,3 +43,23 @@ struct RecordingSourceRange: Equatable {
         guard url.isFileURL else { throw RecordingSessionValidationError.invalidField("url") }
     }
 }
+
+/// Capture identity is supplied only by the local recorder. A missing end on a
+/// receiving device does not establish that the Watch is currently recording.
+struct RecordingSessionSyncPresentation: Equatable {
+    enum Phase { case recording, awaitingEnd, syncing, complete }
+    let savedChunkCount: Int
+    let sealedChunkCount: Int
+    let phase: Phase
+    var isComplete: Bool { phase == .complete }
+
+    init(sessionID: UUID, activeSessionID: UUID?, savedChunkCount: Int,
+         sealedChunkCount: Int, hasEnd: Bool, syncComplete: Bool) {
+        self.sealedChunkCount = max(0, sealedChunkCount)
+        self.savedChunkCount = min(max(0, savedChunkCount), self.sealedChunkCount)
+        if activeSessionID == sessionID { phase = .recording }
+        else if !hasEnd { phase = .awaitingEnd }
+        else if syncComplete { phase = .complete }
+        else { phase = .syncing }
+    }
+}

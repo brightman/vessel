@@ -53,6 +53,20 @@ import CoreML
         ids[1] = 0; probs[1] = 0.4
         let ambiguous = try PyannoteActivityDecoder.decode(ids:ids,probabilities:probs,waveformShape:[2,1,64_000],inputFrames:96_000,validFrames:80_000)
         precondition(ambiguous == [.init(start:0,end:2,kind:.noSpeech),.init(start:2,end:4,kind:.uncertain),.init(start:4,end:5,kind:.noSpeech)])
+        // Real Core ML FP16 output from long AAC capture can be one ULP above one.
+        // It is strong activity evidence, never silence or a reason to drop a whole window.
+        probs[1] = NSNumber(value:1.0009765625)
+        let rounded = try PyannoteActivityDecoder.decode(ids:ids,probabilities:probs,waveformShape:[2,1,64_000],inputFrames:96_000,validFrames:80_000)
+        precondition(rounded == ambiguous,"FP16 overshoot must remain uncertain without an active mask")
+        ids[1] = 1
+        let roundedSpeech = try PyannoteActivityDecoder.decode(ids:ids,probabilities:probs,waveformShape:[2,1,64_000],inputFrames:96_000,validFrames:80_000)
+        precondition(roundedSpeech == [.init(start:0,end:2,kind:.noSpeech),.init(start:2,end:4,kind:.speech),.init(start:4,end:5,kind:.noSpeech)],"FP16 overshoot must retain active speech")
+        for invalid in [-0.0001,1.001953125,Double.infinity,Double.nan] {
+            probs[1] = NSNumber(value:invalid)
+            do { _ = try PyannoteActivityDecoder.decode(ids:ids,probabilities:probs,waveformShape:[2,1,64_000],inputFrames:96_000,validFrames:96_000); fatalError("invalid probability accepted") }
+            catch SpeechActivityError.invalidOutput { }
+        }
+        ids[1] = 0; probs[1] = 0.4
         probs[0] = NSNumber(value:Double.nan)
         do { _ = try PyannoteActivityDecoder.decode(ids:ids,probabilities:probs,waveformShape:[2,1,64_000],inputFrames:96_000,validFrames:96_000); fatalError("nonfinite output accepted") } catch { }
         if let root = ProcessInfo.processInfo.environment["BOUNDED_VAD_MODEL_ROOT"] {

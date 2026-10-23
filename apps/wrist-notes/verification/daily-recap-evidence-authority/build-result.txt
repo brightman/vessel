@@ -1,0 +1,3 @@
+Final generic iOS Simulator workspace build: exit 0
+BUILD SUCCEEDED
+No live AI requests or native UI automation performed.

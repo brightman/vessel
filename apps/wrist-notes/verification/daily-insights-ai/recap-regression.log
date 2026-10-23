@@ -1,0 +1,3 @@
+Daily recap evidence and SQLite tests passed
+Daily recap coordinator consent, stale output, retry and privacy tests passed
+Daily recap service bounded batching and citation checks passed (stub transport, no network)

@@ -14,11 +14,13 @@ final class RecordingChunkReceiver {
         let binding: RecordingTransferBinding
         let chunk: RecordingChunkDescriptor?
         let end: RecordingSessionEnd?
+        var location: RecordingLocationSample? = nil
     }
     private struct Outgoing: Codable {
         let counterpart: RecordingCounterpart
         let chunk: RecordingSavedChunk?
         let end: RecordingSessionEnd?
+        var location: RecordingLocationSample? = nil
         var nextAttempt: Date? = nil
     }
     private let retainUntilDelivery: Bool
@@ -96,7 +98,7 @@ final class RecordingChunkReceiver {
             try RecordingTransportDisk.write(identity, to: url)
             let value = RecordingTransferBinding(counterpart: .init(phoneID: identity.phoneID, pairingID: identity.pairings[key]!), watchID: hello.watchID, nonce: hello.nonce)
             binding = value
-            return .init(version: 2, versions: [2], binding: value)
+            return .init(version: 2, versions: [2], binding: value, maximumChunkDuration: RecordingChunkProtocol.chunkDuration, supportsLocationSamples: true)
         }
     }
     func stage(_ envelope: RecordingWireEnvelope<RecordingChunkDescriptor>, temporaryFile: URL) throws {
@@ -123,6 +125,15 @@ final class RecordingChunkReceiver {
         do {
             let folder = root.appendingPathComponent("Incoming").appendingPathComponent(UUID().uuidString)
             try RecordingTransportDisk.write(Incoming(binding: current, chunk: nil, end: envelope.payload), to: folder.appendingPathComponent("manifest.json"))
+            try event?(.inbox)
+        } catch { intakeFailed(error, counterpart: current.counterpart); throw error }
+    }
+    func stage(_ envelope: RecordingWireEnvelope<RecordingLocationSample>) throws {
+        guard let current = currentBinding else { throw RecordingTransportError.unavailable }
+        try envelope.validate(binding: current); try envelope.payload.validate()
+        do {
+            let folder = root.appendingPathComponent("Incoming").appendingPathComponent(UUID().uuidString)
+            try RecordingTransportDisk.write(Incoming(binding: current, chunk: nil, end: nil, location: envelope.payload), to: folder.appendingPathComponent("manifest.json"))
             try event?(.inbox)
         } catch { intakeFailed(error, counterpart: current.counterpart); throw error }
     }
@@ -165,7 +176,7 @@ final class RecordingChunkReceiver {
                 itemKey = incoming.binding.counterpart.key
                 status.include(itemKey)
                 let outgoing: Outgoing
-                if let chunk = incoming.chunk, incoming.end == nil {
+                if let chunk = incoming.chunk, incoming.end == nil, incoming.location == nil {
                     let audio = folder.appendingPathComponent("audio.m4a")
                     _ = try RecordingAudioFile.validate(chunk, at: audio)
                     try event?(.validate)
@@ -173,12 +184,16 @@ final class RecordingChunkReceiver {
                     let receipt = try repository.importChunk(chunk, from: audio, pairingID: incoming.binding.counterpart.key)
                     guard let savedAt = try repository.receiptSavedAt(chunkID: receipt.chunkID, pairingID: incoming.binding.counterpart.key) else { throw RecordingTransportError.invalidStorage }
                     outgoing = .init(counterpart: incoming.binding.counterpart, chunk: .init(receipt: receipt, savedAt: savedAt), end: nil)
-                } else if let end = incoming.end, incoming.chunk == nil {
+                } else if let end = incoming.end, incoming.chunk == nil, incoming.location == nil {
                     try repository.applyEnd(end, pairingID: incoming.binding.counterpart.key)
                     guard let stored = try repository.storedEnd(sessionID: end.sessionID), stored == end else { throw RecordingTransportError.conflict }
                     outgoing = .init(counterpart: incoming.binding.counterpart, chunk: nil, end: stored)
+                } else if let sample = incoming.location, incoming.chunk == nil, incoming.end == nil {
+                    try repository.importLocationSample(sample, pairingID: incoming.binding.counterpart.key)
+                    outgoing = .init(counterpart: incoming.binding.counterpart, chunk: nil, end: nil, location: sample)
                 } else { throw RecordingTransportError.invalidStorage }
-                NotificationCenter.default.post(name: Self.didChange, object: nil)
+                NotificationCenter.default.post(name: Self.didChange, object: nil,
+                    userInfo: incoming.location.map { ["sessionID": $0.sessionID, "locationUpdated": true] })
                 try event?(.commit)
                 try RecordingTransportDisk.write(outgoing, to: outboxURL(outgoing))
                 try event?(.outbox)
@@ -194,6 +209,7 @@ final class RecordingChunkReceiver {
     private func outboxURL(_ value: Outgoing) -> URL {
         let name: String
         if let chunk = value.chunk { name = "chunk_\(chunk.receipt.chunkID.uuidString)" }
+        else if let sample = value.location { name = "location_\(sample.id.uuidString)" }
         else { name = "end_\(value.end!.sessionID.uuidString)_\(value.end!.revision)" }
         return root.appendingPathComponent("Outgoing").appendingPathComponent("\(value.counterpart.key)_\(name).json")
     }
@@ -209,6 +225,9 @@ final class RecordingChunkReceiver {
                 case .chunk(let v):
                     try v.validate(binding: acknowledgement.binding)
                     expected = .init(counterpart: v.binding.counterpart, chunk: v.payload, end: nil)
+                case .location(let v):
+                    try v.validate(binding: acknowledgement.binding)
+                    expected = .init(counterpart: v.binding.counterpart, chunk: nil, end: nil, location: v.payload)
                 case .end(let v):
                     try v.validate(binding: acknowledgement.binding)
                     expected = .init(counterpart: v.binding.counterpart, chunk: nil, end: v.payload)
@@ -216,7 +235,7 @@ final class RecordingChunkReceiver {
                 let url = self.outboxURL(expected)
                 guard FileManager.default.fileExists(atPath: url.path) else { return }
                 var value = try RecordingTransportDisk.read(Outgoing.self, at: url)
-                guard value.counterpart == expected.counterpart, value.chunk == expected.chunk, value.end == expected.end else { return }
+                guard value.counterpart == expected.counterpart, value.chunk == expected.chunk, value.end == expected.end, value.location == expected.location else { return }
                 if succeeded { try FileManager.default.removeItem(at: url) }
                 else { value.nextAttempt = nil; try RecordingTransportDisk.write(value, to: url) }
             } catch { self.intakeFailed(error, counterpart: acknowledgement.binding.counterpart) }
@@ -241,12 +260,15 @@ final class RecordingChunkReceiver {
                 status.include(itemKey)
                 if let deadline = value.nextAttempt, deadline > now(), deadline.timeIntervalSince(now()) <= 3600 { continue }
                 let acknowledgement: RecordingTransferAcknowledgement
-                if let chunk = value.chunk, value.end == nil {
+                if let chunk = value.chunk, value.end == nil, value.location == nil {
                     try chunk.validate()
                     acknowledgement = .chunk(.init(binding: current, payload: chunk))
-                } else if let end = value.end, value.chunk == nil {
+                } else if let end = value.end, value.chunk == nil, value.location == nil {
                     try end.validate()
                     acknowledgement = .end(.init(binding: current, payload: end))
+                } else if let sample = value.location, value.chunk == nil, value.end == nil {
+                    try sample.validate()
+                    acknowledgement = .location(.init(binding: current, payload: sample))
                 } else { throw RecordingTransportError.invalidStorage }
                 try committed?(acknowledgement)
                 // Adapter must check the current system pairing again at submission.

@@ -1,0 +1,9 @@
+2026-10-22
+Workspace: apps/wrist-notes/WristNotes.xcworkspace
+Scheme: WristNotes
+Configuration: Debug
+Destination: generic/platform=iOS Simulator
+CODE_SIGNING_ALLOWED=NO
+Derived data: /private/tmp/wiselife-quick-recording-build
+Exit code: 0
+** BUILD SUCCEEDED **

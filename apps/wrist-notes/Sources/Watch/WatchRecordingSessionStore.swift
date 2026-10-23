@@ -41,6 +41,8 @@ final class WatchRecordingSessionStore {
     private var stored: [UUID: RecordingChunkDescriptor] = [:]
     private var receipts: Set<UUID> = []
     private var ends: [UUID: RecordingSessionEnd] = [:]
+    private var locations: [UUID: RecordingLocationSample] = [:]
+    var locationSamples: [RecordingLocationSample] { queue.sync { locations.values.sorted { ($0.sessionOffset, $0.id.uuidString) < ($1.sessionOffset, $1.id.uuidString) } } }
     private var problems: [String] = []
     var chunks: [RecordingChunkDescriptor] { queue.sync { stored.values.sorted { ($0.sessionStartedAt, $0.ordinal) < ($1.sessionStartedAt, $1.ordinal) } } }
     var pendingChunks: [RecordingChunkDescriptor] { queue.sync { stored.values.filter { !receipts.contains($0.id) }.sorted { $0.ordinal < $1.ordinal } } }
@@ -86,6 +88,19 @@ final class WatchRecordingSessionStore {
         try writeManifest(sessionID: chunk.sessionID)
     }
 
+    func saveLocationSample(_ sample: RecordingLocationSample) throws {
+        try queue.sync {
+            try sample.validate()
+            if let old = locations[sample.id] {
+                guard old == sample else { throw RecordingTransportError.conflict }
+                return
+            }
+            let url = root.appendingPathComponent(sample.sessionID.uuidString).appendingPathComponent("location_\(sample.id.uuidString).json")
+            try RecordingTransportDisk.write(sample, to: url)
+            locations[sample.id] = sample
+        }
+    }
+
     func finish(_ end: RecordingSessionEnd, reason: String? = nil) throws {
         try queue.sync {
             try finishLocked(end)
@@ -114,7 +129,7 @@ final class WatchRecordingSessionStore {
         try queue.sync {
             try RecordingAudioFile.requireSafePath(root)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-            stored = [:]; receipts = []; ends = [:]; problems = []
+            stored = [:]; receipts = []; ends = [:]; locations = [:]; problems = []
             for folder in try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) {
                 guard let sessionID = UUID(uuidString: folder.lastPathComponent) else { continue }
                 do { try recoverSession(folder, sessionID: sessionID) }
@@ -126,6 +141,13 @@ final class WatchRecordingSessionStore {
     private func recoverSession(_ folder: URL, sessionID: UUID) throws {
         try RecordingAudioFile.requireSafePath(folder)
         let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        for metadata in files where metadata.lastPathComponent.hasPrefix("location_") && metadata.pathExtension == "json" {
+            do {
+                let sample = try RecordingTransportDisk.read(RecordingLocationSample.self, at: metadata)
+                guard sample.sessionID == sessionID, metadata.lastPathComponent == "location_\(sample.id.uuidString).json" else { throw RecordingTransportError.invalidStorage }
+                locations[sample.id] = sample
+            } catch { problems.append("\(metadata.lastPathComponent): \(error)") }
+        }
         // Sidecars first, then intents; either independently restores final audio.
         for metadata in files.filter({ $0.lastPathComponent.hasSuffix(".m4a.json") }) + files.filter({ $0.lastPathComponent.hasSuffix(".m4a.seal.json") }) {
             do {
@@ -142,7 +164,7 @@ final class WatchRecordingSessionStore {
                 let intent = try read(RecordingCaptureIntent.self, at: metadata)
                 guard intent.context.sessionID == sessionID,
                       (0...RecordingChunkProtocol.maximumOrdinal).contains(intent.ordinal),
-                      intent.effectiveFrames > 0, intent.effectiveFrames <= 4_800_000,
+                      intent.effectiveFrames > 0, intent.effectiveFrames <= RecordingChunkProtocol.maximumChunkFrames,
                       metadata.lastPathComponent == intent.partialFilename + ".capture.json" else { throw RecordingAudioFile.ValidationError.descriptorMismatch }
                 if stored[intent.id] != nil { continue }
                 try recoverPartial(intent, folder: folder)

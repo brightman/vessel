@@ -58,6 +58,7 @@ final class LifeSourceModel: ObservableObject {
         scheduleRollover()
     }
     func isEnabled(_ source: LifeSource) -> Bool { store?.isEnabled(source) ?? false }
+    var storageIsAvailable: Bool { store != nil }
     func isSuppressed(_ id: UUID) -> Bool { store?.isSuppressed(id) ?? false }
     @discardableResult func confirmWake(_ id: UUID, expectedEnd: Date, confirmed: Bool) -> Bool {
         guard let store else { errorMessage = "生活数据尚未载入。"; return false }

@@ -160,9 +160,17 @@ final class DaybookDatabase: @unchecked Sendable {
         }
     }
     func transaction<T>(_ body: () throws -> T) throws -> T {
+        try transaction(immediate: true, body)
+    }
+    /// A consistent WAL snapshot for expensive derivation. Other connections may
+    /// write while this reads; release it before validating and publishing results.
+    func readTransaction<T>(_ body: () throws -> T) throws -> T {
+        try transaction(immediate: false, body)
+    }
+    private func transaction<T>(immediate: Bool, _ body: () throws -> T) throws -> T {
         lock.lock(); defer { lock.unlock() }
         let depth = transactionDepth, savepoint = "daybook_\(depth)"
-        try execute(depth == 0 ? "BEGIN IMMEDIATE" : "SAVEPOINT \(savepoint)")
+        try execute(depth == 0 ? (immediate ? "BEGIN IMMEDIATE" : "BEGIN DEFERRED") : "SAVEPOINT \(savepoint)")
         transactionDepth += 1
         defer { transactionDepth -= 1 }
         do {
@@ -192,7 +200,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 9 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 12 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -301,6 +309,26 @@ final class DaybookDatabase: @unchecked Sendable {
             try execute("CREATE TABLE IF NOT EXISTS content_enrichment_checkpoints (cache_key TEXT NOT NULL, unit TEXT NOT NULL, source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, segment_id TEXT, text TEXT NOT NULL, accepted_revision INTEGER, PRIMARY KEY(cache_key,unit))")
             try execute("CREATE TABLE IF NOT EXISTS content_topic_decisions (source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, signature TEXT NOT NULL, position REAL NOT NULL, decision TEXT NOT NULL, model_key TEXT NOT NULL, PRIMARY KEY(source_key,signature,position))")
             try execute("PRAGMA user_version = 9")
+        }
+
+        if version < 10 {
+            // Keep the existing signature as an enrichment/topic cache key when only locators
+            // change. This nullable digest allows exact semantic comparison for older snapshots.
+            if try !query("PRAGMA table_info(content_segment_sources)").contains(where: { $0["name"]?.string == "semantic_signature" }) {
+                try execute("ALTER TABLE content_segment_sources ADD COLUMN semantic_signature TEXT")
+            }
+            try execute("PRAGMA user_version = 10")
+        }
+
+        if version < 11 {
+            try execute("CREATE TABLE IF NOT EXISTS recording_location_samples (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES recording_sessions(id) ON DELETE CASCADE, session_offset REAL NOT NULL CHECK(session_offset >= 0), requested_at REAL NOT NULL, payload BLOB NOT NULL)")
+            try execute("CREATE INDEX IF NOT EXISTS recording_location_samples_session_time ON recording_location_samples(session_id,session_offset,requested_at,id)")
+            try execute("PRAGMA user_version = 11")
+        }
+
+        if version < 12 {
+            try execute("CREATE TABLE IF NOT EXISTS recording_location_addresses (sample_id TEXT PRIMARY KEY REFERENCES recording_location_samples(id) ON DELETE CASCADE, payload BLOB NOT NULL)")
+            try execute("PRAGMA user_version = 12")
         }
 
     }

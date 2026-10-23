@@ -194,7 +194,8 @@ struct RecordingSessionRepositorySmoke {
         try db.execute("PRAGMA user_version=4")
         let upgraded = try DaybookDatabase(url: db.url)
         let repo = try RecordingSessionRepository(root: root.appendingPathComponent("media"), database: upgraded)
-        try expect(try upgraded.query("PRAGMA user_version")[0]["user_version"] == .integer(9), "v4 upgraded to current schema")
+        let freshVersion = try DaybookDatabase(inMemory: true).query("PRAGMA user_version")[0]["user_version"]
+        try expect(try upgraded.query("PRAGMA user_version")[0]["user_version"] == freshVersion, "v4 upgraded to current schema")
         try expect(try upgraded.query("SELECT * FROM voice_notes") == originalRow, "legacy fields and payload unchanged")
         try expect(try NoteRepository(root: legacy, database: upgraded).notes == [note], "legacy note identity/full text/manual markers unchanged")
         try expect(try Data(contentsOf: legacyAudio) == Data(contentsOf: audio) && Data(contentsOf: legacy.appendingPathComponent("notes.json")) == legacyBytes, "legacy media/JSON bytes and path preserved")

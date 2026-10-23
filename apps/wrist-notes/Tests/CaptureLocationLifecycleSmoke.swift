@@ -24,6 +24,10 @@ private final class LocationManagerStub: CLLocationManager {
             CLLocation(coordinate: .init(latitude: 31.2, longitude: 121.5), altitude: 0,
                        horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: date.addingTimeInterval(seconds))
         }
+        let initialPolicyRevision = CaptureLocationSettings.revision
+        CaptureLocationSettings.setEnabled(false)
+        CaptureLocationSettings.setEnabled(true)
+        precondition(CaptureLocationSettings.revision != initialPolicyRevision, "Off/on must invalidate already queued location persistence")
         CaptureLocationSettings.setEnabled(false)
         service.begin(at: date, source: .phoneRecording) { received.append($0) }
         precondition(manager.starts == 0)

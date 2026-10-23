@@ -10,9 +10,9 @@ struct ContentSegmentationResult: Sendable {
     let state: ContentProcessingState
 }
 enum ContentSegmentation {
-    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange]) throws -> ContentSegmentationResult {
+    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = []) throws -> ContentSegmentationResult {
         try source.validate()
-        for interval in reliableNoSpeech + successfulCoverage { try interval.validate() }
+        for interval in reliableNoSpeech + successfulCoverage + asrEmpty + transcriptRanges { try interval.validate() }
         let silence = normalized(reliableNoSpeech)
         let coverage = normalized(successfulCoverage)
         var groups: [[AudioSourceRange]] = []
@@ -45,8 +45,53 @@ enum ContentSegmentation {
                 drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:end),isFinal:source.complete && covers(coverage,start:cursor,end:end)))
             }
         }
+        // ASR-empty successful coverage is retained as a low-information chapter. It is
+        // not acoustic silence and cannot authorize dropping media or transcript rows.
+        let speech = normalized(transcriptRanges)
+        var separated: [ContentSegmentDraft] = []
+        for draft in drafts {
+            guard let start=draft.ranges.first?.sessionStartOffset, let end=draft.ranges.last?.end else { continue }
+            let blanks=normalized(asrEmpty).filter { $0.end-$0.start >= 180 }
+            let cuts=blanks.flatMap { blank -> [Double] in
+                let gap=AudioTimeRange(start:max(start,blank.start),end:min(end,blank.end))
+                guard gap.end > gap.start else { return [] }
+                return [blank.start-start <= 2 ? nil : safeFrameCut(near:gap.start,in:gap,ranges:draft.ranges),end-blank.end <= 2 ? nil : safeFrameCut(near:gap.end,in:gap,ranges:draft.ranges)].compactMap { $0 }
+            }.filter { $0 > start && $0 < end }
+            for piece in try applyingTopicCuts(cuts,to:[draft]) {
+                guard let a=piece.ranges.first?.sessionStartOffset, let b=piece.ranges.last?.end else { continue }
+                var cursor=a
+                while b-cursor > 1800 {
+                    let target=cursor+1800, cap=min(b,cursor+2400)
+                    // Cut inside a real transcript-free gap, outside the closure of
+                    // overlapping rows. Exact ASR endpoints may round to adjacent audio
+                    // frames; an interior frame prevents assigning a raw row twice.
+                    let gaps=subtract([.init(start:cursor,end:cap)],speech)
+                    let safe=gaps.compactMap { safeFrameCut(near:target,in:$0,ranges:piece.ranges) }
+                    let cut=safe.min { abs($0-target) < abs($1-target) } ?? cap
+                    separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:cut),isFinal:piece.isFinal))
+                    cursor=cut
+                }
+                if cursor < b { separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:b),isFinal:piece.isFinal)) }
+            }
+        }
+        drafts=separated
         let done = source.complete && !source.ranges.isEmpty && allCovered
         return .init(segments:drafts,state:done ? (drafts.isEmpty ? .processedNoSpeech : .processed) : .pending)
+    }
+
+    private static func safeFrameCut(near target: Double, in gap: AudioTimeRange, ranges: [AudioSourceRange]) -> Double? {
+        var candidates: [Double] = []
+        for range in ranges {
+            let low=max(gap.start,range.sessionStartOffset), high=min(gap.end,range.end)
+            guard high > low else { continue }
+            let inset=min(1/range.sampleRate,(high-low)/3)
+            let desired=max(low+inset,min(high-inset,target))
+            let frame=((desired-range.sessionStartOffset)*range.sampleRate).rounded(.toNearestOrEven)
+            let cut=range.sessionStartOffset+frame/range.sampleRate
+            guard cut > gap.start, cut < gap.end, cut >= range.sessionStartOffset, cut <= range.end else { continue }
+            candidates.append(cut)
+        }
+        return candidates.min { abs($0-target) < abs($1-target) }
     }
 
     static func applyingTopicCuts(_ cuts: [Double], to drafts: [ContentSegmentDraft]) throws -> [ContentSegmentDraft] {
@@ -110,6 +155,8 @@ struct ContentSegmentProvenance: Codable, Equatable, Sendable {
     let algorithmVersion: String
     let configurationKey: String
     let contentSignature: String
+    /// Older cache keys are retained after proving equivalence to this locator-free digest.
+    var semanticContentSignature: String? = nil
 }
 struct ContentSegment: Codable, Equatable, Identifiable, Sendable {
     let id: UUID
@@ -123,6 +170,10 @@ struct ContentSegment: Codable, Equatable, Identifiable, Sendable {
     var isFinal: Bool
     var hasText: Bool
     var provenance: ContentSegmentProvenance
+    var displayTitle: String {
+        if !title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty { return title }
+        return hasText ? "录音片段" : (isFinal ? "未识别到文字" : "等待识别")
+    }
 }
 enum ContentSegmentError: Error { case notFound, staleRevision, invalidEdit, undoConflict }
 struct ContentSegmentationTraversal: Sendable {

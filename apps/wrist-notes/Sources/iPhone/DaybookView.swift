@@ -15,13 +15,13 @@ private enum DaybookSheet: Hashable, Identifiable {
 #if WISELIFE_EUREKA_RING
     case ring
 #endif
-    case record(UUID), lifeMoment(UUID, Date, Bool), reminder(DaybookReminderDraft), source(String)
+    case record(UUID), lifeMoment(UUID, Date, Bool), recap(Date), reminder(DaybookReminderDraft), source(String)
     var id: Self { self }
 }
 private enum DaybookFilter: String, CaseIterable {
-    case all = "全部", audio = "语音", image = "图片", thought = "闪念", life = "生活"
+    case all = "全部", audio = "语音", image = "图片", thought = "闪念", life = "生活", recap = "回顾"
     func includes(_ record: DayRecord) -> Bool {
-        switch self { case .all: true; case .audio: record.kind.isAudio; case .image: record.kind == .image; case .thought: record.kind == .thought; case .life: record.kind.isLife }
+        switch self { case .all: true; case .audio: record.kind.isAudio; case .image: record.kind == .image; case .thought: record.kind == .thought; case .life: record.kind.isLife; case .recap: false }
     }
 }
 
@@ -37,8 +37,10 @@ struct DaybookView: View {
     @StateObject private var semanticSearch = DaybookSemanticSearchModel()
     @StateObject private var assistant = DaybookAssistantModel()
     @StateObject private var dailyInsight = DaybookInsightModel()
+    @StateObject private var recaps = DaybookRecapModel()
     @EnvironmentObject private var life: LifeSourceModel
     @StateObject private var addresses = CaptureAddressModel()
+    @StateObject private var recordingAddresses = RecordingLocationAddressModel()
     @StateObject private var photos = PhotoLibraryModel()
     @EnvironmentObject private var recorder: PhoneRecorder
     @EnvironmentObject private var recording: PhoneRecordingSession
@@ -57,9 +59,14 @@ struct DaybookView: View {
     @State private var filter: DaybookFilter = .all
     @State private var deleteRecord: DayRecord?
     @State private var revealedRecordID: UUID?
+    @State private var selectedMergeIDs = Set<UUID>()
+    @State private var showMergeConfirmation = false
+    @State private var isMergingRecordings = false
+    @State private var mergeSelectionMessage: String?
     @State private var recorderMenu = false
     @State private var initialQuestion = ""
     @State private var citation: DayRecord.ContentProvenance?
+    @State private var recapSource: DayRecord?
     @State private var assistantID = UUID()
 
     private var records: [DayRecord] {
@@ -74,6 +81,11 @@ struct DaybookView: View {
         return (audio + sessionRecords + images + life.records + places + movements + moments).sorted { $0.capturedAt > $1.capturedAt }
     }
     private var dayRecords: [DayRecord] { records.compactMap { $0.recordingProjection(on: selectedDate) } }
+    private var homeRecapDay: Date { DaybookRecapInput.homeDay(selected: selectedDate, now: clockNow) }
+    private var recapDay: Date {
+        if case .recap(let date) = sheet ?? nextSheet { return date }
+        return homeRecapDay
+    }
     private var dayPhotoCount: Int { photos.moments.filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: selectedDate) }.reduce(0) { $0 + $1.photos.count } }
     private var shownRecords: [DayRecord] {
         let start = Calendar.current.startOfDay(for: selectedDate)
@@ -84,10 +96,25 @@ struct DaybookView: View {
                     && !($0.kind == .activity && $0.lifeMoment?.steps?.archived != true)
             }
     }
+    private var mergeListRecords: [DayRecord] {
+        guard page == .day || page == .library else { return [] }
+        return dayRecords
+    }
+    private var mergeEligibleIDs: Set<UUID> {
+        Set(mergeListRecords.compactMap { record in
+            guard record.kind == .voice, record.recordingSessionID == nil, record.parentRecordID == nil,
+                  model.canMergeLongRecording(record.id) else { return nil }
+            return record.id
+        })
+    }
+    private var canMergeSelection: Bool {
+        RecordingMergeSelection.canMerge(selectedMergeIDs, orderedIDs: mergeListRecords.map(\.id), eligibleIDs: mergeEligibleIDs)
+    }
     private var activeSemantic: DaybookSemanticMatches? {
         semanticSearch.validated(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds)
     }
     private var allowedKinds: Set<DayRecord.Kind> { preferences.allowedKinds }
+    private var sourceStorageAvailability: [Bool] { [model.storageIsAvailable, photos.storageIsAvailable, life.storageIsAvailable] }
     private var suggestionPreferences: [Int] {
         [preferences.proactiveEnabled ? 1 : 0, preferences.allowAudio ? 1 : 0, preferences.allowPhotos ? 1 : 0, preferences.allowHealth ? 1 : 0, preferences.allowCalendar ? 1 : 0, preferences.allowLocation ? 1 : 0,
          preferences.quietEnabled ? 1 : 0, preferences.quietStartMinutes, preferences.quietEndMinutes, preferences.dailySuggestionLimit]
@@ -124,6 +151,7 @@ struct DaybookView: View {
                             .onChange(of: page) { _, _ in proxy.scrollTo("pageTop", anchor: .top) }
                     }
                 }
+                if !selectedMergeIDs.isEmpty { mergeSelectionBar }
                 if recording.phase != .idle || recorder.requestingPermission { recordingBanner }
                 bottomBar
             }.background(DaybookStyle.paper).foregroundStyle(DaybookStyle.ink)
@@ -147,6 +175,12 @@ struct DaybookView: View {
                 } message: {
                     if deleteRecord?.contentProvenance != nil { Text("仅隐藏此派生片段，保留完整录音。") } else if deleteRecord?.recordingSessionID != nil { Text("这会删除本机完整会话、内容片段及全部原始音频。") }
                 }
+                .confirmationDialog("合并录音？", isPresented: $showMergeConfirmation, titleVisibility: .visible) {
+                    Button("合并所选", role: .destructive) { mergeSelectedRecordings() }
+                    Button("取消", role: .cancel) {}
+                } message: {
+                    Text("音频将按时间顺序拼接，并重新生成全文、总结与标题。保存新录音后会删除选中的原条目。外部 AI 仍按当前确认设置运行。")
+                }
                 .confirmationDialog("语音记录", isPresented: $recorderMenu, titleVisibility: .visible) {
                     if recorder.isRecording { Button("结束并保存") { recordingAction(.stop) } }
                     else if recording.phase == .failed { Button("重试保存") { recordingAction(.retry) } }
@@ -161,35 +195,43 @@ struct DaybookView: View {
     private var observedContent: some View {
         pageContent.buttonStyle(.plain).tint(DaybookStyle.accent).preferredColorScheme(settings.appearance.colorScheme)
             .environment(\.locale, settings.interfaceLanguage.locale)
-            .task { content.selectDay(selectedDate); assistant.scopeLoader = { scope in
-                let derived = try await content.load(scope:scope)
-                let parents = try await sessions.records(in:scope,legacyIDs:Set(model.notes.map(\.id)))
-                return ContentSegmentPresentation.evidenceRecords(legacyParents:model.notes.map(DaybookPlaces.voice),sessionParents:parents,derived:derived,scope:scope)
-            }; sessions.selectDay(selectedDate); synchronizeAssistant(); WiseLifeRuntime.shared.foreground(); synchronizeSuggestions(); life.setForeground(scenePhase == .active, day: selectedDate); synchronizeAddresses(); await reminders.refreshAuthorization() }
+            .task { await prepareDaybook() }
             .onChange(of: content.loading) { _, _ in synchronizeSemantic() }
             .onChange(of: content.revision) { _, _ in assistant.invalidateLoadedScope(); synchronizeAssistant() }
+            .onChange(of: sessions.revision) { _, _ in synchronizeRecaps(); synchronizeAddresses() }
+            .onChange(of: life.revision) { _, _ in synchronizeRecaps() }
+            .onChange(of: sourceStorageAvailability) { _, _ in synchronizeRecaps() }
             .onChange(of: records) { old, new in
+                if !selectedMergeIDs.isEmpty && !canMergeSelection {
+                    selectedMergeIDs = []
+                    mergeSelectionMessage = nil
+                }
                 synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses()
             }
+    }
+    private var preferenceObservedContent: some View {
+        observedContent
             .onChange(of: life.isEnabled(.location)) { _, _ in synchronizeAddresses() }
-            .onChange(of: search) { _, _ in synchronizeSemantic() }
+            .onChange(of: search) { _, _ in selectedMergeIDs = []; synchronizeSemantic() }
             .onReceive(NotificationCenter.default.publisher(for: .daybookSemanticChanged)) { notification in
                 guard let change = notification.object as? DaybookSemanticResourceChange else { return }
                 semanticSearch.resourcesChanged(change, active: page == .library && scenePhase == .active); assistant.cancel()
             }
             .onChange(of: allowedKinds) { _, _ in synchronizeAssistant() }
             .onChange(of: settings.interfaceLanguage) { _, _ in synchronizeInsights(); synchronizeAddresses() }
+            .onChange(of: settings.requiresRemoteAIConfirmation) { _, _ in synchronizeInsights() }
             .onChange(of: recorder.isRecording) { _, _ in synchronizeInsights() }
             .onChange(of: recorder.requestingPermission) { _, _ in synchronizeInsights() }
     }
 
     var body: some View {
-        observedContent
+        preferenceObservedContent
             .onChange(of: settings.ai) { _, _ in synchronizeAssistant() }
             .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant() }
             .onChange(of: suggestionPreferences) { _, _ in synchronizeSuggestions() }
-            .onChange(of: selectedDate) { _, _ in filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
-            .onChange(of: page) { _, value in if value == .day { search = "" }; synchronizeAssistant(); synchronizeSuggestions() }
+            .onChange(of: selectedDate) { _, _ in selectedMergeIDs = []; filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
+            .onChange(of: page) { _, value in selectedMergeIDs = []; if value == .day { search = ""; if filter == .recap { filter = .all } }; synchronizeAssistant(); synchronizeSuggestions() }
+            .onChange(of: filter) { _, _ in selectedMergeIDs = [] }
             .onChange(of: sheet) { _, _ in synchronizeSuggestions() }
             .onChange(of: recording.phase) { _, _ in synchronizeInsights() }
             .onChange(of: recording.lastSaved?.id) { _, id in
@@ -213,6 +255,19 @@ struct DaybookView: View {
                     }
                 }
             }
+    }
+
+    private func prepareDaybook() async {
+        recaps.scopeLoader = loadRecapRecords
+        content.selectDay(selectedDate)
+        assistant.scopeLoader = { scope in
+            let derived = try await content.load(scope: scope)
+            let parents = try await sessions.records(in: scope, legacyIDs: Set(model.notes.map(\.id)))
+            return ContentSegmentPresentation.evidenceRecords(legacyParents: model.notes.map(DaybookPlaces.voice), sessionParents: parents, derived: derived, scope: scope)
+        }
+        sessions.selectDay(selectedDate); synchronizeAssistant(); WiseLifeRuntime.shared.foreground(); synchronizeSuggestions()
+        life.setForeground(scenePhase == .active, day: selectedDate); synchronizeAddresses()
+        await reminders.refreshAuthorization()
     }
 
     private var header: some View {
@@ -257,7 +312,7 @@ struct DaybookView: View {
         VStack(alignment: .leading, spacing: 0) {
             DaybookDateHeading(date: selectedDate, hasRecords: !dayRecords.isEmpty, onDate: { present(.date) }).padding(.bottom, 20)
             DaybookOverview(records: dayRecords, photoCount: dayPhotoCount, date: selectedDate, now: clockNow, healthStale: life.snapshot(.health, day: selectedDate)?.isStale ?? false, onOpenRecord: openRecord, onOpenPlaces: { present(.places) }).padding(.bottom, 18)
-            dailyInsightCard
+            DaybookRecapHome(model: recaps, date: homeRecapDay, yesterday: Calendar.current.isDate(selectedDate, inSameDayAs: clockNow), onOpen: { present(.recap(homeRecapDay)) })
             if Calendar.current.isDate(selectedDate, inSameDayAs: clockNow),
                let candidate = suggestions.visibleCandidate(records: records, preferences: preferences, now: clockNow) { nudge(candidate) }
             else { aiHomeLink }
@@ -276,22 +331,25 @@ struct DaybookView: View {
     }
     private var libraryPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            pageHeading("留住那些片刻", title: "我的记录", subtitle: "\(DaybookFormat.day(selectedDate)) · \(dayRecords.count) 条记录")
+            pageHeading("留住那些片刻", title: "我的记录", subtitle: filter == .recap ? "按日期查看每日回顾" : "\(DaybookFormat.day(selectedDate)) · \(dayRecords.count) 条记录")
             HStack(spacing: 9) {
                 DaybookIcon("Search", size: 17).foregroundStyle(DaybookStyle.secondary)
-                TextField("搜索想法、片段或关键词", text: $search).font(.system(size: 12))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel("搜索想法、片段或关键词")
+                TextField(filter == .recap ? "搜索每日回顾" : "搜索想法、片段或关键词", text: $search).font(.system(size: 12))
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel(filter == .recap ? "搜索每日回顾" : "搜索想法、片段或关键词")
                     .onSubmit { synchronizeSemantic(resume: true) }
                     .focused($searchFocused).onAppear { searchFocused = focusSearchOnAppear; focusSearchOnAppear = false }
             }.padding(12).background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 14)).padding(.bottom, 20)
-            if !search.isEmpty {
+            if !search.isEmpty && filter != .recap {
                 Text(activeSemantic?.status ?? (semanticSearch.isSearching ? "正在本机检索；已显示文字匹配" : "按日期与关键词检索"))
                     .font(.caption).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 12)
             }
             filters
-            if content.loading { ProgressView("正在读取完整日期资料") }
-            recordList(shownRecords, home: false)
-            sessionMaintenance
+            if filter == .recap { recapLibrary }
+            else {
+                if content.loading { ProgressView("正在读取完整日期资料") }
+                recordList(shownRecords, home: false)
+                sessionMaintenance
+            }
         }
     }
     private var sessionMaintenance: some View {
@@ -313,10 +371,51 @@ struct DaybookView: View {
             }
         }.padding(.top, 12)
     }
+    private var recapLibraryEntries: [DaybookRecapEntry] {
+        let calendar = Calendar.current
+        let dates = records.map(\.capturedAt) + content.calendarDates + sessions.calendarDates
+        var entries = Dictionary(uniqueKeysWithValues: recaps.entries.map { ($0.dayKey, $0) })
+        for date in Set(dates.map { calendar.startOfDay(for: $0) }) where date <= clockNow {
+            let key = DaybookRecapInput.key(date)
+            if entries[key] == nil {
+                entries[key] = DaybookRecapEntry(input: DaybookRecapInput.prepare(records: [], day: date, allowedKinds: []))
+            }
+        }
+        return entries.values.filter { $0.matches(search) }.sorted { $0.dayKey > $1.dayKey }
+    }
+    private var recapLibrary: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if recaps.isLoading { ProgressView("正在读取每日回顾…") }
+            if let error = recaps.storageError {
+                Text(error).font(.caption).foregroundStyle(DaybookStyle.red)
+                Button("重试读取回顾") { recaps.reload() }
+            } else {
+                Text("按日期查看每日回顾 · \(recapLibraryEntries.count) 天").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                if recapLibraryEntries.isEmpty && !recaps.isLoading {
+                    DaybookEmptyView(title: "没有找到每日回顾", text: "试试其他日期或关键词。", icon: "BookOpen")
+                }
+                ForEach(recapLibraryEntries) { entry in
+                    if entry.text != nil {
+                        DaybookRecapCard(entry: entry, stale: recaps.isStale(entry), onOpen: { present(.recap(entry.scope.start)) })
+                    } else {
+                        Button { present(.recap(entry.scope.start)) } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("\(DaybookFormat.day(entry.scope.start)) · 回顾").font(.system(size: 14, weight: .medium))
+                                    Text("点开整理这一天的记录").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                                }
+                                Spacer(); DaybookIcon("ChevronRight", size: 14)
+                            }.padding(18).background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 18))
+                        }.buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
     private var filters: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 7) {
-                ForEach(DaybookFilter.allCases, id: \.self) { item in
+                ForEach(DaybookFilter.allCases.filter { $0 != .recap || page == .library }, id: \.self) { item in
                     Button { filter = item } label: {
                         Text(LocalizedStringKey(item.rawValue)).font(.system(size: 10)).padding(.horizontal, 12).padding(.vertical, 7)
                             .foregroundStyle(filter == item ? DaybookStyle.paper : DaybookStyle.secondary)
@@ -332,24 +431,98 @@ struct DaybookView: View {
             DaybookEmptyView(title: home ? "这里留了一点空白" : search.isEmpty ? "还没有这样的片段" : "没有找到这段记录",
                 text: home ? "可以换个筛选，或用右下角的“记此刻”留下今天。" : search.isEmpty ? "下一次记录，会出现在这里。" : "试试更短的关键词，或切换记录类型。", icon: home ? "BookOpen" : "Search")
         } else {
-            ForEach(values) { record in recordListRow(record) }
+            ForEach(values) { record in recordListRow(record, orderedRecords: mergeListRecords) }
         }
     }
-    @ViewBuilder private func recordListRow(_ record: DayRecord) -> some View {
+    @ViewBuilder private func recordListRow(_ record: DayRecord, orderedRecords: [DayRecord]) -> some View {
         if record.parentRecordID != nil {
             Button { openRecord(record.id) } label: { DaybookRecordRow(record: record) }
         } else {
-            DaybookSwipeRow(id: record.id, revealedID: $revealedRecordID, onDelete: { deleteRecord = record }) {
+            let selected = selectedMergeIDs.contains(record.id)
+            let mergeEligible = mergeEligibleIDs.contains(record.id)
+            DaybookSwipeRow(id: record.id, revealedID: $revealedRecordID, onDelete: { deleteRecord = record },
+                onSelect: mergeEligible ? { toggleMergeSelection(record, in: orderedRecords) } : nil,
+                isSelected: selected) {
                 Button {
                     if revealedRecordID == record.id { revealedRecordID = nil }
+                    else if !selectedMergeIDs.isEmpty && mergeEligible { toggleMergeSelection(record, in: orderedRecords) }
                     else { openRecord(record.id) }
                 } label: {
-                    DaybookRecordRow(record: record, thumbnails: thumbnails(record), photoCount: photoCount(record), status: recordStatus(record))
+                    DaybookRecordRow(record: record, thumbnails: thumbnails(record), photoCount: photoCount(record), status: recordStatus(record),
+                        showsMergeSelection: !selectedMergeIDs.isEmpty && mergeEligible, isMergeSelected: selected)
                 }
             }.contextMenu {
                 Button("打开") { openRecord(record.id) }
                 Button("删除", role: .destructive) { deleteRecord = record }
             }.accessibilityAction(named: "删除记录") { deleteRecord = record }
+        }
+    }
+    private var mergeSelectionBar: some View {
+        VStack(spacing: 8) {
+            if let mergeSelectionMessage {
+                Text(LocalizedStringKey(mergeSelectionMessage)).font(.system(size: 10)).foregroundStyle(DaybookStyle.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text("已选择").font(.system(size: 12, weight: .semibold))
+                        Text("\(selectedMergeIDs.count)").font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                    }
+                    Text("相邻长录音").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                }
+                Spacer(minLength: 0)
+                Button("取消选择") { selectedMergeIDs = []; mergeSelectionMessage = nil }
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(DaybookStyle.secondary)
+                    .disabled(isMergingRecordings)
+                Button { showMergeConfirmation = true } label: {
+                    HStack(spacing: 5) {
+                        if isMergingRecordings { ProgressView().controlSize(.mini).tint(DaybookStyle.paper) }
+                        else { DaybookIcon("AudioLines", size: 14) }
+                        Text(isMergingRecordings ? "正在合并录音…" : "合并所选").font(.system(size: 11, weight: .medium))
+                    }.foregroundStyle(DaybookStyle.paper).padding(.horizontal, 13).padding(.vertical, 10)
+                        .background(DaybookStyle.ink, in: Capsule())
+                }.disabled(!canMergeSelection || isMergingRecordings)
+                    .opacity(canMergeSelection && !isMergingRecordings ? 1 : 0.45)
+            }
+        }.padding(.horizontal, 23).padding(.vertical, 11)
+            .background(DaybookStyle.white).overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+    }
+
+    private func toggleMergeSelection(_ record: DayRecord, in orderedRecords: [DayRecord]) {
+        let orderedIDs = orderedRecords.map(\.id)
+        let eligibleIDs = Set<UUID>(orderedRecords.compactMap { candidate -> UUID? in
+            guard candidate.kind == .voice, candidate.recordingSessionID == nil, candidate.parentRecordID == nil,
+                  model.canMergeLongRecording(candidate.id) else { return nil }
+            return candidate.id
+        })
+        guard RecordingMergeSelection.canAdd(record.id, to: selectedMergeIDs, orderedIDs: orderedIDs, eligibleIDs: eligibleIDs) else {
+            mergeSelectionMessage = "只能选择相邻长录音。"
+            return
+        }
+        if selectedMergeIDs.contains(record.id) { selectedMergeIDs.remove(record.id) }
+        else { selectedMergeIDs.insert(record.id) }
+        mergeSelectionMessage = nil
+    }
+
+    private func mergeSelectedRecordings() {
+        guard let orderedIDs = RecordingMergeSelection.orderedSelection(selectedMergeIDs,
+            orderedIDs: mergeListRecords.map(\.id), eligibleIDs: mergeEligibleIDs) else {
+            mergeSelectionMessage = "请选择至少两条相邻长录音。"
+            return
+        }
+        isMergingRecordings = true
+        Task {
+            let mergedID = await model.mergeLongRecordings(orderedIDs)
+            isMergingRecordings = false
+            guard let mergedID else { return }
+            selectedMergeIDs = []
+            mergeSelectionMessage = nil
+            if let merged = model.note(mergedID) {
+                showToday()
+                selectedDate = merged.capturedAt
+            }
+            openRecord(mergedID)
         }
     }
     private var insightsPage: some View {
@@ -529,6 +702,10 @@ struct DaybookView: View {
     }
     @ViewBuilder private func sheetContent(_ value: DaybookSheet) -> some View {
         switch value {
+        case .recap(let date):
+            DaybookRecapDetailView(model: recaps, date: date, onOpen: { id in
+                recapSource = recaps.record(id); citation = recapSource?.contentProvenance; present(.record(id))
+            }, onClose: { sheet = nil })
         case .capture: DaybookCaptureMenu(voice: { sheet = nil; recordingAction(.start) }, image: { present(.photo) })
         case .places: DaybookPlacesView(records: dayRecords.filter { $0.kind == .location && $0.location != nil }, date: selectedDate, onOpen: openRecord, onClose: { sheet = nil })
         case .photo: PhotoCaptureView(library: photos, onSaved: { date in showToday(); selectedDate = date })
@@ -544,7 +721,7 @@ struct DaybookView: View {
         case .record(let id):
             if content.contains(id) {
                 ContentSegmentDetailView(segmentID:id,playbackAllowed:!recorder.isRecording && !recorder.requestingPermission,citation:citation)
-            } else if sessions.session(id) != nil {
+            } else if sessions.session(id) != nil || (recapSource?.id == id && recapSource?.recordingSessionID != nil) {
                 RecordingSessionDetailView(sessionID: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
             } else if model.note(id) != nil {
                 DaybookVoiceDetailView(id: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
@@ -554,6 +731,10 @@ struct DaybookView: View {
                 DaybookPlaceDetailView(record: record, onOpenParent: openRecord, onClose: { sheet = nil })
             } else if let record = life.records.first(where: { $0.id == id }) {
                 LifeRecordDetailView(record: record, model: life, onClose: { sheet = nil })
+            } else if let record = recapSource, record.id == id, record.lifeMoment != nil {
+                LifeMomentDetailView(record: record, model: life, onOpen: openRecord, onClose: { sheet = nil })
+            } else if let record = recapSource, record.id == id, record.kind == .location {
+                DaybookPlaceDetailView(record: record, onOpenParent: openRecord, onClose: { sheet = nil })
             } else {
                 PhotoDetailView(momentID: id, library: photos, onAskAI: {
                     if let moment = photos.moments.first(where: { $0.id == id }) { selectedDate = moment.capturedAt }
@@ -615,9 +796,9 @@ struct DaybookView: View {
                 Text(LocalizedStringKey(model.watchStatus.title)).font(.system(size: 20, weight: .semibold)).padding(.bottom, 10)
                 Text(LocalizedStringKey(model.watchStatus.message)).font(.system(size: 12)).lineSpacing(6).multilineTextAlignment(.center).foregroundStyle(DaybookStyle.secondary)
                 VStack(spacing: 0) {
-                    watchFact("配对状态", value: !model.watchStatus.isSupported ? "不可用" : model.watchStatus.isPaired ? "已配对" : "未配对")
+                    watchFact("配对状态", value: !model.watchStatus.isSupported ? "不可用" : !model.watchStatus.isActivated ? "检查中" : model.watchStatus.isPaired ? "已配对" : "未配对")
                     DaybookStyle.line.frame(height: 1)
-                    watchFact("手表 App", value: !model.watchStatus.isSupported ? "不可用" : model.watchStatus.isInstalled ? "已安装" : "未安装")
+                    watchFact("手表 App", value: !model.watchStatus.isSupported ? "不可用" : !model.watchStatus.isActivated ? "检查中" : model.watchStatus.isInstalled ? "已安装" : "未安装")
                     DaybookStyle.line.frame(height: 1)
                     watchFact("待同步录音", value: model.watchStatus.pendingLabel)
                     DaybookStyle.line.frame(height: 1)
@@ -662,6 +843,7 @@ struct DaybookView: View {
     }
     private func openRecord(_ id: UUID) {
         citation = nil
+        recapSource = nil
         if let record = records.first(where: { $0.id == id && $0.lifeMoment != nil }) {
             present(.lifeMoment(id, record.capturedAt, record.lifeMoment?.sleep != nil && record.lifeMoment?.sleep?.endedAt == nil))
         } else { present(.record(id)) }
@@ -681,6 +863,9 @@ struct DaybookView: View {
         switch note.transcriptionState { case .pending: return "等待转写 · 原始录音已保存"; case .running: return "正在端上转写"; case .ready: return "点开回听录音"; case .unavailable, .failed: return "转写未完成 · 点开可重试" }
     }
     private func synchronizeAddresses() {
+        recordingAddresses.synchronize(sessionIDs: sessions.daySessions.map(\.id), day: selectedDate,
+            localeIdentifier: settings.interfaceLanguage.locale.identifier,
+            enabled: life.isEnabled(.location), foreground: scenePhase == .active)
         let audio = model.notes.compactMap { note -> CaptureAddressRequest? in
             note.location.map { .init(owner: .voice(note.id), date: note.capturedAt, point: $0) }
         }
@@ -719,12 +904,43 @@ struct DaybookView: View {
         life.refreshForCalendarChange(now: now, day: selectedDate)
     }
     private func synchronizeInsights(now: Date = .now) {
+        synchronizeRecaps()
         dailyInsight.synchronize(records: records, selectedDate: selectedDate, preferences: preferences,
             language: settings.interfaceLanguage.rawValue, foreground: scenePhase == .active,
-            capturing: recording.phase != .idle || recorder.requestingPermission, now: now)
+            capturing: recording.phase != .idle || recorder.requestingPermission, now: now, settings: settings)
+    }
+    private func synchronizeRecaps() {
+        recaps.synchronize(day: recapDay, records: records, revisions: [content.revision, sessions.revision] + sourceStorageAvailability.map { $0 ? 1 : 0 },
+            settings: settings, allowedKinds: allowedKinds, foreground: scenePhase == .active,
+            capturing: recording.phase != .idle || recorder.requestingPermission)
+    }
+    private func loadRecapRecords(_ scope: DateInterval) async throws -> [DayRecord] {
+        let kinds = allowedKinds
+        let needsAudio = kinds.contains(.voice) || kinds.contains(.thought)
+        let needsLocation = kinds.contains(.location)
+        guard (!(needsAudio || needsLocation) || model.storageIsAvailable),
+              (!(kinds.contains(.image) || needsLocation) || photos.storageIsAvailable),
+              (!kinds.contains(where: \.isLife) || life.storageIsAvailable) else { throw DaybookRecapFailure.storage }
+        let revision = [content.revision, sessions.revision]
+        let derived: [DayRecord]
+        do { derived = needsAudio ? try await content.load(scope: scope) : [] }
+        catch ContentSegmentError.staleRevision { throw DaybookRecapFailure.changed }
+        let parents = needsAudio ? try await sessions.records(in: scope, legacyIDs: Set(model.notes.map(\.id))) : []
+        guard revision == [content.revision, sessions.revision], kinds == allowedKinds else { throw DaybookRecapFailure.changed }
+        guard (!(needsAudio || needsLocation) || model.storageIsAvailable),
+              (!(kinds.contains(.image) || needsLocation) || photos.storageIsAvailable),
+              (!kinds.contains(where: \.isLife) || life.storageIsAvailable) else { throw DaybookRecapFailure.storage }
+        let audio = ContentSegmentPresentation.evidenceRecords(legacyParents: model.notes.map(DaybookPlaces.voice), sessionParents: parents, derived: derived, scope: scope)
+        let places = DaybookPlaces.records(notes: model.notes, photos: photos.moments)
+        let movements = LocationMovementBuilder.records(points: places).filter { !life.isSuppressed($0.id) }
+        // Use the day's actual health snapshot. Timeline placeholders and yesterday's step archive
+        // are UI entries, not additional factual evidence for this day.
+        let other = photos.moments.map(DaybookPlaces.photo) + life.records + places + movements
+        return (audio + other.compactMap { $0.recordingProjection(from: scope.start, to: scope.end) })
+            .filter { kinds.contains($0.kind) }
     }
     private func synchronizeSemantic(resume: Bool = false) {
-        semanticSearch.synchronize(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds, active: page == .library && scenePhase == .active && !content.loading, resume: resume)
+        semanticSearch.synchronize(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds, active: page == .library && filter != .recap && scenePhase == .active && !content.loading, resume: resume)
     }
     private func synchronizeAssistant(resumeSemantic: Bool = false) {
         synchronizeSemantic(resume: resumeSemantic)

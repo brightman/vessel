@@ -163,6 +163,8 @@ struct DaybookRecordRow: View {
     var thumbnails: [URL] = []
     var photoCount = 0
     var status: String? = nil
+    var showsMergeSelection = false
+    var isMergeSelected = false
     @ViewBuilder private var displayTitle: some View {
         if record.recordingSessionID != nil { Text("完整录音") }
         else if record.kind == .location && record.location != nil && record.location?.address == nil { Text("地点待解析") }
@@ -178,7 +180,13 @@ struct DaybookRecordRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 5) {
                     displayTitle.font(.system(size: 14, weight: .semibold)).lineSpacing(4).lineLimit(2)
-                    Spacer(minLength: 0); DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary)
+                    Spacer(minLength: 0)
+                    if showsMergeSelection {
+                        Image(systemName: isMergeSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 19, weight: .regular))
+                            .foregroundStyle(isMergeSelected ? DaybookStyle.accent : DaybookStyle.secondary)
+                            .padding(.leading, 4)
+                    } else { DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary) }
                 }.padding(.bottom, 5)
                 Group {
                     if record.recordingSessionID != nil { Text(LocalizedStringKey(status ?? "")) }
@@ -219,19 +227,22 @@ struct DaybookSwipeRow<Content: View>: View {
     let id: UUID
     @Binding var revealedID: UUID?
     let onDelete: () -> Void
+    var onSelect: (() -> Void)? = nil
+    var isSelected = false
     @ViewBuilder var content: Content
     @State private var translation: CGFloat = 0
     @State private var horizontalDrag: Bool?
     @State private var revealedOffset: CGFloat = -76
     private let actionWidth: CGFloat = 76
     private var offset: CGFloat {
-        min(actionWidth, max(-actionWidth, (revealedID == id ? revealedOffset : 0) + translation))
+        let leadingLimit = onSelect == nil ? 0 : actionWidth
+        return min(leadingLimit, max(-actionWidth, (revealedID == id ? revealedOffset : 0) + translation))
     }
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                if offset > 0 { deleteButton }
+                if offset > 0 { selectButton }
                 Spacer(minLength: 0)
                 if offset < 0 { deleteButton }
             }
@@ -248,7 +259,7 @@ struct DaybookSwipeRow<Content: View>: View {
                     if horizontalDrag == true {
                         let projected = (revealedID == id ? revealedOffset : 0) + value.predictedEndTranslation.width
                         withAnimation(.easeOut(duration: 0.18)) {
-                            if projected > actionWidth / 2 {
+                            if onSelect != nil && projected > actionWidth / 2 {
                                 revealedID = id; revealedOffset = actionWidth
                             } else if projected < -actionWidth / 2 {
                                 revealedID = id; revealedOffset = -actionWidth
@@ -272,6 +283,22 @@ struct DaybookSwipeRow<Content: View>: View {
                 .background(DaybookStyle.red, in: RoundedRectangle(cornerRadius: 12))
         }.allowsHitTesting(revealedID == id)
             .accessibilityHidden(revealedID != id).padding(.bottom, 12)
+    }
+
+    private var selectButton: some View {
+        Button {
+            revealedID = nil
+            onSelect?()
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                    .font(.system(size: 17, weight: .medium))
+                Text(isSelected ? "已选择" : "选择").font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(.white).frame(width: actionWidth).frame(maxHeight: .infinity)
+            .background(DaybookStyle.accent, in: RoundedRectangle(cornerRadius: 12))
+        }.allowsHitTesting(revealedID == id && onSelect != nil)
+            .accessibilityHidden(revealedID != id || onSelect == nil).padding(.bottom, 12)
     }
 }
 

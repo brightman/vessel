@@ -2,6 +2,8 @@ import Foundation
 import CryptoKit
 
 enum AudioWindowPlanner {
+    // Partitioning and inference configuration are unchanged. Locator-independent identity is
+    // migrated by the repository, so bumping this would incorrectly isolate reusable results.
     static let algorithmVersion = "frames-midpoint-v1"
     static func plan(source: AudioSourceSnapshot, configurationKey: String, maximumCoreDuration: Double = 300) throws -> [AudioProcessingWindow] {
         try source.validate()
@@ -33,11 +35,7 @@ enum AudioWindowPlanner {
                 }
                 guard coreEnd > cursor else { throw AudioProcessingError.invalidInput }
                 let slices = try slices(group, start: max(start, cursor - 2), end: min(end, coreEnd + 2))
-                struct Identity: Encodable {
-                    let algorithm: String; let source: AudioSourceID; let config: String
-                    let coreStart: Double; let coreEnd: Double; let ranges: [AudioSourceRange]
-                }
-                let id = AudioStableID.make(Identity(algorithm: algorithmVersion, source: source.id, config: configurationKey, coreStart: cursor, coreEnd: coreEnd, ranges: slices))
+                let id = AudioProcessingWindow(id:"",sourceID:source.id,configurationKey:configurationKey,coreStart:cursor,coreEnd:coreEnd,ranges:slices).contentIdentity
                 windows.append(AudioProcessingWindow(id: id, sourceID: source.id, configurationKey: configurationKey, coreStart: cursor, coreEnd: coreEnd, ranges: slices))
                 cursor = coreEnd
             }

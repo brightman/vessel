@@ -30,6 +30,19 @@ struct AudioSourceRange: Codable, Equatable, Sendable {
     let sessionStartOffset: Double
     let discontinuityBefore: String?
     let contentHash: String
+    /// A sandbox URL is a locator, never evidence that the underlying audio changed.
+    struct ContentIdentity: Codable, Equatable, Sendable {
+        let chunkID: UUID
+        let startFrame: Int64
+        let endFrame: Int64
+        let sampleRate: Double
+        let sessionStartOffset: Double
+        let discontinuityBefore: String?
+        let contentHash: String
+    }
+    var contentIdentity: ContentIdentity {
+        .init(chunkID:chunkID,startFrame:startFrame,endFrame:endFrame,sampleRate:sampleRate,sessionStartOffset:sessionStartOffset,discontinuityBefore:discontinuityBefore,contentHash:contentHash)
+    }
     var duration: Double { Double(endFrame - startFrame) / sampleRate }
     var end: Double { sessionStartOffset + duration }
     var recordingRange: RecordingSourceRange {
@@ -43,6 +56,17 @@ struct AudioSourceRange: Codable, Equatable, Sendable {
         self.contentHash = contentHash.lowercased()
     }
     func validate() throws { _ = try Self(range: recordingRange, contentHash: contentHash) }
+
+    /// Refresh a sliced playback range only when the current source proves its bytes/time mapping.
+    func relocated(in source: AudioSourceSnapshot) throws -> AudioSourceRange {
+        guard let current = source.ranges.first(where: {
+            guard $0.chunkID == chunkID, $0.contentHash == contentHash, $0.sampleRate == sampleRate,
+                  $0.discontinuityBefore == discontinuityBefore, $0.startFrame <= startFrame, $0.endFrame >= endFrame else { return false }
+            let mapped = $0.sessionStartOffset + Double(startFrame - $0.startFrame) / sampleRate
+            return abs(mapped-sessionStartOffset) <= 2 * (mapped.ulp + sessionStartOffset.ulp)
+        }) else { return self }
+        return try .init(range:.init(chunkID:chunkID,url:current.url,startFrame:startFrame,endFrame:endFrame,sampleRate:sampleRate,sessionStartOffset:sessionStartOffset,discontinuityBefore:discontinuityBefore),contentHash:contentHash)
+    }
 }
 
 struct AudioSourceOrigin: Codable, Equatable, Sendable {
@@ -67,7 +91,15 @@ struct AudioSourceSnapshot: Codable, Equatable, Sendable {
     let location: CaptureLocation?
     let ranges: [AudioSourceRange]
     let complete: Bool
-    var fingerprint: String { AudioStableID.make(ranges) }
+    var fingerprint: String { AudioStableID.make(ranges.map(\.contentIdentity)) }
+    var contentIdentity: String {
+        struct Identity: Encodable {
+            let id: AudioSourceID; let capturedAt: Date; let title: String
+            let origin: AudioSourceOrigin?; let location: CaptureLocation?
+            let ranges: [AudioSourceRange.ContentIdentity]; let complete: Bool
+        }
+        return AudioStableID.make(Identity(id:id,capturedAt:capturedAt,title:title,origin:origin,location:location,ranges:ranges.map(\.contentIdentity),complete:complete))
+    }
     init(id: AudioSourceID, capturedAt: Date, title: String, origin: AudioSourceOrigin? = nil, location: CaptureLocation? = nil, ranges: [AudioSourceRange], complete: Bool) throws {
         self.id = id; self.capturedAt = capturedAt; self.title = title; self.origin = origin; self.location = location
         self.ranges = ranges; self.complete = complete
@@ -100,6 +132,22 @@ struct AudioProcessingWindow: Codable, Equatable, Sendable {
     var inputStart: Double { ranges.first?.sessionStartOffset ?? coreStart }
     var inputEnd: Double { ranges.last?.end ?? coreEnd }
     var inputDuration: Double { ranges.reduce(0) { $0 + $1.duration } }
+    var contentIdentity: String {
+        struct Identity: Encodable {
+            let algorithm: String; let source: AudioSourceID; let config: String
+            let coreStart: Double; let coreEnd: Double; let ranges: [AudioSourceRange.ContentIdentity]
+        }
+        return AudioStableID.make(Identity(algorithm:AudioWindowPlanner.algorithmVersion,source:sourceID,config:configurationKey,coreStart:coreStart,coreEnd:coreEnd,ranges:ranges.map(\.contentIdentity)))
+    }
+}
+
+/// Shared only to bridge pre-relocation derivation signatures before source/job locators change.
+enum AudioContentSnapshotIdentity {
+    static let algorithmVersion = "asr-blank-180-chapters-1800-cap-2400-v2"
+    static func make(source: AudioSourceSnapshot, key: String, jobs: [(AudioProcessingWindow, String)], legacy: Bool = false) -> String {
+        AudioStableID.make([legacy ? AudioStableID.make(source) : source.contentIdentity,key,algorithmVersion,
+            AudioStableID.make(jobs.map { [legacy ? $0.0.id : $0.0.contentIdentity,$0.1] })])
+    }
 }
 struct AudioTranscriptSpan: Codable, Equatable, Sendable {
     let start: Double

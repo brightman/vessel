@@ -283,7 +283,8 @@ final class ChatGPTAccountModel: ObservableObject {
     }
 
     func complete(instruction: String, content: String, modelID: String, accountID: String,
-                  isCurrent: @escaping @MainActor () -> Bool = { true }) async throws -> String {
+                  isCurrent: @escaping @MainActor () -> Bool = { true },
+                  sourceIsCurrent: @escaping @MainActor () async throws -> Bool = { true }) async throws -> String {
         try Task.checkCancellation()
         guard isCurrent() else { throw CancellationError() }
         guard !storageFailed else { throw ChatGPTError.storage }
@@ -303,6 +304,10 @@ final class ChatGPTAccountModel: ObservableObject {
             let requestID = UUID()
             let task = Task { [weak self, api] in
                 try Task.checkCancellation()
+                // A recording's SQLite data may change while credentials/catalog load.
+                // Validate that immutable source scope after those suspension points.
+                guard try await sourceIsCurrent() else { throw CancellationError() }
+                try Task.checkCancellation()
                 guard let self, isCurrent(), self.isReady, self.generation == version,
                       self.selectedID == accountID else { throw CancellationError() }
                 // This MainActor check is immediately before invoking the transport.
@@ -312,7 +317,7 @@ final class ChatGPTAccountModel: ObservableObject {
             defer { requestTasks[requestID] = nil }
             let text = try await withTaskCancellationHandler(operation: { try await task.value }, onCancel: { task.cancel() })
             try Task.checkCancellation()
-            guard isCurrent(), version == generation, selectedID == accountID else { throw CancellationError() }
+            guard try await sourceIsCurrent(), isCurrent(), version == generation, selectedID == accountID else { throw CancellationError() }
             return text
         } catch { if version == generation { record(error) }; throw error }
     }

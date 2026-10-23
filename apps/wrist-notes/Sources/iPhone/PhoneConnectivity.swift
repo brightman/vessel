@@ -47,11 +47,13 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             return
         }
         let session = WCSession.default
+        let isActivated = session.activationState == .activated
+        let isPaired = isActivated && session.isPaired
         var status = PhoneWatchStatus(
-            isPaired: session.isPaired, isInstalled: session.isWatchAppInstalled,
-            isActivated: session.activationState == .activated, isReachable: session.isReachable
+            isPaired: isPaired, isInstalled: isPaired && session.isWatchAppInstalled,
+            isActivated: isActivated, isReachable: isPaired && session.isReachable
         )
-        if session.isWatchAppInstalled, let pairingID = activePairingID {
+        if status.isInstalled, let pairingID = activePairingID {
             status.phoneSaveFailed = failureLock.withLock { !(localSaveFailures[pairingID] ?? []).isEmpty }
             let snapshot = WatchSyncSnapshot.decode(session.receivedApplicationContext)
             if let request = WatchSyncRetryRequest.decode(session.applicationContext) {
@@ -70,6 +72,18 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                     }
                     let sessions = try store.readSessions(counterpartID: binding.counterpart.key)
                     if let count = sessions.pendingCount { status.pendingCount = (status.pendingCount ?? 0) + count }
+                    status.recordingTransfers = sessions.sessionTransfers.map { transfer in
+                        PhoneWatchStatus.TransferRow(
+                            sessionID: transfer.sessionID,
+                            receivedChunkCount: transfer.receivedChunkCount,
+                            totalChunkCount: transfer.totalChunkCount,
+                            phase: transfer.phase,
+                            transferringChunkOrdinal: transfer.transferringChunkOrdinal,
+                            currentChunkFraction: transfer.currentChunkFraction,
+                            reportedAt: transfer.reportedAt,
+                            isComplete: transfer.isComplete
+                        )
+                    }
                     status.lastSyncedAt = [summary.lastSyncedAt, sessions.lastSyncedAt].compactMap { $0 }.max()
                     status.reportedAt = [summary.reportedAt, sessions.reportedAt].compactMap { $0 }.max()
                 } else {
@@ -110,6 +124,7 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             let store = try self.syncStore()
             switch acknowledgement {
             case .chunk(let value): try store.recordSaved(value.payload, counterpartID: value.binding.counterpart.key)
+            case .location: break // Location receipts do not claim audio coverage.
             case .end(let value): try store.recordEnd(value.payload, counterpartID: value.binding.counterpart.key)
             }
         })
@@ -127,7 +142,7 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
         catch { logger.error("Inbox temporarily unavailable: \(error.localizedDescription, privacy: .public)") }
         if WCSession.isSupported() {
             WCSession.default.delegate = self
-            logger.notice("Phone session activating; paired: \(WCSession.default.isPaired, privacy: .public), Watch app installed: \(WCSession.default.isWatchAppInstalled, privacy: .public)")
+            logger.notice("Phone session activating")
             WCSession.default.activate()
         } else {
             logger.error("Phone session is not supported")
@@ -174,6 +189,10 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                 let payload: [String: Any] = [RecordingChunkProtocol.capabilityKey: try JSONEncoder().encode(response)]
                 if let reply { reply(payload) } else { WCSession.default.transferUserInfo(payload) }
                 resumeRecordingInbox()
+            } else if message[RecordingChunkWire.locationKey] != nil {
+                guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
+                try chunkReceiver.stage(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingLocationSample>.self, key: RecordingChunkWire.locationKey, from: message))
+                resumeRecordingInbox(); reply?(["accepted": true])
             } else if message[RecordingChunkProtocol.endKey] != nil {
                 guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
                 try chunkReceiver.stage(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSessionEnd>.self, key: RecordingChunkProtocol.endKey, from: message))
@@ -196,6 +215,9 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             if info[RecordingChunkProtocol.receiptKey] != nil {
                 let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSavedChunk>.self, key: RecordingChunkProtocol.receiptKey, from: info)
                 chunkReceiver.deliveryFinished(.chunk(value), succeeded: error == nil)
+            } else if info[RecordingChunkWire.locationReceiptKey] != nil {
+                let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingLocationSample>.self, key: RecordingChunkWire.locationReceiptKey, from: info)
+                chunkReceiver.deliveryFinished(.location(value), succeeded: error == nil)
             } else if info[RecordingChunkWire.endReceiptKey] != nil {
                 let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSessionEnd>.self, key: RecordingChunkWire.endReceiptKey, from: info)
                 chunkReceiver.deliveryFinished(.end(value), succeeded: error == nil)
@@ -253,10 +275,17 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     }
 
     func requestSyncRetry() throws {
-        guard WCSession.isSupported(), activePairingID != nil, WCSession.default.isWatchAppInstalled else {
+        let session = WCSession.default
+        let isActivated = session.activationState == .activated
+        let hasPairingID = activePairingID != nil
+        let isPaired = isActivated && session.isPaired
+        let isInstalled = isActivated && hasPairingID && isPaired && session.isWatchAppInstalled
+        guard PhoneWatchStatus.canRequestSyncRetry(
+            isSupported: WCSession.isSupported(), isActivated: isActivated,
+            hasPairingID: hasPairingID, isPaired: isPaired, isInstalled: isInstalled
+        ) else {
             throw RetryError.unavailable
         }
-        let session = WCSession.default
         let handledID = WatchSyncSnapshot.decode(session.receivedApplicationContext)?.lastHandledRetryID
         do {
             try contextLock.withLock {
@@ -419,7 +448,11 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
-        logger.notice("Phone session activation completed with state \(state.rawValue, privacy: .public), paired: \(session.isPaired, privacy: .public), Watch app installed: \(session.isWatchAppInstalled, privacy: .public), reachable: \(session.isReachable, privacy: .public), error: \(error != nil, privacy: .public)")
+        let isActivated = state == .activated
+        let isPaired = isActivated && session.isPaired
+        let isInstalled = isPaired && session.isWatchAppInstalled
+        let isReachable = isPaired && session.isReachable
+        logger.notice("Phone session activation completed with state \(state.rawValue, privacy: .public), paired: \(isPaired, privacy: .public), Watch app installed: \(isInstalled, privacy: .public), reachable: \(isReachable, privacy: .public), error: \(error != nil, privacy: .public)")
         refreshStatus()
         if state == .activated { syncLocationPreference(); offerChunkProtocol(); drainInbox(); resumeRecordingInbox() }
     }

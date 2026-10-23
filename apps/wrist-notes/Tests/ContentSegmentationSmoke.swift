@@ -35,11 +35,84 @@ import Foundation
         try check(ContentSegmentation.build(source:source([]),reliableNoSpeech:[],successfulCoverage:[]).state == .pending,"empty input cannot prove no-speech")
         let short = try source([range(0,60)])
         try check(ContentSegmentation.build(source:short,reliableNoSpeech:[.init(start:0,end:60)],successfulCoverage:[.init(start:0,end:60)]).state == .processedNoSpeech,"short ambient recording has explicit no-speech state")
+        try fractionalBoundaryFixtures()
+        try chapterFixtures()
         try persistentFixtures()
         try coverageFixtures()
         try undoCausalityFixtures()
         print("Content intervals: 599/600/601, file/midnight continuity, gaps, padding, partial coverage passed")
     }
+    static func fractionalBoundaryFixtures() throws {
+        let db=try DaybookDatabase(inMemory:true)
+        let processing=AudioProcessingRepository(database:db), r=ContentSegmentRepository(database:db)
+        let s=try source([range(0,2400)])
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(s.id.id.uuidString)])
+        try processing.register(source:s,configurationKey:"fractional",windows:AudioWindowPlanner.plan(source:s,configurationKey:"fractional"))
+        let rows:[AudioTranscriptSpan]=[.init(start:0,end:10,text:"start"),.init(start:1787.1399999999999,end:1788.4,text:"fractional boundary"),.init(start:2000,end:2010,text:"tail")]
+        while let job=try processing.claimNext() {
+            let a=job.window.coreStart,b=job.window.coreEnd
+            try processing.commit(job:job,result:.init(spans:rows.filter { ($0.start+$0.end)/2 >= a && ($0.start+$0.end)/2 < b },activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        try r.reconcile(sourceID:s.id)
+        let segments=try r.segments(sourceID:s.id)
+        let assigned=try segments.flatMap { try r.spans(segmentID:$0.id) }
+        try check(assigned.count == rows.count && Set(assigned.map { $0.text }).count == rows.count,"fractional ASR blank edges assign every raw row exactly once after frame slicing")
+        let overlap=try ContentSegmentation.build(source:source([range(0,3600)]),reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:3600)],transcriptRanges:[.init(start:1780,end:1805.18),.init(start:1804,end:1820.32)])
+        let cut=overlap.segments[0].ranges.last!.end
+        try check(cut <= 1780 || cut >= 1820.32,"safe chapter cuts are outside transitive overlapping ASR closure")
+    }
+
+    static func chapterFixtures() throws {
+        let db = try DaybookDatabase(inMemory:true)
+        let p = AudioProcessingRepository(database:db), r = ContentSegmentRepository(database:db)
+        let duration = 6.0*3600+42*60
+        let s = try source([range(0,duration)])
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(s.id.id.uuidString)])
+        try p.register(source:s,configurationKey:"chapters",windows:AudioWindowPlanner.plan(source:s,configurationKey:"chapters"))
+        var rawCount=0
+        while let job = try p.claimNext() {
+            let a=job.window.coreStart, b=job.window.coreEnd
+            let rows = stride(from:a,to:b,by:20).map { AudioTranscriptSpan(start:$0,end:min($0+19,b),text:"Source fact at \($0)") }
+            rawCount += rows.count
+            try p.commit(job:job,result:.init(spans:rows,activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        try r.reconcile(sourceID:s.id)
+        let chapters=try r.segments(sourceID:s.id)
+        try check(chapters.count >= 13 && chapters.count <= 15,"6h42m speech-heavy source has roughly30m deterministic chapters")
+        try check(chapters.allSatisfy { $0.ranges.last!.end-$0.ranges[0].sessionStartOffset <= 2400 },"automatic chapter cap40m")
+        try check(chapters.flatMap { try r.spans(segmentID:$0.id) }.count == rawCount,"chapters preserve every transcript row exactly once")
+        // Simulate an old derivation row spanning the entire long source. Re-derive
+        // from existing inference, with no new ASR jobs and no raw transcript mutation.
+        let historical=ContentSegment(id:chapters[0].id,sourceID:s.id,sourceRevision:chapters[0].sourceRevision,ranges:s.ranges,title:"Old giant segment",summary:"",revision:chapters[0].revision,isManual:false,isFinal:true,hasText:true,provenance:.init(algorithmVersion:"confirmed-gap-600-padding-2-v1",configurationKey:"chapters",contentSignature:"old-content"))
+        try db.execute("UPDATE content_segments SET deleted=1 WHERE source_key=?",[.text(s.id.key)])
+        try db.execute("UPDATE content_segments SET deleted=0,payload=? WHERE id=?",[try DaybookDatabase.json(historical),.text(historical.id.uuidString)])
+        try db.execute("UPDATE content_segment_sources SET signature='old-strategy',semantic_signature='old-strategy' WHERE source_key=?",[.text(s.id.key)])
+        try r.reconcile(sourceID:s.id)
+        let refreshed=try r.segments(sourceID:s.id)
+        try check(refreshed.count == chapters.count && p.claimNext() == nil,"strategy upgrade replaces old giant segment without re-ASR")
+        let safeSource=try source([range(0,3000)])
+        let safe=try ContentSegmentation.build(source:safeSource,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:3000)],transcriptRanges:[.init(start:1795,end:1815)])
+        try check(abs(safe.segments[0].ranges.last!.end-1795) < 0.001,"chapter prefers nearby row edge over splitting a word")
+        let manual=try r.split(id:refreshed[0].id,at:500,expectedRevision:refreshed[0].revision)
+        try r.reconcile(sourceID:s.id)
+        try check(r.segments(sourceID:s.id).filter(\.isManual).map(\.id) == manual.map(\.id),"chapter reconcile retains manual edits")
+        let blankSource=try source([range(0,900)])
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(blankSource.id.id.uuidString)])
+        try p.register(source:blankSource,configurationKey:"blank",windows:AudioWindowPlanner.plan(source:blankSource,configurationKey:"blank"))
+        while let job=try p.claimNext() {
+            let a=job.window.coreStart,b=job.window.coreEnd
+            let rows:[AudioTranscriptSpan] = a == 0 ? [.init(start:0,end:100,text:"before")] : [.init(start:max(a,400),end:b,text:"after")].filter { $0.end > $0.start }
+            try p.commit(job:job,result:.init(spans:rows,activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        try r.reconcile(sourceID:blankSource.id)
+        let blanks=try r.segments(sourceID:blankSource.id)
+        try check(blanks.count == 3 && !blanks[1].hasText && abs(blanks[1].ranges[0].sessionStartOffset-100) < 0.001 && abs(blanks[1].ranges.last!.end-400) < 0.001,"three-minute ASR-empty coverage with VAD speech is retained low-information separator")
+        try check(blanks[1].displayTitle == "未识别到文字","ASR-empty chapter label does not claim silence")
+        try check(r.state(sourceID:blankSource.id) == .processed,"ASR blank is not reported as acoustic silence")
+        try check(db.query("SELECT text FROM audio_transcript_spans").count == rawCount+3,"raw transcript rows remain unchanged")
+        print("Content chapters: real SQLite6h42m,30m target,40m cap, ASR blank/VAD speech, all raw rows/manual edits retained passed")
+    }
+
     static func persistentFixtures() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }
@@ -64,9 +137,9 @@ import Foundation
         try check(recovery.segments(sourceID:s.id).isEmpty,"fixture has committed inference with no derived snapshot")
         try recovery.reconcile(sourceID:s.id)
         var segments = try repository.segments(sourceID:s.id)
-        try check(segments.count == 1,"crossing text conservatively protects noSpeech boundary")
-        let original = segments[0]
-        try check(repository.spans(segmentID:original.id).count == 3,"same text at distinct source times retained")
+        try check(segments.first!.ranges.first!.sessionStartOffset == 0 && segments.last!.ranges.last!.end == 900,"crossing text protects hard noSpeech exclusion; ASR blanks remain visible")
+        try check(segments.flatMap { try repository.spans(segmentID:$0.id) }.count == 3,"same text at distinct source times retained")
+        let original = try repository.merge(ids:segments.map(\.id),expectedRevisions:segments.map(\.revision))
         try repository.reconcile(sourceID:s.id)
         try check(repository.segment(id:original.id)?.revision == original.revision,"no-op reconciliation retains identity/revision")
         let parts = try repository.split(id:original.id,at:450,expectedRevision:original.revision)
@@ -118,7 +191,7 @@ import Foundation
             try p.commit(job:job,result:.init(spans:[],activities:[.init(start:a,end:b,kind:.noSpeech)],asr:failed ? .failed : .success,vad:.success,speaker:.notRequested,asrCoverage:failed ? [] : [.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
         }
         try r.reconcile(sourceID:s.id)
-        try check(r.state(sourceID:s.id) == .pending && r.segments(sourceID:s.id).count == 1,"failed ASR with successful VAD preserves pending content")
+        try check(r.state(sourceID:s.id) == .pending && r.segments(sourceID:s.id).flatMap(\.ranges).reduce(0) { $0+$1.duration } == 900,"failed ASR with successful VAD preserves pending content")
         try p.retryIncompleteStages(sourceID:s.id)
         // retry may request speaker work on earlier windows; preserve existing stage snapshots.
         while let job = try p.claimNext() {
@@ -127,8 +200,9 @@ import Foundation
             try p.commit(job:job,delta:.init(result:.init(spans:spans,activities:[],asr:.success,vad:.notRequested,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[]),speakerSpanUpdates:[]))
         }
         try r.reconcile(sourceID:s.id)
-        try check(r.segments(sourceID:s.id).count == 1 && r.state(sourceID:s.id) == .processed,"ASR-only retry crossing neighbor prevents 600 second silence")
-        let old = try r.segments(sourceID:s.id)[0]
+        try check(r.segments(sourceID:s.id).contains { $0.hasText } && r.state(sourceID:s.id) == .processed,"ASR-only retry crossing neighbor prevents 600 second silence")
+        let automaticPieces=try r.segments(sourceID:s.id)
+        let old = try r.merge(ids:automaticPieces.map(\.id),expectedRevisions:automaticPieces.map(\.revision))
         let pieces = try r.split(id:old.id,at:450,expectedRevision:old.revision)
         try register(s,"v2")
         try r.reconcile(sourceID:s.id)

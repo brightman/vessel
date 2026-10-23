@@ -12,9 +12,9 @@ import Foundation
         })
         let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
         let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096)!
-        // 600 s + 17 samples crosses two exact 300 s boundaries. Numbered tones
+        // 1,200 s + 17 samples crosses two exact 600 s boundaries. Numbered tones
         // change at boundaries, allowing time-localized lossy-decoder checks.
-        let total = 9_600_017
+        let total = 19_200_017
         var written = 0
         while written < total {
             let take = min(4096, total - written)
@@ -22,17 +22,21 @@ import Foundation
             for i in 0..<take {
                 let frame = written + i
                 let frequency: Double
-                if (4_795_904..<4_800_000).contains(frame) { frequency = 900 }
-                else if (4_800_000..<4_804_096).contains(frame) { frequency = 1300 }
-                else { frequency = frame < 4_800_000 ? 300 : 700 }
+                if (9_595_904..<9_600_000).contains(frame) { frequency = 900 }
+                else if (9_600_000..<9_604_096).contains(frame) { frequency = 1300 }
+                else { frequency = frame < 9_600_000 ? 300 : 700 }
                 pcm.floatChannelData![0][i] = Float(sin(Double(frame) * 2 * .pi * frequency / 16000)) * 0.2
             }
             try writer.append(pcm); written += take
+            if written >= 9_600_000 && written - take < 9_600_000 {
+                precondition(sealed.count == 1 && sealed[0].frameCount == 9_600_000,
+                    "first ten-minute file must seal while recording continues, before finish")
+            }
         }
         try writer.finish(); try writer.finish()
-        precondition(sealed.map(\.frameCount) == [4_800_000, 4_800_000, 17], "no lost or duplicated effective frames at rotations")
-        precondition(sealed.map(\.sessionStartOffset) == [0, 300, 600])
-        precondition(writer.effectiveFrames == 9_600_017)
+        precondition(sealed.map(\.frameCount) == [9_600_000, 9_600_000, 17], "no lost or duplicated effective frames at rotations")
+        precondition(sealed.map(\.sessionStartOffset) == [0, 600, 1200])
+        precondition(writer.effectiveFrames == 19_200_017)
         for (index, chunk) in sealed.enumerated() {
             _ = try RecordingAudioFile.validate(chunk, at: store.audioURL(for: chunk))
             if index < 2 {
@@ -46,7 +50,7 @@ import Foundation
                 precondition(abs(crossings - expected) < 3, "boundary tone belongs in correct output chunk")
             }
         }
-        for (ordinal, position, expectedCrossings) in [(0, Int64(4_795_904), 230), (1, Int64(0), 333)] {
+        for (ordinal, position, expectedCrossings) in [(0, Int64(9_595_904), 230), (1, Int64(0), 333)] {
             let file = try AVAudioFile(forReading: store.audioURL(for: sealed[ordinal]))
             file.framePosition = position
             let marker = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096)!
@@ -150,7 +154,7 @@ import Foundation
         async let finishB: Void = pipeline.finish()
         try await finishA; try await finishB
         precondition(pipelineStore.chunks.map(\.frameCount) == [16000], "conversion flush must retain exact effective duration: \(pipelineStore.chunks.map(\.frameCount))")
-        // Hold the actual 300 s seal callback while stop enters the same pipeline.
+        // Hold the actual 600 s seal callback while stop enters the same pipeline.
         let boundaryEntered = DispatchSemaphore(value: 0)
         let releaseBoundary = DispatchSemaphore(value: 0)
         let boundaryStore = WatchRecordingSessionStore(root: root.appendingPathComponent("boundary-store"))
@@ -164,10 +168,10 @@ import Foundation
                 try boundaryStore.seal(chunk, file: url)
             }, onFailure: { _ in })
         var boundarySubmitted = 0
-        while boundarySubmitted < 4_800_128 {
-            pcm.frameLength = AVAudioFrameCount(min(4096, 4_800_128 - boundarySubmitted))
+        while boundarySubmitted < 9_600_128 {
+            pcm.frameLength = AVAudioFrameCount(min(4096, 9_600_128 - boundarySubmitted))
             boundaryPipeline.submit(pcm); boundarySubmitted += Int(pcm.frameLength)
-            if boundarySubmitted < 4_800_000 {
+            if boundarySubmitted < 9_600_000 {
                 let deadline = Date().addingTimeInterval(10)
                 while boundaryPipeline.sampledDuration * 16000 + 0.5 < Double(boundarySubmitted) {
                     precondition(Date() < deadline, "boundary pipeline must keep making progress")
@@ -185,7 +189,7 @@ import Foundation
         precondition(enqueued != nil, "finish must enqueue its stop while the boundary seal remains held")
         releaseBoundary.signal()
         try await boundaryStop.value
-        precondition(boundaryStore.chunks.map(\.frameCount) == [4_800_000, 128], "stop racing rotation must seal boundary and nonempty tail exactly once")
+        precondition(boundaryStore.chunks.map(\.frameCount) == [9_600_000, 128], "stop racing rotation must seal boundary and nonempty tail exactly once")
         let interrupted = try RecordingCapturePipeline(format: format, sessionID: UUID(), root: root.appendingPathComponent("interrupted"),
             origin: .init(device: "synthetic", deviceID: "fixture", fileName: "tone", recordingTimeIsEstimated: false),
             onSeal: { _, _ in }, onFailure: { _ in })
@@ -196,6 +200,6 @@ import Foundation
             onSeal: { _, _ in }, onFailure: { _ in })
         for _ in 0..<1000 { overloaded.submit(pcm) }
         do { try await overloaded.finish(); fatalError("overflow must surface at stop") } catch {}
-        print("Segmented capture synthetic smoke passed: 9600017 effective frames, three chunks")
+        print("Segmented capture synthetic smoke passed: 19200017 effective frames, three chunks")
     }
 }

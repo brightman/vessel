@@ -12,11 +12,16 @@ import Foundation
         let store = try WatchSyncStore(database: db)
         let a = UUID(), b = UUID(), time = Date(timeIntervalSinceReferenceDate: 1000)
         expect(PhoneWatchStatus(isSupported: false, isPaired: true, isInstalled: true, pendingCount: 3).compactLabel == "Watch 不可用", "unsupported overrides cached data")
-        expect(PhoneWatchStatus(isPaired: false, isInstalled: true, pendingCount: 3).compactLabel == "未配对", "unpaired overrides cached data")
-        expect(PhoneWatchStatus(isPaired: true, pendingCount: 3).compactLabel == "待安装 App", "missing app overrides cached queue")
+        let activating = PhoneWatchStatus(isPaired: true, pendingCount: 3)
+        expect(activating.title == "检查中" && activating.compactLabel == "检查中", "installation state is unknown until Watch Connectivity activates")
+        expect(activating.message == "同步服务正在准备，请稍后刷新状态。" && !activating.hasPairedWatch, "unactivated session must not claim a pairing state")
+        expect(!PhoneWatchStatus.canRequestSyncRetry(isSupported: true, isActivated: false, hasPairingID: true, isPaired: true, isInstalled: true), "retry must wait for Watch Connectivity activation")
+        expect(PhoneWatchStatus.canRequestSyncRetry(isSupported: true, isActivated: true, hasPairingID: true, isPaired: true, isInstalled: true), "retry is available after activation with the paired app installed")
+        expect(PhoneWatchStatus(isPaired: false, isInstalled: true, isActivated: true, pendingCount: 3).compactLabel == "未配对", "unpaired overrides cached data")
+        expect(PhoneWatchStatus(isPaired: true, isActivated: true, pendingCount: 3).compactLabel == "待安装 App", "missing app overrides cached queue after activation")
         let legacySnapshot = Data("{\"updatedAt\":1000,\"pendingIDs\":[]}".utf8)
         expect(WatchSyncSnapshot.decode([WatchSyncSnapshot.contextKey: legacySnapshot])?.failures == nil, "legacy snapshot remains readable")
-        var status = PhoneWatchStatus(isPaired: true, isInstalled: true)
+        var status = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true)
         expect(status.title == "已配对" && status.compactLabel == "已配对", "unknown is paired, not zero or disconnected")
         status.pendingCount = 0
         expect(status.compactLabel == "已配对", "empty queue without success time falls back to paired")
@@ -82,6 +87,109 @@ import Foundation
         expect(restoredIssues.missingFileCount == 1, "failure evidence survives relaunch")
         try store.apply(.init(updatedAt: time.addingTimeInterval(101), pendingIDs: []), pairingID: "A")
         expect(try store.read(pairingID: "A").missingFileCount == 0, "removed recording clears its issue")
+
+        let sessionID = UUID(), transferTime = Date(timeIntervalSinceReferenceDate: 2_000)
+        let transferPending = WatchSessionSyncSnapshot.Pending(
+            sessionID: sessionID, lastOrdinal: 5, end: nil, totalChunkCount: 6,
+            phase: .transferring, transferringChunkOrdinal: 2, currentChunkFraction: 0.4
+        )
+        let transferSnapshot = WatchSessionSyncSnapshot(updatedAt: transferTime, pending: [transferPending])
+        let encoded = try JSONEncoder().encode(transferSnapshot)
+        let decoded = try JSONDecoder().decode(WatchSessionSyncSnapshot.self, from: encoded)
+        expect(decoded.pending[0].currentChunkFraction == 0.4, "current file fraction round-trips")
+        let oldV2JSON = Data("""
+        {"updatedAt":2000,"pending":[{"sessionID":"\(sessionID.uuidString)","lastOrdinal":2,"end":null}]}
+        """.utf8)
+        let decodedOldV2 = try JSONDecoder().decode(WatchSessionSyncSnapshot.self, from: oldV2JSON)
+        expect(decodedOldV2.pending[0].currentChunkFraction == nil, "old V2 snapshots remain readable")
+
+        let counterpartID = "progress-test"
+        for ordinal in 0..<2 {
+            let receipt = RecordingChunkReceipt(
+                sessionID: sessionID, chunkID: UUID(), ordinal: ordinal,
+                sha256: String(repeating: ordinal == 0 ? "a" : "b", count: 64)
+            )
+            try store.recordSaved(.init(receipt: receipt, savedAt: transferTime), counterpartID: counterpartID)
+        }
+        try store.apply(transferSnapshot, counterpartID: counterpartID)
+        let transferSummary = try store.readSessions(counterpartID: counterpartID)
+        expect(transferSummary.sessionTransfers.count == 1, "pending long recording is listed")
+        expect(transferSummary.sessionTransfers[0].receivedChunkCount == 2, "only durable phone receipts count as received")
+        expect(transferSummary.sessionTransfers[0].totalChunkCount == 6 && !transferSummary.sessionTransfers[0].isComplete,
+               "partial receipt count cannot imply complete save")
+        for ordinal in 2..<6 {
+            let receipt = RecordingChunkReceipt(
+                sessionID: sessionID, chunkID: UUID(), ordinal: ordinal,
+                sha256: String(repeating: "c", count: 64)
+            )
+            try store.recordSaved(.init(receipt: receipt, savedAt: transferTime.addingTimeInterval(Double(ordinal))), counterpartID: counterpartID)
+        }
+        let end = RecordingSessionEnd(sessionID: sessionID, finalOrdinal: 5,
+                                      endedAt: transferTime, interrupted: false, revision: 0)
+        try store.recordEnd(end, counterpartID: counterpartID)
+        let completedPending = WatchSessionSyncSnapshot.Pending(
+            sessionID: sessionID, lastOrdinal: 5, end: end, totalChunkCount: 6, phase: .waiting
+        )
+        try store.apply(.init(updatedAt: transferTime.addingTimeInterval(1), pending: [completedPending]), counterpartID: counterpartID)
+        let completedSummary = try store.readSessions(counterpartID: counterpartID)
+        expect(completedSummary.pendingCount == 0 && completedSummary.sessionTransfers[0].isComplete,
+               "all durable chunks and matching end metadata confirm phone save")
+        try store.apply(.init(updatedAt: transferTime.addingTimeInterval(2), pending: []), counterpartID: counterpartID)
+        let afterWatchAck = try store.readSessions(counterpartID: counterpartID)
+        expect(afterWatchAck.pendingCount == 0 && afterWatchAck.sessionTransfers.first?.isComplete == true,
+               "most recent completed session remains visible after Watch receives its ACK")
+        expect(WatchTransferPhase.queued.rawValue == "queued", "queued status has stable wire value")
+        expect(WatchSessionSyncSnapshot.phase(outstandingCount: 0, transferringCount: 0) == .waiting,
+               "no system job waits on Watch")
+        expect(WatchSessionSyncSnapshot.phase(outstandingCount: 2, transferringCount: 0) == .queued,
+               "queued jobs are not reported active")
+        expect(WatchSessionSyncSnapshot.phase(outstandingCount: 2, transferringCount: 1) == .transferring,
+               "active job takes precedence")
+        expect(WatchSessionSyncSnapshot.validProgressFraction(0.4) == 0.4, "finite progress is retained")
+        expect(WatchSessionSyncSnapshot.validProgressFraction(.nan) == nil, "indeterminate progress is omitted")
+        expect(WatchSessionSyncSnapshot.validProgressFraction(1.1) == nil, "out-of-range progress is omitted")
+
+        let binding = RecordingTransferBinding(counterpart: .init(phoneID: UUID(), pairingID: UUID()), watchID: UUID(), nonce: UUID())
+        let invalidProgress = WatchSessionSyncSnapshot(
+            updatedAt: transferTime,
+            pending: [.init(sessionID: sessionID, lastOrdinal: 5, end: nil, totalChunkCount: 6,
+                            phase: .transferring, transferringChunkOrdinal: 2, currentChunkFraction: -0.1)]
+        )
+        let invalidContext = [WatchSessionSyncSnapshot.contextKey: try JSONEncoder().encode(
+            RecordingWireEnvelope(binding: binding, payload: invalidProgress)
+        )]
+        expect(WatchSessionSyncSnapshot.decode(invalidContext, binding: binding) == nil,
+               "invalid active-file progress is rejected from untrusted context")
+
+        let queuedRow = PhoneWatchStatus.TransferRow(
+            sessionID: sessionID, receivedChunkCount: 0, totalChunkCount: 6, phase: .queued,
+            transferringChunkOrdinal: nil, currentChunkFraction: nil, reportedAt: transferTime, isComplete: false
+        )
+        expect(queuedRow.stageLabel == "系统排队中" && queuedRow.currentChunkLabel == nil,
+               "queued files do not claim active progress")
+        let activeRow = PhoneWatchStatus.TransferRow(
+            sessionID: sessionID, receivedChunkCount: 2, totalChunkCount: 6, phase: .transferring,
+            transferringChunkOrdinal: 2, currentChunkFraction: 0.4, reportedAt: transferTime, isComplete: false
+        )
+        expect(activeRow.stageLabel == "后台传输中", "active transfer has a distinct stage")
+        expect(activeRow.segmentLabel == "iPhone 已收到 2/6 段", "durable receipts drive received count")
+        expect(activeRow.currentChunkLabel == "分片 3 · 40%", "current file fraction is shown separately")
+        let unknownTotalRow = PhoneWatchStatus.TransferRow(
+            sessionID: sessionID, receivedChunkCount: 2, totalChunkCount: nil, phase: .waiting,
+            transferringChunkOrdinal: nil, currentChunkFraction: nil, reportedAt: transferTime, isComplete: false
+        )
+        expect(unknownTotalRow.segmentLabel == "iPhone 已收到 2 段", "unknown total is not rendered as zero")
+        let completeRow = PhoneWatchStatus.TransferRow(
+            sessionID: afterWatchAck.sessionTransfers[0].sessionID,
+            receivedChunkCount: afterWatchAck.sessionTransfers[0].receivedChunkCount,
+            totalChunkCount: afterWatchAck.sessionTransfers[0].totalChunkCount,
+            phase: afterWatchAck.sessionTransfers[0].phase,
+            transferringChunkOrdinal: afterWatchAck.sessionTransfers[0].transferringChunkOrdinal,
+            currentChunkFraction: afterWatchAck.sessionTransfers[0].currentChunkFraction,
+            reportedAt: afterWatchAck.sessionTransfers[0].reportedAt,
+            isComplete: afterWatchAck.sessionTransfers[0].isComplete
+        )
+        expect(completeRow.stageLabel == "iPhone 已完整保存", "complete means durable phone persistence")
         print("Watch pairing, sync persistence, failure evidence and retry policy passed")
     }
 }

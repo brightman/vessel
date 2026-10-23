@@ -1,0 +1,6 @@
+iOS Simulator Debug workspace build: exit 0
+** BUILD SUCCEEDED **
+
+xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes -configuration Debug -destination generic/platform=iOS\ Simulator -derivedDataPath /private/tmp/wiselife-quick-recording-build CODE_SIGNING_ALLOWED=NO build
+
+No native UI automation or real AI requests were run.

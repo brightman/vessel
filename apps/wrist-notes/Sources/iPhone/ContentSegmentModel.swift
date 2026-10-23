@@ -5,7 +5,9 @@ import Combine
 enum ContentSegmentSnapshot {
     static func read(_ processing: AudioProcessingRepository, scope: DateInterval) throws -> [DayRecord] {
         let db = processing.derivedDatabase, repository = ContentSegmentRepository(database:processing.derivedDatabase)
-        return try db.transaction {
+        // A day's transcript can span hours; keep a consistent WAL snapshot
+        // without holding the writer needed by location, health and recap state.
+        return try db.readTransaction {
         var result: [DayRecord] = [], offset = 0
         while true {
             try Task.checkCancellation()

@@ -5,6 +5,7 @@ struct DaybookInsightKey: Codable, Equatable {
     let language: String
     // Bump whenever prompt, validation, retrieval limits, or local provider policy changes.
     var generationVersion = 1
+    var providerIdentity: String? = nil
 }
 
 struct DaybookInsightOutput: Codable, Equatable, Sendable {
@@ -36,6 +37,7 @@ struct DaybookInsightOutput: Codable, Equatable, Sendable {
 struct DaybookDailyInsight: Codable, Equatable {
     let output: DaybookInsightOutput
     let sources: [DaybookRetrieval.Source]
+    var provider: String? = nil
 }
 
 enum DaybookInsightFailure: Error {
@@ -45,7 +47,7 @@ enum DaybookInsightFailure: Error {
         case .unavailable: "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
         case .unsupportedLanguage: "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
         case .invalid: "洞察未提供至少两条有效来源和有依据的行动建议，未显示结果。请重试。"
-        case .generation: "本地洞察生成失败，未显示结果。请稍后重试。"
+        case .generation: "洞察生成失败，未显示结果。请稍后重试。"
         }
     }
 }
@@ -80,19 +82,23 @@ enum DaybookInsightFailure: Error {
     func reload() throws {
         do {
             let db = try connection()
-            try db.migrate("insights") {
-                guard let original = defaults.object(forKey: storageKey) else { return }
-                guard let data = original as? Data else { throw DaybookDatabase.Failure(code: 11, detail: "洞察迁移数据格式错误，原数据已保留") }
-                guard data.count <= 1_000_000 else { throw DaybookDatabase.Failure(code: 11, detail: "洞察迁移文件过大，原数据已保留") }
-                let imported = try JSONDecoder().decode(Archive.self, from: data)
-                try Self.validate(imported)
-                try Self.write(imported, db: db)
+            let loaded = try db.transaction {
+                try Self.installProviderSchema(db)
+                try db.migrate("insights") {
+                    guard let original = defaults.object(forKey: storageKey) else { return }
+                    guard let data = original as? Data else { throw DaybookDatabase.Failure(code: 11, detail: "洞察迁移数据格式错误，原数据已保留") }
+                    guard data.count <= 1_000_000 else { throw DaybookDatabase.Failure(code: 11, detail: "洞察迁移文件过大，原数据已保留") }
+                    let imported = try JSONDecoder().decode(Archive.self, from: data)
+                    try Self.validate(imported)
+                    try Self.write(imported, db: db)
+                }
+                let loaded = try Self.read(db)
+                try Self.validate(loaded)
+                return loaded
             }
             // Insight payloads can contain HealthKit-derived evidence. Once the SQLite migration
             // commits in the backup-excluded Application Support tree, remove the old defaults copy.
             defaults.removeObject(forKey: storageKey)
-            let loaded = try Self.read(db)
-            try Self.validate(loaded)
             archive = loaded; storageError = nil
         } catch { storageError = Self.message(error); throw error }
     }
@@ -101,6 +107,7 @@ enum DaybookInsightFailure: Error {
         do {
             let db = try connection()
             try db.transaction {
+                try Self.installProviderSchema(db)
                 try Self.write(Archive(), db: db)
                 try db.markMigrated("insights")
             }
@@ -113,7 +120,10 @@ enum DaybookInsightFailure: Error {
     }
     func recordAttempt(_ key: DaybookInsightKey, automatic: Bool, now: Date) throws {
         try mutate { next in
-            for index in next.entries.indices where next.entries[index].key.evidence.dayStart == key.evidence.dayStart {
+            // Other providers may still have valid results for this evidence. Preserve their
+            // caches when switching models; pruneStale handles revoked/changed sources globally.
+            for index in next.entries.indices where next.entries[index].key.evidence.dayStart == key.evidence.dayStart &&
+                next.entries[index].key.providerIdentity == key.providerIdentity {
                 if next.entries[index].key != key { next.entries[index].result = nil }
             }
             next.entries.removeAll { $0.key == key }
@@ -177,13 +187,19 @@ enum DaybookInsightFailure: Error {
     private static func identity(_ key: DaybookInsightKey) -> String {
         // Fingerprint covers record IDs/content; all other scope fields also identify a revision.
         let kinds = key.evidence.allowedKinds.map(\.rawValue).sorted().joined(separator: ",")
-        return "\(key.evidence.dayStart.timeIntervalSinceReferenceDate)|\(key.evidence.dayEnd.timeIntervalSinceReferenceDate)|\(kinds)|\(key.evidence.fingerprint)|\(key.language.utf8.count):\(key.language)|\(key.generationVersion)"
+        let base = "\(key.evidence.dayStart.timeIntervalSinceReferenceDate)|\(key.evidence.dayEnd.timeIntervalSinceReferenceDate)|\(kinds)|\(key.evidence.fingerprint)|\(key.language.utf8.count):\(key.language)|\(key.generationVersion)"
+        return base + (key.providerIdentity.map { "|provider:\($0)" } ?? "")
+    }
+    private static func installProviderSchema(_ db: DaybookDatabase) throws {
+        try db.migrate("insight-providers-v1") {
+            try db.execute("ALTER TABLE insight_entries ADD COLUMN provider_identity TEXT")
+        }
     }
     private static func write(_ archive: Archive, db: DaybookDatabase) throws {
         try db.execute("DELETE FROM insight_entries")
         try db.execute("DELETE FROM insight_budgets")
         for (position, entry) in archive.entries.enumerated() {
-            try db.execute("INSERT INTO insight_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [.text(identity(entry.key)), .integer(Int64(position)), .real(entry.key.evidence.dayStart.timeIntervalSinceReferenceDate), .text(entry.key.language), .integer(Int64(entry.key.generationVersion)), try DaybookDatabase.json(entry.key.evidence), .real(entry.updatedAt.timeIntervalSinceReferenceDate), try entry.result.map { try DaybookDatabase.json($0) } ?? .null, entry.message.map { .text($0) } ?? .null, .integer(entry.dismissed ? 1 : 0)])
+            try db.execute("INSERT INTO insight_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [.text(identity(entry.key)), .integer(Int64(position)), .real(entry.key.evidence.dayStart.timeIntervalSinceReferenceDate), .text(entry.key.language), .integer(Int64(entry.key.generationVersion)), try DaybookDatabase.json(entry.key.evidence), .real(entry.updatedAt.timeIntervalSinceReferenceDate), try entry.result.map { try DaybookDatabase.json($0) } ?? .null, entry.message.map { .text($0) } ?? .null, .integer(entry.dismissed ? 1 : 0), entry.key.providerIdentity.map { .text($0) } ?? .null])
         }
         for (position, budget) in archive.budgets.enumerated() { try db.execute("INSERT INTO insight_budgets VALUES (?, ?, ?)", [.real(budget.day.timeIntervalSinceReferenceDate), .integer(Int64(budget.attempts)), .integer(Int64(position))]) }
     }
@@ -192,6 +208,7 @@ enum DaybookInsightFailure: Error {
             let entries = try db.query("SELECT * FROM insight_entries ORDER BY position").map { row -> Entry in
                 var key = DaybookInsightKey(evidence: try DaybookDatabase.decode(DaybookEvidenceSnapshot.self, row["evidence"]), language: try row.requiredString("language"))
                 key.generationVersion = try row.requiredInt("generation_version")
+                key.providerIdentity = row["provider_identity"]?.string
                 return Entry(key: key, updatedAt: Date(timeIntervalSinceReferenceDate: try row.requiredDouble("updated_at")), result: row["result"] == .null ? nil : try DaybookDatabase.decode(DaybookDailyInsight.self, row["result"]), message: row["message"]?.string, dismissed: row["dismissed"] == .integer(1))
             }
             let budgets = try db.query("SELECT * FROM insight_budgets ORDER BY position").map { row in Budget(day: Date(timeIntervalSinceReferenceDate: try row.requiredDouble("day")), attempts: try row.requiredInt("attempts")) }
