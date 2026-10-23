@@ -78,8 +78,10 @@ git clone --branch dev-300 --single-branch git@git.100credit.cn:ai2c/app/flutter
 ### 安装步骤
 
 1. 在本目录运行 `pod install`。仅 Ring 开启时，需要先运行 `sh ../../../br_flutter_plugin_ble/ios/bootstrap_recorder_core.sh` 准备其 SDK。用 Xcode 打开 `WristNotes.xcworkspace`，选择 `WristNotes` scheme。若重新运行 `ruby scripts/generate_project.rb`，之后需再次 `pod install`。
-2. 在 iPhone、Watch 和 `WiseLifeRecordingActivity` 三个 target 的 **Signing & Capabilities** 中选择自己的 Team。若 Bundle Identifier 被占用，一起修改 iPhone ID、Watch ID、实时活动扩展 ID 与 Watch `Info.plist` 中的 `WKCompanionAppBundleIdentifier`；扩展 ID 必须以 iPhone ID 加 `.` 开头。再运行 `ruby scripts/generate_project.rb` 前先同步修改生成脚本；重新生成工程会覆盖 Xcode 中直接改的项目设置。
-3. iPhone 解锁并信任 Mac，开启开发者模式；确认 Apple Watch 已与该 iPhone 配对，在 Xcode 的设备列表中可选。先在 iPhone 上运行 `WristNotes`，再确认手表 App 已安装。Xcode 若无法看到手表，检查配对、同一 Apple ID、蓝牙/Wi-Fi 和设备支持组件。
+2. 在 `WristNotes`、`WristNotesWatch`、`WiseLifeRecordingActivity`、`WiseLifeWatchRecordingWidget` 四个 target 的 **Signing & Capabilities** 中选择同一个有权限的 Team；每个 Bundle ID 都需要对应描述文件，Watch 描述文件需要包含测试手表。已有设备更新应沿用原 Team 和 Bundle ID，以保留 App 身份与数据容器。新项目如需改 ID，须同步修改手机 ID、Watch ID、两个扩展 ID、Watch `Info.plist` 的 `WKCompanionAppBundleIdentifier` 和生成脚本；Watch ID 以手机 ID 加 `.` 开头，扩展 ID 以所属 App ID 加 `.` 开头。生成脚本保留现有 Team、手机版本和构建号，并把版本同步给 Watch 与扩展，其他 Xcode 设置仍可能被覆盖。
+3. iPhone 解锁并信任 Mac，两端均开启开发者模式。在 Xcode 设备列表确认 Watch 的开发连接可用；与手机正常配对不代表 Mac 调试通道已连接。先用 `WristNotes` scheme 安装手机，再用共享的 `WristNotesWatch` scheme 选择真实手表运行，分别核对两端安装结果。只有手机安装成功时，不能判定手表已更新。
+
+Watch 安装排查和本次签名／连接证据见 [Watch 安装诊断](verification/watch-installation.md)。无签名的 generic 构建只验证编译和嵌入结构，不能证明真机可安装。
 4. 首次轻点手表红色按钮授权麦克风。闪念首次授权时，松开后再次按住按钮，触觉反馈后开始说话。
 5. iPhone 设置 → 语音转写模型，先选转写引擎和语言，再下载所需资源并保存。已有系统资源直接复用；缺少资源时不会静默下载，也不会回退到云端转写。
 

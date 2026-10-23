@@ -5,9 +5,17 @@ require_relative 'watch_recording_widget_project'
 root = File.expand_path('..', __dir__)
 project_path = File.join(root, 'WristNotes.xcodeproj')
 existing_development_teams = {}
+existing_app_versions = {}
 if File.directory?(project_path)
   existing_project = Xcodeproj::Project.open(project_path)
   existing_project.targets.each do |target|
+    if target.name == 'WristNotes'
+      target.build_configurations.each do |configuration|
+        existing_app_versions[configuration.name] = configuration.build_settings.slice(
+          'MARKETING_VERSION', 'CURRENT_PROJECT_VERSION'
+        )
+      end
+    end
     team = target.build_configurations.map do |configuration|
       configuration.build_settings['DEVELOPMENT_TEAM']
     end.compact.first
@@ -54,8 +62,9 @@ phone_target.build_configurations.each do |configuration|
   settings['SWIFT_VERSION'] = '5.0'
   settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote'
   settings['PRODUCT_NAME'] = 'WiseNote'
-  settings['MARKETING_VERSION'] = '1.0'
-  settings['CURRENT_PROJECT_VERSION'] = '4'
+  version = existing_app_versions.fetch(configuration.name, {})
+  settings['MARKETING_VERSION'] = version.fetch('MARKETING_VERSION', '1.0')
+  settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '5')
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
   settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'
@@ -123,6 +132,9 @@ if File.directory?(File.join(root, 'Sources/Watch/Assets.xcassets'))
 end
 watch_target.build_configurations.each do |configuration|
   settings = configuration.build_settings
+  app_settings = phone_target.build_configurations.find { |item| item.name == configuration.name }.build_settings
+  settings['MARKETING_VERSION'] = app_settings.fetch('MARKETING_VERSION')
+  settings['CURRENT_PROJECT_VERSION'] = app_settings.fetch('CURRENT_PROJECT_VERSION')
   settings['SWIFT_VERSION'] = '5.0'
   settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote.watchkitapp'
   settings['GENERATE_INFOPLIST_FILE'] = 'NO'
@@ -197,4 +209,7 @@ project.save
 scheme = Xcodeproj::XCScheme.new
 scheme.configure_with_targets(phone_target, test_target, launch_target: true)
 scheme.save_as(project_path, 'WristNotes', true)
+watch_scheme = Xcodeproj::XCScheme.new
+watch_scheme.configure_with_targets(watch_target, nil, launch_target: true)
+watch_scheme.save_as(project_path, 'WristNotesWatch', true)
 puts project_path

@@ -20,6 +20,7 @@ swiftc -module-cache-path "$output/cache" Sources/Watch/RecordingButtonInteracti
 "$output/gesture"
 ruby Tests/ProjectSourceMembershipSmoke.rb
 ruby Tests/WatchRecordingWidgetProjectSmoke.rb
+ruby Tests/WatchInstallConfigurationSmoke.rb
 ruby Tests/DebugIdleTimerSmoke.rb
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/Shared/VoiceNote.swift Tests/NoteEditingSmoke.swift -o "$output/editing"
 "$output/editing"
