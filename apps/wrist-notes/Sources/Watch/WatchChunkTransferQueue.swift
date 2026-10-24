@@ -14,6 +14,11 @@ final class WatchChunkTransferQueue {
     private struct Identity: Codable { let id: UUID; var generation: Int }
     private var generation = 0
     private struct Attempt: Codable { let count: Int; let retryAt: Date }
+    private struct ReceiptSnapshot {
+        let chunks: [UUID: RecordingSavedChunk]
+        let ends: [UUID: RecordingSessionEnd]
+        let locations: [UUID: RecordingLocationSample]
+    }
     private let root: URL
     private let now: () -> Date
     private let sendHello: (RecordingCapabilityHello) throws -> Void
@@ -78,6 +83,12 @@ final class WatchChunkTransferQueue {
         } else { watchID = UUID(); try RecordingTransportDisk.write(Identity(id: watchID, generation: 0), to: identity) }
     }
     @discardableResult func beginHandshake() throws -> RecordingCapabilityHello {
+        // WatchConnectivity activation, reachability, app-foreground, and phone
+        // capability-offer callbacks can overlap. Replacing an in-flight nonce
+        // makes a valid reply look stale at the Watch and the next-generation
+        // challenge look invalid at the phone. Reuse the outstanding challenge;
+        // a fresh nonce is only needed after the prior reply has been accepted.
+        if let challenge { return challenge }
         binding = nil; supportsLocationSamples = false; locationReceipts = [:]; maximumChunkDuration = nil; unsupported = false; chunkReceipts = [:]; endReceipts = [:]; challenge = nil
         guard generation < Int.max else { throw RecordingTransportError.invalidStorage }
         let next = generation + 1
@@ -98,15 +109,23 @@ final class WatchChunkTransferQueue {
         guard reply.versions.contains(2) else { unsupported = true; throw RecordingTransportError.unsupported }
         let maximum = reply.maximumChunkDuration ?? RecordingChunkProtocol.legacyChunkDuration
         guard maximum.isFinite, maximum > 0 else { throw RecordingTransportError.invalidEnvelope }
+        let receipts = try loadReceipts(for: reply.binding, chunks: chunks, ends: ends, locations: locations)
         supportsLocationSamples = reply.supportsLocationSamples == true
         maximumChunkDuration = maximum
         binding = reply.binding; challenge = nil; unsupported = false
-        try loadReceipts()
+        locationReceipts = receipts.locations
+        chunkReceipts = receipts.chunks
+        endReceipts = receipts.ends
     }
     func update(chunks: [RecordingChunkDescriptor], ends: [RecordingSessionEnd], locations: [RecordingLocationSample] = [],
                 audioURL: @escaping (RecordingChunkDescriptor) -> URL) throws {
+        let receipts = try binding.map { try loadReceipts(for: $0, chunks: chunks, ends: ends, locations: locations) }
         self.chunks = chunks; self.ends = ends; self.locations = locations; self.audioURL = audioURL
-        if binding != nil { try loadReceipts() }
+        if let receipts {
+            chunkReceipts = receipts.chunks
+            endReceipts = receipts.ends
+            locationReceipts = receipts.locations
+        }
     }
     func pump(force: Bool = false) throws {
         guard let binding, let audioURL, let maximumChunkDuration else { return }
@@ -200,8 +219,8 @@ final class WatchChunkTransferQueue {
         let count = min((old?.count ?? 0) + 1, 10)
         try RecordingTransportDisk.write(Attempt(count: count, retryAt: now().addingTimeInterval(min(30 * pow(2, Double(count - 1)), 900))), to: url)
     }
-    private func loadReceipts() throws {
-        guard let binding else { return }
+    private func loadReceipts(for binding: RecordingTransferBinding, chunks: [RecordingChunkDescriptor],
+                              ends: [RecordingSessionEnd], locations: [RecordingLocationSample]) throws -> ReceiptSnapshot {
         var saved: [UUID: RecordingSavedChunk] = [:], completed: [UUID: RecordingSessionEnd] = [:]
         for chunk in chunks {
             let url = ledger("chunk_\(chunk.id.uuidString).json", binding: binding)
@@ -226,7 +245,6 @@ final class WatchChunkTransferQueue {
             guard let value = try? RecordingTransportDisk.read(RecordingLocationSample.self, at: url), value == sample else { continue }
             observed[sample.id] = value
         }
-        locationReceipts = observed
-        chunkReceipts = saved; endReceipts = completed
+        return ReceiptSnapshot(chunks: saved, ends: completed, locations: observed)
     }
 }

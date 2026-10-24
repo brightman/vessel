@@ -47,6 +47,8 @@ struct DayRecord: Codable, Equatable, Identifiable, Sendable {
         var ranges: [AudioRange]
         var transcript: [TextSpan]
         var classification: String? = nil
+            /// Missing in old archives means readiness is unknown, so it cannot be shown.
+            var isFinal: Bool? = nil
     }
     var contentProvenance: ContentProvenance? = nil
     var contentScope: DateInterval? = nil

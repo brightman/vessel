@@ -7,7 +7,6 @@ struct WatchContentView: View {
     @State private var interaction = RecordingButtonInteraction()
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
-    @State private var expandedSessionIDs = Set<UUID>()
     private let red = Color(red: 0.96, green: 0.17, blue: 0.21)
 
     private var recordings: [PendingRecording] {
@@ -25,47 +24,31 @@ struct WatchContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 7) {
-                ZStack {
-                    Circle().fill(red.opacity(0.16)).frame(width: 60, height: 60)
-                    Circle().fill(red).frame(width: 50, height: 50)
-                    RoundedRectangle(cornerRadius: recorder.isRecording ? 4 : 20)
-                        .fill(.white)
-                        .frame(width: 18, height: 18)
-                }
-                .contentShape(Circle())
-                .gesture(recordGesture)
-                .accessibilityLabel(recorder.isRecording ? "结束录音" : "开始录音")
-                .accessibilityHint("轻点长录音，按住说闪念，松开保存，上滑取消")
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    handle(recorder.isRecording ? .stopLong : .startLong)
-                }
-                Text(caption)
-                    .font(.system(size: 10, weight: .medium).monospacedDigit())
-                    .foregroundStyle(recorder.isRecording ? red : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 3)
-            .padding(.bottom, 8)
+            recordingControl
 
-            HStack {
-                Text("录音").font(.system(size: 14, weight: .bold))
-                Spacer()
-                Text("\(recordings.count + sessionIDs.count)").font(.caption2).foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("录音")
+                    .font(.system(size: 14, weight: .bold))
+                Spacer(minLength: 8)
+                Text("\(recordings.count + sessionIDs.count) 条")
+                    .font(.system(size: 10, weight: .medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 15)
-            .padding(.bottom, 4)
+            .padding(.bottom, 3)
 
             List {
-                ForEach(sessionIDs, id: \.self) { id in sessionRow(id) }
+                ForEach(sessionIDs, id: \.self) { id in
+                    sessionRow(id)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 9, bottom: 0, trailing: 9))
+                        .listRowBackground(Color.clear)
+                }
                 if recordings.isEmpty && sessionIDs.isEmpty {
                     Text("还没有录音")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
                         .listRowBackground(Color.clear)
                 }
                 ForEach(recordings) { item in
@@ -77,18 +60,25 @@ struct WatchContentView: View {
                         }
                 }
                 if recorder.pendingCount > 0 {
-                    Button("重试上传 · \(recorder.pendingCount) 条") { recorder.retryTransfers() }
-                        .font(.caption2).foregroundStyle(.orange)
-                    Text(recorder.connectivityStatus)
-                        .font(.caption2).foregroundStyle(.secondary)
-                        .listRowBackground(Color.clear)
+                    Button {
+                        recorder.retryTransfers()
+                    } label: {
+                        Label("立即重试同步 · \(recorder.pendingCount)", systemImage: "arrow.clockwise")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .tint(.orange)
+                    .listRowBackground(Color.clear)
                 }
                 if let message = recorder.message {
-                    Text(message).font(.caption2).foregroundStyle(.secondary)
+                    Text(message)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
         .background(Color(red: 0.03, green: 0.03, blue: 0.035))
         .alert("录音提示", isPresented: Binding(
@@ -103,6 +93,66 @@ struct WatchContentView: View {
         }
     }
 
+    private var recordingControl: some View {
+        VStack(spacing: 5) {
+            ZStack {
+                Circle()
+                    .fill(red.opacity(0.16))
+                    .frame(width: 60, height: 60)
+                Circle()
+                    .fill(red)
+                    .frame(width: 50, height: 50)
+                RoundedRectangle(cornerRadius: recorder.isRecording ? 4 : 20)
+                    .fill(.white)
+                    .frame(width: 18, height: 18)
+            }
+            .contentShape(Circle())
+            .gesture(recordGesture)
+            .accessibilityLabel(recorder.isRecording ? "结束录音" : "开始录音")
+            .accessibilityHint("轻点长录音，按住说闪念，松开保存，上滑取消")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                handle(recorder.isRecording ? .stopLong : .startLong)
+            }
+
+            Text(caption)
+                .font(.system(size: 10, weight: .medium).monospacedDigit())
+                .foregroundStyle(recorder.isRecording ? red : .secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(syncColor)
+                    .frame(width: 5, height: 5)
+                Text(syncSummary)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(syncSummary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 2)
+        .padding(.bottom, 7)
+    }
+
+    private var syncSummary: String {
+        if recorder.isFinishingSession { return "正在保存录音…" }
+        if recorder.isRecording { return "录音会自动同步到 iPhone" }
+        if recorder.pendingCount > 0 { return recorder.connectivityStatus }
+        if recorder.connectivityStatus == "已配对" { return "已同步到 iPhone" }
+        return recorder.connectivityStatus
+    }
+
+    private var syncColor: Color {
+        if recorder.isRecording || recorder.pendingCount > 0 { return .orange }
+        if recorder.connectivityStatus == "已配对" || recorder.connectivityStatus.hasPrefix("已配对 · 最近同步") { return .green }
+        return .gray
+    }
+
     private func sessionRow(_ id: UUID) -> some View {
         let chunks = recorder.sessionChunks.filter { $0.sessionID == id }.sorted { $0.ordinal < $1.ordinal }
         let state = recorder.sessionSyncStates.first { $0.id == id }
@@ -110,39 +160,76 @@ struct WatchContentView: View {
         let progress = RecordingSessionSyncPresentation(sessionID: id, activeSessionID: recorder.activeRecordingSessionID,
             savedChunkCount: state?.savedChunkCount ?? 0, sealedChunkCount: chunks.count,
             hasEnd: end != nil, syncComplete: state?.isComplete == true)
-        let expanded = expandedSessionIDs.contains(id)
-        return VStack(alignment: .leading, spacing: 6) {
-            Button {
-                if expanded { expandedSessionIDs.remove(id) } else { expandedSessionIDs.insert(id) }
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("完整录音").font(.caption)
-                        if let start = chunks.first?.sessionStartedAt { Text(start, style: .time).font(.caption2) }
-                        else { Text("录音时间待同步").font(.caption2) }
-                        Text(RecordingFormat.duration(chunks.reduce(0) { $0 + $1.duration })).font(.caption2).monospacedDigit()
-                        Text(LocalizedStringKey(progress.phase == .recording ? "录音进行中" :
-                            (progress.isComplete ? "已同步到当前 iPhone" : "会话尚未同步完成")))
-                            .font(.caption2).foregroundStyle(.secondary)
-                        Text("已保存 \(progress.savedChunkCount)/\(progress.sealedChunkCount) 个已封口分片到 iPhone")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.caption2).accessibilityHidden(true)
-                }
-            }.buttonStyle(.plain)
-                .accessibilityElement(children: .combine)
-                .accessibilityValue(Text(LocalizedStringKey(expanded ? "已展开" : "已折叠")))
-                .accessibilityHint("展开查看分片进度")
-            if expanded {
-                ForEach(chunks) { chunk in
-                    Text("分片 \(chunk.ordinal + 1) · \(RecordingFormat.duration(chunk.duration))").font(.caption2)
-                }
-                if progress.phase == .awaitingEnd { Text("录音结束状态待同步").font(.caption2) }
-                else if progress.phase == .syncing { Text("会话尚未同步完成").font(.caption2) }
-                if end?.interrupted == true { Text("录音已中断").font(.caption2).foregroundStyle(.orange) }
+        let status = sessionSyncLabel(progress.phase)
+        let duration = chunks.reduce(0) { $0 + $1.duration }
+        let start = chunks.first?.sessionStartedAt
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Text("长录音")
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                syncBadge(status, color: sessionSyncColor(progress.phase))
             }
+            HStack(spacing: 3) {
+                Text(start.map(RecordingFormat.date) ?? "录音时间待同步")
+                Spacer(minLength: 2)
+                Text(RecordingFormat.duration(duration)).monospacedDigit()
+            }
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
         }
+        .padding(.vertical, 8)
+        .overlay(alignment: .top) { Rectangle().fill(Color(white: 0.14)).frame(height: 0.5) }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func sessionSyncLabel(_ phase: RecordingSessionSyncPresentation.Phase) -> String {
+        switch phase {
+        case .recording: "录音中"
+        case .awaitingEnd: "待同步"
+        case .syncing: "同步中"
+        case .complete: "已同步"
+        }
+    }
+
+    private func sessionSyncColor(_ phase: RecordingSessionSyncPresentation.Phase) -> Color {
+        switch phase {
+        case .recording: red
+        case .awaitingEnd, .syncing: .orange
+        case .complete: .green
+        }
+    }
+
+    private func recordingRow(_ item: PendingRecording) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Text("\(item.kind == .thought ? "闪念" : "新录音") \(item.capturedAt.formatted(date: .omitted, time: .shortened))")
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                syncBadge(item.uploaded ? "已同步" : "待同步", color: item.uploaded ? .green : .orange)
+            }
+            HStack(spacing: 3) {
+                Text(RecordingFormat.date(item.capturedAt))
+                Spacer(minLength: 2)
+                Text(RecordingFormat.duration(item.duration)).monospacedDigit()
+            }
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 8)
+        .overlay(alignment: .top) { Rectangle().fill(Color(white: 0.14)).frame(height: 0.5) }
+    }
+
+    private func syncBadge(_ title: String, color: Color) -> some View {
+        Text(title)
+            .font(.system(size: 8, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))
+            .fixedSize()
     }
 
     private var caption: String {
@@ -203,26 +290,5 @@ struct WatchContentView: View {
             guard !Task.isCancelled else { return }
             notice = nil
         }
-    }
-
-    private func recordingRow(_ item: PendingRecording) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 3) {
-                Text("\(item.kind == .thought ? "闪念" : "新录音") \(item.capturedAt.formatted(date: .omitted, time: .shortened))")
-                    .font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                Spacer(minLength: 0)
-                Text(item.uploaded ? "已上传" : "未上传")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(item.uploaded ? .green : .orange)
-            }
-            HStack {
-                Text(RecordingFormat.date(item.capturedAt))
-                Spacer(minLength: 2)
-                Text(RecordingFormat.duration(item.duration)).monospacedDigit()
-            }
-            .font(.system(size: 9)).foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 8)
-        .overlay(alignment: .top) { Rectangle().fill(Color(white: 0.14)).frame(height: 0.5) }
     }
 }

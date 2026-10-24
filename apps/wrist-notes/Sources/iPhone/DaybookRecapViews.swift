@@ -7,24 +7,27 @@ struct DaybookRecapCard: View {
     let onOpen: () -> Void
     var body: some View {
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 7) {
                     DaybookIcon("BookOpen", size: 15)
-                    Text(yesterday ? "昨日回顾" : "\(DaybookFormat.day(entry.scope.start)) · 回顾").font(.system(size: 12, weight: .medium))
+                    Text(DaybookHomeRecapTitle.text(date: entry.scope.start, yesterday: yesterday, localeIdentifier: DaybookFormat.language.rawValue))
+                        .font(.system(size: 10, weight: .semibold))
                     Spacer()
-                    Text(stale ? "有新记录 · 待更新" : "每日记录").font(.system(size: 9)).foregroundStyle(DaybookStyle.secondary)
-                }.foregroundStyle(DaybookStyle.accent)
+                    Text(stale ? "有新记录 · 待更新" : "每日记录").font(.system(size: 9)).foregroundStyle(DaybookStyle.recapMuted)
+                }.foregroundStyle(DaybookStyle.recapLabel).padding(.bottom, 11)
                 Text(entry.text ?? "记录正在整理，回顾生成后会出现在这里。")
-                    .font(.system(size: 14)).lineSpacing(7).multilineTextAlignment(.leading).lineLimit(4)
+                    .font(.system(size: 13)).lineSpacing(7).multilineTextAlignment(.leading).lineLimit(4).padding(.bottom, 14)
                 HStack {
                     Text(stale ? "有新记录 · 可手动更新" : "来自 \(entry.references.filter { $0.number != nil }.count) 条记录")
-                        .foregroundStyle(DaybookStyle.secondary)
+                        .foregroundStyle(DaybookStyle.recapLabel)
                     Spacer()
                     Text("查看回顾"); DaybookIcon("ArrowUpRight", size: 12)
-                }.font(.system(size: 10))
-            }.padding(19).frame(maxWidth: .infinity, alignment: .leading)
-                .background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 22))
-                .overlay(RoundedRectangle(cornerRadius: 22).stroke(DaybookStyle.line, lineWidth: 1))
+                }.font(.system(size: 10)).foregroundStyle(DaybookStyle.accent).padding(.top, 12)
+                    .overlay(alignment: .top) { DaybookStyle.recapBorder.frame(height: 1) }
+            }.padding(.horizontal, 20).padding(.top, 19).padding(.bottom, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(DaybookStyle.recapSurface, in: RoundedRectangle(cornerRadius: 22))
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(DaybookStyle.recapBorder, lineWidth: 1))
         }.buttonStyle(.plain).accessibilityIdentifier("recap.card.\(entry.dayKey)")
     }
 }
@@ -44,12 +47,12 @@ struct DaybookRecapHome: View {
                         if model.isLoading || model.isGenerating { ProgressView().controlSize(.small) }
                         else { DaybookIcon("BookOpen", size: 17) }
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(yesterday ? "昨日回顾" : "每日回顾").font(.system(size: 12, weight: .medium))
+                            Text(DaybookHomeRecapTitle.text(date: date, yesterday: yesterday, localeIdentifier: DaybookFormat.language.rawValue))
+                                .font(.system(size: 10, weight: .semibold))
                             Text(LocalizedStringKey(status)).font(.system(size: 11)).lineSpacing(5)
                         }
                         Spacer(); DaybookIcon("ChevronRight", size: 13)
-                    }.foregroundStyle(DaybookStyle.secondary).padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 18))
+                    }.foregroundStyle(DaybookStyle.secondary).padding(.vertical, 12).frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain).accessibilityIdentifier("recap.home")
             }
         }.padding(.bottom, 20)

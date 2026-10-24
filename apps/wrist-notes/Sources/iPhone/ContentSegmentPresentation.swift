@@ -9,7 +9,7 @@ enum ContentSegmentPresentation {
             guard record.kind == .voice else { return true }
             guard let provenance = record.contentProvenance,
                   !record.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { return false }
-            return provenance.classification == nil || provenance.classification == "meaningful"
+            return provenance.isFinal == true && provenance.classification == "meaningful"
         }
     }
     /// Requested-date inputs are assembled before any selected-day parent replacement.
@@ -29,7 +29,7 @@ enum ContentSegmentPresentation {
             contentSignature:segment.provenance.contentSignature,sourceDate:source.capturedAt,
             ranges:segment.ranges.map { .init(chunkID:$0.chunkID,startFrame:$0.startFrame,endFrame:$0.endFrame,sampleRate:$0.sampleRate,sourceOffset:$0.sessionStartOffset) },
             transcript:spans.map { .init(start:$0.start,end:$0.end,text:$0.text) },
-            classification:segment.editorial?.classification)
+            classification:segment.editorial?.classification,isFinal:segment.isFinal)
         return value
     }
     static func sourceTime(at compact: Double, ranges: [DayRecord.ContentProvenance.AudioRange]) -> Double? {

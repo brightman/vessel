@@ -75,13 +75,16 @@
     function field(label,name,value,type='text',required=false,extra='') {
       return `<label class="fa-field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value||'')}" ${required?'required':''} ${extra}></label>`;
     }
+    function actionField(label,name,value,type='text',required=false,extra='') {
+      return `<label class="action-form-field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value||'')}" ${required?'required':''} ${extra}></label>`;
+    }
     function editAsset(id) {
       const a=find(id);if(!a)return;
       openSheet(a.status==='review'?'核对资产':'修改资产',`<form id="faAssetForm" data-asset="${id}">${field('标题','title',a.title,'text',true,'maxlength="80"')}<label class="fa-field"><span>内容</span><textarea name="content" rows="4" maxlength="1000" required>${esc(a.content)}</textarea></label>${a.kind==='expense'?`<div class="fa-field-pair">${field('金额','amount',a.amount,'number',true,'min="0.01" max="999999999" step="0.01"')}<label class="fa-field"><span>币种</span><select name="currency" required><option value="">请选择币种</option>${['CNY','USD','SGD','EUR','JPY','HKD'].map(c=>`<option ${a.currency===c?'selected':''}>${c}</option>`).join('')}</select></label></div>${field('消费日期','date',a.date,'date',true)}`:''}${a.kind==='reference'?field('资料链接（可稍后补）','url',a.url,'url',false,'placeholder="https://"'):''}<div class="fa-evidence"><span class="eyebrow">原话依据</span><blockquote translate="no">“${esc(a.quote)}”</blockquote></div><p id="faFormError" class="fa-error" role="alert" hidden></p><button class="primary-button wide" type="submit">${a.status==='review'?'确认并保存':'保存修改'}</button><button class="plain-row" type="button" data-fa-asset="${id}">取消</button></form>`);
     }
     function chooseAction(id) {
       const a=find(id);if(!a)return;
-      openSheet('把想法往前推一步',`${flow(2)}<p class="sheet-intro" translate="no">来自：${esc(a.title)}</p>${Object.entries(actionKinds).map(([k,v])=>`<button class="capture-option" data-fa-new-action="${k}" data-asset="${id}">${icon(v.icon)}<div><strong>${v.label}</strong><p>${{todo:'先记下要做的事，时间可以稍后再定',reminder:'在指定时间提醒自己',event:'为这件事留出一段时间'}[k]}</p></div>${icon('ChevronRight')}</button>`).join('')}`);
+      openSheet('把想法往前推一步',`${flow(2)}<p class="sheet-intro" translate="no">来自：${esc(a.title)}</p>${Object.entries(actionKinds).map(([k,v])=>`<button class="capture-option action-kind-option" data-fa-new-action="${k}" data-asset="${id}">${icon(v.icon)}<div><strong>${v.label}</strong><p>${{todo:'先记下要做的事，时间可以稍后再定',reminder:'在指定时间提醒自己',event:'为这件事留出一段时间'}[k]}</p></div>${icon('ChevronRight')}</button>`).join('')}`);
     }
     function actionCard(a) {
       const kind=actionKinds[a.kind];
@@ -101,7 +104,13 @@
     }
     function actionEditor(a) {
       const v=actionKinds[a.kind];
-      openSheet(`确认${v.label}`,`${flow(2)}<form id="faActionForm" data-action="${a.id}">${field('标题','title',a.title,'text',true,'maxlength="100"')}${field(a.kind==='todo'?'截止时间（选填）':a.kind==='event'?'开始时间':'提醒时间','start',a.start,'datetime-local',a.kind!=='todo')}${a.kind==='event'?field('结束时间','end',a.end,'datetime-local',true):''}<p class="fa-note">${a.kind==='event'?'原话只确定了开始时间，请补充结束时间。':a.kind==='todo'?'可以先保存待办，不设截止时间，也不自动提醒。':'选择明确的时间，确认后加入提醒。'}${a.capture==='flash-mixed'&&a.id==='discussion'?'<br>“明天”按录制时的 10月19日解析 · 中国标准时间。':''}</p><div class="fa-evidence"><span class="eyebrow">来自原话</span><blockquote translate="no">“${esc(a.quote)}”</blockquote></div><label class="fa-check"><input type="checkbox" name="external"><span>同时添加到 Apple ${a.kind==='event'?'日历':'提醒事项'}<small>可选 · 本页仅演示，不请求系统权限</small></span></label><p id="faFormError" class="fa-error" role="alert" hidden></p><button class="primary-button wide" type="submit">确认加入${v.label}</button><button class="plain-row" type="button" data-fa-capture="${a.capture}">暂不安排</button></form>`);
+      const schedule=a.kind==='event'
+        ? `${actionField('开始时间','start',a.start,'datetime-local',true)}${actionField('结束时间','end',a.end,'datetime-local',true)}`
+        : actionField(a.kind==='todo'?'截止时间（选填）':'提醒时间','start',a.start,'datetime-local',a.kind!=='todo');
+      const scheduleNote=a.kind==='event'?'原话只确定了开始时间，请补充结束时间。':a.kind==='todo'?'可以先保存待办，不设截止时间，也不会自动提醒。':'选择明确的时间，确认后加入提醒。';
+      const timezoneNote=a.capture==='flash-mixed'&&a.id==='discussion'?'“明天”按录制时的 10月19日解析 · 中国标准时间。':'';
+      const externalTarget=a.kind==='event'?'日历':'提醒事项';
+      openSheet(`添加${v.label}`,`<form class="action-form" id="faActionForm" data-action="${a.id}">${actionField('要做什么','title',a.title,'text',true,'maxlength="100"')}<fieldset class="action-form-section"><legend>安排时间</legend><div class="action-form-grid${a.kind==='event'?' stack':''}">${schedule}</div><p class="action-form-help">${scheduleNote}${timezoneNote?`<span class="action-form-help-detail">${timezoneNote}</span>`:''}</p></fieldset><section class="action-form-source"><p>来源</p><blockquote translate="no">“${esc(a.quote)}”</blockquote>${sourceButton(a)}</section><label class="action-form-sync"><span><strong>同时添加到 Apple ${externalTarget}</strong><small>可选 · 默认关闭</small></span><span class="action-form-toggle"><input type="checkbox" name="external"><span aria-hidden="true"></span></span></label><p id="faFormError" class="action-form-error" role="alert" hidden></p><div class="sheet-actions"><button class="secondary-button" type="button" data-fa-capture="${a.capture}">取消</button><button class="primary-button" type="submit">确认加入${v.label}</button></div></form>`);
     }
     function error(message) {$('faFormError').hidden=false;$('faFormError').textContent=message;$('faFormError').scrollIntoView({block:'nearest'});}
     document.addEventListener('submit',event=>{

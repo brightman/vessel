@@ -1,6 +1,27 @@
 import CryptoKit
 import Foundation
 
+enum DaybookHomeRecapTitle {
+    static func text(date: Date, yesterday: Bool, localeIdentifier: String) -> String {
+        let language = localeIdentifier.split(separator: "-").first.map(String.init) ?? "zh"
+        if yesterday {
+            switch language {
+            case "en": return "Yesterday's recap"
+            case "ja": return "昨日の振り返り"
+            default: return "昨日回顾"
+            }
+        }
+        let formattedDate = date.formatted(.dateTime.locale(Locale(identifier: localeIdentifier)).month().day())
+        let label: String
+        switch language {
+        case "en": label = "Recap"
+        case "ja": label = "振り返り"
+        default: label = "回顾"
+        }
+        return "\(formattedDate) · \(label)"
+    }
+}
+
 enum DaybookRecapFailure: LocalizedError, Equatable {
     case unavailable, unsupportedLanguage, invalid, generation, storage, changed
     var errorDescription: String? {

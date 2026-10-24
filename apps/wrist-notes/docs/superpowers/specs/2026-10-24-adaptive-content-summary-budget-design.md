@@ -8,7 +8,7 @@ Content enrichment currently breaks every transcript into fixed 650-character ch
 
 Choose the input strategy from the selected model route's available context budget. First estimate the complete summary request, including instructions, observed context, reserved output, and a safety margin. If it fits, summarize the segment's complete ASR transcript in one request. If it does not fit, split into budget-sized leaf chunks and use the existing hierarchical reduction.
 
-- Apple Foundation Models uses its reported context size and framework token-counting support when available.
+- Apple Foundation Models uses supported runtime context-size and token-count APIs when available; with the current iOS 26.2 SDK it uses Apple's documented 4,096-token limit and the conservative estimator.
 - Custom models gain an optional context-window size in tokens. Since compatible endpoints do not expose a common tokenizer, estimate conservatively and reserve room for instructions and output.
 - A route without trustworthy window metadata assumes the minimum supported window of 4,096 tokens.
 - The model adapter remains the source of budget information; enrichment orchestration does not guess a window from model-name strings.
@@ -25,7 +25,9 @@ The custom-model token estimate is conservative: count CJK characters and punctu
 
 ## Data flow and persistence
 
-Read the selected segment's transcript spans and observed context, then preflight the full request against the selected adapter's budget. A fitting transcript produces one summary checkpoint; an over-budget transcript follows the resumable budget-sized chunk and pairwise reduction flow. Titles continue to derive from the final summary and preserve user-authored titles.
+Read the selected segment's transcript spans and observed context, then preflight the full request against the selected adapter's budget. A fitting transcript produces one summary checkpoint; an over-budget transcript follows the resumable budget-sized chunk and pairwise reduction flow. When the transcript fits, generate its title directly from ASR rather than the compressed summary. For longer recordings, title from the content-derived final summary. Treat existing titles without a manual-edit marker as model-generated so the new algorithm refreshes stale ones; preserve titles explicitly marked as user-edited.
+
+Persist the optional title-manual-edit marker without breaking older stores. Apple Foundation Models uses its documented 4,096-token context limit and conservative estimator unless the build SDK exposes supported runtime context and token-count APIs.
 
 Increment the enrichment algorithm identity so checkpoints created under fixed chunking cannot be mistaken for results from adaptive input selection. Existing authorization, cancellation, stale-source checks, and local-only defaults remain in effect.
 

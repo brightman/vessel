@@ -65,7 +65,7 @@ struct SettingsView: View {
             }
             SettingsSection("关于") {
                 NavigationLink(value: SettingsRoute.about) {
-                    SettingsRow(symbol: "info.circle", title: "关于", subtitle: "隐私协议、服务协议与联系信息")
+                    SettingsRow(symbol: "info.circle", title: "关于", subtitle: "常见问题与法律信息")
                 }
                 .settingsCard()
             }
@@ -74,24 +74,29 @@ struct SettingsView: View {
 }
 
 struct AboutView: View {
+    private let faqURL = URL(string: "https://wiselife.cloud/#questions")!
     private let privacyPolicyURL = URL(string: "https://wiselife.cloud/privacy")!
     private let termsOfServiceURL = URL(string: "https://wiselife.cloud/terms")!
     private let contactURL = URL(string: "mailto:hello@wiselife.cloud")!
 
     var body: some View {
-        SettingsPage(title: "关于", subtitle: "WiseLife 的隐私、服务条款与联系渠道。") {
+        SettingsPage(title: "关于", subtitle: "查看常见问题、隐私与服务条款，或联系 WiseLife。") {
             SettingsSection("法律与支持") {
                 VStack(spacing: 0) {
+                    Link(destination: faqURL) {
+                        SettingsRow(symbol: "questionmark.circle", title: "常见问题", subtitle: "常见问题与使用说明")
+                    }
+                    Divider().overlay(NotesStyle.border)
                     Link(destination: privacyPolicyURL) {
-                        SettingsRow(symbol: "hand.raised", title: "隐私协议", subtitle: "查看隐私政策与数据使用说明")
+                        SettingsRow(symbol: "hand.raised", title: "隐私条款", subtitle: "查看隐私政策与数据使用说明")
                     }
                     Divider().overlay(NotesStyle.border)
                     Link(destination: termsOfServiceURL) {
-                        SettingsRow(symbol: "doc.text", title: "服务协议", subtitle: "查看应用服务条款")
+                        SettingsRow(symbol: "doc.text", title: "服务条款", subtitle: "查看应用服务条款")
                     }
                     Divider().overlay(NotesStyle.border)
                     Link(destination: contactURL) {
-                        SettingsRow(symbol: "envelope", title: "联系我", subtitle: "hello@wiselife.cloud")
+                        SettingsRow(symbol: "envelope", title: "联系我们", subtitle: "hello@wiselife.cloud")
                     }
                 }
                 .settingsCard()
@@ -157,6 +162,18 @@ struct AISettingsView: View {
                         TextField("例如 my-model", text: $editor.configuration.model)
                             .accessibilityLabel("模型名称")
                     }
+                    DaybookSettingsField("上下文窗口（tokens，可选）") {
+                        TextField("留空：按 4,096 估算", text: Binding(
+                            get: { editor.configuration.contextWindowTokens.map(String.init) ?? "" },
+                            set: { input in
+                                let digits=String(input.filter(\.isNumber))
+                                editor.configuration.contextWindowTokens=digits.isEmpty ? nil : Int(digits)
+                            }))
+                            .keyboardType(.numberPad)
+                            .accessibilityLabel("上下文窗口（tokens，可选）")
+                    }
+                    SettingsFootnote(text: "填写模型服务商公布的上下文窗口；不确定时留空，按 4,096 tokens 估算。")
+                        .padding(.top, -8)
                     DaybookSettingsField("服务地址 · Base URL") {
                         TextField(editor.configuration.apiProtocol.baseURLHint, text: $editor.configuration.baseURL)
                             .keyboardType(.URL).accessibilityLabel("Base URL")

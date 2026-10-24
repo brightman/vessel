@@ -118,7 +118,8 @@ final class ContentSegmentRepository {
         }
         let semanticSignature = AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs)
         let previous = try db.query("SELECT * FROM content_segment_sources WHERE source_key=?",[.text(sourceID.key)]).first
-        let sameContent = previous?["semantic_signature"]?.string == semanticSignature || previous?["signature"]?.string == semanticSignature || previous?["signature"]?.string == AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs,legacy:true)
+        let requiresTopicMigration = try allSegments(sourceID).contains { $0.isFinal && !$0.isManual && $0.boundaryReady == nil }
+        let sameContent = !requiresTopicMigration && (previous?["semantic_signature"]?.string == semanticSignature || previous?["signature"]?.string == semanticSignature || previous?["signature"]?.string == AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs,legacy:true))
         // Preserve an older cache key after exact input equivalence was proven at registration.
         let signature = sameContent ? (previous?["signature"]?.string ?? semanticSignature) : semanticSignature
         var plan = DerivationPlan(source: source, sourceRevision: progress.revision, previous: previous, signature: signature, semanticSignature: semanticSignature)
@@ -206,17 +207,32 @@ final class ContentSegmentRepository {
         // changes discard them; progress-only wakes retain them via the fast path above.
         let cuts = try db.query("SELECT position FROM content_topic_decisions WHERE source_key=? AND signature=? AND decision='newTopic' ORDER BY position",[.text(sourceID.key),.text(signature)]).map { try $0.requiredDouble("position") }
         let drafts = try ContentSegmentation.applyingTopicCuts(cuts,to:built.segments)
-        let old = try allSegments(sourceID).map { try upgradedContentIdentity($0) }
+        var old = try allSegments(sourceID).map { try upgradedContentIdentity($0) }
+        // Prior versions used isFinal for ASR/VAD coverage alone. Without the new
+        // boundaryReady marker, an automatic final has no proof that topic AI ran.
+        for index in old.indices where old[index].isFinal && !old[index].isManual && old[index].boundaryReady == nil {
+            old[index].isFinal = false
+        }
         let masks = try suppression(sourceID)
-        var remaining = old.filter { !$0.isManual }
+        // Final ranges are durable locks. Keep them out of automatic overlap matching;
+        // appended or reprocessed audio is reconciled only around their exact ranges.
+        let locked = old.filter(\.isFinal)
+        let lockedMasks = locked.flatMap(\.ranges).map { AudioTimeRange(start:$0.sessionStartOffset,end:$0.end) }
+        var remaining = old.filter { !$0.isManual && !$0.isFinal }
         let before = EditSnapshot(segments:old,suppression:masks,beforeEpoch:nil)
         var changed = false
         for var manual in old where manual.isManual {
             let content = try contentSignature(sourceID,ranges:manual.ranges,key:key)
-            let isFinal = manual.ranges.allSatisfy { ContentSegmentation.covers(covered,start:$0.sessionStartOffset,end:$0.end) } && (source.complete || manual.isFinal)
-            if (manual.provenance.semanticContentSignature ?? manual.provenance.contentSignature) != content.signature || manual.isFinal != isFinal {
-                manual.isFinal = isFinal
+            let contentChanged = (manual.provenance.semanticContentSignature ?? manual.provenance.contentSignature) != content.signature
+            let boundaryReady = manual.ranges.allSatisfy { ContentSegmentation.covers(covered,start:$0.sessionStartOffset,end:$0.end) } && (source.complete || manual.boundaryReady == true || manual.isFinal)
+            if contentChanged || manual.boundaryReady != boundaryReady {
+                manual.boundaryReady = boundaryReady
                 manual.hasText = content.hasText
+                if contentChanged {
+                    manual.editorial = nil
+                    if manual.titleManuallyEdited != true { manual.title = "" }
+                    manual.summary = ""
+                }
                 manual.provenance = .init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature,semanticContentSignature:content.signature)
                 manual.revision += 1; changed = true
             }
@@ -224,8 +240,23 @@ final class ContentSegmentRepository {
             manual.sourceRevision = progress.revision
             plan.saved.append(manual)
         }
+        for var final in locked {
+            let content = try contentSignature(sourceID,ranges:final.ranges,key:key)
+            let contentChanged = (final.provenance.semanticContentSignature ?? final.provenance.contentSignature) != content.signature
+            if contentChanged {
+                final.hasText = content.hasText
+                final.editorial = nil
+                if final.titleManuallyEdited != true { final.title = "" }
+                final.summary = ""
+                final.provenance = .init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature,semanticContentSignature:content.signature)
+                final.revision += 1; changed = true
+            }
+            final.ranges = try final.ranges.map { try $0.relocated(in:source) }
+            final.sourceRevision = progress.revision
+            plan.saved.append(final)
+        }
         for draft in drafts {
-            let pieces = ContentSegmentation.subtract(draft.ranges.map { .init(start:$0.sessionStartOffset,end:$0.end) },masks)
+            let pieces = ContentSegmentation.subtract(draft.ranges.map { .init(start:$0.sessionStartOffset,end:$0.end) },masks+lockedMasks)
             guard !pieces.isEmpty else { continue }
             let ranges = try pieces.flatMap { try AudioWindowPlanner.slices(draft.ranges,start:$0.start,end:$0.end) }
             let content = try contentSignature(sourceID,ranges:ranges,key:key)
@@ -233,12 +264,14 @@ final class ContentSegmentRepository {
             let match = exact ?? remaining.firstIndex { old in old.ranges.contains { a in ranges.contains { b in a.chunkID == b.chunkID && a.sessionStartOffset < b.end && b.sessionStartOffset < a.end } } }
             var segment: ContentSegment
             if let match { segment = remaining.remove(at:match) }
-            else { segment = .init(id:UUID(),sourceID:sourceID,sourceRevision:progress.revision,ranges:ranges,title:"",summary:"",revision:0,isManual:false,isFinal:draft.isFinal,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)) }
-            let mutated = segment.revision == 0 || segment.ranges.map(\.contentIdentity) != ranges.map(\.contentIdentity) || segment.isFinal != draft.isFinal || (segment.provenance.semanticContentSignature ?? segment.provenance.contentSignature) != content.signature
+            else { segment = .init(id:UUID(),sourceID:sourceID,sourceRevision:progress.revision,ranges:ranges,title:"",summary:"",revision:0,isManual:false,isFinal:false,boundaryReady:draft.boundaryReady,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)) }
+            let mutated = segment.revision == 0 || segment.ranges.map(\.contentIdentity) != ranges.map(\.contentIdentity) || segment.isFinal || segment.boundaryReady != draft.boundaryReady || (segment.provenance.semanticContentSignature ?? segment.provenance.contentSignature) != content.signature
             if mutated {
-                segment.ranges = ranges; segment.isFinal = draft.isFinal; segment.hasText = content.hasText
+                segment.ranges = ranges; segment.isFinal = false; segment.boundaryReady = draft.boundaryReady; segment.hasText = content.hasText
                 segment.provenance = .init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature,semanticContentSignature:content.signature)
-                segment.title = ""; segment.summary = ""; segment.revision += 1; changed = true
+                segment.editorial = nil
+                if segment.titleManuallyEdited != true { segment.title = "" }
+                segment.summary = ""; segment.revision += 1; changed = true
             }
             segment.ranges = ranges
             segment.sourceRevision = progress.revision
@@ -259,7 +292,7 @@ final class ContentSegmentRepository {
     func split(id: UUID, at position: Double, expectedRevision: Int) throws -> [ContentSegment] {
         try db.transaction {
             let original = try checked(id,expectedRevision)
-            guard position.isFinite, original.ranges.contains(where: { position >= $0.sessionStartOffset && position <= $0.end }) else { throw ContentSegmentError.invalidEdit }
+            guard !original.isFinal, position.isFinite, original.ranges.contains(where: { position >= $0.sessionStartOffset && position <= $0.end }) else { throw ContentSegmentError.invalidEdit }
             let left = try original.ranges.flatMap { range in
                 position > range.sessionStartOffset ? try AudioWindowPlanner.slices([range],start:range.sessionStartOffset,end:min(position,range.end)) : []
             }
@@ -272,7 +305,7 @@ final class ContentSegmentRepository {
                 try tombstone(original)
                 return try [left,right].map { ranges in
                     var part = original
-                    part = .init(id:UUID(),sourceID:original.sourceID,sourceRevision:original.sourceRevision,ranges:ranges,title:"",summary:"",revision:1,isManual:true,isFinal:original.isFinal,hasText:original.hasText,provenance:original.provenance)
+                    part = .init(id:UUID(),sourceID:original.sourceID,sourceRevision:original.sourceRevision,ranges:ranges,title:"",summary:"",revision:1,isManual:true,isFinal:false,boundaryReady:original.boundaryReady,hasText:original.hasText,provenance:original.provenance)
                     let content = try contentSignature(original.sourceID,ranges:ranges,key:original.provenance.configurationKey)
                     part.hasText = content.hasText
                     part.provenance = .init(algorithmVersion:Self.algorithmVersion,configurationKey:original.provenance.configurationKey,contentSignature:content.signature,semanticContentSignature:content.signature)
@@ -282,11 +315,11 @@ final class ContentSegmentRepository {
         }
     }
     func merge(ids: [UUID], expectedRevisions: [Int]) throws -> ContentSegment {
-        try db.transaction {
+        let result=try db.transaction {
             guard ids.count >= 2, ids.count == expectedRevisions.count, Set(ids).count == ids.count else { throw ContentSegmentError.invalidEdit }
             let values = try zip(ids,expectedRevisions).map { try checked($0,$1) }.sorted { $0.ranges[0].sessionStartOffset < $1.ranges[0].sessionStartOffset }
             let sourceID = values[0].sourceID
-            guard values.allSatisfy({ $0.sourceID == sourceID }) else { throw ContentSegmentError.invalidEdit }
+            guard values.allSatisfy({ $0.sourceID == sourceID && $0.isFinal }) else { throw ContentSegmentError.invalidEdit }
             let all = try allSegments(sourceID)
             let indices = all.indices.filter { ids.contains(all[$0].id) }
             guard indices.count == ids.count, indices.last!-indices.first!+1 == ids.count else { throw ContentSegmentError.invalidEdit }
@@ -294,10 +327,12 @@ final class ContentSegmentRepository {
                 for value in values { try suppress(value); try tombstone(value) }
                 let ranges = values.flatMap(\.ranges)
                 let content = try contentSignature(sourceID,ranges:ranges,key:try processing.progress(sourceID:sourceID).configurationKey ?? "")
-                let value = ContentSegment(id:UUID(),sourceID:sourceID,sourceRevision:try processing.progress(sourceID:sourceID).revision,ranges:ranges,title:"",summary:"",revision:1,isManual:true,isFinal:values.allSatisfy(\.isFinal),hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:try processing.progress(sourceID:sourceID).configurationKey ?? "",contentSignature:content.signature))
+                let value = ContentSegment(id:UUID(),sourceID:sourceID,sourceRevision:try processing.progress(sourceID:sourceID).revision,ranges:ranges,title:"",summary:"",revision:1,isManual:true,isFinal:true,boundaryReady:true,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:try processing.progress(sourceID:sourceID).configurationKey ?? "",contentSignature:content.signature))
                 try save(value); return value
             }
         }
+        try preparePresentations(sourceID:result.sourceID)
+        return result
     }
     func delete(id: UUID, expectedRevision: Int) throws {
         try db.transaction {
@@ -334,13 +369,17 @@ final class ContentSegmentRepository {
             }
         }
     }
-    func applyEnrichment(id: UUID, expectedRevision: Int, sourceRevision: Int, title: String, summary: String) throws {
+    func applyEnrichment(id: UUID, expectedRevision: Int, sourceRevision: Int, title: String, summary: String, titleIsManual: Bool = false) throws {
         try db.transaction {
             var value = try checked(id,expectedRevision)
             let progress = try processing.progress(sourceID:value.sourceID)
             guard progress.revision == sourceRevision, value.sourceRevision == sourceRevision,
                   progress.configurationKey == value.provenance.configurationKey else { throw ContentSegmentError.staleRevision }
-            if value.title.isEmpty { value.title = String(title.prefix(40)) }
+            if titleIsManual {
+                value.title=String(title.prefix(40)); value.titleManuallyEdited=true
+            } else if value.titleManuallyEdited != true {
+                value.title=String(title.prefix(40))
+            }
             value.summary = String(summary.prefix(220)); value.revision += 1
             try save(value); try bump(value.sourceID)
         }
@@ -379,11 +418,63 @@ final class ContentSegmentRepository {
                 // Completion and the exact revision it produced commit atomically with title/summary.
                 try checkpoint(snapshot,key:key,unit:"complete",text:"",revision:snapshot.revision+1)
             }
+        case let .field(snapshot,field,value,context):
+            _ = try applyGeneratedField(snapshot,field:field,value:value,context:context)
         case let .topic(candidate,decision,key):
             try applyTopic(candidate,decision:decision,key:key)
             try preparePresentations(sourceID:candidate.left.sourceID)
+        case let .classification(snapshot,classification,model,engineVersion,evidenceID):
+            return .segment(try applyClassification(snapshot,classification:classification,model:model,engineVersion:engineVersion,evidenceID:evidenceID))
+        case let .finalizeTopics(sourceID,expectedSourceRevision):
+            try finalizeTopicPass(sourceID,expectedSourceRevision:expectedSourceRevision)
         }
         return .accepted
+    }
+    private func applyClassification(_ snapshot: ContentSegment, classification: String, model: String, engineVersion: String, evidenceID: String) throws -> ContentSegment {
+        try db.transaction {
+            var value=try checkedEnrichment(snapshot)
+            guard value.isFinal,value.hasText,
+                  ContentSegmentClassification(rawValue:classification) != nil,
+                  evidenceID == AudioStableID.make([value.id.uuidString,value.provenance.contentSignature,"segment-transcript"]) else { throw ContentSegmentError.invalidEdit }
+            let editorial=ContentSegmentEditorial(classification:classification,engineVersion:engineVersion,model:model,evidenceBlockIDs:[evidenceID])
+            if value.editorial != editorial {
+                value.editorial=editorial
+                value.revision += 1
+                try save(value); try bump(value.sourceID)
+            }
+            return value
+        }
+    }
+    private func applyGeneratedField(_ snapshot: ContentSegment, field: ContentEnrichmentField, value: String, context: String) throws -> ContentSegment {
+        try db.transaction {
+            var current=try checkedEnrichment(snapshot)
+            guard current.isFinal,current.hasText,try enrichmentContext(snapshot) == context else { throw ContentSegmentError.staleRevision }
+            let cleaned=String(value.trimmingCharacters(in:.whitespacesAndNewlines).prefix(field == .title ? 40 : 220))
+            guard !cleaned.isEmpty else { throw ContentSegmentError.invalidEdit }
+            if field == .title {
+                current.title=cleaned
+                current.titleManuallyEdited=false
+            } else { current.summary=cleaned }
+            current.revision += 1
+            try save(current); try bump(current.sourceID)
+            return current
+        }
+    }
+    private func finalizeTopicPass(_ sourceID: AudioSourceID, expectedSourceRevision: Int) throws {
+        try db.transaction {
+            guard try source(sourceID) != nil else { throw AudioProcessingError.deletedSource }
+            guard try processing.progress(sourceID:sourceID).revision == expectedSourceRevision else { throw ContentSegmentError.staleRevision }
+            var changed = false
+            for var value in try allSegments(sourceID) where value.sourceRevision == expectedSourceRevision {
+                guard !value.isFinal, value.boundaryReady == true else { continue }
+                value.isFinal = true
+                value.revision += 1
+                try save(value)
+                changed = true
+            }
+            guard try allSegments(sourceID).allSatisfy({ $0.sourceRevision == expectedSourceRevision }) else { throw ContentSegmentError.staleRevision }
+            if changed { try bump(sourceID) }
+        }
     }
     private func checkedEnrichment(_ snapshot: ContentSegment) throws -> ContentSegment {
         let current = try checked(snapshot.id,snapshot.revision)
@@ -400,6 +491,7 @@ final class ContentSegmentRepository {
         let all=try allSegments(id)
         guard let left=all.first(where:{ $0.ranges.contains { leftStart >= $0.sessionStartOffset && leftStart < $0.end } }),
               let right=all.first(where:{ $0.ranges.contains { position >= $0.sessionStartOffset && position < $0.end } }),
+              !left.isFinal, !right.isFinal, left.boundaryReady == true, right.boundaryReady == true,
               !left.isManual, !right.isManual, left.hasText, right.hasText,
               left.provenance.configurationKey == right.provenance.configurationKey else { return nil }
         if left.id != right.id {
@@ -490,6 +582,10 @@ final class ContentSegmentRepository {
         let selected=observations.count <= 3 ? observations : [observations[0],observations[observations.count/2],observations.last!]
         return String((header+(selected.isEmpty ? "No sampled place evidence." : selected.map { String($0.prefix(220)) }.joined(separator:"\n"))).prefix(1200))
     }
+    func enrichmentContextForAuthorization(segmentID: UUID) throws -> String? {
+        guard let value=try segment(id:segmentID),value.isFinal,value.hasText else { return nil }
+        return try enrichmentContext(value)
+    }
     private func applyTopic(_ candidate: ContentTopicCandidate, decision: ContentTopicDecision, key: String) throws {
         try db.transaction {
             _ = try checkedEnrichment(candidate.left)
@@ -501,26 +597,25 @@ final class ContentSegmentRepository {
             let id=candidate.left.sourceID
             if decision == .newTopic && candidate.left.id == candidate.right.id {
                 let original=candidate.left
-                let parts=try ContentSegmentation.applyingTopicCuts([candidate.position],to:[.init(ranges:original.ranges,isFinal:original.isFinal)])
+                let parts=try ContentSegmentation.applyingTopicCuts([candidate.position],to:[.init(ranges:original.ranges,boundaryReady:original.boundaryReady == true)])
                 guard parts.count == 2 else { throw ContentSegmentError.invalidEdit }
                 try tombstone(original)
                 for part in parts { try saveAutomatic(part,sourceID:id,sourceRevision:original.sourceRevision,key:original.provenance.configurationKey) }
                 try bump(id)
             } else if decision == .sameTopic && candidate.left.id != candidate.right.id {
                 try tombstone(candidate.left); try tombstone(candidate.right)
-                try saveAutomatic(.init(ranges:candidate.left.ranges+candidate.right.ranges,isFinal:candidate.left.isFinal && candidate.right.isFinal),sourceID:id,sourceRevision:candidate.left.sourceRevision,key:candidate.left.provenance.configurationKey,id:candidate.left.id,revision:max(candidate.left.revision,candidate.right.revision)+1)
+                try saveAutomatic(.init(ranges:candidate.left.ranges+candidate.right.ranges,boundaryReady:candidate.left.boundaryReady == true && candidate.right.boundaryReady == true),sourceID:id,sourceRevision:candidate.left.sourceRevision,key:candidate.left.provenance.configurationKey,id:candidate.left.id,revision:max(candidate.left.revision,candidate.right.revision)+1)
                 try bump(id)
             }
             // Uncertain keeps an already accepted cut intact; no output can erase a hard/manual boundary.
-            if decision != .uncertain {
-                try db.execute("INSERT INTO content_topic_decisions(source_key,signature,position,decision,model_key) VALUES (?,?,?,?,?) ON CONFLICT(source_key,signature,position) DO UPDATE SET decision=excluded.decision,model_key=excluded.model_key",[.text(id.key),.text(candidate.sourceSignature),.real(candidate.position),.text(decision.rawValue),.text(key)])
-            }
+            // `uncertain` is a terminal conservative keep-boundary outcome, not a retry loop.
+            try db.execute("INSERT INTO content_topic_decisions(source_key,signature,position,decision,model_key) VALUES (?,?,?,?,?) ON CONFLICT(source_key,signature,position) DO UPDATE SET decision=excluded.decision,model_key=excluded.model_key",[.text(id.key),.text(candidate.sourceSignature),.real(candidate.position),.text(decision.rawValue),.text(key)])
             try checkpoint(candidate.left,key:key,unit:"topic",text:decision.rawValue,revision:candidate.left.revision)
         }
     }
     private func saveAutomatic(_ draft: ContentSegmentDraft, sourceID: AudioSourceID, sourceRevision: Int, key: String, id: UUID = UUID(), revision: Int = 1) throws {
         let content=try contentSignature(sourceID,ranges:draft.ranges,key:key)
-        try save(.init(id:id,sourceID:sourceID,sourceRevision:sourceRevision,ranges:draft.ranges,title:"",summary:"",revision:revision,isManual:false,isFinal:draft.isFinal,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)))
+        try save(.init(id:id,sourceID:sourceID,sourceRevision:sourceRevision,ranges:draft.ranges,title:"",summary:"",revision:revision,isManual:false,isFinal:false,boundaryReady:draft.boundaryReady,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)))
     }
 
     private struct EditSnapshot: Codable {

@@ -1,10 +1,28 @@
 import SwiftUI
 
+private enum ActionEditorRoute: Identifiable {
+    case create(ActionItem)
+    case edit(ActionItem)
+
+    var id: UUID { item.id }
+
+    var item: ActionItem {
+        switch self {
+        case .create(let item), .edit(let item): item
+        }
+    }
+
+    var isNew: Bool {
+        if case .create = self { return true }
+        return false
+    }
+}
+
 struct ActionListView: View {
     @ObservedObject var store: ActionStore
     let onOpenSource: (ActionSource) -> Void
     @State private var filter: ActionItem.Kind?
-    @State private var editing: ActionItem?
+    @State private var editorRoute: ActionEditorRoute?
     @State private var detail: ActionItem?
     @State private var pendingSource: ActionSource?
     private var visible: [ActionItem] { store.items.filter { filter == nil || $0.kind == filter } }
@@ -17,7 +35,10 @@ struct ActionListView: View {
                     Text("待办、提醒、日程，都从你的决定开始。").font(.caption).foregroundStyle(DaybookStyle.secondary)
                 }
                 Spacer()
-                Button { editing = ActionItem(kind:.todo,title:"") } label: { Image(systemName:"plus.circle.fill").font(.title2) }.accessibilityLabel("新建行动")
+                Button {
+                    editorRoute = .create(ActionItem(kind:.todo,title:""))
+                } label: { Image(systemName:"plus.circle.fill").font(.title2) }
+                    .accessibilityLabel("新建行动")
             }
             ScrollView(.horizontal,showsIndicators:false) {
                 HStack { filterButton(nil,"全部"); ForEach(ActionItem.Kind.allCases,id:\.self) { kind in filterButton(kind,kind.title) } }
@@ -34,7 +55,9 @@ struct ActionListView: View {
             Text("行动保存在本机。关联 Apple 列表或日历后，内容可能随该账户同步。").font(.caption2).foregroundStyle(DaybookStyle.secondary)
         }
         .disabled(store.busy)
-        .sheet(item:$editing) { ActionEditor(store:store,item:$0) }
+        .sheet(item:$editorRoute) { route in
+            ActionEditor(store:store,item:route.item,isNew:route.isNew)
+        }
         .sheet(item:$detail,onDismiss:{ if let source = pendingSource { pendingSource = nil; onOpenSource(source) } }) { ActionDetailView(store:store,id:$0.id,onOpenSource:{ pendingSource = $0; detail = nil }) }
         .task { await store.refresh() }
     }
@@ -51,7 +74,7 @@ struct ActionListView: View {
         }
     }
     private func row(_ item: ActionItem) -> some View {
-        Button { if item.status == .suggested { editing = item } else { detail = item } } label: {
+        Button { if item.status == .suggested { editorRoute = .edit(item) } else { detail = item } } label: {
             HStack(spacing:12) {
                 DaybookIcon(item.status == .completed ? "Check" : item.kind.icon,size:22)
                 VStack(alignment:.leading,spacing:6) {
@@ -71,7 +94,8 @@ struct ActionListView: View {
 
 struct ActionEditor: View {
     @ObservedObject var store: ActionStore
-    @State var item: ActionItem
+    @State private var item: ActionItem
+    let isNew: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var external = false
     @State private var lists: [ActionSystemList] = []
@@ -79,62 +103,162 @@ struct ActionEditor: View {
     @State private var loading = false
     @State private var error: String?
     private var timeZone: TimeZone { TimeZone(identifier:item.timeZoneID) ?? .current }
+    private var titleText: String {
+        if isNew { return "新建行动" }
+        return item.status == .suggested ? "确认\(item.kind.title)" : "编辑\(item.kind.title)"
+    }
+    private var canSave: Bool {
+        !store.busy && !loading && !item.title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
+    }
+
+    init(store: ActionStore, item: ActionItem, isNew: Bool = false) {
+        self.store = store
+        self.isNew = isNew
+        _item = State(initialValue:item)
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("行动内容") {
-                    Picker("类型",selection:$item.kind) { ForEach(ActionItem.Kind.allCases,id:\.self) { Text($0.title).tag($0) } }
-                        .disabled(item.legacyReminderID != nil || (item.link != nil && item.status != .suggested))
-                    TextField("标题",text:$item.title)
-                    TextField("备注（仅保存在本机）",text:$item.notes,axis:.vertical)
-                }
-                Section("时间") {
-                    Toggle(item.kind == .todo ? "设置截止时间" : item.kind == .event ? "设置开始时间" : "设置提醒时间",isOn:Binding(get:{item.start != nil},set:{item.start = $0 ? Date.now.addingTimeInterval(3600) : nil}))
-                    if item.start != nil { DatePicker(item.kind == .event ? "开始" : item.kind == .todo ? "截止" : "提醒",selection:Binding(get:{item.start ?? .now},set:{item.start = $0}),displayedComponents:item.allDay ? [.date] : [.date,.hourAndMinute]) }
-                    if item.kind == .event {
-                        Toggle("设置结束时间",isOn:Binding(get:{item.end != nil},set:{item.end = $0 ? (item.start ?? .now).addingTimeInterval(3600) : nil}))
-                        if item.end != nil { DatePicker(item.allDay ? "结束日期（不含这一天）" : "结束",selection:Binding(get:{item.end ?? .now},set:{item.end = $0}),displayedComponents:item.allDay ? [.date] : [.date,.hourAndMinute]) }
-                        Toggle("全天",isOn:$item.allDay)
+        DaybookSheetLayout(title:titleText,onClose:{ dismiss() }) {
+            VStack(alignment:.leading,spacing:18) {
+                Text(isNew ? "把重要的下一步放进你的行动里。" : "你可以随时调整内容、时间和系统关联。")
+                    .font(.system(size:12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(8)
+                    .padding(.top,6).padding(.bottom,2)
+
+                DaybookSettingsField("类型") {
+                    Picker("类型",selection:$item.kind) {
+                        ForEach(ActionItem.Kind.allCases,id:\.self) { Text($0.title).tag($0) }
                     }
-                    Text("时区：\(item.timeZoneID)").font(.caption).foregroundStyle(.secondary)
-                    if item.kind == .todo { Text("截止时间不会自动产生通知；需要通知请选择“提醒”。").font(.caption) }
-                    if item.kind == .event && item.end == nil { Text("请补充结束时间，未默认安排时长。").font(.caption).foregroundStyle(.orange) }
-                }.environment(\.timeZone,timeZone)
-                Section("可选系统关联") {
-                    Toggle("同时添加到 Apple \(item.kind == .event ? "日历" : "提醒事项")",isOn:$external)
-                    if external {
-                        if lists.isEmpty { Button("授权并选择系统列表") { loadLists() }.disabled(loading) }
-                        else { Picker("列表",selection:$listID) { ForEach(lists) { Text($0.title).tag($0.id) } } }
+                    .pickerStyle(.menu).tint(DaybookStyle.accent)
+                    .disabled(item.legacyReminderID != nil || (item.link != nil && item.status != .suggested))
+                }
+                DaybookSettingsField("要做什么") {
+                    TextField("行动内容",text:$item.title,axis:.vertical)
+                        .lineLimit(1...4).accessibilityLabel("行动内容")
+                }
+                DaybookSettingsField("备注（仅保存在本机）") {
+                    TextField("补充说明",text:$item.notes,axis:.vertical)
+                        .lineLimit(2...5).accessibilityLabel("行动备注")
+                }
+
+                scheduleFields
+                if let source = item.source { sourceCard(source) }
+                systemDestination
+
+                if let error = error ?? store.error {
+                    Text(error).font(.system(size:12)).foregroundStyle(DaybookStyle.red).lineSpacing(6)
+                }
+                DaybookSettingsActions(cancel:{ dismiss() },save:save,canSave:canSave,
+                    saveTitle:isNew ? "添加行动" : item.status == .suggested ? "确认并加入" : "保存修改",
+                    isSaving:store.busy || loading,canCancel:!store.busy && !loading)
+                    .padding(.top,4)
+            }
+            .padding(.top,6)
+        }
+        .interactiveDismissDisabled(store.busy || loading)
+        .onAppear {
+            external = item.link != nil
+            if let link = item.link { lists = [.init(id:link.listID,title:link.listTitle)]; listID = link.listID }
+        }
+        .onChange(of:item.kind) { _,_ in external = false; lists = []; listID = ""; item.allDay = false }
+    }
+
+    private var scheduleFields: some View {
+        VStack(alignment:.leading,spacing:12) {
+            Text("安排时间").font(.system(size:13,weight:.medium)).foregroundStyle(DaybookStyle.ink)
+            Toggle(primaryTimeToggleTitle,isOn:Binding(get:{item.start != nil},set:{ enabled in
+                item.start = enabled ? Date.now.addingTimeInterval(3600) : nil
+            }))
+            .font(.system(size:13)).tint(DaybookStyle.accent)
+            if item.start != nil {
+                DaybookSettingsField(primaryDateTitle) {
+                    DatePicker(primaryDateTitle,selection:Binding(get:{item.start ?? .now},set:{item.start = $0}),
+                        displayedComponents:item.allDay ? [.date] : [.date,.hourAndMinute])
+                        .datePickerStyle(.compact).labelsHidden().accessibilityLabel(primaryDateTitle)
+                }
+            }
+            if item.kind == .event {
+                Toggle("设置结束时间",isOn:Binding(get:{item.end != nil},set:{ enabled in
+                    item.end = enabled ? (item.start ?? .now).addingTimeInterval(3600) : nil
+                }))
+                .font(.system(size:13)).tint(DaybookStyle.accent)
+                if item.end != nil {
+                    DaybookSettingsField(item.allDay ? "结束日期（不含这一天）" : "结束") {
+                        DatePicker("结束",selection:Binding(get:{item.end ?? .now},set:{item.end = $0}),
+                            displayedComponents:item.allDay ? [.date] : [.date,.hourAndMinute])
+                            .datePickerStyle(.compact).labelsHidden().accessibilityLabel("结束")
                     }
-                    if !external && item.link != nil { Text("保存后移除关联的系统项目，保留本机行动。").font(.caption).foregroundStyle(.orange) }
-                    Text("只写入标题与时间，不发送录音、原话或本机备注。所选账户可能同步到云端。").font(.caption)
                 }
-                if let source = item.source {
-                    Section("原话依据") { Text(source.quote.isEmpty ? "可在详情中打开来源记录。" : source.quote); Text(source.title).font(.caption).foregroundStyle(.secondary) }
-                }
-                if let error = error ?? store.error { Section { Text(error).foregroundStyle(.red) } }
-            }
-            .navigationTitle(item.status == .suggested ? "确认\(item.kind.title)" : "编辑\(item.kind.title)")
-            .toolbar {
-                ToolbarItem(placement:.cancellationAction) { Button("取消") { dismiss() } }
-                ToolbarItem(placement:.confirmationAction) {
-                    Button("确认保存") {
-                        Task {
-                            if external {
-                                guard let list = lists.first(where:{$0.id == listID}) else { error = "请选择可写的系统列表。"; return }
-                                item.link = .init(listID:list.id,listTitle:list.title,identifier:item.link?.identifier)
-                            } else { item.link = nil }
-                            if await store.save(item) { dismiss() }
-                            else if let current = store.items.first(where:{$0.id == item.id}) { item = current }
-                        }
-                    }.disabled(store.busy || loading || item.title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                Toggle("全天",isOn:$item.allDay).font(.system(size:13)).tint(DaybookStyle.accent)
+                if item.end == nil {
+                    Text("请补充日程结束时间。").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
                 }
             }
-            .onAppear {
-                external = item.link != nil
-                if let link = item.link { lists = [.init(id:link.listID,title:link.listTitle)]; listID = link.listID }
+            Text("时区：\(item.timeZoneID)").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
+            if item.kind == .todo { Text("截止时间不会自动产生通知；需要通知请选择“提醒”。").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary) }
+        }
+        .environment(\.timeZone,timeZone)
+        .padding(16).background(DaybookStyle.blueSoft,in:RoundedRectangle(cornerRadius:16))
+    }
+
+    private var primaryTimeToggleTitle: String {
+        switch item.kind {
+        case .todo: "设置截止时间"
+        case .reminder: "设置提醒时间"
+        case .event: "设置开始时间"
+        }
+    }
+
+    private var primaryDateTitle: String {
+        switch item.kind {
+        case .todo: "截止"
+        case .reminder: "提醒"
+        case .event: "开始"
+        }
+    }
+
+    private func sourceCard(_ source: ActionSource) -> some View {
+        VStack(alignment:.leading,spacing:8) {
+            Text("原话依据").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
+            Text(source.quote.isEmpty ? "可在详情中打开来源记录。" : source.quote)
+                .font(.system(size:13)).foregroundStyle(DaybookStyle.ink).lineSpacing(6)
+            Text(source.title).font(.system(size:10)).foregroundStyle(DaybookStyle.accent)
+        }
+        .frame(maxWidth:.infinity,alignment:.leading).padding(15)
+        .background(DaybookStyle.blueSoft,in:RoundedRectangle(cornerRadius:14))
+        .overlay(alignment:.leading) { RoundedRectangle(cornerRadius:2).fill(DaybookStyle.accent.opacity(0.55)).frame(width:2).padding(.vertical,10) }
+    }
+
+    private var systemDestination: some View {
+        VStack(alignment:.leading,spacing:12) {
+            Toggle("同时添加到 Apple \(item.kind == .event ? "日历" : "提醒事项")",isOn:$external)
+                .font(.system(size:13)).tint(DaybookStyle.accent)
+            if external {
+                Text("只写入标题与时间，不发送录音、原话或本机备注。所选账户可能同步到云端。")
+                    .font(.system(size:11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(5)
+                if lists.isEmpty {
+                    Button(loading ? "正在读取系统列表…" : "授权并选择系统列表") { loadLists() }
+                        .buttonStyle(DaybookSettingsButtonStyle()).disabled(loading)
+                } else {
+                    Picker("列表",selection:$listID) { ForEach(lists) { Text($0.title).tag($0.id) } }
+                        .pickerStyle(.menu).tint(DaybookStyle.accent)
+                }
             }
-            .onChange(of:item.kind) { _,_ in external = false; lists = []; listID = ""; item.allDay = false }
+            if !external && item.link != nil {
+                Text("保存后移除关联的系统项目，保留本机行动。")
+                    .font(.system(size:11)).foregroundStyle(DaybookStyle.red)
+            }
+        }
+        .padding(16).background(DaybookStyle.blueSoft,in:RoundedRectangle(cornerRadius:16))
+    }
+
+    private func save() {
+        Task {
+            if external {
+                guard let list = lists.first(where:{$0.id == listID}) else { error = "请选择可写的系统列表。"; return }
+                item.link = .init(listID:list.id,listTitle:list.title,identifier:item.link?.identifier)
+            } else { item.link = nil }
+            if await store.save(item) { dismiss() }
+            else if let current = store.items.first(where:{$0.id == item.id}) { item = current }
         }
     }
     private func loadLists() {

@@ -23,6 +23,11 @@ import SQLite3
         let origin = day.addingTimeInterval(86_390), id = UUID(), parentID = UUID()
         var child = DayRecord(id:id,capturedAt:origin,kind:.voice,title:"whole title",text:"yesterday tomorrow",summary:"whole summary",duration:30,intervals:[DateInterval(start:origin,duration:30)])
         child.contentProvenance = .init(segmentID:id,sourceID:parentID,sourceKind:"session",sourceRevision:4,segmentRevision:2,configurationKey:"v1",contentSignature:"sig",sourceDate:origin,ranges:[.init(chunkID:UUID(),startFrame:0,endFrame:300,sampleRate:10,sourceOffset:0)],transcript:[.init(start:0,end:5,text:"yesterday"),.init(start:5,end:15,text:"before midnight / after midnight"),.init(start:15,end:20,text:"tomorrow")])
+        var confirmedJSON = try JSONSerialization.jsonObject(with:JSONEncoder().encode(child)) as! [String:Any]
+        var confirmedProvenance = confirmedJSON["contentProvenance"] as! [String:Any]
+        confirmedProvenance["isFinal"] = true; confirmedProvenance["classification"] = "meaningful"
+        confirmedJSON["contentProvenance"] = confirmedProvenance
+        child = try JSONDecoder().decode(DayRecord.self,from:JSONSerialization.data(withJSONObject:confirmedJSON))
         let first = child.recordingProjection(on:day,calendar:cal)!
         let second = child.recordingProjection(on:day.addingTimeInterval(86400),calendar:cal)!
         precondition(first.id == second.id && first.duration == 10 && second.duration == 20,"same identity, daily audio")
@@ -57,6 +62,14 @@ import SQLite3
         let thought = DayRecord(id:UUID(),capturedAt:origin,kind:.thought,title:"闪念",text:"Keep flash thoughts")
         precondition(ContentSegmentPresentation.timelineRecords([parent,child,blank,thought]).map(\.id) == [child.id,thought.id],"timeline shows meaningful segments and thoughts, never raw long audio or blank segments")
         precondition(ContentSegmentPresentation.timelineRecords([parent]).isEmpty,"pending processing never falls back to a raw timeline recording")
+        confirmedProvenance["isFinal"] = false; confirmedProvenance["classification"] = "meaningful"
+        confirmedJSON["contentProvenance"] = confirmedProvenance
+        let nonFinal = try JSONDecoder().decode(DayRecord.self,from:JSONSerialization.data(withJSONObject:confirmedJSON))
+        precondition(ContentSegmentPresentation.timelineRecords([nonFinal]).isEmpty,"covered but nonfinal segment stays off the timeline")
+        confirmedProvenance["isFinal"] = true; confirmedProvenance.removeValue(forKey:"classification")
+        confirmedJSON["contentProvenance"] = confirmedProvenance
+        let unclassified = try JSONDecoder().decode(DayRecord.self,from:JSONSerialization.data(withJSONObject:confirmedJSON))
+        precondition(ContentSegmentPresentation.timelineRecords([unclassified]).isEmpty,"legacy segment without persisted classification stays off the timeline")
         // Nonempty navigation fragments must obey the saved editorial classification.
         // Decode a payload as older databases do; dropping this field must reveal the bug.
         var classifiedJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(child)) as! [String:Any]

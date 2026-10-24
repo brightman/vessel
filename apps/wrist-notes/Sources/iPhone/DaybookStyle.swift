@@ -18,6 +18,10 @@ enum DaybookStyle {
     static let player = adaptive(0xeef2f6, dark: 0x202e3c)
     static let tabs = adaptive(0xe8edf1, dark: 0x27323d)
     static let bodyText = adaptive(0x41525f, dark: 0xc4cfd9)
+    static let recapSurface = adaptive(0xf5f3ef, dark: 0x282722)
+    static let recapBorder = adaptive(0xe9e5df, dark: 0x3d3932)
+    static let recapLabel = adaptive(0x786d60, dark: 0xc6b9a7)
+    static let recapMuted = adaptive(0x8b8177, dark: 0xa59b8e)
 
     private static func adaptive(_ light: UInt32, dark: UInt32) -> Color {
         Color(uiColor: UIColor { traits in

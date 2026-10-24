@@ -31,8 +31,9 @@ struct AIConfiguration: Codable, Equatable {
     var apiProtocol: APIProtocol = .openai
     var chatGPTModel = ""
     var chatGPTAccountID = ""
+    var contextWindowTokens: Int? = nil
 
-    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol, chatGPTModel, chatGPTAccountID }
+    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol, chatGPTModel, chatGPTAccountID, contextWindowTokens }
 
     var label: String {
         switch mode {
@@ -52,6 +53,9 @@ struct AIConfiguration: Codable, Equatable {
         value.baseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         while value.baseURL.hasSuffix("/") { value.baseURL.removeLast() }
         guard !value.model.isEmpty else { throw AIServiceError.invalidConfiguration("请填写服务提供的模型名称。") }
+        if let window = value.contextWindowTokens, !(1_024...1_000_000).contains(window) {
+            throw AIServiceError.invalidConfiguration("上下文窗口需填写 1,024 到 1,000,000 tokens；不确定时请留空。")
+        }
         guard let components = URLComponents(string: value.baseURL),
               let host = components.host, !host.isEmpty,
               components.url != nil else {
@@ -84,6 +88,7 @@ extension AIConfiguration {
         apiProtocol = try values.decodeIfPresent(APIProtocol.self, forKey: .apiProtocol) ?? .openai
         chatGPTModel = try values.decodeIfPresent(String.self, forKey: .chatGPTModel) ?? ""
         chatGPTAccountID = try values.decodeIfPresent(String.self, forKey: .chatGPTAccountID) ?? ""
+        contextWindowTokens = try values.decodeIfPresent(Int.self, forKey: .contextWindowTokens)
     }
 }
 

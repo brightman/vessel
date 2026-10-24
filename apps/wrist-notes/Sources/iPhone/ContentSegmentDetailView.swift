@@ -5,6 +5,7 @@ struct ContentSegmentDetailView: View {
     var playbackAllowed = true
     var citation: DayRecord.ContentProvenance? = nil
     @EnvironmentObject private var content: ContentSegmentModel
+    @EnvironmentObject private var processing: AudioProcessingModel
     @Environment(\.dismiss) private var dismiss
     @StateObject private var playback = RecordingRangePlayback()
     @State private var detail: ContentSegmentDetail?
@@ -13,6 +14,8 @@ struct ContentSegmentDetailView: View {
     @State private var limit = 1000
     @State private var loadingMore = false
     @State private var confirmDelete = false
+    @State private var enrichmentConfirmation: ContentEnrichmentConfirmation?
+    @State private var enrichmentError: String?
     @State private var showOriginal = false
     @State private var didSeek = false
     @State private var missing = false
@@ -27,6 +30,7 @@ struct ContentSegmentDetailView: View {
                         gapPositions:playback.gapPositions,onToggle:playback.toggle,onSeek:playback.seek)
                     DaybookAudioTabs(selection:$tab).padding(.vertical,20)
                     transcriptOrSummary(detail)
+                    fieldGenerationActions(detail).padding(.top,18)
                     actions(detail).padding(.top,24)
                     processingStatus(detail).padding(.top,18)
                     if let error=content.errorMessage {
@@ -59,6 +63,15 @@ struct ContentSegmentDetailView: View {
                 else { DaybookVoiceDetailView(id:source.id,playbackAllowed:playbackAllowed) }
             }
         }
+        .sheet(item:$enrichmentConfirmation) { request in
+            ContentEnrichmentConfirmationView(request:request,onCancel:{ enrichmentConfirmation=nil },onConfirm:{ remember in
+                enrichmentConfirmation=nil
+                Task {
+                    do { try await processing.approveEnrichment(request,rememberChoice:remember); enrichmentError=nil }
+                    catch { enrichmentError="片段或模型已更新，请重新确认发送内容。" }
+                }
+            })
+        }
         .task(id:content.revision) { await reload() }
         .onChange(of:playbackAllowed) { _, allowed in if !allowed { playback.stop() } }
         .onDisappear { playback.stop() }
@@ -70,7 +83,7 @@ struct ContentSegmentDetailView: View {
         let fields=[RecordingFormat.date(start),detail.source.origin?.device,"内容片段",RecordingFormat.duration(duration)].compactMap { $0 }
         return VStack(alignment:.leading,spacing:8) {
             Text(fields.joined(separator:" · "))
-            if !detail.segment.isFinal { Text("片段仍在整理中，边界与文字可能更新。") }
+            if !detail.segment.isFinal { Text("该片段尚未完成 ASR/VAD 覆盖或话题整理，暂不显示在时间轴。请查看下方处理状态。") }
         }.font(.system(size:10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
     }
 
@@ -106,10 +119,9 @@ struct ContentSegmentDetailView: View {
             Button("查看完整录音") { playback.stop(); showOriginal=true }
             Spacer(minLength:12)
             Menu {
-                Button("在播放位置拆分") { split(detail) }
-                    .disabled(!playbackAllowed || playback.position <= 0 || playback.position >= playback.duration)
-                ForEach(detail.neighbors.filter { $0.id != segmentID }) { neighbor in
-                    Button("与相邻片段合并：\(neighbor.displayTitle)") { merge(detail.segment,neighbor) }
+                if !detail.segment.isFinal {
+                    Button("在播放位置拆分") { split(detail) }
+                        .disabled(!playbackAllowed || playback.position <= 0 || playback.position >= playback.duration)
                 }
                 Button("撤销上次片段编辑") {
                     Task { if await content.mutate(sourceID:detail.segment.sourceID,{ try $0.undo(sourceID:detail.segment.sourceID) }) { playback.stop(); dismiss() } }
@@ -123,10 +135,34 @@ struct ContentSegmentDetailView: View {
             .overlay(alignment:.top) { Rectangle().fill(DaybookStyle.line).frame(height:1) }
     }
 
+    @ViewBuilder private func fieldGenerationActions(_ detail:ContentSegmentDetail) -> some View {
+        if detail.segment.isFinal && detail.segment.hasText {
+            HStack(spacing:10) {
+                Button(detail.segment.title.isEmpty ? "生成标题" : "重新生成标题") { requestField(.title,for:detail.segment) }
+                Button(detail.segment.summary.isEmpty ? "生成摘要" : "重新生成摘要") { requestField(.summary,for:detail.segment) }
+            }
+            .font(.system(size:11,weight:.medium)).foregroundStyle(DaybookStyle.accent)
+            .disabled(processing.fieldGenerationStatuses[detail.segment.id] == .running)
+            if let enrichmentError { Text(enrichmentError).font(.system(size:10)).foregroundStyle(DaybookStyle.red) }
+        }
+    }
+    private func requestField(_ field:ContentEnrichmentField,for segment:ContentSegment) {
+        Task {
+            do {
+                enrichmentError=nil
+                enrichmentConfirmation=try await processing.prepareFieldGeneration(sourceID:segment.sourceID,segmentID:segment.id,field:field)
+            } catch { enrichmentError="片段已更新或模型不可用，请刷新后重试。" }
+        }
+    }
+
     private func processingStatus(_ detail:ContentSegmentDetail) -> some View {
         DisclosureGroup("处理状态") {
             VStack(alignment:.leading,spacing:10) {
-                if let editorial=detail.segment.editorial,detail.segment.isFinal {
+                if let progress=processing.enrichmentProgress[detail.segment.sourceID],progress.segmentID == nil || progress.segmentID == detail.segment.id {
+                    Label(enrichmentProgressLabel(progress.stage),systemImage:"sparkles")
+                } else if let status=processing.fieldGenerationStatuses[detail.segment.id],status != .idle {
+                    Label(fieldStatusLabel(status),systemImage:status == .complete ? "checkmark.circle" : status == .running ? "sparkles" : "exclamationmark.circle")
+                } else if let editorial=detail.segment.editorial,detail.segment.isFinal {
                     Label("此片段已整理并保存",systemImage:"checkmark.circle")
                     if editorial.classification == "lowInformation" {
                         Text("低信息内容保留在录音库中，不在时间轴展示。")
@@ -137,6 +173,26 @@ struct ContentSegmentDetailView: View {
                 } else { AudioSourceProcessingView(sourceID:detail.segment.sourceID) }
             }.font(.system(size:11)).padding(.top,12)
         }.font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
+    }
+    private func enrichmentProgressLabel(_ stage:ContentEnrichmentStage) -> String {
+        switch stage {
+        case .topicUnification: "正在判断相邻内容是否属于同一话题"
+        case .classification: "正在判断此片段是否值得出现在时间轴"
+        case .title: "正在从此片段全文生成标题"
+        case .summary: "正在从此片段全文生成摘要"
+        }
+    }
+    private func fieldStatusLabel(_ status:ContentEnrichmentStatus) -> String {
+        switch status {
+        case .idle: "等待生成"
+        case .running: "正在生成标题或摘要"
+        case .complete: "标题或摘要已更新"
+        case .awaitingConsent: "等待确认发送到外部 AI"
+        case .unavailable: "所选 AI 模型暂不可用"
+        case .stale: "片段已更新，请重新发起生成"
+        case .failed: "生成失败，可手动重试"
+        case .cancelled: "生成已取消"
+        }
     }
 
     private var provenanceRanges: [DayRecord.ContentProvenance.AudioRange] {
@@ -151,9 +207,6 @@ struct ContentSegmentDetailView: View {
         let time=range.sessionStartOffset+Double(position.frame-range.startFrame)/range.sampleRate
         let segment=detail.segment
         Task { if await content.mutate(sourceID:segment.sourceID,{ _ = try $0.split(id:segment.id,at:time,expectedRevision:segment.revision) }) { playback.stop(); dismiss() } }
-    }
-    private func merge(_ first: ContentSegment, _ second: ContentSegment) {
-        Task { if await content.mutate(sourceID:first.sourceID,{ _ = try $0.merge(ids:[first.id,second.id],expectedRevisions:[first.revision,second.revision]) }) { playback.stop(); dismiss() } }
     }
     private func reload() async {
         do {
@@ -193,6 +246,9 @@ struct AudioSourceProcessingView: View {
             if let enrichment = processing.enrichmentStatuses[sourceID] {
                 Text(LocalizedStringKey(enrichmentLabel(enrichment)))
             }
+            if let progress=processing.enrichmentProgress[sourceID] {
+                Text(LocalizedStringKey(progressLabel(progress.stage))).font(.caption).foregroundStyle(.secondary)
+            }
             HStack {
                 Button("重试处理") { processing.retry(sourceID) }
                 Button("取消转写处理") { processing.cancel(sourceID) }
@@ -231,6 +287,14 @@ struct AudioSourceProcessingView: View {
         case .stale: "内容已更新，等待重新整理"
         case .failed: "主题与总结整理失败，可重试"
         case .cancelled: "主题与总结整理已暂停"
+        }
+    }
+    private func progressLabel(_ stage:ContentEnrichmentStage) -> String {
+        switch stage {
+        case .topicUnification: "AI 正在判断相邻内容是否同一话题"
+        case .classification: "AI 正在按片段全文进行分类"
+        case .title: "AI 正在从当前片段全文生成标题"
+        case .summary: "AI 正在从当前片段全文生成摘要"
         }
     }
 }

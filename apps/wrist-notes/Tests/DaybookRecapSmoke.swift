@@ -8,8 +8,16 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
         let now = calendar.date(from: DateComponents(year: 2026, month: 3, day: 9, hour: 0, minute: 15))!
         let yesterday = DaybookRecapInput.homeDay(selected: now, now: now, calendar: calendar)
-        expect(calendar.component(.day, from: yesterday) == 8, "yesterday uses calendar days across DST, not 86400 seconds")
         let day = calendar.date(from: DateComponents(year: 2026, month: 10, day: 18))!
+        expect(calendar.component(.day, from: yesterday) == 8, "yesterday uses calendar days across DST, not 86400 seconds")
+        expect(DaybookHomeRecapTitle.text(date: yesterday, yesterday: true, localeIdentifier: "zh-Hans") == "昨日回顾",
+               "today's home recap uses the yesterday label")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "zh-Hans") == "10月18日 · 回顾",
+               "past-day home recap uses its date instead of the generic daily label")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "en") == "Oct 18 · Recap",
+               "past-day recap title follows the selected interface language")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "ja") == "10月18日 · 振り返り",
+               "Japanese recap title follows the selected interface language")
         let records = (0..<12).map { i in DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(Double(i * 60)), kind: .thought, title: "想法 \(i)", text: "种植罗勒 \(i)") }
         let secret = DayRecord(id: UUID(), capturedAt: day, kind: .sleep, title: "私人睡眠", text: "不允许发送的健康信息")
         let blank = DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(900), kind: .voice, title: "尚未转写", text: "")

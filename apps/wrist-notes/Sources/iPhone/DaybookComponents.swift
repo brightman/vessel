@@ -126,17 +126,33 @@ struct DaybookOverview: View {
             Text(records.isEmpty ? "上至下：语音 · 闪念 · 图片 · 地点，有记录的时段会出现在这里。" : "上至下：语音 · 闪念 · 图片 · 地点，点击片段回看。")
                 .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 9)
-            let places = records.filter { $0.kind == .location && $0.location != nil }
-            if !places.isEmpty {
-                Button(action: onOpenPlaces) {
-                    HStack(spacing: 6) {
-                        DaybookIcon("MapPin", size: 14)
-                        Text("地点 · \(places.count) 条记录")
-                        Spacer()
-                        DaybookIcon("ChevronRight", size: 12)
-                    }.font(.system(size: 11)).foregroundStyle(DaybookStyle.green).padding(.vertical, 13)
-                }
-            }
+            let places = DaybookPlaces.homeSummary(records)
+            Button(action: onOpenPlaces) {
+                HStack(alignment: .center, spacing: 9) {
+                    DaybookIcon("MapPin", size: 16).foregroundStyle(DaybookStyle.green)
+                    if places.recordCount == 0 {
+                        Text("这一天还没有地点记录").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("地点 \(places.placeCount) 处").font(.system(size: 11, weight: .semibold)).foregroundStyle(DaybookStyle.ink)
+                            Text(places.labels.isEmpty ? "地点地址正在解析" : places.labels.joined(separator: " · "))
+                                .font(.system(size: 10)).lineSpacing(4).lineLimit(2).multilineTextAlignment(.leading)
+                                .foregroundStyle(DaybookStyle.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    if places.recordCount > 0 {
+                        Spacer(minLength: 2)
+                        HStack(spacing: 4) {
+                            Text("\(places.recordCount) 条记录").font(.system(size: 9)).lineLimit(1)
+                            DaybookIcon("ChevronRight", size: 13)
+                        }.foregroundStyle(DaybookStyle.secondary)
+                    } else {
+                        DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary)
+                    }
+                }.padding(.top, 13).frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+            }.buttonStyle(.plain)
         }
     }
     private func rhythmTick(_ tick: Int) -> String {

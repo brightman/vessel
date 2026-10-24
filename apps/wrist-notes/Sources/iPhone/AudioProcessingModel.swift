@@ -18,6 +18,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
     static let sourceDidChange = Notification.Name("WiseLife.AudioSourceDidChange")
     static let resourcesDidChange = Notification.Name("WiseLife.TranscriptionResourcesDidChange")
     @Published private(set) var enrichmentStatuses: [AudioSourceID:ContentEnrichmentStatus] = [:]
+    @Published private(set) var enrichmentProgress: [AudioSourceID:ContentEnrichmentProgress] = [:]
+    @Published private(set) var fieldGenerationStatuses: [UUID:ContentEnrichmentStatus] = [:]
     @Published private(set) var statuses: [AudioSourceID:AudioProcessingStatus] = [:]
     @Published private(set) var revision = 0
     @Published private(set) var storageUnavailable = false
@@ -180,12 +182,25 @@ struct ContentEnrichmentConfirmation: Identifiable {
               settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
         return .init(scope:scope,configuration:configuration,configurationRevision:revision)
     }
+    func prepareFieldGeneration(sourceID: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField) async throws -> ContentEnrichmentConfirmation? {
+        let configuration=settings.ai, revision=settings.aiRevision
+        guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:sourceID,segmentID:segmentID,field:field) }),
+              settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
+        if configuration.isRemote && settings.requiresRemoteAIConfirmation {
+            return .init(scope:scope,configuration:configuration,configurationRevision:revision)
+        }
+        Task { @MainActor [weak self] in _ = await self?.performFieldGeneration(sourceID:sourceID,segmentID:segmentID,field:field,confirmation:nil) }
+        return nil
+    }
     func approveEnrichment(_ confirmation: ContentEnrichmentConfirmation, rememberChoice: Bool) async throws {
         let id=confirmation.scope.sourceID
-        let current=try await withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }
+        let current=try await withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,segmentID:confirmation.scope.segmentID,field:confirmation.scope.field) }
         let matches=current == confirmation.scope && settings.ai == confirmation.configuration && settings.aiRevision == confirmation.configurationRevision
         guard settings.authorizeRemoteAISend(confirmationIsCurrent:matches,rememberChoice:rememberChoice) else { throw ContentSegmentError.staleRevision }
-        enrichmentApprovals[id]=confirmation; scheduleEnrichment(id)
+        enrichmentApprovals[id]=confirmation
+        if let segmentID=confirmation.scope.segmentID,let field=confirmation.scope.field {
+            if await performFieldGeneration(sourceID:id,segmentID:segmentID,field:field,confirmation:confirmation) == .stale { throw ContentSegmentError.staleRevision }
+        } else { scheduleEnrichment(id) }
     }
     private func enrichSource(_ id: AudioSourceID) async -> ContentEnrichmentStatus {
         do {
@@ -216,13 +231,54 @@ struct ContentEnrichmentConfirmation: Identifiable {
                     try Task.checkCancellation()
                     guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
                     return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
-                })
+                },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
             let result=await service.enrich(sourceID:id)
             if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
             return result
         } catch is CancellationError { return .cancelled }
         catch ContentSegmentError.staleRevision { return .stale }
         catch { return .failed }
+    }
+    private func performFieldGeneration(sourceID id: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField, confirmation: ContentEnrichmentConfirmation?) async -> ContentEnrichmentStatus {
+        let configuration=settings.ai, revision=settings.aiRevision
+        fieldGenerationStatuses[segmentID] = .running
+        do {
+            guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,segmentID:segmentID,field:field) }),
+                  settings.ai == configuration,settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
+            let confirmed=confirmation.map { $0.scope == scope && $0.configuration == configuration && $0.configurationRevision == revision } ?? false
+            let allowed: @MainActor () async throws -> Bool = { [weak self] in
+                guard let self,self.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }
+                if !self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? confirmation?.id : nil) { throw ContentEnrichmentFailure.confirmationRequired }
+                let current=try await self.withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,segmentID:segmentID,field:field) }
+                return current == scope && self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? confirmation?.id : nil)
+            }
+            let router=ConfiguredContentTextModel(configuration:configuration,authorized:allowed,
+                apiKey:{ [settings] in try settings.apiKey() },
+                local:{ try await FoundationContentTextModel().respond($0) },
+                chat:{ [weak self,settings] instruction,text,configuration in
+                    try await settings.chatGPT.complete(instruction:instruction,content:text,modelID:configuration.chatGPTModel,
+                        accountID:configuration.chatGPTAccountID,isCurrent:{ [weak self] in
+                            self?.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? confirmation?.id : nil) ?? false
+                        },sourceIsCurrent:allowed)
+                })
+            let worker=coordinator
+            let service=ContentEnrichmentService(modelKey:ConfiguredContentTextModel.configurationKey(configuration),model:{ try await router.respond($0) },store:{ [weak self] command in
+                try Task.checkCancellation()
+                guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
+                return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
+            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
+            let result=await service.generateField(sourceID:id,segmentID:segmentID,field:field)
+            if let confirmation,enrichmentApprovals[id]?.id == confirmation.id { enrichmentApprovals.removeValue(forKey:id) }
+            fieldGenerationStatuses[segmentID]=result
+            if result == .complete { NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id]) }
+            return result
+        } catch is CancellationError { fieldGenerationStatuses[segmentID] = .cancelled; return .cancelled }
+        catch ContentSegmentError.staleRevision { fieldGenerationStatuses[segmentID] = .stale; return .stale }
+        catch { fieldGenerationStatuses[segmentID] = .failed; return .failed }
+    }
+    private func publishEnrichmentProgress(_ sourceID: AudioSourceID, _ value: ContentEnrichmentProgress?) {
+        if let value { enrichmentProgress[sourceID]=value }
+        else { enrichmentProgress.removeValue(forKey:sourceID) }
     }
     private func enrichmentCurrent(_ id: AudioSourceID, configuration: AIConfiguration, revision: Int, confirmationID: UUID?) -> Bool {
         guard enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }

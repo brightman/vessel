@@ -209,6 +209,13 @@
     positionSheet();$('sheet').scrollTop=0;$('closeSheet').focus();
   }
   function closeSheet(){stopPlayback();$('sheet').close();}
+  function openAboutFAQ() {
+    const source=document.querySelector('#questions .site-faq');
+    if(!source){toast('常见问题暂不可用。');return;}
+    const faq=source.cloneNode(true);
+    faq.querySelectorAll('a').forEach(link=>link.remove());
+    openSheet('常见问题',faq.outerHTML);
+  }
   function openCalendar() {
     openSheet('回看某一天',`<div class="calendar-heading"><strong>2026年10月</strong><span>今天是 19 日</span></div><div class="calendar-week">${['一','二','三','四','五','六','日'].map(d=>`<span>${d}</span>`).join('')}</div><div class="calendar-days">${'<span></span>'.repeat(3)}${Array.from({length:31},(_,i)=>{
       const d=i+1;return `<button data-day="${d}" ${d>TODAY?'disabled':''} class="${state.day===d?'current ':''}${records.some(r=>r.day===d)?'has-data':''}" aria-label="10月${d}日${records.some(r=>r.day===d)?'，有记录':''}" ${state.day===d?'aria-current="date"':''}>${d}</button>`;
@@ -358,6 +365,7 @@
     if(b.dataset.removePlan){state.plans.delete(b.dataset.removePlan);if($('sheet').open)closeSheet();renderInsights();toast('已撤销这条计划。');return;}
     if(b.dataset.dismissInsight){state.dismissed.add(b.dataset.dismissInsight);closeSheet();renderInsights();ai?.render();toast('已收起这条洞察，谢谢你的反馈。');return;}
     if(b.dataset.prototypeFlow){if(b.dataset.prototypeFlow==='contacts')openRecord('review','text');else ai.createDraft('scope');return;}
+    if(b.dataset.aboutAction==='faq'){openAboutFAQ();return;}
     if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').innerHTML=b.dataset.detailTab==='text'?(activeRecord.transcriptAdjusted?esc(activeRecord.text):speakerContacts.transcript(activeRecord)):recordManagement.summaryMarkup(activeRecord);$('recordContent').setAttribute('aria-labelledby',b.id);return;}
     if(b.dataset.source){openSource(b.dataset.source);return;}
     if(b.dataset.connectSource){sources[b.dataset.connectSource].enabled=true;renderSources();renderRhythm();closeSheet();toast('示例来源已连接，未读取真实数据。');return;}

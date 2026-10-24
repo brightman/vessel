@@ -11,7 +11,7 @@ private struct DaybookReminderDraft: Hashable {
     let initialDate: Date?
 }
 private enum DaybookSheet: Hashable, Identifiable {
-    case actionProposal, capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, preferences, reminders
+    case actionProposal, capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, preferences, reminders, about
 #if WISELIFE_EUREKA_RING
     case ring
 #endif
@@ -30,6 +30,7 @@ struct DaybookView: View {
     @EnvironmentObject private var sessions: RecordingSessionModel
     @EnvironmentObject private var model: NotesModel
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var audioProcessing: AudioProcessingModel
 #if WISELIFE_EUREKA_RING
     @EnvironmentObject private var ring: EurekaRingModel
 #endif
@@ -62,6 +63,7 @@ struct DaybookView: View {
     @State private var deleteRecord: DayRecord?
     @State private var revealedRecordID: UUID?
     @State private var selectedMergeIDs = Set<UUID>()
+    @State private var selectedContentMergeIDs = Set<UUID>()
     @State private var showMergeConfirmation = false
     @State private var isMergingRecordings = false
     @State private var mergeSelectionMessage: String?
@@ -102,17 +104,39 @@ struct DaybookView: View {
     }
     private var mergeListRecords: [DayRecord] {
         guard page == .day || page == .library else { return [] }
-        return dayRecords
+        return timelineRecords
     }
     private var mergeEligibleIDs: Set<UUID> {
         Set(mergeListRecords.compactMap { record in
-            guard record.kind == .voice, record.recordingSessionID == nil, record.parentRecordID == nil,
+            guard record.contentProvenance == nil,record.kind == .voice, record.recordingSessionID == nil, record.parentRecordID == nil,
                   model.canMergeLongRecording(record.id) else { return nil }
             return record.id
         })
     }
+    private var contentMergeEligibleIDs: Set<UUID> {
+        Set(mergeListRecords.compactMap { record in
+            guard let provenance=record.contentProvenance,provenance.isFinal == true,
+                  provenance.classification == "meaningful" else { return nil }
+            return record.id
+        })
+    }
+    /// Hidden provisional and low-information segments remain in the ordering so
+    /// timeline selection cannot jump across them to merge nonadjacent chapters.
+    private var contentMergeOrderedIDs: [UUID] {
+        dayRecords.filter { $0.contentProvenance != nil }.map(\.id)
+    }
+    private var contentMergeSourceKeys: [UUID:String] {
+        Dictionary(uniqueKeysWithValues:dayRecords.compactMap { record in
+            guard let provenance=record.contentProvenance else { return nil }
+            return (record.id,"\(provenance.sourceKind):\(provenance.sourceID.uuidString)")
+        })
+    }
+    private var activeMergeIDs: Set<UUID> { selectedContentMergeIDs.isEmpty ? selectedMergeIDs : selectedContentMergeIDs }
     private var canMergeSelection: Bool {
-        RecordingMergeSelection.canMerge(selectedMergeIDs, orderedIDs: mergeListRecords.map(\.id), eligibleIDs: mergeEligibleIDs)
+        if !selectedContentMergeIDs.isEmpty {
+            return RecordingMergeSelection.canMergeSameSource(selectedContentMergeIDs,orderedIDs:contentMergeOrderedIDs,eligibleIDs:contentMergeEligibleIDs,sourceKeys:contentMergeSourceKeys)
+        }
+        return RecordingMergeSelection.canMerge(selectedMergeIDs, orderedIDs: mergeListRecords.map(\.id), eligibleIDs: mergeEligibleIDs)
     }
     private var activeSemantic: DaybookSemanticMatches? {
         semanticSearch.validated(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds)
@@ -161,7 +185,7 @@ struct DaybookView: View {
                             .onChange(of: page) { _, _ in proxy.scrollTo("pageTop", anchor: .top) }
                     }
                 }
-                if !selectedMergeIDs.isEmpty { mergeSelectionBar }
+                if !activeMergeIDs.isEmpty { mergeSelectionBar }
                 if recording.phase != .idle || recorder.requestingPermission { recordingBanner }
                 bottomBar
             }.background(DaybookStyle.paper).foregroundStyle(DaybookStyle.ink)
@@ -185,11 +209,11 @@ struct DaybookView: View {
                 } message: {
                     if deleteRecord?.contentProvenance != nil { Text("仅隐藏此派生片段，保留完整录音。") } else if deleteRecord?.recordingSessionID != nil { Text("这会删除本机完整会话、内容片段及全部原始音频。") }
                 }
-                .confirmationDialog("合并录音？", isPresented: $showMergeConfirmation, titleVisibility: .visible) {
-                    Button("合并所选", role: .destructive) { mergeSelectedRecordings() }
+                .confirmationDialog(selectedContentMergeIDs.isEmpty ? "合并录音？" : "合并内容片段？", isPresented: $showMergeConfirmation, titleVisibility: .visible) {
+                    Button("合并所选", role: .destructive) { mergeSelectedItems() }
                     Button("取消", role: .cancel) {}
                 } message: {
-                    Text("音频将按时间顺序拼接，并重新生成全文、总结与标题。保存新录音后会删除选中的原条目。外部 AI 仍按当前确认设置运行。")
+                    Text(selectedContentMergeIDs.isEmpty ? "音频将按时间顺序拼接，并重新生成全文、总结与标题。保存新录音后会删除选中的原条目。外部 AI 仍按当前确认设置运行。" : "只合并同一录音中的相邻最终片段，按原音频范围保留来源，不拼接或删除原始音频。合并片段会重新生成分类、标题和摘要。")
                 }
                 .confirmationDialog("语音记录", isPresented: $recorderMenu, titleVisibility: .visible) {
                     if recorder.isRecording { Button("结束并保存") { recordingAction(.stop) } }
@@ -214,9 +238,8 @@ struct DaybookView: View {
             .onChange(of: records) { old, new in
                 // A loaded cross-date snapshot must never hide edits/deletions in live sources.
                 assistant.invalidateLoadedScope()
-                if !selectedMergeIDs.isEmpty && !canMergeSelection {
-                    selectedMergeIDs = []
-                    mergeSelectionMessage = nil
+                if !activeMergeIDs.isEmpty && !canMergeSelection {
+                    clearMergeSelection()
                 }
                 synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses()
             }
@@ -224,7 +247,7 @@ struct DaybookView: View {
     private var preferenceObservedContent: some View {
         observedContent
             .onChange(of: life.isEnabled(.location)) { _, _ in synchronizeAddresses() }
-            .onChange(of: search) { _, _ in selectedMergeIDs = []; synchronizeSemantic() }
+            .onChange(of: search) { _, _ in clearMergeSelection(); synchronizeSemantic() }
             .onReceive(NotificationCenter.default.publisher(for: .daybookSemanticChanged)) { notification in
                 guard let change = notification.object as? DaybookSemanticResourceChange else { return }
                 semanticSearch.resourcesChanged(change, active: page == .library && scenePhase == .active); assistant.cancel()
@@ -241,9 +264,9 @@ struct DaybookView: View {
             .onChange(of: settings.ai) { _, _ in synchronizeAssistant() }
             .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant() }
             .onChange(of: suggestionPreferences) { _, _ in synchronizeSuggestions() }
-            .onChange(of: selectedDate) { _, _ in selectedMergeIDs = []; filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
-            .onChange(of: page) { _, value in selectedMergeIDs = []; if value == .day { search = ""; if filter == .recap { filter = .all } }; synchronizeAssistant(); synchronizeSuggestions() }
-            .onChange(of: filter) { _, _ in selectedMergeIDs = [] }
+            .onChange(of: selectedDate) { _, _ in clearMergeSelection(); filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
+            .onChange(of: page) { _, value in clearMergeSelection(); if value == .day { search = ""; if filter == .recap { filter = .all } }; synchronizeAssistant(); synchronizeSuggestions() }
+            .onChange(of: filter) { _, _ in clearMergeSelection() }
             .onChange(of: sheet) { _, _ in synchronizeSuggestions() }
             .onChange(of: recording.phase) { _, _ in synchronizeInsights() }
             .onChange(of: recording.lastSaved?.id) { _, id in
@@ -322,8 +345,6 @@ struct DaybookView: View {
             DaybookDateHeading(date: selectedDate, hasRecords: !timelineRecords.isEmpty, onDate: { present(.date) }).padding(.bottom, 20)
             DaybookOverview(records: timelineRecords, photoCount: dayPhotoCount, date: selectedDate, now: clockNow, healthStale: life.snapshot(.health, day: selectedDate)?.isStale ?? false, onOpenRecord: openRecord, onOpenPlaces: { present(.places) }).padding(.bottom, 18)
             DaybookRecapHome(model: recaps, date: homeRecapDay, yesterday: Calendar.current.isDate(selectedDate, inSameDayAs: clockNow), onOpen: { present(.recap(homeRecapDay)) })
-
-            aiHomeLink
             HStack {
                 Text(Calendar.current.isDateInToday(selectedDate) ? "今天的片段" : "\(DaybookFormat.day(selectedDate))的片段").font(.system(size: 17, weight: .semibold)).tracking(-0.3)
                 Spacer()
@@ -463,18 +484,18 @@ struct DaybookView: View {
         if record.parentRecordID != nil {
             Button { openRecord(record.id) } label: { DaybookRecordRow(record: record) }
         } else {
-            let selected = selectedMergeIDs.contains(record.id)
-            let mergeEligible = mergeEligibleIDs.contains(record.id)
+            let selected = selectedMergeIDs.contains(record.id) || selectedContentMergeIDs.contains(record.id)
+            let mergeEligible = mergeEligibleIDs.contains(record.id) || contentMergeEligibleIDs.contains(record.id)
             DaybookSwipeRow(id: record.id, revealedID: $revealedRecordID, onDelete: { deleteRecord = record },
                 onSelect: mergeEligible ? { toggleMergeSelection(record, in: orderedRecords) } : nil,
                 isSelected: selected) {
                 Button {
                     if revealedRecordID == record.id { revealedRecordID = nil }
-                    else if !selectedMergeIDs.isEmpty && mergeEligible { toggleMergeSelection(record, in: orderedRecords) }
+                    else if !activeMergeIDs.isEmpty && mergeEligible { toggleMergeSelection(record, in: orderedRecords) }
                     else { openRecord(record.id) }
                 } label: {
                     DaybookRecordRow(record: record, thumbnails: thumbnails(record), photoCount: photoCount(record), status: recordStatus(record),
-                        showsMergeSelection: !selectedMergeIDs.isEmpty && mergeEligible, isMergeSelected: selected)
+                        showsMergeSelection: !activeMergeIDs.isEmpty && mergeEligible, isMergeSelected: selected)
                 }
             }.contextMenu {
                 Button("打开") { openRecord(record.id) }
@@ -492,12 +513,12 @@ struct DaybookView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 5) {
                         Text("已选择").font(.system(size: 12, weight: .semibold))
-                        Text("\(selectedMergeIDs.count)").font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                        Text("\(activeMergeIDs.count)").font(.system(size: 12, weight: .semibold)).monospacedDigit()
                     }
-                    Text("相邻长录音").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                    Text(selectedContentMergeIDs.isEmpty ? "相邻长录音" : "同一录音中的相邻片段").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
                 }
                 Spacer(minLength: 0)
-                Button("取消选择") { selectedMergeIDs = []; mergeSelectionMessage = nil }
+                Button("取消选择") { clearMergeSelection() }
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(DaybookStyle.secondary)
                     .disabled(isMergingRecordings)
                 Button { showMergeConfirmation = true } label: {
@@ -515,19 +536,33 @@ struct DaybookView: View {
     }
 
     private func toggleMergeSelection(_ record: DayRecord, in orderedRecords: [DayRecord]) {
-        let orderedIDs = orderedRecords.map(\.id)
-        let eligibleIDs = Set<UUID>(orderedRecords.compactMap { candidate -> UUID? in
-            guard candidate.kind == .voice, candidate.recordingSessionID == nil, candidate.parentRecordID == nil,
-                  model.canMergeLongRecording(candidate.id) else { return nil }
-            return candidate.id
-        })
-        guard RecordingMergeSelection.canAdd(record.id, to: selectedMergeIDs, orderedIDs: orderedIDs, eligibleIDs: eligibleIDs) else {
-            mergeSelectionMessage = "只能选择相邻长录音。"
+        let isContent=contentMergeEligibleIDs.contains(record.id)
+        if (!selectedMergeIDs.isEmpty && isContent) || (!selectedContentMergeIDs.isEmpty && !isContent) {
+            mergeSelectionMessage="音频合并和内容片段合并请分别选择。"
             return
         }
-        if selectedMergeIDs.contains(record.id) { selectedMergeIDs.remove(record.id) }
-        else { selectedMergeIDs.insert(record.id) }
+        let eligibleIDs=isContent ? contentMergeEligibleIDs : mergeEligibleIDs
+        let selection=isContent ? selectedContentMergeIDs : selectedMergeIDs
+        let canAdd=isContent
+            ? RecordingMergeSelection.canAddSameSource(record.id,to:selection,orderedIDs:contentMergeOrderedIDs,eligibleIDs:eligibleIDs,sourceKeys:contentMergeSourceKeys)
+            : RecordingMergeSelection.canAdd(record.id,to:selection,orderedIDs:orderedRecords.map(\.id),eligibleIDs:eligibleIDs)
+        guard canAdd else {
+            mergeSelectionMessage = isContent ? "只能选择同一录音中相邻的最终片段。" : "只能选择相邻长录音。"
+            return
+        }
+        if isContent {
+            if selectedContentMergeIDs.contains(record.id) { selectedContentMergeIDs.remove(record.id) }
+            else { selectedContentMergeIDs.insert(record.id) }
+        } else {
+            if selectedMergeIDs.contains(record.id) { selectedMergeIDs.remove(record.id) }
+            else { selectedMergeIDs.insert(record.id) }
+        }
         mergeSelectionMessage = nil
+    }
+
+    private func mergeSelectedItems() {
+        if selectedContentMergeIDs.isEmpty { mergeSelectedRecordings() }
+        else { mergeSelectedContentSegments() }
     }
 
     private func mergeSelectedRecordings() {
@@ -549,6 +584,35 @@ struct DaybookView: View {
             }
             openRecord(mergedID)
         }
+    }
+    private func mergeSelectedContentSegments() {
+        let selected=mergeListRecords.filter { selectedContentMergeIDs.contains($0.id) }
+        guard selected.count >= 2,
+              let first=selected.first?.contentProvenance,
+              let sourceKind=AudioSourceKind(rawValue:first.sourceKind),
+              selected.allSatisfy({ $0.contentProvenance?.sourceID == first.sourceID && $0.contentProvenance?.sourceKind == first.sourceKind }),
+              let ordered=RecordingMergeSelection.orderedSameSourceSelection(selectedContentMergeIDs,orderedIDs:contentMergeOrderedIDs,eligibleIDs:contentMergeEligibleIDs,sourceKeys:contentMergeSourceKeys),
+              ordered == selected.map(\.id) else {
+            mergeSelectionMessage="请选择同一录音中相邻的最终片段。"
+            return
+        }
+        let sourceID=AudioSourceID(kind:sourceKind,id:first.sourceID)
+        let ids=selected.compactMap(\.contentProvenance?.segmentID)
+        let revisions=selected.compactMap(\.contentProvenance?.segmentRevision)
+        guard ids.count == selected.count,revisions.count == selected.count else { mergeSelectionMessage="片段信息已更新，请刷新后重试。"; return }
+        isMergingRecordings=true
+        Task {
+            let success=await content.mutate(sourceID:sourceID) { repository in
+                _ = try repository.merge(ids:ids,expectedRevisions:revisions)
+            }
+            isMergingRecordings=false
+            guard success else { return }
+            clearMergeSelection()
+            audioProcessing.retryEnrichment(sourceID)
+        }
+    }
+    private func clearMergeSelection() {
+        selectedMergeIDs=[]; selectedContentMergeIDs=[]; mergeSelectionMessage=nil
     }
     private var insightsPage: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -604,19 +668,6 @@ struct DaybookView: View {
         }.padding(17).background(DaybookStyle.nudge, in: RoundedRectangle(cornerRadius: 19))
             .overlay(RoundedRectangle(cornerRadius: 19).stroke(DaybookStyle.line, lineWidth: 1)).padding(.bottom, 18)
     }
-    private var aiHomeLink: some View {
-        Button { ask("") } label: {
-            HStack(spacing: 10) {
-                DaybookIcon("MessageCircle", size: 18)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("问问 AI，理一理今天").font(.system(size: 12))
-                    Text("从自己的记录里，找到一点线索。").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                DaybookIcon("ArrowUpRight", size: 18)
-            }.foregroundStyle(DaybookStyle.accent).padding(.vertical, 15)
-                .overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }.overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 1) }
-        }
-    }
     private var dataPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             pageHeading("按自己的方式记录", title: "设置", subtitle: "选择模型、数据来源和 AI 提醒的节奏。")
@@ -659,6 +710,10 @@ struct DaybookView: View {
             Text("已有记录保存在本机。录音始终由你主动开始；未授权健康数据时，首页显示闪念条数与图片张数。")
                 .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.top, 18).padding(.bottom, 27)
             Button { showImporter = true } label: { plainRow("导入音频文件", icon: "AudioLines") }
+            Text("关于").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 8)
+            Button { present(.about) } label: {
+                DaybookOptionRow(icon: "BookOpen", title: "关于", subtitle: "常见问题与法律信息")
+            }
         }
     }
     private func sourceRow(_ title: String, subtitle: String, icon: String, status: String, action: @escaping () -> Void) -> some View {
@@ -779,6 +834,7 @@ struct DaybookView: View {
 #if WISELIFE_EUREKA_RING
         case .ring: EurekaRingDetailView(onBack: { present(.hardware) }, onClose: { sheet = nil }, phoneIsRecording: recorder.isRecording || recorder.requestingPermission)
 #endif
+        case .about: AboutView()
         case .transcription: TranscriptionSettingsView(settings: settings)
         case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile, recordingBlocked: recording.phase != .idle || recorder.requestingPermission)
         case .quickRecording: QuickRecordingSettingsView()
