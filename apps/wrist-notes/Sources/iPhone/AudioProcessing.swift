@@ -155,6 +155,11 @@ struct AudioTranscriptSpan: Codable, Equatable, Sendable {
     let text: String
     var speakerID: String? = nil
 }
+enum AudioTranscriptPresentation {
+    static func fullText(_ spans: [AudioTranscriptSpan]) -> String {
+        spans.map(\.text).joined(separator: "\n")
+    }
+}
 struct AudioActivityInterval: Codable, Equatable, Sendable {
     let start: Double
     let end: Double

@@ -19,9 +19,9 @@ private enum DaybookSheet: Hashable, Identifiable {
     var id: Self { self }
 }
 private enum DaybookFilter: String, CaseIterable {
-    case all = "全部", audio = "语音", image = "图片", thought = "闪念", life = "生活", recap = "回顾"
+    case all = "全部", audio = "语音", image = "图片", thought = "闪念", life = "生活", recap = "回顾", original = "原始录音"
     func includes(_ record: DayRecord) -> Bool {
-        switch self { case .all: true; case .audio: record.kind.isAudio; case .image: record.kind == .image; case .thought: record.kind == .thought; case .life: record.kind.isLife; case .recap: false }
+        switch self { case .all: true; case .audio: record.kind.isAudio; case .image: record.kind == .image; case .thought: record.kind == .thought; case .life: record.kind.isLife; case .recap, .original: false }
     }
 }
 
@@ -95,6 +95,9 @@ struct DaybookView: View {
     private var shownRecords: [DayRecord] {
         let start = Calendar.current.startOfDay(for: selectedDate)
         let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
+        if filter == .original {
+            return DaybookRetrieval.originalRecordingRecords(query: search, records: originalRecordings, dayStart: start, dayEnd: end)
+        }
         return DaybookRetrieval.libraryRecords(query: search, records: records, dayStart: start, dayEnd: end,
             allowedKinds: allowedKinds, semantic: activeSemantic).filter {
                 filter.includes($0) && ($0.parentRecordID == nil || filter == .life)
@@ -265,7 +268,7 @@ struct DaybookView: View {
             .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant() }
             .onChange(of: suggestionPreferences) { _, _ in synchronizeSuggestions() }
             .onChange(of: selectedDate) { _, _ in clearMergeSelection(); filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
-            .onChange(of: page) { _, value in clearMergeSelection(); if value == .day { search = ""; if filter == .recap { filter = .all } }; synchronizeAssistant(); synchronizeSuggestions() }
+            .onChange(of: page) { _, value in clearMergeSelection(); if value == .day { search = ""; if filter == .recap || filter == .original { filter = .all } }; synchronizeAssistant(); synchronizeSuggestions() }
             .onChange(of: filter) { _, _ in clearMergeSelection() }
             .onChange(of: sheet) { _, _ in synchronizeSuggestions() }
             .onChange(of: recording.phase) { _, _ in synchronizeInsights() }
@@ -365,15 +368,15 @@ struct DaybookView: View {
     }
     private var libraryPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            pageHeading("留住那些片刻", title: "我的记录", subtitle: filter == .recap ? "按日期查看每日回顾" : "\(DaybookFormat.day(selectedDate)) · \(timelineRecords.count) 条记录")
+            pageHeading("留住那些片刻", title: "我的记录", subtitle: filter == .recap ? "按日期查看每日回顾" : "\(DaybookFormat.day(selectedDate)) · \(filter == .original ? shownRecords.count : timelineRecords.count) 条\(filter == .original ? "原始录音" : "记录")")
             HStack(spacing: 9) {
                 DaybookIcon("Search", size: 17).foregroundStyle(DaybookStyle.secondary)
-                TextField(filter == .recap ? "搜索每日回顾" : "搜索想法、片段或关键词", text: $search).font(.system(size: 12))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel(filter == .recap ? "搜索每日回顾" : "搜索想法、片段或关键词")
+                TextField(filter == .recap ? "搜索每日回顾" : filter == .original ? "搜索原始录音" : "搜索想法、片段或关键词", text: $search).font(.system(size: 12))
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel(filter == .recap ? "搜索每日回顾" : filter == .original ? "搜索原始录音" : "搜索想法、片段或关键词")
                     .onSubmit { synchronizeSemantic(resume: true) }
                     .focused($searchFocused).onAppear { searchFocused = focusSearchOnAppear; focusSearchOnAppear = false }
             }.padding(12).background(DaybookStyle.field, in: RoundedRectangle(cornerRadius: 14)).padding(.bottom, 20)
-            if !search.isEmpty && filter != .recap {
+            if !search.isEmpty && filter != .recap && filter != .original {
                 Text(activeSemantic?.status ?? (semanticSearch.isSearching ? "正在本机检索；已显示文字匹配" : "按日期与关键词检索"))
                     .font(.caption).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 12)
             }
@@ -382,20 +385,15 @@ struct DaybookView: View {
             else {
                 if content.loading { ProgressView("正在读取完整日期资料") }
                 recordList(shownRecords, home: false)
-                sessionMaintenance
-                if !originalRecordings.isEmpty {
-                    DisclosureGroup("原始录音（\(originalRecordings.count)）") {
-                        recordList(originalRecordings,home:false)
-                    }.font(.system(size:12)).padding(.top,24)
-                }
+                if filter != .original { sessionMaintenance }
             }
         }
     }
     private var originalRecordings: [DayRecord] {
-        guard allowedKinds.contains(.voice), filter == .all || filter == .audio else { return [] }
+        guard allowedKinds.contains(.voice), page == .library, filter == .original else { return [] }
         let legacy = model.notes.map(DaybookPlaces.voice)
         let streamed = RecordingSessionPresentation.records(sessions.allKnownSessions,legacyIDs:Set(model.notes.map(\.id)))
-        return (legacy+streamed).filter { $0.kind == .voice }.compactMap { $0.recordingProjection(on:selectedDate) }
+        return (legacy+streamed).filter { $0.kind == .voice }
             .sorted { $0.capturedAt > $1.capturedAt }
     }
     private var sessionMaintenance: some View {
@@ -461,7 +459,7 @@ struct DaybookView: View {
     private var filters: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 7) {
-                ForEach(DaybookFilter.allCases.filter { $0 != .recap || page == .library }, id: \.self) { item in
+                ForEach(DaybookFilter.allCases.filter { ($0 != .recap && $0 != .original) || page == .library }, id: \.self) { item in
                     Button { filter = item } label: {
                         Text(LocalizedStringKey(item.rawValue)).font(.system(size: 10)).padding(.horizontal, 12).padding(.vertical, 7)
                             .foregroundStyle(filter == item ? DaybookStyle.paper : DaybookStyle.secondary)
@@ -474,8 +472,8 @@ struct DaybookView: View {
     @ViewBuilder private func recordList(_ values: [DayRecord], home: Bool) -> some View {
         if let error = life.errorMessage { Text(error).font(.caption).foregroundStyle(.orange).padding(.bottom, 12) }
         if values.isEmpty {
-            DaybookEmptyView(title: home ? "这里留了一点空白" : search.isEmpty ? "还没有这样的片段" : "没有找到这段记录",
-                text: home ? "可以换个筛选，或用右下角的“记此刻”留下今天。" : search.isEmpty ? "下一次记录，会出现在这里。" : "试试更短的关键词，或切换记录类型。", icon: home ? "BookOpen" : "Search")
+            DaybookEmptyView(title: home ? "这里留了一点空白" : filter == .original ? (search.isEmpty ? "还没有原始录音" : "没有找到这条原始录音") : search.isEmpty ? "还没有这样的片段" : "没有找到这段记录",
+                text: home ? "可以换个筛选，或用右下角的“记此刻”留下今天。" : filter == .original ? "完整录音会显示在这里。" : search.isEmpty ? "下一次记录，会出现在这里。" : "试试更短的关键词，或切换记录类型。", icon: home ? "BookOpen" : "Search")
         } else {
             ForEach(values) { record in recordListRow(record, orderedRecords: mergeListRecords) }
         }
@@ -1021,7 +1019,7 @@ struct DaybookView: View {
             .filter { kinds.contains($0.kind) }
     }
     private func synchronizeSemantic(resume: Bool = false) {
-        semanticSearch.synchronize(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds, active: page == .library && filter != .recap && scenePhase == .active && !content.loading, resume: resume)
+        semanticSearch.synchronize(query: search, records: records, date: selectedDate, allowedKinds: allowedKinds, active: page == .library && filter != .recap && filter != .original && scenePhase == .active && !content.loading, resume: resume)
     }
     @ViewBuilder private func actionRecordDetail(_ id: UUID) -> some View {
             if content.contains(id) {

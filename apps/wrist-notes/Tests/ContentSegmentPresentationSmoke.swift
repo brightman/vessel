@@ -54,6 +54,11 @@ import SQLite3
         let scope = DateInterval(start:day,duration:86400)
         let records = DayRecord.evidenceRecords([parent,child],scope:scope)
         precondition(records.count == 1 && records.first?.id == id,"children replace parents")
+        let rawOnly = DaybookRetrieval.originalRecordingRecords(query:"",records:[parent,child],dayStart:day,dayEnd:day.addingTimeInterval(86400))
+        precondition(rawOnly.map(\.id) == [parentID],"original recording filter includes complete parent audio only")
+        precondition(rawOnly.first?.duration == 30,"original recording list preserves the full recording duration")
+        let rawSearch = DaybookRetrieval.originalRecordingRecords(query:"parent secret",records:[parent,child],dayStart:day,dayEnd:day.addingTimeInterval(86400))
+        precondition(rawSearch.map(\.id) == [parentID],"original recording search stays within raw full recordings")
         var tomorrowChild = child
         tomorrowChild.intervals = [DateInterval(start:day.addingTimeInterval(86400),duration:20)]
         let fallback = DayRecord.evidenceRecords([parent,tomorrowChild],scope:scope)

@@ -324,6 +324,16 @@ struct DaybookRetrieval {
     }
 
     /// Manual substring matches include all local sources. Semantic additions obey AI scope and freshness.
+    static func originalRecordingRecords(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date) -> [DayRecord] {
+        let query = normalize(query)
+        return records.filter { record in
+            guard record.kind == .voice, record.contentProvenance == nil, record.parentRecordID == nil,
+                  record.capturedAt >= dayStart, record.capturedAt < dayEnd else { return false }
+            return query.isEmpty || [record.title, record.text, record.summary].contains { normalize($0).contains(query) }
+        }.sorted { $0.capturedAt > $1.capturedAt }
+    }
+
+    /// Manual substring matches include all local sources. Semantic additions obey AI scope and freshness.
     static func libraryRecords(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date,
                                allowedKinds: Set<DayRecord.Kind>, semantic: DaybookSemanticMatches?) -> [DayRecord] {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)

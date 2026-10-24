@@ -5,6 +5,7 @@ struct RecordingSessionDetailView: View {
     var playbackAllowed = true
     @EnvironmentObject private var content: ContentSegmentModel
     @EnvironmentObject private var sessions: RecordingSessionModel
+    @EnvironmentObject private var audioProcessing: AudioProcessingModel
     @Environment(\.dismiss) private var dismiss
     @StateObject private var playback = RecordingRangePlayback()
     @State private var detail: RecordingSessionDetail?
@@ -12,6 +13,9 @@ struct RecordingSessionDetailView: View {
     @State private var loadError = false
     @State private var confirmDelete = false
     @State private var deleting = false
+    @State private var transcriptSpans: [AudioTranscriptSpan] = []
+    @State private var transcriptLoading = false
+    @State private var transcriptError: String?
 
     var body: some View {
         NavigationStack {
@@ -34,6 +38,28 @@ struct RecordingSessionDetailView: View {
                         if let expected = session.expectedCount { Text("预期 \(expected) 个分片") }
                         if session.endRevision == nil { Text("录音结束状态待同步") }
                         if session.interrupted { Text("录音已中断").foregroundStyle(.orange) }
+                    }
+                    Section {
+                        if transcriptLoading {
+                            ProgressView("正在读取本机转写…")
+                        } else if let transcriptError {
+                            Text(transcriptError).foregroundStyle(.orange)
+                            Button("重试读取") { Task { await loadTranscript() } }
+                        } else if transcriptSpans.isEmpty {
+                            Text("暂无已识别文字。录音转写完成后，可点右上角刷新查看。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text(AudioTranscriptPresentation.fullText(transcriptSpans))
+                                .font(.body).textSelection(.enabled)
+                            Text("共 \(transcriptSpans.count) 段识别文字 · 保存在本机")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button("刷新转写") { Task { await loadTranscript() } }
+                            .disabled(transcriptLoading)
+                    } header: {
+                        Text("ASR 转写全文")
+                    } footer: {
+                        Text("全文按录音时间顺序从本机转写记录读取，可选择并复制。")
                     }
                     if let location = session.location {
                         Section("采集位置") {
@@ -85,6 +111,7 @@ struct RecordingSessionDetailView: View {
             } message: { Text("这会删除本机完整会话、内容片段及全部原始音频。") }
         }
         .task(id: sessions.revision) { await reload() }
+        .task(id: sessionID) { await loadTranscript() }
         .onChange(of: playbackAllowed) { _, allowed in if !allowed { playback.stop() } }
         .onDisappear { playback.stop() }
     }
@@ -127,4 +154,30 @@ struct RecordingSessionDetailView: View {
             if value.session == nil { playback.stop() }
         } catch { if !Task.isCancelled { loadError = true } }
     }
+
+    private func loadTranscript() async {
+        guard !transcriptLoading else { return }
+        transcriptLoading = true
+        transcriptError = nil
+        defer { transcriptLoading = false }
+        do {
+            let sourceID = AudioSourceID(kind: .session, id: sessionID)
+            let values = try await audioProcessing.withRepository { repository in
+                var all: [AudioTranscriptSpan] = []
+                var offset = 0
+                while true {
+                    let page = try repository.spans(sourceID: sourceID, limit: 1000, offset: offset)
+                    all.append(contentsOf: page)
+                    offset += page.count
+                    if page.count < 1000 { break }
+                }
+                return all
+            }
+            guard !Task.isCancelled else { return }
+            transcriptSpans = values
+        } catch {
+            if !Task.isCancelled { transcriptError = "无法读取本机转写，请解锁设备后重试。" }
+        }
+    }
+
 }
