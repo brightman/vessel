@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDisplayName</key><string>WiseLife Mac Companion</string>
+    <key>NSLocalNetworkUsageDescription</key><string>WiseLife 通过局域网发现并配对你的 iPhone，接收已授权的文字，并在这台 Mac 上进行 AI 处理。</string>
+    <key>NSBonjourServices</key><array><string>_wiselife-llm._tcp</string></array>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>LSMinimumSystemVersion</key><string>15.0</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+</dict></plist>

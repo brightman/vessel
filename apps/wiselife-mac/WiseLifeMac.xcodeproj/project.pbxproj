@@ -1,0 +1,502 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1CF198B9951517327AC052AE /* CompanionCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3D4B735508A9E0FFB7E6FE4 /* CompanionCore */; };
+		2FF84382AE9E0A0F00DEB387 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B0A02B52A419F842B38A909 /* Cocoa.framework */; };
+		331B1FCDCB11535BC52ADDD0 /* CompanionCore in Frameworks */ = {isa = PBXBuildFile; productRef = C70989AE3DFBE3D461E0782B /* CompanionCore */; };
+		3A6A8E752AEC90CC1046F397 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = 71F5BE94DB894538236F203C /* ThirdPartyNotices.txt */; };
+		4995B7D6D0F59C79FA01CC4C /* CompanionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF672441A47F1E5182C1CA30 /* CompanionStyle.swift */; };
+		6811A82B9D3FCDDD1A44570C /* CompanionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E48E01AA03F88D0923CE6D0 /* CompanionView.swift */; };
+		82BB788B8C6625D6FB0D6798 /* CompanionMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 0E75DBB5AD93DC3D91B23EAB /* CompanionMLX */; };
+		8F972B0AB83EA3123953D7C1 /* CompanionMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 3D461D963D7C84D6009BAE23 /* CompanionMLX */; };
+		943B4F3D7CE518F15140FFA3 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B0A02B52A419F842B38A909 /* Cocoa.framework */; };
+		B77001023FD221B5ABC4949F /* CompanionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86CAAA77A0DCA1D1FB41D57C /* CompanionModel.swift */; };
+		C3F7D7E3EEC8ABED64C98145 /* WiseLifeCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC02C6698DCFE8F9076E562 /* WiseLifeCompanionApp.swift */; };
+		C45296632B9E40517B39E215 /* CompanionBenchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F4653361C47C378EEE2B293 /* CompanionBenchmark.swift */; };
+		ED03F7C0C3157946F40FBBFD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 78F1EAEC49670FE431FDE063 /* PrivacyInfo.xcprivacy */; };
+		F372F822DA8D5A5F312DCE4D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C05D77A452A163DD8AC4EBED /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		27E786BD2666D10CDF35C0DF /* CompanionBenchmark */ = {isa = PBXFileReference; includeInIndex = 0; path = CompanionBenchmark; sourceTree = BUILT_PRODUCTS_DIR; };
+		4E48E01AA03F88D0923CE6D0 /* CompanionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionView.swift; path = Sources/WiseLifeCompanion/CompanionView.swift; sourceTree = "<group>"; };
+		5149925EA56F3F808B371BF0 /* WiseLifeCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WiseLifeCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F4653361C47C378EEE2B293 /* CompanionBenchmark.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionBenchmark.swift; path = Sources/CompanionBenchmark/CompanionBenchmark.swift; sourceTree = "<group>"; };
+		71F5BE94DB894538236F203C /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; includeInIndex = 1; name = ThirdPartyNotices.txt; path = Resources/ThirdPartyNotices.txt; sourceTree = "<group>"; };
+		78F1EAEC49670FE431FDE063 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Resources/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		86CAAA77A0DCA1D1FB41D57C /* CompanionModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionModel.swift; path = Sources/WiseLifeCompanion/CompanionModel.swift; sourceTree = "<group>"; };
+		9B0A02B52A419F842B38A909 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
+		BFC02C6698DCFE8F9076E562 /* WiseLifeCompanionApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WiseLifeCompanionApp.swift; path = Sources/WiseLifeCompanion/WiseLifeCompanionApp.swift; sourceTree = "<group>"; };
+		C05D77A452A163DD8AC4EBED /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+		DF672441A47F1E5182C1CA30 /* CompanionStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CompanionStyle.swift; path = Sources/WiseLifeCompanion/CompanionStyle.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0695078976568A099EC966B0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				943B4F3D7CE518F15140FFA3 /* Cocoa.framework in Frameworks */,
+				331B1FCDCB11535BC52ADDD0 /* CompanionCore in Frameworks */,
+				8F972B0AB83EA3123953D7C1 /* CompanionMLX in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0B93CC71ADBEF38C40BE8A94 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2FF84382AE9E0A0F00DEB387 /* Cocoa.framework in Frameworks */,
+				1CF198B9951517327AC052AE /* CompanionCore in Frameworks */,
+				82BB788B8C6625D6FB0D6798 /* CompanionMLX in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0B4ADC53B31853AA555D4E16 /* CompanionBenchmark */ = {
+			isa = PBXGroup;
+			children = (
+				5F4653361C47C378EEE2B293 /* CompanionBenchmark.swift */,
+			);
+			name = CompanionBenchmark;
+			path = .;
+			sourceTree = "<group>";
+		};
+		11D5D0DCBE7D7F850F4A4ABB /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				9B0A02B52A419F842B38A909 /* Cocoa.framework */,
+			);
+			name = "OS X";
+			sourceTree = "<group>";
+		};
+		3306AA590E6645163E04C257 /* WiseLifeCompanion */ = {
+			isa = PBXGroup;
+			children = (
+				86CAAA77A0DCA1D1FB41D57C /* CompanionModel.swift */,
+				DF672441A47F1E5182C1CA30 /* CompanionStyle.swift */,
+				4E48E01AA03F88D0923CE6D0 /* CompanionView.swift */,
+				BFC02C6698DCFE8F9076E562 /* WiseLifeCompanionApp.swift */,
+				C05D77A452A163DD8AC4EBED /* Assets.xcassets */,
+				78F1EAEC49670FE431FDE063 /* PrivacyInfo.xcprivacy */,
+				71F5BE94DB894538236F203C /* ThirdPartyNotices.txt */,
+			);
+			name = WiseLifeCompanion;
+			path = .;
+			sourceTree = "<group>";
+		};
+		683A25C2E99D37B001EFD475 = {
+			isa = PBXGroup;
+			children = (
+				8AA5954300C8679B80FE17C2 /* Products */,
+				8C234DF67F04C2C71235C194 /* Frameworks */,
+				3306AA590E6645163E04C257 /* WiseLifeCompanion */,
+				0B4ADC53B31853AA555D4E16 /* CompanionBenchmark */,
+			);
+			sourceTree = "<group>";
+		};
+		8AA5954300C8679B80FE17C2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5149925EA56F3F808B371BF0 /* WiseLifeCompanion.app */,
+				27E786BD2666D10CDF35C0DF /* CompanionBenchmark */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8C234DF67F04C2C71235C194 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				11D5D0DCBE7D7F850F4A4ABB /* OS X */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		253F7B5F9A34670CFE4B26F4 /* CompanionBenchmark */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 278756968DC5E2D3E13967FE /* Build configuration list for PBXNativeTarget "CompanionBenchmark" */;
+			buildPhases = (
+				7CCCCA54093962FD006D5674 /* Sources */,
+				0B93CC71ADBEF38C40BE8A94 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CompanionBenchmark;
+			packageProductDependencies = (
+				D3D4B735508A9E0FFB7E6FE4 /* CompanionCore */,
+				0E75DBB5AD93DC3D91B23EAB /* CompanionMLX */,
+			);
+			productName = CompanionBenchmark;
+			productReference = 27E786BD2666D10CDF35C0DF /* CompanionBenchmark */;
+			productType = "com.apple.product-type.tool";
+		};
+		A7279274994A4A64A0E7D0FA /* WiseLifeCompanion */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3EEC0C461FC15606FD419E3D /* Build configuration list for PBXNativeTarget "WiseLifeCompanion" */;
+			buildPhases = (
+				8C39FCF69C9EB4FC150761F8 /* Sources */,
+				0695078976568A099EC966B0 /* Frameworks */,
+				00F096AE4857FFDAC773B548 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WiseLifeCompanion;
+			packageProductDependencies = (
+				C70989AE3DFBE3D461E0782B /* CompanionCore */,
+				3D461D963D7C84D6009BAE23 /* CompanionMLX */,
+			);
+			productName = WiseLifeCompanion;
+			productReference = 5149925EA56F3F808B371BF0 /* WiseLifeCompanion.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0E89CA70E8FA672BA565C017 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 14E79587A6B168D0A150A845 /* Build configuration list for PBXProject "WiseLifeMac" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 683A25C2E99D37B001EFD475;
+			minimizedProjectReferenceProxies = 0;
+			packageReferences = (
+				1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 100;
+			productRefGroup = 8AA5954300C8679B80FE17C2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A7279274994A4A64A0E7D0FA /* WiseLifeCompanion */,
+				253F7B5F9A34670CFE4B26F4 /* CompanionBenchmark */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		00F096AE4857FFDAC773B548 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F372F822DA8D5A5F312DCE4D /* Assets.xcassets in Resources */,
+				ED03F7C0C3157946F40FBBFD /* PrivacyInfo.xcprivacy in Resources */,
+				3A6A8E752AEC90CC1046F397 /* ThirdPartyNotices.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7CCCCA54093962FD006D5674 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C45296632B9E40517B39E215 /* CompanionBenchmark.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8C39FCF69C9EB4FC150761F8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B77001023FD221B5ABC4949F /* CompanionModel.swift in Sources */,
+				4995B7D6D0F59C79FA01CC4C /* CompanionStyle.swift in Sources */,
+				6811A82B9D3FCDDD1A44570C /* CompanionView.swift in Sources */,
+				C3F7D7E3EEC8ABED64C98145 /* WiseLifeCompanionApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		54EBA5F9AFC6F171DB929636 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wiselife.mac-companion.benchmark";
+				PRODUCT_NAME = CompanionBenchmark;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A0EB014A57BFC484DFF048FE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B322622B595A158E4D858D4C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C56DB62049908588A141EFD7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wiselife.mac-companion.benchmark";
+				PRODUCT_NAME = CompanionBenchmark;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CCBA59A4804E1DE1F6126DF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Companion.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wiselife.mac-companion";
+				PRODUCT_NAME = WiseLifeCompanion;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D68C2341869BCDC9EC87A1D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Companion.entitlements;
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wiselife.mac-companion";
+				PRODUCT_NAME = WiseLifeCompanion;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		14E79587A6B168D0A150A845 /* Build configuration list for PBXProject "WiseLifeMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B322622B595A158E4D858D4C /* Debug */,
+				A0EB014A57BFC484DFF048FE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		278756968DC5E2D3E13967FE /* Build configuration list for PBXNativeTarget "CompanionBenchmark" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C56DB62049908588A141EFD7 /* Release */,
+				54EBA5F9AFC6F171DB929636 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3EEC0C461FC15606FD419E3D /* Build configuration list for PBXNativeTarget "WiseLifeCompanion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D68C2341869BCDC9EC87A1D2 /* Release */,
+				CCBA59A4804E1DE1F6126DF9 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0E75DBB5AD93DC3D91B23EAB /* CompanionMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */;
+			productName = CompanionMLX;
+		};
+		3D461D963D7C84D6009BAE23 /* CompanionMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */;
+			productName = CompanionMLX;
+		};
+		C70989AE3DFBE3D461E0782B /* CompanionCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */;
+			productName = CompanionCore;
+		};
+		D3D4B735508A9E0FFB7E6FE4 /* CompanionCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A3AC65B1CBD3E09F95597BF /* XCLocalSwiftPackageReference "." */;
+			productName = CompanionCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0E89CA70E8FA672BA565C017 /* Project object */;
+}
