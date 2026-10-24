@@ -13,7 +13,7 @@ struct RemoteSummaryConfirmationView: View {
                     Text("使用 ChatGPT 套餐").font(.system(size: 12))
                     Link("管理用量 ↗", destination: ChatGPTAccountModel.usageURL).font(.system(size: 12))
                 } else {
-                    Text(request.configuration.baseURL).font(.system(size: 11)).textSelection(.enabled)
+                    Text(request.configuration.destinationDescription).font(.system(size: 11)).textSelection(.enabled)
                 }
                 Text("仅发送下方转写文字，原始录音、图片和声音档案保留在本机。长记录会分段总结，再合并结果。")
                     .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)
@@ -84,7 +84,7 @@ struct RecordingTitleAction: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("将这些转写摘录发送给所选 AI，生成标题？").font(.system(size: 22, weight: .medium))
                     Text(request.configuration.label).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
-                    Text(request.configuration.mode == .chatgpt ? "OpenAI · ChatGPT" : request.configuration.baseURL)
+                    Text(request.configuration.destinationDescription)
                         .font(.system(size: 11)).textSelection(.enabled)
                     Text("仅发送下方开头、中间和结尾摘录，原始音频保留在本机。生成成功后替换当前标题。")
                         .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)

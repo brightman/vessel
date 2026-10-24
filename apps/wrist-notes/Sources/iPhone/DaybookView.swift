@@ -185,8 +185,9 @@ struct DaybookView: View {
 
     var body: some View {
         observedContent
-            .onChange(of: settings.ai) { _, _ in synchronizeAssistant() }
-            .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant() }
+            .onChange(of: settings.ai) { _, _ in synchronizeAssistant(); synchronizeInsights() }
+            .onChange(of: settings.aiRevision) { _, _ in synchronizeAssistant(); synchronizeInsights() }
+            .onChange(of: settings.requiresRemoteAIConfirmation) { _, _ in synchronizeInsights() }
             .onChange(of: suggestionPreferences) { _, _ in synchronizeSuggestions() }
             .onChange(of: selectedDate) { _, _ in filter = .all; search = ""; content.selectDay(selectedDate); sessions.selectDay(selectedDate); life.refreshEnabled(day: selectedDate); synchronizeSuggestions(); synchronizeAssistant(); synchronizeAddresses() }
             .onChange(of: page) { _, value in if value == .day { search = "" }; synchronizeAssistant(); synchronizeSuggestions() }
@@ -721,6 +722,7 @@ struct DaybookView: View {
         life.refreshForCalendarChange(now: now, day: selectedDate)
     }
     private func synchronizeInsights(now: Date = .now) {
+        dailyInsight.configure(settings: settings)
         dailyInsight.synchronize(records: records, selectedDate: selectedDate, preferences: preferences,
             language: settings.interfaceLanguage.rawValue, foreground: scenePhase == .active,
             capturing: recording.phase != .idle || recorder.requestingPermission, now: now)

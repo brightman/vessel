@@ -10,8 +10,7 @@ struct ChatGPTSummarizer {
         func complete(_ text: String, instruction: String) async throws -> String {
             try Task.checkCancellation()
             guard account.revision == revision, isCurrent() else { throw CancellationError() }
-            let result = try await account.complete(instruction: instruction, content: text,
-                modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID,
+            let result = try await ConfiguredAITextGenerator.generate(text, instruction: instruction, configuration: configuration, chatGPT: account,
                 isCurrent: { account.revision == revision && isCurrent() })
             guard account.revision == revision, isCurrent() else { throw CancellationError() }
             return result

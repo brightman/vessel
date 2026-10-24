@@ -5,6 +5,7 @@ struct DaybookInsightKey: Codable, Equatable {
     let language: String
     // Bump whenever prompt, validation, retrieval limits, or local provider policy changes.
     var generationVersion = 1
+    var providerKey: String? = nil
 }
 
 struct DaybookInsightOutput: Codable, Equatable, Sendable {
@@ -73,8 +74,9 @@ enum DaybookInsightFailure: Error {
         do { try reload() } catch { storageError = Self.message(error) }
     }
     private func connection() throws -> DaybookDatabase {
-        if let database { return database }
-        let db = try DaybookDatabase(); database = db; return db
+        let db: DaybookDatabase
+        if let database { db = database } else { db = try DaybookDatabase(); database = db }
+        return db
     }
     static func message(_ error: Error) -> String { "本机洞察存储失败，尚未保存更改：\(error.localizedDescription)" }
     func reload() throws {
@@ -177,13 +179,13 @@ enum DaybookInsightFailure: Error {
     private static func identity(_ key: DaybookInsightKey) -> String {
         // Fingerprint covers record IDs/content; all other scope fields also identify a revision.
         let kinds = key.evidence.allowedKinds.map(\.rawValue).sorted().joined(separator: ",")
-        return "\(key.evidence.dayStart.timeIntervalSinceReferenceDate)|\(key.evidence.dayEnd.timeIntervalSinceReferenceDate)|\(kinds)|\(key.evidence.fingerprint)|\(key.language.utf8.count):\(key.language)|\(key.generationVersion)"
+        return "\(key.evidence.dayStart.timeIntervalSinceReferenceDate)|\(key.evidence.dayEnd.timeIntervalSinceReferenceDate)|\(kinds)|\(key.evidence.fingerprint)|\(key.language.utf8.count):\(key.language)|\(key.generationVersion)|\(key.providerKey ?? "apple")"
     }
     private static func write(_ archive: Archive, db: DaybookDatabase) throws {
         try db.execute("DELETE FROM insight_entries")
         try db.execute("DELETE FROM insight_budgets")
         for (position, entry) in archive.entries.enumerated() {
-            try db.execute("INSERT INTO insight_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [.text(identity(entry.key)), .integer(Int64(position)), .real(entry.key.evidence.dayStart.timeIntervalSinceReferenceDate), .text(entry.key.language), .integer(Int64(entry.key.generationVersion)), try DaybookDatabase.json(entry.key.evidence), .real(entry.updatedAt.timeIntervalSinceReferenceDate), try entry.result.map { try DaybookDatabase.json($0) } ?? .null, entry.message.map { .text($0) } ?? .null, .integer(entry.dismissed ? 1 : 0)])
+            try db.execute("INSERT INTO insight_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [.text(identity(entry.key)), .integer(Int64(position)), .real(entry.key.evidence.dayStart.timeIntervalSinceReferenceDate), .text(entry.key.language), .integer(Int64(entry.key.generationVersion)), try DaybookDatabase.json(entry.key.evidence), .real(entry.updatedAt.timeIntervalSinceReferenceDate), try entry.result.map { try DaybookDatabase.json($0) } ?? .null, entry.message.map { .text($0) } ?? .null, .integer(entry.dismissed ? 1 : 0), entry.key.providerKey.map { .text($0) } ?? .null])
         }
         for (position, budget) in archive.budgets.enumerated() { try db.execute("INSERT INTO insight_budgets VALUES (?, ?, ?)", [.real(budget.day.timeIntervalSinceReferenceDate), .integer(Int64(budget.attempts)), .integer(Int64(position))]) }
     }
@@ -192,6 +194,7 @@ enum DaybookInsightFailure: Error {
             let entries = try db.query("SELECT * FROM insight_entries ORDER BY position").map { row -> Entry in
                 var key = DaybookInsightKey(evidence: try DaybookDatabase.decode(DaybookEvidenceSnapshot.self, row["evidence"]), language: try row.requiredString("language"))
                 key.generationVersion = try row.requiredInt("generation_version")
+                key.providerKey = row["provider_key"]?.string
                 return Entry(key: key, updatedAt: Date(timeIntervalSinceReferenceDate: try row.requiredDouble("updated_at")), result: row["result"] == .null ? nil : try DaybookDatabase.decode(DaybookDailyInsight.self, row["result"]), message: row["message"]?.string, dismissed: row["dismissed"] == .integer(1))
             }
             let budgets = try db.query("SELECT * FROM insight_budgets ORDER BY position").map { row in Budget(day: Date(timeIntervalSinceReferenceDate: try row.requiredDouble("day")), attempts: try row.requiredInt("attempts")) }

@@ -14,7 +14,7 @@ struct DaybookInsightView: View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 7) {
                 DaybookIcon("Lightbulb", size: 15)
-                Text("每日洞察 · Apple 本地分析").font(.system(size: 11, weight: .medium))
+                Text("每日洞察 · \(model.providerLabel)").font(.system(size: 11, weight: .medium))
             }.foregroundStyle(DaybookStyle.accent)
             Text(selectedDate.formatted(.dateTime.locale(Locale(identifier: language)).year().month().day())).font(.caption).foregroundStyle(DaybookStyle.secondary)
             if let storageError = model.storageError {
@@ -39,7 +39,7 @@ struct DaybookInsightView: View {
                 Text("仅填写草稿；标题和时间由你确认后才安排提醒。").font(.caption).foregroundStyle(DaybookStyle.secondary)
                 Button("不符合我的情况") { model.dismiss() }.font(.caption).foregroundStyle(DaybookStyle.secondary)
             } else if model.isPending {
-                HStack { ProgressView(); Text("正在本机综合多条记录…").font(.system(size: 12)) }
+                HStack { ProgressView(); Text("正在综合多条记录…").font(.system(size: 12)) }
             } else if let message = model.message {
                 Text(LocalizedStringKey(message)).font(.system(size: 12)).lineSpacing(5).foregroundStyle(DaybookStyle.secondary)
             } else {
@@ -51,10 +51,19 @@ struct DaybookInsightView: View {
                 Button { model.refresh() } label: { Text("生成 / 刷新洞察") }
                     .font(.system(size: 12, weight: .medium)).disabled(!model.hasEnoughSources || model.storageError != nil)
             }
-            Text("仅在本机分析，不使用自定义远程模型。AI 观察可能有误，请核对来源。").font(.system(size: 10)).lineSpacing(5).foregroundStyle(DaybookStyle.secondary)
+            Text("使用所选 AI 模型。选择 Mac 时，仅发送允许的录音文字；保留发送前确认。AI 观察可能有误，请核对来源。").font(.system(size: 10)).lineSpacing(5).foregroundStyle(DaybookStyle.secondary)
         }.confirmationDialog("重置本机洞察和每日次数？", isPresented: $confirmingReset, titleVisibility: .visible) {
             Button("重置本机洞察存储", role: .destructive) { model.resetStorage() }
             Button("取消", role: .cancel) {}
+        }.sheet(item: $model.remoteConfirmation) { confirmation in
+            DaybookSheetLayout(title: "生成每日洞察", onClose: { model.remoteConfirmation = nil }) {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text(confirmation.configuration.destinationDescription)
+                    Text("仅发送下方允许使用的文字，生成每日洞察。")
+                    Text(confirmation.prepared.context).font(.system(size: 12)).textSelection(.enabled)
+                    RemoteAISendControls(buttonTitle: "确认并生成洞察") { model.confirmRemote(rememberChoice: $0) }
+                }
+            }
         }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
             .background(LinearGradient(colors: [DaybookStyle.blueSoft, DaybookStyle.paleBlue], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 23))
             .overlay(RoundedRectangle(cornerRadius: 23).stroke(DaybookStyle.line, lineWidth: 1)).padding(.bottom, 20)

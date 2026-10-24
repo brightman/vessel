@@ -32,7 +32,7 @@ phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift No
                  PhoneConnectivity.swift OnDeviceTranscriber.swift
                  RingTransferStore.swift EurekaRingModel.swift RingHardwareViews.swift
                  OnDeviceSummarizer.swift OnDeviceRecordingTitleGenerator.swift RecordingTitleCoordinator.swift NotesStyle.swift AudioPlayback.swift
-                 AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift
+                 AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift NearbyMacClient.swift NearbyMacSettingsView.swift ConfiguredAITextGenerator.swift ConfiguredContentTextModel.swift
                  CustomAISummarizer.swift ChatGPTProtocol.swift ChatGPTIDToken.swift ChatGPTAPI.swift
                  ChatGPTLoopback.swift ChatGPTBrowserAuthorization.swift ChatGPTAccountStore.swift ChatGPTAccountModel.swift
                  ChatGPTSettingsSection.swift ChatGPTSummarizer.swift RemoteSummaryConfirmationView.swift AISettingsModel.swift PhoneWatchStatus.swift WatchSyncStore.swift SettingsViews.swift
@@ -61,7 +61,7 @@ phone_target.build_configurations.each do |configuration|
   settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote'
   settings['PRODUCT_NAME'] = 'WiseNote'
   settings['MARKETING_VERSION'] = '1.0'
-  settings['CURRENT_PROJECT_VERSION'] = '4'
+  settings['CURRENT_PROJECT_VERSION'] = '6'
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
   settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'

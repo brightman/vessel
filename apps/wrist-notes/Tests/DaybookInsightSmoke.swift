@@ -1,6 +1,10 @@
 import Foundation
 
 private func expect(_ condition: Bool, _ message: String) { if !condition { fatalError(message) } }
+private struct InsightTestSecrets: SecretStore {
+    func read() throws -> String { "" }
+    func write(_ value: String) throws { }
+}
 @MainActor private final class SuspendedInsight: DaybookInsightGenerating {
     var pending: [CheckedContinuation<DaybookInsightOutput, Error>] = []
     var requests: [(DaybookRetrieval.Prepared, String)] = []
@@ -165,6 +169,27 @@ private func expect(_ condition: Bool, _ message: String) { if !condition { fata
         preferences.allowPhotos = false
         for _ in 0..<10 { await Task.yield() }
         expect(scheduledService.requests.isEmpty && !scheduledModel.hasEnoughSources && !scheduledModel.isPending, "permission change before task entry never reaches generation service")
-        print("Daybook daily insight: passed")
+        let macSettings = AppSettings(defaults: defaults, secrets: InsightTestSecrets())
+        var mac = AIConfiguration(); mac.mode = .nearbyMac; mac.nearbyMacServiceID = UUID().uuidString; mac.nearbyMacName = "合成测试 Mac"
+        try macSettings.saveAI(mac, apiKey: ""); macSettings.requiresRemoteAIConfirmation = true
+        let macService = SuspendedInsight()
+        let macStore = DaybookInsightStore(defaults: defaults, database: try DaybookDatabase(inMemory: true))
+        let macModel = DaybookInsightModel(store: macStore, service: macService)
+        macModel.configure(settings: macSettings)
+        let voice = DayRecord(id: UUID(), capturedAt: now.addingTimeInterval(-20), kind: .voice, title: "plants", text: "Basil needs a sunny spot.")
+        preferences.proactiveEnabled = true; preferences.allowAudio = true; preferences.allowPhotos = true; preferences.quietEnabled = false
+        macModel.synchronize(records: [first, voice, second], selectedDate: now, preferences: preferences, language: "en", foreground: true, capturing: false, now: now)
+        expect(!macModel.isPending && macService.requests.isEmpty, "selected Mac never bypasses send confirmation for automatic insights")
+        macModel.refresh(now: now)
+        expect(macModel.remoteConfirmation?.prepared.sources.count == 2, "Mac insight preview includes permitted voice sources")
+        expect(macModel.remoteConfirmation?.configuration.mode == .nearbyMac, "insight confirmation identifies selected Mac")
+        var providerKey = DaybookInsightKey(evidence: macModel.remoteConfirmation!.prepared.evidence, language: "en")
+        providerKey.providerKey = "synthetic-Mac-provider"
+        try macStore.recordAttempt(providerKey, automatic: false, now: now)
+        expect(macStore.entry(providerKey) != nil, "provider-specific insight keys are persisted")
+        try macSettings.saveAI(AIConfiguration(), apiKey: "")
+        macModel.configure(settings: macSettings)
+        expect(macModel.remoteConfirmation == nil && macService.requests.isEmpty, "switching provider invalidates a pending Mac send")
+        print("Daybook daily insight: local lifecycle, selected-Mac consent, provider-specific cache and stale confirmation passed")
     }
 }

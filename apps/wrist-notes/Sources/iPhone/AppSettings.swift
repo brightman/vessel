@@ -78,7 +78,7 @@ final class AppSettings: ObservableObject {
         transcription = configuration
         if localeIdentifier != configuration.appleLocale { localeIdentifier = configuration.appleLocale }
     }
-    func apiKey() throws -> String { try secrets.read() }
+    func apiKey() throws -> String { ai.mode == .nearbyMac ? "" : try secrets.read() }
 
     /// nil means no confirmation was presented; false means a displayed request became stale.
     /// A stale request never inherits the saved opt-out, and only a valid confirmation saves it.
@@ -97,6 +97,8 @@ final class AppSettings: ObservableObject {
             saved = try configuration.validated(apiKey: apiKey)
             // Store the secret first; a Keychain failure must not enable a broken configuration.
             try secrets.write(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if configuration.mode == .nearbyMac {
+            saved = try configuration.validated(apiKey: "")
         } else if configuration.mode == .chatgpt {
             guard chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID) else {
                 throw AIServiceError.invalidConfiguration("请先连接 ChatGPT、确认套餐提示并选择可用模型。")

@@ -45,13 +45,12 @@ final class NotesModel: ObservableObject {
         guard let self, isCurrent() else { throw CancellationError() }
         switch configuration.mode {
         case .local: return await self.generateRecordingTitle(transcript)
-        case .custom:
+        case .custom, .nearbyMac:
             return try await CustomAISummarizer().recordingTitle(transcript, configuration: configuration,
                 apiKey: self.settings.apiKey(), isCurrent: isCurrent)
         case .chatgpt:
-            return try await self.settings.chatGPT.complete(instruction: CustomAISummarizer.recordingTitleInstruction,
-                content: CustomAISummarizer.recordingTitleExcerpts(transcript), modelID: configuration.chatGPTModel,
-                accountID: configuration.chatGPTAccountID, isCurrent: isCurrent)
+            return try await ConfiguredAITextGenerator.generate(CustomAISummarizer.recordingTitleExcerpts(transcript),
+                instruction: CustomAISummarizer.recordingTitleInstruction, configuration: configuration, chatGPT: self.settings.chatGPT, isCurrent: isCurrent)
         }
     }, stateChanged: { [weak self] id, running, error in
         if running { self?.generatingTitleIDs.insert(id) } else { self?.generatingTitleIDs.remove(id) }
@@ -415,8 +414,8 @@ final class NotesModel: ObservableObject {
     }
 
     func summaryConfiguration(for note: VoiceNote) -> AIConfiguration {
-        // Hardware flash ideas always stay local, even when other notes use a custom service.
-        note.usesLocalThoughtAI ? AIConfiguration() : settings.ai
+        // An explicitly selected paired Mac also handles flash-idea summaries, with the same send confirmation.
+        note.usesLocalThoughtAI && settings.ai.mode != .nearbyMac ? AIConfiguration() : settings.ai
     }
 
     private func receive(_ metadata: IncomingRecording, audio: URL) {

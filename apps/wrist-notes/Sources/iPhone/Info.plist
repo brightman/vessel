@@ -21,9 +21,11 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>与配对的 Mac 加密同步录音文字和总结，以及连接你指定的本地模型服务。</string>
+	<string>发现你配对的 Mac 本地 AI，通过局域网加密发送你允许的文字以生成总结和回答，也可与 Mac 同步录音文字。</string>
 	<key>NSBonjourServices</key>
-	<array><string>_wiselife-sync._tcp</string></array>
+	<array><string>_wiselife-sync._tcp</string><string>_wiselife-llm._tcp</string></array>
+	<key>CFBundleURLTypes</key>
+	<array><dict><key>CFBundleURLName</key><string>WiseLife Mac AI Pairing</string><key>CFBundleURLSchemes</key><array><string>wiselife-mac</string></array></dict></array>
 	<key>NSHealthShareUsageDescription</key>
 	<string>在你启用后，只读当天步数和睡眠并保存在本机；不会写入健康。</string>
 	<key>NSHealthUpdateUsageDescription</key>

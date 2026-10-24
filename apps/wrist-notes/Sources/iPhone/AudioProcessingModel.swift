@@ -2,6 +2,7 @@ import AVFAudio
 import Combine
 import Foundation
 import UIKit
+import CryptoKit
 
 /// App-lifetime observable facade. File discovery, validation, hashing and SQLite run on its actor worker.
 @MainActor final class AudioProcessingModel: ObservableObject {
@@ -28,15 +29,29 @@ import UIKit
     private var enrichmentTask: Task<Void,Never>?
     private var enrichmentSuspended = false
     private var enrichmentCapturePaused = false
-    private lazy var enrichmentService: ContentEnrichmentService = {
+    private var cachedEnrichment: (String, ContentEnrichmentService)?
+    private var authorizedEnrichment: [AudioSourceID: Int] = [:]
+    private func enrichmentService(for sourceID: AudioSourceID) -> ContentEnrichmentService {
+        let configuration = settings.ai, revision = settings.aiRevision
+        let authorized = authorizedEnrichment.removeValue(forKey: sourceID) == revision
+        let modelKey = configuration.mode == .local ? FoundationContentTextModel.configurationKey
+            : "configured-" + SHA256.hash(data: (try? JSONEncoder().encode(configuration)) ?? Data()).prefix(12).map { String(format: "%02x", $0) }.joined()
+        let cacheKey = "\(modelKey):\(revision):\(settings.requiresRemoteAIConfirmation):\(sourceID.key):\(authorized)"
+        if let (key, service) = cachedEnrichment, key == cacheKey { return service }
         let worker = coordinator
-        return ContentEnrichmentService(modelKey:FoundationContentTextModel.configurationKey,
-            model:{ try await FoundationContentTextModel().respond($0) },store:{ command in
+        let settings = self.settings
+        let service = ContentEnrichmentService(modelKey:modelKey,
+            model:{ request in
+                if configuration.mode == .local { return try await FoundationContentTextModel().respond(request) }
+                return try await ConfiguredContentTextModel.respond(request, configuration: configuration, revision: revision, settings: settings, authorizedForRequest: authorized)
+            },store:{ command in
                 try await worker.withRepository { repository in
                     try ContentSegmentRepository(database:repository.derivedDatabase).enrichment(command)
                 }
             })
-    }()
+        cachedEnrichment = (cacheKey, service)
+        return service
+    }
     private let discovery: AudioSourceDiscovery
     private lazy var coordinator = AudioProcessingCoordinator(open: { [discovery] in try discovery.open() },
         configuration:settings.transcription,discover: { [discovery] ids in try discovery.sources(explicit:ids) },
@@ -54,6 +69,18 @@ import UIKit
         self.root = root ?? FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent("VoiceNotes",isDirectory:true)
         self.settings = settings
         discovery = AudioSourceDiscovery(root:self.root)
+        observations.append(settings.$aiRevision.dropFirst().sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.enrichmentTask?.cancel(); self?.cachedEnrichment = nil; self?.authorizedEnrichment.removeAll()
+                await self?.retryEnrichmentAvailability()
+            }
+        })
+        observations.append(settings.$requiresRemoteAIConfirmation.dropFirst().sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.enrichmentTask?.cancel(); self?.cachedEnrichment = nil
+                await self?.retryEnrichmentAvailability()
+            }
+        })
         for name in [Self.sourceDidChange,RecordingChunkReceiver.didChange] {
             observations.append(NotificationCenter.default.publisher(for:name).sink { [weak self] notification in
                 let deleted = notification.userInfo?["deletedSessionID"] as? UUID
@@ -67,7 +94,7 @@ import UIKit
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.enrichmentTask?.cancel()
-                await self.enrichmentService.retryAvailability()
+                await self.cachedEnrichment?.1.retryAvailability()
                 await self.coordinator.refresh(configuration:configuration)
             }
         })
@@ -142,11 +169,15 @@ import UIKit
     }
 
     /// Explicit manual/resource/foreground retries release the local-model availability latch.
-    func retryEnrichment(_ sourceID: AudioSourceID) {
-        Task { await enrichmentService.retryAvailability(); scheduleEnrichment(sourceID) }
+    func retryEnrichment(_ sourceID: AudioSourceID, confirmation: AIConfiguration? = nil, revision: Int? = nil) {
+        if let confirmation {
+            guard confirmation == settings.ai, revision == settings.aiRevision else { return }
+            authorizedEnrichment[sourceID] = settings.aiRevision
+        }
+        Task { await cachedEnrichment?.1.retryAvailability(); scheduleEnrichment(sourceID) }
     }
     private func retryEnrichmentAvailability() async {
-        await enrichmentService.retryAvailability()
+        await cachedEnrichment?.1.retryAvailability()
         for id in statuses.keys where !deletedSources.contains(id) { pendingEnrichment.insert(id) }
         startEnrichment()
     }
@@ -163,7 +194,7 @@ import UIKit
                 self.pendingEnrichment.remove(id)
                 guard !self.deletedSources.contains(id) else { continue }
                 self.publishEnrichment(id,status:.running)
-                let result=await self.enrichmentService.enrich(sourceID:id)
+                let result=await self.enrichmentService(for: id).enrich(sourceID:id)
                 guard !self.deletedSources.contains(id) else { continue }
                 self.publishEnrichment(id,status:result)
                 if result == .cancelled && Task.isCancelled { self.pendingEnrichment.insert(id) }

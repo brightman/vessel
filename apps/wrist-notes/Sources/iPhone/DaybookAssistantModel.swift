@@ -216,7 +216,7 @@ final class DaybookAssistantModel: ObservableObject {
             complete(evidence, text: direct, generated: false, provider: "本地检索与统计")
         } else if configuration.isRemote {
             let endpoint = URLComponents(string: configuration.baseURL)
-            let destination = configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
+            let destination = configuration.mode == .nearbyMac ? configuration.destinationDescription : configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
             let confirmation = RemoteConfirmation(question: evidence.question, context: evidence.context,
                 sourceCount: evidence.sources.count, destination: destination, prepared: evidence, configuration: configuration, configurationRevision: revision)
             if settings.requiresRemoteAIConfirmation { remoteConfirmation = confirmation }

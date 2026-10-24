@@ -110,10 +110,14 @@ struct AISettingsView: View {
     @StateObject private var editor: AISettingsModel
     @ObservedObject private var chatGPT: ChatGPTAccountModel
     @State private var saveError: String?
+    var initialMacCode = ""
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, initialMacCode: String = "", selectNearbyMac: Bool = false) {
         self.settings = settings
-        _editor = StateObject(wrappedValue: AISettingsModel(settings: settings))
+        self.initialMacCode = initialMacCode
+        let model = AISettingsModel(settings: settings)
+        if !initialMacCode.isEmpty || selectNearbyMac { model.configuration.mode = .nearbyMac }
+        _editor = StateObject(wrappedValue: model)
         chatGPT = settings.chatGPT
     }
 
@@ -133,6 +137,11 @@ struct AISettingsView: View {
                             selected: editor.configuration.mode == .chatgpt) {
                     editor.configuration.mode = .chatgpt
                 }
+                ModelChoice(title: "附近的 Mac", badge: "局域网",
+                            description: "扫码连接 WiseLife Mac Companion，总结、标题和问答使用 Mac 本地模型。",
+                            selected: editor.configuration.mode == .nearbyMac) {
+                    editor.configuration.mode = .nearbyMac
+                }
                 ModelChoice(title: "自定义模型", badge: "自有服务",
                             description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
                             selected: editor.configuration.mode == .custom) {
@@ -143,6 +152,8 @@ struct AISettingsView: View {
                 SettingsInfo(title: localAvailabilityTitle,
                              text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
                     .padding(.top, 20)
+            } else if editor.configuration.mode == .nearbyMac {
+                NearbyMacSettingsSection(settings: settings, configuration: $editor.configuration, initialCode: initialMacCode).padding(.top, 20)
             } else if editor.configuration.mode == .chatgpt {
                 ChatGPTSettingsSection(account: chatGPT, configuration: $editor.configuration).padding(.top, 20)
             } else {
@@ -188,7 +199,7 @@ struct AISettingsView: View {
                 Toggle("发送给外部 AI 前确认", isOn: $settings.requiresRemoteAIConfirmation)
                     .font(.system(size: 14)).tint(DaybookStyle.accent)
                     .accessibilityIdentifier("ai.settings.confirmBeforeSending")
-                SettingsFootnote(text: "即时生效。关闭后，外部 AI 问答与总结直接发送允许使用的文字，长录音转写后自动发送摘录生成标题；可随时重新开启。")
+                SettingsFootnote(text: "即时生效。关闭后，问答、总结、录音片段整理与洞察会将允许的文字发送给所选 AI；转写后可自动生成标题和片段总结。选择 Mac 时在配对的 Mac 上推理，可随时重新开启确认。")
             }.padding(.top, 24)
             DaybookSemanticSettingsView().padding(.top, 20)
             SettingsFootnote(text: "模型配置保存后用于下一次总结与问答。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")

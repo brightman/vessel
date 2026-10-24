@@ -44,15 +44,14 @@ struct DaybookAnswerService: DaybookAnswering {
         try Task.checkCancellation()
         guard isCurrent() else { throw CancellationError() }
         let result: String
-        if configuration.mode == .custom {
+        if configuration.mode == .custom || configuration.mode == .nearbyMac {
             guard let apiKey else { throw AIServiceError.invalidConfiguration("请先确认本次发送的文字。") }
             result = try await CustomAISummarizer().answer(question: prepared.providerQuestion, context: prepared.context,
-                                                          configuration: configuration, apiKey: apiKey)
+                                                          configuration: configuration, apiKey: apiKey, isCurrent: isCurrent)
         } else if configuration.mode == .chatgpt {
             // The assistant model reaches this only after confirmation of this exact text.
-            result = try await chatGPT.complete(instruction: CustomAISummarizer.answerInstruction,
-                content: CustomAISummarizer.answerContent(question: prepared.providerQuestion, context: prepared.context),
-                modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID, isCurrent: isCurrent)
+            result = try await ConfiguredAITextGenerator.generate(CustomAISummarizer.answerContent(question: prepared.providerQuestion, context: prepared.context),
+                instruction: CustomAISummarizer.answerInstruction, configuration: configuration, chatGPT: chatGPT, isCurrent: isCurrent)
         } else {
             guard #available(iOS 26.0, macOS 26.0, *) else {
                 throw DaybookAnswerFailure.unavailable("此系统版本不支持 Apple 本地模型。")

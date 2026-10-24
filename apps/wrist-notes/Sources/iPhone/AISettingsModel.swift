@@ -35,6 +35,7 @@ final class AISettingsModel: ObservableObject {
         switch configuration.mode {
         case .local: true
         case .custom: state == .success
+        case .nearbyMac: UUID(uuidString: configuration.nearbyMacServiceID) != nil
         case .chatgpt: settings.chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID)
         }
     }

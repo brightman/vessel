@@ -192,7 +192,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 10 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 11 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -323,6 +323,14 @@ final class DaybookDatabase: @unchecked Sendable {
                 }
             }
             try execute("PRAGMA user_version = 10")
+        }
+
+        if version < 11 {
+            let columns = try query("PRAGMA table_info(insight_entries)")
+            if !columns.contains(where: { $0["name"]?.string == "provider_key" }) {
+                try execute("ALTER TABLE insight_entries ADD COLUMN provider_key TEXT")
+            }
+            try execute("PRAGMA user_version = 11")
         }
 
     }

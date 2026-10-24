@@ -255,6 +255,24 @@ struct AISettingsSmoke {
         try editor.save()
         expect(settings.ai.mode == .local && secrets.value == "fake-key", "returning local retains saved custom credentials")
 
+        var mac = AIConfiguration(); mac.mode = .nearbyMac
+        mac.nearbyMacServiceID = UUID().uuidString; mac.nearbyMacName = "合成测试 Mac"
+        settings.requiresRemoteAIConfirmation = true
+        try settings.saveAI(mac, apiKey: "must-not-store-this")
+        let macReloaded = AppSettings(defaults: defaults, secrets: secrets)
+        let unusedKey = try macReloaded.apiKey()
+        expect(macReloaded.ai == mac && unusedKey.isEmpty, "Mac selection survives relaunch without using a custom API key")
+        expect(secrets.value == "fake-key", "Mac pairing does not replace unrelated custom credentials")
+        expect(settings.requiresRemoteAIConfirmation, "Mac selection retains send confirmation")
+        let beforeMac = requests.count
+        do { _ = try await client.summarize("synthetic", configuration: mac, apiKey: "", isCurrent: { false }); fatalError("stale Mac request sent") }
+        catch is CancellationError { }
+        expect(requests.count == beforeMac, "stale Mac request never falls through to custom cloud transport")
+        var invalidMac = mac; invalidMac.nearbyMacServiceID = "not-a-service-id"
+        do { _ = try await client.summarize("synthetic", configuration: invalidMac, apiKey: ""); fatalError("invalid Mac routed elsewhere") }
+        catch NearbyMacFailure.pairing { }
+        expect(requests.count == beforeMac, "unavailable/invalid Mac is an explicit failure, never a cloud fallback")
+
         expect(PhoneWatchStatus(isSupported: false).title.contains("不可用"), "unsupported device")
         let asleep = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: false)
         let awake = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: true)

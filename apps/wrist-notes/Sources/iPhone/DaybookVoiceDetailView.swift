@@ -32,7 +32,9 @@ struct DaybookVoiceDetailView: View {
                             .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
                     }
                     if note.usesLocalThoughtAI {
-                        Text("闪念在 iPhone 本地转写，并由 Apple 本地模型整理。模型暂不可用时可先回听、查看全文，稍后重试。")
+                        Text(settings.ai.mode == .nearbyMac
+                             ? "闪念在 iPhone 本地转写；确认发送后，由配对 Mac 的本地模型整理。原始录音保留在 iPhone。"
+                             : "闪念在 iPhone 本地转写，并由 Apple 本地模型整理。模型暂不可用时可先回听、查看全文，稍后重试。")
                             .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.bottom, 14)
                     }
                     player

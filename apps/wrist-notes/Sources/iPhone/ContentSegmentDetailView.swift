@@ -129,6 +129,8 @@ struct AudioSourceProcessingView: View {
     @EnvironmentObject private var content: ContentSegmentModel
     @EnvironmentObject private var settings: AppSettings
     @State private var showSettings = false
+    @State private var enrichmentConfirmation: AIConfiguration?
+    @State private var enrichmentRevision = 0
     var body: some View {
         VStack(alignment:.leading,spacing:10) {
             if let status = processing.statuses[sourceID] {
@@ -145,20 +147,44 @@ struct AudioSourceProcessingView: View {
                 Button("重试处理") { processing.retry(sourceID) }
                 Button("取消转写处理") { processing.cancel(sourceID) }
             }
-            Button("重试本机总结") { processing.retryEnrichment(sourceID) }
+            Text("总结模型：\(settings.ai.label)")
+            if settings.ai.isRemote && settings.requiresRemoteAIConfirmation {
+                Text("点击总结并确认后，将这段录音的转写文字发送给所选模型。")
+            }
+            Button("生成 / 重试片段总结") {
+                if settings.ai.isRemote && settings.requiresRemoteAIConfirmation {
+                    enrichmentRevision = settings.aiRevision; enrichmentConfirmation = settings.ai
+                } else { processing.retryEnrichment(sourceID) }
+            }
             Button("语音转写模型设置") { showSettings = true }
             if content.records.contains(where:{ $0.contentProvenance?.sourceID == sourceID.id }) {
                 Text("内容片段已显示在时间轴；完整录音仍可回听。").font(.footnote)
             }
         }
         .sheet(isPresented:$showSettings) { TranscriptionSettingsView(settings:settings) }
+        .sheet(isPresented: Binding(get: { enrichmentConfirmation != nil }, set: { if !$0 { enrichmentConfirmation = nil } })) {
+            if let configuration = enrichmentConfirmation {
+                DaybookSheetLayout(title: "整理这段录音", onClose: { enrichmentConfirmation = nil }) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text(configuration.destinationDescription)
+                        Text("将当前录音的转写文字逐段发送给这台模型，整理主题、标题与片段总结。原始音频保留在 iPhone。")
+                        RemoteAISendControls(buttonTitle: "确认并总结这段录音") { remember in
+                            let current = settings.ai == configuration && settings.aiRevision == enrichmentRevision
+                            guard settings.authorizeRemoteAISend(confirmationIsCurrent: current, rememberChoice: remember) else { enrichmentConfirmation = nil; return }
+                            processing.retryEnrichment(sourceID, confirmation: configuration, revision: enrichmentRevision)
+                            enrichmentConfirmation = nil
+                        }
+                    }
+                }
+            }
+        }
     }
     private func enrichmentLabel(_ status: ContentEnrichmentStatus) -> String {
         switch status {
         case .idle: "等待本机总结"
-        case .running: "正在本机整理主题与总结"
-        case .complete: "本机总结已完成"
-        case .unavailable: "本机总结模型暂不可用"
+        case .running: "正在使用所选模型整理主题与总结"
+        case .complete: "片段总结已完成"
+        case .unavailable: "所选模型暂不可用或等待发送授权"
         case .stale: "内容已更新，等待重新整理"
         case .failed: "本机总结失败，可重试"
         case .cancelled: "本机总结已暂停"

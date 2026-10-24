@@ -2,6 +2,7 @@
 set -eu
 chatgpt_sources="Sources/iPhone/ChatGPTProtocol.swift Sources/iPhone/ChatGPTIDToken.swift Sources/iPhone/ChatGPTAPI.swift Sources/iPhone/ChatGPTAccountStore.swift Sources/iPhone/ChatGPTAccountModel.swift"
 cd "$(dirname "$0")/.."
+sh scripts/test_nearby_mac.sh
 sh scripts/test_phone_recording.sh
 sh scripts/test_watch_sync.sh
 sh scripts/test_watch_recording_launcher.sh
@@ -33,7 +34,7 @@ swiftc -module-cache-path "$output/cache" Sources/iPhone/VoiceIdentity.swift Tes
 "$output/voice-profile"
 sh scripts/test_voice_profile_recovery.sh
 
-swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/AISettingsModel.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/PhoneWatchStatus.swift Tests/AISettingsSmoke.swift -o "$output/settings"
+swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/ConfiguredAITextGenerator.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/AISettingsModel.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/PhoneWatchStatus.swift Tests/AISettingsSmoke.swift -o "$output/settings"
 "$output/settings"
 
 swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionSettingsModel.swift Tests/TranscriptionSettingsSmoke.swift -o "$output/transcription"
@@ -51,7 +52,7 @@ swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" S
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookReminderPersistence.swift Sources/iPhone/DaybookPreferences.swift Tests/DaybookReminderSmoke.swift -o "$output/reminders"
 "$output/reminders"
 
-swiftc Sources/Shared/CaptureMetadata.swift $chatgpt_sources -D DAYBOOK_ASSISTANT_MODEL_TESTS -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookAssistantModel.swift Sources/iPhone/DaybookAnswerService.swift Sources/iPhone/AIConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionConfiguration.swift Tests/DaybookRetrievalSmoke.swift -o "$output/daybook-ai"
+swiftc Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/iPhone/NoteRepository.swift $chatgpt_sources -D DAYBOOK_ASSISTANT_MODEL_TESTS -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookAssistantModel.swift Sources/iPhone/DaybookAnswerService.swift Sources/iPhone/AIConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/ConfiguredAITextGenerator.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionConfiguration.swift Tests/DaybookRetrievalSmoke.swift -o "$output/daybook-ai"
 "$output/daybook-ai"
 
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookSuggestionStore.swift Tests/DaybookSuggestionSmoke.swift -o "$output/suggestions"
@@ -63,7 +64,7 @@ swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" S
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/LifeSourceStore.swift Sources/iPhone/LifeSourceModel.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Tests/LifeSourceModelSmoke.swift -o "$output/life-source-model"
 "$output/life-source-model"
 
-swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookInsightStore.swift Sources/iPhone/DaybookInsightService.swift Sources/iPhone/DaybookInsightModel.swift Tests/DaybookInsightSmoke.swift -o "$output/insights"
+swiftc $chatgpt_sources Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/ConfiguredAITextGenerator.swift Sources/iPhone/NearbyMacClient.swift Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookInsightStore.swift Sources/iPhone/DaybookInsightService.swift Sources/iPhone/DaybookInsightModel.swift Tests/DaybookInsightSmoke.swift -o "$output/insights"
 "$output/insights"
 
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/LifeSourceStore.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookInsightStore.swift Tests/SQLitePersistenceSmoke.swift -o "$output/sqlite"

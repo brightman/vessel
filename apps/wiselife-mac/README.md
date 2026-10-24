@@ -29,7 +29,7 @@ App 默认启用 App Sandbox、Hardened Runtime，以及网络 client/server 权
 1. 打开「模型库」，App 会读取本机芯片与物理统一内存，在固定模型目录中推荐适配项。模型卡片直接显示来源、许可证、下载大小与建议内存；点击「下载模型」立即从 Hugging Face 下载，不再出现额外确认弹窗。来源与固定 revision 可在卡片展开查看。
 2. 下载后点击「加载模型」。加载前再次验证全部文件的大小与 SHA-256；模型切换前卸载旧模型，同时只保留一个模型。
 3. 开启「为配对的 iPhone 提供本地 AI」，并选择「配对 iPhone」。二维码含服务身份、证书 SHA-256 指纹、256-bit 一次性秘密与 2 分钟有效期，不含地址或长期令牌。
-4. **需后续接入支持 Nearby Mac 的 iPhone 版本。** 本次实现范围为 Mac desktop；现有手机 App 尚未增加本设计的 `nearbyMac` 路由、扫码、NWBrowser 与证书 pinning。现有「Mac 桌面同步」扫码入口属于另一套协议，不能扫描这里的配对码。
+4. 在 iPhone 构建 6 或之后版本打开「设置 → AI 模型 → 附近的 Mac」，扫描并确认使用这台 Mac。手机已接入 `nearbyMac` 路由、扫码、NWBrowser 与证书 pinning。配对后，总结、标题与问答使用这台 Mac 当前加载的模型，保留手机端发送授权。实机验收状态见 [接入验证](../wrist-notes/verification/nearby-mac-integration-2026-10-24.md)。
 5. 关闭窗口后可通过菜单栏继续控制服务。可暂停服务、取消生成、卸载模型、撤销设备。睡眠会停服并卸载；唤醒后按用户的服务开关重新发布，但不会自动重新加载模型。
 
 网络绑定当前选择的 RFC1918／IPv4 link-local 本机接口，不接受通配或公网绑定；网络地址变化后重新绑定，Bonjour 仅发布版本与 opaque ID。IPv6-only LAN、热点客户端隔离、真实 iPhone 权限弹窗仍需兼容性验收。
@@ -121,8 +121,8 @@ sh scripts/benchmark.sh --run --download --model mlx-community/Qwen3-1.7B-4bit \
 
 本机测试证据与未完成的硬件验收项目见 `verification/README.md`。Debug 版本提供 `--preview`、`--snapshot <absolute.png>`、`--page 模型库`，预览不读写用户 Keychain，不启动网络、不下载模型。Release 没有预览入口。
 
-## iPhone 后续接入边界
+## iPhone 接入与验证边界
 
-手机端需添加 `_wiselife-llm._tcp` 的 NSBonjourServices 与权限说明、NWBrowser、一次扫码 TLS pinning、Keychain、设备状态和 Nearby Mac provider。所有 LLM 调用点应经统一路由，保留每项任务的授权、引用、验证、取消和 stale-result 检查，发送前重查授权。该接入及真实 iPhone／Mac 联调不在本次 desktop 实现中；不得把 Mac API 测试等同于手机端到端通过。
+手机构建 6 已添加服务声明、权限说明、NWBrowser、扫码 TLS pinning、Keychain、连接状态和 Nearby Mac provider。文本生成经共享路由，保留授权、引用、验证、取消和过期结果检查；发送凭据及正文前重查当前配置。自动录音片段总结需要已允许自动发送；也可逐条确认。每日洞察为 Mac 选择仅准备允许的录音文字。代码／传输测试通过不等于手机与真实 MLX 模型的端到端验收完成，最新状态记录在上方接入验证文档。
 
 上游参考：[MLX Swift](https://github.com/ml-explore/mlx-swift/tree/0.29.1)、[mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm/tree/2.29.3)、[SwiftNIO](https://github.com/apple/swift-nio)、[NIOSSL](https://github.com/apple/swift-nio-ssl)、[Swift Certificates](https://github.com/apple/swift-certificates)。
