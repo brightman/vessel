@@ -1,0 +1,11 @@
+framework module BRRecorderCore {
+  umbrella header "BRRecorderCore-umbrella.h"
+
+  export *
+  module * { export * }
+}
+
+module BRRecorderCore.Swift {
+  header "BRRecorderCore-Swift.h"
+  requires objc
+}

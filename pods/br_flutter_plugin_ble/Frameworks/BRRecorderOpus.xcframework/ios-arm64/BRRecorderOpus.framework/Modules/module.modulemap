@@ -1,0 +1,6 @@
+framework module BRRecorderOpus {
+  umbrella header "BRRecorderOpus-umbrella.h"
+
+  export *
+  module * { export * }
+}

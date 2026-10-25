@@ -1,0 +1,11 @@
+framework module BRBluetoothLib {
+  umbrella header "BRBluetoothLib-umbrella.h"
+
+  export *
+  module * { export * }
+}
+
+module BRBluetoothLib.Swift {
+  header "BRBluetoothLib-Swift.h"
+  requires objc
+}

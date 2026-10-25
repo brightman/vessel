@@ -1,0 +1,153 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+// swift-module-flags: -target arm64-apple-ios14.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name BRRecorderCore -module-alias Module___BRRecorderCore=BRRecorderCore -module-alias Module____StringProcessing=_StringProcessing -module-alias Module____SwiftConcurrencyShims=_SwiftConcurrencyShims -module-alias Module____Concurrency=_Concurrency -module-alias Module___AVFAudio=AVFAudio -module-alias Module___BRRecorderOpus=BRRecorderOpus -module-alias Module___BRBluetoothLib=BRBluetoothLib
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+import Module___AVFAudio
+import Module___BRBluetoothLib
+@_exported import Module___BRRecorderCore
+import Module___BRRecorderOpus
+import Foundation
+import Swift
+import Module____Concurrency
+import Module____StringProcessing
+import Module____SwiftConcurrencyShims
+public struct BRNormalizedAudio : Swift.Sendable {
+  public let url: Foundation.URL
+  public let duration: Swift.Double
+  public init(url: Foundation.URL, duration: Swift.Double)
+}
+public enum BRAudioNormalizer {
+  public static func normalize(input: Foundation.URL, output: Foundation.URL, progress: @escaping @Sendable (Swift.Double) -> Swift.Void = { _ in }) async throws -> Module___BRRecorderCore.BRNormalizedAudio
+}
+@Module____Concurrency.MainActor final public class BRRecorderClient : Module___BRRecorderCore.BRRecordingDevice {
+  @Module____Concurrency.MainActor final public var onEvent: ((Module___BRRecorderCore.BRRecorderEvent) -> Swift.Void)?
+  @Module____Concurrency.MainActor public init()
+  @Module____Concurrency.MainActor final public func initialize()
+  @Module____Concurrency.MainActor final public func scan()
+  @Module____Concurrency.MainActor final public func stopScan()
+  @Module____Concurrency.MainActor final public func connect(device: Module___BRRecorderCore.BRRecorderDevice, appUUID: Swift.String) async throws -> Module___BRRecorderCore.BRRecorderBinding
+  @Module____Concurrency.MainActor final public func disconnect()
+  @Module____Concurrency.MainActor final public func syncTime() async throws
+  @Module____Concurrency.MainActor final public func battery() async throws -> Swift.Int
+  @Module____Concurrency.MainActor final public func storageDescription() async throws -> Swift.String
+  @Module____Concurrency.MainActor final public func isRecording() -> Swift.Bool
+  @Module____Concurrency.MainActor final public var flashIdeaSupported: Swift.Bool {
+    get
+  }
+  @Module____Concurrency.MainActor final public func isFlashIdeaRecording() -> Swift.Bool
+  @Module____Concurrency.MainActor final public func startRecording() async throws
+  @Module____Concurrency.MainActor final public func stopRecording() async throws
+  @Module____Concurrency.MainActor final public func listFiles() async throws -> Module___BRRecorderCore.BRRecorderFileList
+  @Module____Concurrency.MainActor final public func openSync() async throws
+  @Module____Concurrency.MainActor final public func closeSync() async throws
+  @Module____Concurrency.MainActor final public func transfer(_ file: Module___BRRecorderCore.BRRecorderFile) async throws -> Foundation.URL
+  @Module____Concurrency.MainActor final public func unbind() async throws
+  @Module____Concurrency.MainActor final public func format() async throws
+  @objc deinit
+}
+public struct BRRecorderDevice : Swift.Identifiable, Swift.Codable, Swift.Equatable, Swift.Sendable {
+  public let sn: Swift.String
+  public let address: Swift.String
+  public let name: Swift.String
+  public var id: Swift.String {
+    get
+  }
+  public init(sn: Swift.String, address: Swift.String, name: Swift.String)
+  public static func == (a: Module___BRRecorderCore.BRRecorderDevice, b: Module___BRRecorderCore.BRRecorderDevice) -> Swift.Bool
+  public typealias ID = Swift.String
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct BRRecorderBinding : Swift.Codable, Swift.Equatable, Swift.Sendable {
+  public let device: Module___BRRecorderCore.BRRecorderDevice
+  public let appUUID: Swift.String
+  public init(device: Module___BRRecorderCore.BRRecorderDevice, appUUID: Swift.String)
+  public static func == (a: Module___BRRecorderCore.BRRecorderBinding, b: Module___BRRecorderCore.BRRecorderBinding) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public enum BRRecorderFileKind : Swift.String, Swift.Codable, Swift.Sendable {
+  case recording, flashIdea
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(sdkFileType: Swift.String, fileName: Swift.String = "")
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.String)
+  #endif
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct BRRecorderFile : Swift.Identifiable, Swift.Codable, Swift.Equatable, Swift.Sendable {
+  public let name: Swift.String
+  public let byteCount: Swift.Int64?
+  public let recordedAt: Foundation.Date?
+  public let expectedDuration: Swift.Double?
+  public let kind: Module___BRRecorderCore.BRRecorderFileKind
+  public var id: Swift.String {
+    get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(name: Swift.String, byteCount: Swift.Int64? = nil, recordedAt: Foundation.Date? = nil, expectedDuration: Swift.Double? = nil, kind: Module___BRRecorderCore.BRRecorderFileKind = .recording)
+  #endif
+  public init(from decoder: any Swift.Decoder) throws
+  public var hasSafeName: Swift.Bool {
+    get
+  }
+  public static func == (a: Module___BRRecorderCore.BRRecorderFile, b: Module___BRRecorderCore.BRRecorderFile) -> Swift.Bool
+  public typealias ID = Swift.String
+  public func encode(to encoder: any Swift.Encoder) throws
+}
+public struct BRRecorderFileList : Swift.Sendable {
+  public let files: [Module___BRRecorderCore.BRRecorderFile]
+  public let isComplete: Swift.Bool
+  public init(files: [Module___BRRecorderCore.BRRecorderFile], isComplete: Swift.Bool)
+}
+public enum BRRecorderFailure : Foundation.LocalizedError, Swift.Sendable {
+  case sdk(code: Swift.String, message: Swift.String)
+  case invalidAudio(Swift.String)
+  #if compiler(>=5.3) && $NonescapableTypes
+  public var errorDescription: Swift.String? {
+    get
+  }
+  #endif
+}
+public enum BRRecorderEvent : Swift.Sendable {
+  case discovered([Module___BRRecorderCore.BRRecorderDevice])
+  case connection(Swift.Bool)
+  case bluetooth(Swift.String)
+  case recordingStarted(Swift.Bool)
+  case recordingStopped
+  case flashIdeaStarted(success: Swift.Bool)
+  case flashIdeaEnded(file: Module___BRRecorderCore.BRRecorderFile?, audioURL: Foundation.URL?)
+  case transferProgress(received: Swift.Int, fileName: Swift.String?)
+}
+@Module____Concurrency.MainActor public protocol BRRecordingDevice : AnyObject {
+  #if compiler(>=5.3) && $NonescapableTypes
+  @Module____Concurrency.MainActor var onEvent: ((Module___BRRecorderCore.BRRecorderEvent) -> Swift.Void)? { get set }
+  #endif
+  @Module____Concurrency.MainActor func initialize()
+  @Module____Concurrency.MainActor func scan()
+  @Module____Concurrency.MainActor func stopScan()
+  @Module____Concurrency.MainActor func connect(device: Module___BRRecorderCore.BRRecorderDevice, appUUID: Swift.String) async throws -> Module___BRRecorderCore.BRRecorderBinding
+  @Module____Concurrency.MainActor func disconnect()
+  @Module____Concurrency.MainActor func syncTime() async throws
+  @Module____Concurrency.MainActor func battery() async throws -> Swift.Int
+  @Module____Concurrency.MainActor func storageDescription() async throws -> Swift.String
+  @Module____Concurrency.MainActor func isRecording() -> Swift.Bool
+  @Module____Concurrency.MainActor var flashIdeaSupported: Swift.Bool { get }
+  @Module____Concurrency.MainActor func isFlashIdeaRecording() -> Swift.Bool
+  @Module____Concurrency.MainActor func startRecording() async throws
+  @Module____Concurrency.MainActor func stopRecording() async throws
+  @Module____Concurrency.MainActor func listFiles() async throws -> Module___BRRecorderCore.BRRecorderFileList
+  @Module____Concurrency.MainActor func openSync() async throws
+  @Module____Concurrency.MainActor func closeSync() async throws
+  @Module____Concurrency.MainActor func transfer(_ file: Module___BRRecorderCore.BRRecorderFile) async throws -> Foundation.URL
+  @Module____Concurrency.MainActor func unbind() async throws
+  @Module____Concurrency.MainActor func format() async throws
+}
+extension Module___BRRecorderCore.BRRecorderClient : Swift.Sendable {}
+extension Module___BRRecorderCore.BRRecorderFileKind : Swift.Equatable {}
+extension Module___BRRecorderCore.BRRecorderFileKind : Swift.Hashable {}
+extension Module___BRRecorderCore.BRRecorderFileKind : Swift.RawRepresentable {}

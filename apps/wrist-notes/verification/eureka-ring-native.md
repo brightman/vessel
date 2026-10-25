@@ -1,6 +1,6 @@
 # EurekaRing 原生本地接入 · 2026-10-19
 
-基于 `dev-card`，通过相邻 `br_flutter_plugin_ble` 的 `dev-300` 原生 SDK 接入。没有合并 `dev-healthdata`，没有引入 `br_app_services`。
+最初基于 `dev-card` 接入 `br_flutter_plugin_ble` 的原生 SDK。2026-10-20 按用户要求，在当前 `codex/vessel` 分支将依赖改为本仓库 `pods/br_flutter_plugin_ble` 中的本地二进制 Pod，来源为插件 `dev_sdk_pod` 分支。没有合并 `dev-healthdata`，没有引入 `br_app_services`。
 
 ## 页面和录音流程
 
@@ -39,6 +39,21 @@
 
 BRBluetoothLib 3.0.0 握手返回正在录音时，没有恢复 BleAudioManager 的活动录音上下文。App 据握手状态阻止同步／格式化，并提示在硬件上结束录音；结束后同步。不伪造文件名或虚假的录音开始事件。已连接后开始的 App／硬件录音使用正常停止流程。
 
+## 本地二进制 Pod 发布包
+
+- 发布目录为仓库根目录 `pods/br_flutter_plugin_ble`。默认 Native 子模块包含 BRBluetoothLib、BRRecorderCore、BRRecorderOpus 三个静态 XCFramework，提供真机 arm64 和模拟器 arm64/x86_64；Swift 模块名保持不变。
+- App 的 Podfile 只引用本仓库路径，不再引用相邻插件的 `.native-sdk`。使用方执行 `pod install --deployment` 即可安装原生依赖，不需要私有 SDK 源码下载权限或 Flutter。App 原有 Swift 包依赖按 Package.resolved 处理。
+- 导出工具位于插件仓库 `ios/package_native_pod.py`。SDK 原始源码和 Flutter Podspec 均未修改；发布包包含上游许可、隐私资源、来源版本与逐文件 SHA-256 manifest。
+- SDK 中模块名与枚举同名，导出使用 Swift 接口模块别名选项处理，并移除探针副本的已序列化模块，强制对三种架构的文本接口进行类型检查。集成测试继承宿主搜索路径，只显式链接 Opus 编码器，避免重复复制 XCFramework。
+- 校验命令：`python3 apps/wrist-notes/scripts/verify_ble_pod.py`。发布包需随代码一起提交；`apps/wrist-notes/Pods` 仍为生成目录，不提交。
+
+2026-10-20 的二进制包验证结果：
+
+- 79 个文件的 SHA-256、三个 XCFramework 的实际架构及 Swift 文本接口检查通过。导出时强制从文本接口编译的 arm64 真机、arm64 模拟器和 x86_64 模拟器探针均通过。
+- 切换二进制 Pod 后，30 项 Ring 集成测试全部通过（0 失败），结果为 `/private/tmp/wisenote-binary-pod-tests-v2.xcresult`；测试使用假设备和合成音频。
+- 仅复制 Vessel 的可提交 App 文件及根目录 Pod 包，在没有相邻 SDK 仓库、没有预装 Pods 的隔离目录执行 `pod install --deployment` 成功；随后完整 iPhone arm64 App 构建成功，使用 `CODE_SIGNING_ALLOWED=NO`。构建日志为 `/private/tmp/wisenote-binary-consumer-device.log`，原有 Swift 包沿用固定版本的本地缓存。
+- iPhone／Watch 工程源码成员及 Watch 图标资源检查通过。本次未安装到真机，也未重测真实 Ring 的蓝牙操作。
+
 ## 断线后的页面恢复
 
 - 修复“上次格式化结果待核对”优先于连接状态的问题。页面按实际连接状态选择主操作：无绑定时扫描、已绑定未连接时重新连接、已连接且结果待核对时读取文件列表；断线不会停留在一个禁用的核对按钮。
@@ -59,4 +74,6 @@ BRBluetoothLib 3.0.0 握手返回正在录音时，没有恢复 BleAudioManager 
 - 2026-10-19 22:03（北京时间），按用户后续要求已更新至 iPhone Air，并成功启动、核对进程存活。默认团队缺少可用账号与配置描述文件，本次仅对安装副本沿用手机已有开发版的有效签名和应用标识 `com.vessel.wristnotes.dev9jzlk3xhyk`，覆盖更新而未卸载 App；仓库中的团队和正式 Bundle ID 未更改。
 - 2026-10-19 22:18（北京时间），已将包含 Ring 闪念的最新版覆盖安装到同一 iPhone Air，成功启动并确认进程运行。仍使用同一开发签名与 Bundle ID，未卸载 App、未导出用户音频或文本；闪念硬件操作及真实 Apple 模型生成结果留待用户测试。
 - 2026-10-19 22:24（北京时间），已将断线页面恢复修复版覆盖安装到同一 iPhone Air，成功启动并确认进程存活。没有清除设备绑定或格式化待核对标记，也没有向真实 Ring 发送格式化／解绑指令。
-- 未对真实 Ring 执行格式化或解绑。真实 BLE 连接、硬件按钮、电量、录音格式和长时同步仍待硬件测试；安装和启动成功不代表这些项目已验证。
+- 2026-10-20 14:32（北京时间），二进制 Pod 版本已覆盖安装到 iPhone Air，沿用原开发版签名与应用标识。补齐 iPhone／Watch 安装副本的嵌套 Debug 动态库签名后启动成功，核对 WiseNote 进程存活、已安装主程序 UUID 与新构建一致；仓库签名配置未改。
+- 同次真机测试中，14:33 新增三条 EurekaRing 闪念，时长分别为 2.22、2.24、3.20 秒，均已持久化为本机笔记，转写及本地整理状态为 ready。仅对这三条新增测试音频作本地结构和解码检查：AAC/M4A、16 kHz、单声道，解码时长与索引一致且均非静音；检查后删除 Mac 上的临时音频副本，仅保留数值结果。原有 15 个音频文件均保留。
+- 本次由新增真实 Ring 闪念验证了录制结束后的同步、转换和本地 AI 处理链路。App 普通录音的开始／停止按钮、手机实际回听、显示电量与长时同步仍待用户反馈或进一步硬件测试。未对真实 Ring 执行格式化或解绑；未验证的项目不因安装成功而视为通过。
