@@ -26,8 +26,8 @@ enum DaybookRecapFailure: LocalizedError, Equatable {
     case unavailable, unsupportedLanguage, invalid, generation, storage, changed
     var errorDescription: String? {
         switch self {
-        case .unavailable: "Apple 本地模型尚不可用。请检查 Apple Intelligence 设置，或选择其他 AI 模型后重试。"
-        case .unsupportedLanguage: "当前 Apple 本地模型不支持所选语言，请更换语言或模型后重试。"
+        case .unavailable: "Apple Intelligence尚不可用。请检查 Apple Intelligence 设置，或选择其他 AI 模型后重试。"
+        case .unsupportedLanguage: "当前 Apple Intelligence不支持所选语言，请更换语言或模型后重试。"
         case .invalid: "AI 未返回有效的回顾及来源，未保存此次结果。请重试。"
         case .generation: "回顾生成未完成，请稍后重试。"
         case .storage: "每日回顾未能读取或保存，请解锁设备并检查存储空间后重试。"
@@ -120,7 +120,7 @@ struct DaybookRecapInput: Equatable, Sendable {
         switch kind {
         case .thought: "主动闪念：优先理解用户意图；区分设想、决定和已完成，引用他人不代表本人意图。"
         case .voice: "录音转写：说话人未确认，不默认属于用户；背景音仅作弱辅助线索，录音设备不提高内容权威性。"
-        case .activity: "系统活动数据：对应测量范围内的优先事实依据；注意统计范围、缺失与延迟，不推断活动目的。"
+        case .activity: "系统活动数据：对应测量范围内的优先事实依据；注意统计范围、缺失与延迟，不推断活动目的。体能训练按开始日期归属，训练持续时长不等于锻炼圆环分钟数，不与每日步数或能量相加；标注手动录入的记录属于用户填写，不能当作设备测量；不同来源的重复训练不能重复累计。"
         case .sleep: "系统睡眠数据：对应测量范围内的优先事实依据；属于测量或估算，不推断原因或诊断。"
         case .calendar: "日程安排：计划依据，不证明实际参加或完成。"
         case .location: "位置记录或派生变化：仅支持采集点及其变化；不证明完整行程、驾驶身份或停留时长，派生记录不算独立佐证。"

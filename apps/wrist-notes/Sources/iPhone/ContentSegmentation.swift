@@ -11,7 +11,7 @@ struct ContentSegmentationResult: Sendable {
     let state: ContentProcessingState
 }
 enum ContentSegmentation {
-    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = []) throws -> ContentSegmentationResult {
+    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = [], keepAsSingleRecording: Bool = false) throws -> ContentSegmentationResult {
         try source.validate()
         for interval in reliableNoSpeech + successfulCoverage + asrEmpty + transcriptRanges { try interval.validate() }
         let silence = normalized(reliableNoSpeech)
@@ -45,6 +45,14 @@ enum ContentSegmentation {
             if cursor < end {
                 drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:end),boundaryReady:source.complete && covers(coverage,start:cursor,end:end)))
             }
+        }
+        if keepAsSingleRecording {
+            let whole = source.ranges.isEmpty ? [] : [ContentSegmentDraft(
+                ranges:source.ranges,
+                boundaryReady:source.complete && allCovered
+            )]
+            let done = source.complete && !source.ranges.isEmpty && allCovered
+            return .init(segments:whole,state:done ? .processed : .pending)
         }
         // ASR-empty successful coverage is retained as a low-information chapter. It is
         // not acoustic silence and cannot authorize dropping media or transcript rows.

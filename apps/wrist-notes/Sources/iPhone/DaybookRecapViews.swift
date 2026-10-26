@@ -123,7 +123,7 @@ struct DaybookRecapDetailView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("将这些记录摘录发送给所选 AI，生成每日回顾？").font(.system(size: 21, weight: .medium))
                     Text(request.configuration.label).font(.system(size: 12))
-                    Text(request.configuration.mode == .chatgpt ? "OpenAI · ChatGPT" : request.configuration.baseURL)
+                    Text(request.configuration.destinationDescription)
                         .font(.system(size: 11)).textSelection(.enabled)
                     Text("只发送下方文字。长文本使用开头、中间和结尾摘录，多条记录会分批归纳后合并。原始音频和图片保留在本机。")
                         .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(5)

@@ -15,11 +15,19 @@ import Foundation
     func discardRecording()
     func recordingWasSaved()
     func recoveredDuration(at url: URL) -> TimeInterval
+    func recoveredDuration(for draft: PhoneRecordingDraft) -> TimeInterval
+    func recoverDraft(_ draft: PhoneRecordingDraft) throws -> PhoneRecordingDraft
 }
 
 extension PhoneRecordingEngine {
     var recordingWarning: String? { nil }
     var onDraftUpdated: ((PhoneRecordingDraft) -> Void)? { get { nil } set {} }
+    func recoveredDuration(for draft: PhoneRecordingDraft) -> TimeInterval { max(draft.duration, recoveredDuration(at: draft.fileURL)) }
+    func recoverDraft(_ draft: PhoneRecordingDraft) throws -> PhoneRecordingDraft {
+        PhoneRecordingDraft(id:draft.id,fileURL:draft.fileURL,duration:recoveredDuration(for:draft),capturedAt:draft.capturedAt,
+            location:draft.location,chunks:draft.chunks,activeChunkOrdinal:draft.activeChunkOrdinal,isChunked:draft.isChunked,
+            timeZoneIdentifier:draft.timeZoneIdentifier)
+    }
 }
 
 @MainActor final class PhoneRecordingSession: ObservableObject {
@@ -56,8 +64,7 @@ extension PhoneRecordingEngine {
         activity.onDismiss = { [weak self] id in Task { try? await self?.stopAndSave(expectedSessionID: id) } }
         do {
             if let draft = try store.load().first {
-                let duration = max(draft.duration, engine.recoveredDuration(at: draft.fileURL))
-                current = PhoneRecordingDraft(id: draft.id, fileURL: draft.fileURL, duration: duration, capturedAt: draft.capturedAt, location: draft.location)
+                current = try engine.recoverDraft(draft)
                 phase = .failed; errorMessage = "发现未保存的录音，请重试保存或丢弃。"
             }
             if let warning = store.recoveryWarning { errorMessage = warning }
@@ -69,11 +76,10 @@ extension PhoneRecordingEngine {
         let drafts = try self.store.load()
         if drafts.isEmpty && self.current == nil { self.phase = .idle; self.errorMessage = self.store.recoveryWarning }
         for draft in drafts {
-            let duration = max(draft.duration, self.engine.recoveredDuration(at: draft.fileURL))
-            self.current = PhoneRecordingDraft(id: draft.id, fileURL: draft.fileURL, duration: duration, capturedAt: draft.capturedAt, location: draft.location)
+            self.current = try self.engine.recoverDraft(draft)
             self.phase = .failed
             // An empty manifest means the process stopped before any samples were captured.
-            if duration <= 0.2 && !FileManager.default.fileExists(atPath: draft.fileURL.path) {
+            if self.current!.duration <= 0.2 && !FileManager.default.fileExists(atPath: draft.fileURL.path) {
                 try self.store.remove(draft); self.current = nil; self.phase = .idle
                 await self.activity.finish(sessionID: draft.id, saved: false)
             } else { try await self.finish(expected: draft.id) }
@@ -150,8 +156,7 @@ extension PhoneRecordingEngine {
             current = captured
         }
         if let draft = current, phase == .failed {
-            let measured = engine.recoveredDuration(at: draft.fileURL)
-            current = PhoneRecordingDraft(id: draft.id, fileURL: draft.fileURL, duration: max(draft.duration, measured), capturedAt: draft.capturedAt, location: draft.location)
+            current = try engine.recoverDraft(draft)
         }
         guard let draft = current, draft.duration > 0.2 else {
             phase = .failed

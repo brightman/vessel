@@ -44,7 +44,9 @@ struct DaybookAnswerService: DaybookAnswering {
         try Task.checkCancellation()
         guard isCurrent() else { throw CancellationError() }
         let result: String
-        if configuration.mode == .custom {
+        if configuration.mode == .nearbyMac {
+            result = try await NearbyMacClient.shared.generate(content: CustomAISummarizer.answerContent(question: prepared.providerQuestion, context: prepared.context), instruction: CustomAISummarizer.answerInstruction, configuration: configuration, isCurrent: isCurrent)
+        } else if configuration.mode == .custom {
             guard let apiKey else { throw AIServiceError.invalidConfiguration("请先确认本次发送的文字。") }
             result = try await CustomAISummarizer().answer(question: prepared.providerQuestion, context: prepared.context,
                                                           configuration: configuration, apiKey: apiKey)
@@ -55,7 +57,7 @@ struct DaybookAnswerService: DaybookAnswering {
                 modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID, isCurrent: isCurrent)
         } else {
             guard #available(iOS 26.0, macOS 26.0, *) else {
-                throw DaybookAnswerFailure.unavailable("此系统版本不支持 Apple 本地模型。")
+                throw DaybookAnswerFailure.unavailable("此系统版本不支持 Apple Intelligence。")
             }
             let model = SystemLanguageModel.default
             switch model.availability {
@@ -65,8 +67,8 @@ struct DaybookAnswerService: DaybookAnswering {
                 switch reason {
                 case .deviceNotEligible: message = "此设备不支持 Apple Intelligence 本地模型。"
                 case .appleIntelligenceNotEnabled: message = "请先在系统设置中启用 Apple Intelligence。"
-                case .modelNotReady: message = "Apple 本地模型尚未准备好，请等待系统下载完成。"
-                @unknown default: message = "Apple 本地模型当前不可用。"
+                case .modelNotReady: message = "Apple Intelligence尚未准备好，请等待系统下载完成。"
+                @unknown default: message = "Apple Intelligence当前不可用。"
                 }
                 throw DaybookAnswerFailure.unavailable(message)
             }

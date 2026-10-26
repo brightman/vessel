@@ -37,6 +37,30 @@ import Foundation
         let engine = FakeEngine(), activity = FakeActivity()
         var saved: [UUID] = []; var fail = true
         let store = PhoneRecordingDraftStore(root: root)
+        let chunkStore = PhoneRecordingDraftStore(root: root.appendingPathComponent("chunk-store"))
+        let chunkDraft = try chunkStore.prepare(id: UUID(), at: .now)
+        try checkPhone(chunkDraft.isChunked && chunkDraft.activeChunkOrdinal == 0, "new iPhone long recordings use a recoverable chunk session")
+        try FileManager.default.createDirectory(at: chunkDraft.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data([1,2,3]).write(to: chunkDraft.fileURL)
+        let chunkLocation = CaptureLocation(latitude: 3, longitude: 4, measuredAt: chunkDraft.capturedAt, source: .phoneRecording)!
+        let firstChunk = PhoneRecordingChunkFile(id: UUID(), ordinal: 0, capturedAt: chunkDraft.capturedAt,
+            sessionStartOffset: 0, frameCount: 9_600_000, sampleRate: 16_000, byteCount: 3, sha256: String(repeating: "a", count: 64), location: chunkLocation)
+        let advanced = try chunkStore.seal(firstChunk, in: chunkDraft, startNextChunk: true)
+        let recoveredChunks = try chunkStore.load().first { $0.id == chunkDraft.id }!
+        try checkPhone(recoveredChunks.chunks == [firstChunk] && recoveredChunks.duration == 600 && recoveredChunks.activeChunkOrdinal == 1,
+            "sealed chunk metadata and next active ordinal survive process restart")
+        try checkPhone(recoveredChunks.chunks[0].location == chunkLocation,
+            "a sealed chunk preserves its own location snapshot across later draft updates")
+        try checkPhone(recoveredChunks.fileURL == advanced.fileURL && recoveredChunks.fileURL.lastPathComponent == "chunk-0001.m4a",
+            "recovery resolves audio paths inside the session directory")
+        let finalChunk = PhoneRecordingChunkFile(id: UUID(), ordinal: 1, capturedAt: chunkDraft.capturedAt.addingTimeInterval(600),
+            sessionStartOffset: 600, frameCount: 1_600_000, sampleRate: 16_000, byteCount: 3, sha256: String(repeating: "b", count: 64))
+        let sealed = try chunkStore.seal(finalChunk, in: recoveredChunks, startNextChunk: false)
+        try checkPhone(sealed.chunks.count == 2 && sealed.duration == 700 && sealed.activeChunkOrdinal == nil,
+            "stopping seals the current chunk without opening an empty file")
+        try chunkStore.remove(sealed)
+        try checkPhone(!FileManager.default.fileExists(atPath: sealed.fileURL.deletingLastPathComponent().path),
+            "discard/commit cleanup removes the whole draft chunk directory")
         let s = PhoneRecordingSession(engine: engine, activity: activity, store: store) { d in
             if fail { throw CocoaError(.fileWriteUnknown) }; saved.append(d.id)
         }
@@ -137,7 +161,7 @@ import Foundation
         try FileManager.default.copyItem(at: oldRoot, to: newRoot)
         let newStore = PhoneRecordingDraftStore(root: newRoot)
         let relocated = try newStore.load()[0]
-        assert(relocated.fileURL.deletingLastPathComponent().path == newRoot.path)
+        assert(relocated.fileURL.path.hasPrefix(newRoot.path + "/") && relocated.fileURL.lastPathComponent == "chunk-0000.m4a")
         try newStore.remove(old)
         assert(FileManager.default.fileExists(atPath: old.fileURL.path))
         // Corrupt metadata cannot block independent valid recordings.
@@ -191,5 +215,8 @@ import Foundation
         assert(toggles.phase == .idle && toggleEngine.active == nil)
         assert(toggleSaved == [toggleID, queuedID])
         print("PhoneRecordingSession tests passed")
+    }
+    static func checkPhone(_ value: @autoclosure () -> Bool, _ message: String) throws {
+        guard value() else { throw NSError(domain: "PhoneRecordingSessionTests", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
     }
 }

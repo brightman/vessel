@@ -33,6 +33,24 @@ enum DaybookStyle {
     }
 }
 
+struct DaybookRecordingCardStyle: ViewModifier {
+    var padding: CGFloat = 15
+    var radius: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(DaybookStyle.line, lineWidth: 1))
+    }
+}
+
+extension View {
+    func daybookRecordingCard(padding: CGFloat = 15, radius: CGFloat = 16) -> some View {
+        modifier(DaybookRecordingCardStyle(padding: padding, radius: radius))
+    }
+}
+
 struct DaybookIcon: View {
     let name: String
     var size: CGFloat = 22

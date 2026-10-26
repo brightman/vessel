@@ -50,6 +50,8 @@ import Foundation
             // closes changes delivered while preparing a request on the main actor.
             guard try await authorized() else { throw CancellationError() }
             text = try await transport.recap(prompt.content,instruction:prompt.instruction,configuration:configuration,apiKey:key)
+        case .nearbyMac:
+            text = try await NearbyMacClient.shared.generate(content: prompt.content, instruction: prompt.instruction, configuration: configuration, isCurrent: { !Task.isCancelled }, authorized: authorized)
         case .chatgpt:
             text = try await chat(prompt.instruction,prompt.content,configuration)
         case .local: throw ContentEnrichmentFailure.invalidReply
@@ -82,9 +84,37 @@ import Foundation
             return .init(text:"",decision:reply.decision,timestamp:position)
         }
     }
+    /// Structured V2 requests use the same configured provider and authorization path,
+    /// with the complete bounded transcript payload kept as plain text/JSON.
+    func respond(instruction: String, content: String) async throws -> String {
+        try Task.checkCancellation()
+        guard try await authorized() else { throw CancellationError() }
+        let modelBudget=summaryBudget(context:"")
+        guard modelBudget.tokenCount(instruction+"\n"+content) <= modelBudget.availableTranscriptTokens else { throw ContentEnrichmentFailure.invalidReply }
+        let text:String
+        switch configuration.mode {
+        case .local:
+            #if canImport(FoundationModels) && os(iOS)
+            text=try await FoundationContentTextModel().respond(instruction:instruction,content:content)
+            #else
+            throw ContentEnrichmentFailure.unavailable
+            #endif
+        case .custom:
+            let key=try apiKey()
+            guard try await authorized() else { throw CancellationError() }
+            text=try await transport.recap(content,instruction:instruction,configuration:configuration,apiKey:key)
+        case .nearbyMac:
+            text=try await NearbyMacClient.shared.generate(content:content,instruction:instruction,configuration:configuration,isCurrent:{ !Task.isCancelled },authorized:authorized)
+        case .chatgpt:
+            text=try await chat(instruction,content,configuration)
+        }
+        try Task.checkCancellation()
+        guard try await authorized() else { throw CancellationError() }
+        return text
+    }
     func summaryBudget(context: String) -> ContentModelBudget {
         if configuration.mode == .local { return localBudget(context) }
-        let window=configuration.mode == .custom ? (configuration.contextWindowTokens ?? 4_096) : 4_096
+        let window=configuration.mode == .nearbyMac ? 8_192 : configuration.mode == .custom ? (configuration.contextWindowTokens ?? 4_096) : 4_096
         let fixed: Int
         if let prompt=try? Self.prompt(.init(kind:.summary,context:context)) {
             fixed=ContentModelBudget.estimateTokens(prompt.instruction+"\n"+prompt.content)

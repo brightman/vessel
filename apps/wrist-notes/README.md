@@ -34,7 +34,7 @@ iPhone 首页、我的记录和语音详情显示“长录音·内容标题”�
 - **生活来源**：可选健康步数/睡眠、只读日历、保存时的一次定位；默认关闭，不在启动时请求权限。支持暂停、刷新、旧快照状态与独立 AI 读取范围。 健康来源支持数据变化通知与前台补刷，更新今天、昨天和所选日期；后台时间由系统调度，详见 [HealthKit 更新说明](docs/2026-10-20-health-background.md)。 地点在前台通过 Apple 地图解析为地址，并随原记录缓存在 SQLite；首次解析可能联网，见 [地点地址说明](docs/2026-10-20-capture-addresses.md)。
 - **统一设置**：语音转写模型和语言包、AI 模型、本地语义检索资源与索引管理、主动建议频率／安静时段／数据范围、提醒管理、外观与音频导入。首页及设置提供硬件选择器；Apple Watch 和 EurekaRing 展示真实连接状态；Ring 支持录音控制与本地音频同步。
 
-图片、提醒保留相邻的 `PhotoMoments`、`DaybookReminders` 本地目录；录音与现有 UUID 保持兼容。生活数据、会话与洞察使用系统 SQLite；可重建的文本向量也保存到本地数据库，端上资源不可用时回退关键词。跨天语义记忆及自有云备份尚未实现。EurekaRing 原生接入与设备验证边界见 [Ring 接入记录](verification/eureka-ring-native.md)。最新完成范围与验收见 [原型差异核对](docs/prototype-completion-audit.md)，存储与索引边界见 [本地存储与检索](docs/local-storage-and-retrieval.md)。此前阶段记录保留在 [`verification/daybook-native.md`](verification/daybook-native.md) 和 [`verification/prototype-parity.md`](verification/prototype-parity.md)。
+图片、录音和 Watch 收件箱保存在本机文件中；生活数据、会话、行动、回顾、洞察和同步状态使用本地 SQLite，可重建的全文/向量索引也保存在本地数据库，端上资源不可用时回退关键词。跨天语义记忆及自有云备份尚未实现。当前 iPhone/Watch 文件格式与 SQLite 表结构见[本地数据结构](docs/local-data-schema.md)；存储迁移与检索边界见[本地存储与检索](docs/local-storage-and-retrieval.md)。EurekaRing 原生接入与设备验证边界见 [Ring 接入记录](verification/eureka-ring-native.md)。最新完成范围与验收见 [原型差异核对](docs/prototype-completion-audit.md)。此前阶段记录保留在 [`verification/daybook-native.md`](verification/daybook-native.md) 和 [`verification/prototype-parity.md`](verification/prototype-parity.md)。
 
 Watch 单按钮界面方案见 [`prototype/watch-recorder.html`](prototype/watch-recorder.html)。轻点按钮开始或结束长录音，按住约 0.45 秒进入闪念并在松手时保存，上滑可取消。SwiftUI 已实现同一套单按钮交互、录音列表、上传状态和左划删除；具体核对记录见 [`verification/README.md`](verification/README.md)。
 

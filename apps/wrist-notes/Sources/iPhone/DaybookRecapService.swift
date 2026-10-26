@@ -69,6 +69,8 @@ struct DaybookRecapService: DaybookRecapGenerating {
                 case .custom:
                     guard let apiKey else { throw DaybookRecapFailure.changed }
                     result = try await custom.recap(prompt, instruction: instruction, configuration: configuration, apiKey: apiKey)
+                case .nearbyMac:
+                    result = try await NearbyMacClient.shared.generate(content: prompt, instruction: instruction, configuration: configuration, isCurrent: isCurrent)
                 case .chatgpt:
                     result = try await ChatGPTAccountModel.shared.complete(instruction: instruction, content: prompt,
                         modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID, isCurrent: isCurrent)

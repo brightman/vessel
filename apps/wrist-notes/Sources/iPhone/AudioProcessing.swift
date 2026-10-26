@@ -157,7 +157,9 @@ struct AudioTranscriptSpan: Codable, Equatable, Sendable {
 }
 enum AudioTranscriptPresentation {
     static func fullText(_ spans: [AudioTranscriptSpan]) -> String {
-        spans.map(\.text).joined(separator: "\n")
+        // ASR engines may return one timed row per Chinese character. A newline
+        // between rows turns a normal transcript into one character per line.
+        spans.map(\.text).joined()
     }
 }
 struct AudioActivityInterval: Codable, Equatable, Sendable {
@@ -212,13 +214,16 @@ struct AudioInferenceDelta: Sendable {
 }
 
 
-/// Unknown legacy duration is resolved from a bounded header on the worker before classifying a short thought.
+/// Flash thoughts stay in the direct note pipeline; regular recordings use durable ASR/VAD processing.
 enum AudioLegacyRouting {
     static func requiresDurableProcessing(kind: RecordingKind, duration: Double, measuredDuration: Double? = nil) -> Bool {
-        if kind == .long || duration > 300 { return true }
-        if duration > 0 { return false }
+        // Flash thoughts always use the direct note pipeline. Regular recordings keep
+        // durable ASR/VAD processing at every duration; topic splitting is gated later.
+        if kind == .thought { return false }
+        if kind == .long { return true }
+        if duration.isFinite, duration > 0 { return duration > 30 * 60 }
         guard let measuredDuration, measuredDuration.isFinite, measuredDuration > 0 else { return true }
-        return measuredDuration > 300
+        return measuredDuration > 30 * 60
     }
 }
 

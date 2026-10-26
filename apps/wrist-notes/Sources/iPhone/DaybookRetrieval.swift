@@ -385,13 +385,13 @@ struct DaybookRetrieval {
         if ["照片", "图片", "相片"].contains(where: question.contains) { return .image }
         if ["闪念", "想法", "灵感"].contains(where: question.contains) { return .thought }
         if ["睡眠", "睡了", "睡得"].contains(where: question.contains) { return .sleep }
-        if ["步数", "步行", "运动"].contains(where: question.contains) { return .activity }
+        if ["步数", "步行", "运动", "训练", "跑步", "骑行", "游泳", "健身"].contains(where: question.contains) { return .activity }
         if question.contains("录音") { return .voice }
         return nil
     }
 
     static func kindLabel(_ kind: DayRecord.Kind) -> String {
-        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录"; case .activity: "活动日汇总"; case .sleep: "睡眠"; case .calendar: "日历"; case .location: "地点" }
+        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录"; case .activity: "活动与体能训练"; case .sleep: "睡眠"; case .calendar: "日历"; case .location: "地点" }
     }
 
     private static func scoped(_ records: [DayRecord], from start: Date, to end: Date,

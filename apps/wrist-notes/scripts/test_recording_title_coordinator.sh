@@ -8,6 +8,6 @@ swiftc -module-cache-path "$output/cache" \
   Sources/iPhone/ChatGPTProtocol.swift Sources/iPhone/ChatGPTIDToken.swift Sources/iPhone/ChatGPTAPI.swift \
   Sources/iPhone/ChatGPTAccountStore.swift Sources/iPhone/ChatGPTAccountModel.swift \
   Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift \
-  Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/CustomAISummarizer.swift \
+  Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/NearbyMacClient.swift \
   Sources/iPhone/RecordingTitleCoordinator.swift Tests/RecordingTitleCoordinatorSmoke.swift -o "$output/titles"
 "$output/titles"

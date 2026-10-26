@@ -3,6 +3,9 @@ import CryptoKit
 
 /// Synchronous derived work on the processing worker; transactions never await.
 final class ContentSegmentRepository {
+    enum ContentV2PublishError: Error {
+        case protectedHistory, emptyGeneratedRange, spanOutsideGeneratedRange(String), invalidGeneratedID
+    }
     static let algorithmVersion = AudioContentSnapshotIdentity.algorithmVersion
     private let db: DaybookDatabase
     private let processing: AudioProcessingRepository
@@ -13,6 +16,167 @@ final class ContentSegmentRepository {
     func state(sourceID: AudioSourceID) throws -> ContentProcessingState {
         guard try source(sourceID) != nil else { return .pending }
         return try db.query("SELECT state FROM content_segment_sources WHERE source_key=?",[.text(sourceID.key)]).first?["state"]?.string.flatMap(ContentProcessingState.init) ?? .pending
+    }
+    /// Snapshot all successful transcript/coverage evidence for the production V2 planner.
+    /// An unresolved or failed ASR job blocks semantic publication; failed VAD remains an
+    /// explicit coverage hole and makes only dependent chapters provisional.
+    func contentV2Input(sourceID: AudioSourceID) throws -> ContentSegmentationV2.Input? {
+        guard let descriptor = try source(sourceID) else { return nil }
+        let progress = try processing.progress(sourceID:sourceID)
+        guard let configurationKey = progress.configurationKey else { return nil }
+        let jobs = try db.query("SELECT id,window,result,result_hash,state FROM audio_processing_jobs WHERE source_key=? AND active=1 AND configuration_key=? ORDER BY core_start,id",[.text(sourceID.key),.text(configurationKey)])
+        guard !jobs.isEmpty else { return nil }
+        var results: [(String,AudioProcessingWindow,AudioWindowResult)] = []
+        for row in jobs {
+            guard row["result"] != .null, let data = row["result"]?.data,
+                  let state = row["state"]?.string, state == AudioJobState.completed.rawValue else { return nil }
+            let result = try DaybookDatabase.decode(AudioWindowResult.self,.blob(data))
+            guard result.asr == .success else { return nil }
+            results.append((try row.requiredString("id"),try DaybookDatabase.decode(AudioProcessingWindow.self,row["window"]),result))
+        }
+        let sourceDuration = descriptor.ranges.map(\.end).max() ?? 0
+        guard sourceDuration.isFinite, sourceDuration > 0 else { return nil }
+        var spans: [ContentSegmentationV2.Span] = []
+        for (jobID,_,_) in results {
+            for row in try db.query("SELECT position,start,end,text FROM audio_transcript_spans WHERE job_id=? ORDER BY position",[.text(jobID)]) {
+                spans.append(.init(id:jobID+":"+String(try row.requiredInt("position")),start:try row.requiredDouble("start"),end:try row.requiredDouble("end"),text:try row.requiredString("text")))
+            }
+        }
+        spans.sort { $0.start == $1.start ? ($0.end == $1.end ? $0.id < $1.id : $0.end < $1.end) : $0.start < $1.start }
+        var asr: [ContentSegmentationV2.Interval] = [], vad: [ContentSegmentationV2.Interval] = []
+        for (_,_,result) in results {
+            asr += result.asrCoverage.map { .init(start:$0.start,end:$0.end) }
+            vad += result.vadCoverage.map { .init(start:$0.start,end:$0.end) }
+        }
+        let jobIdentity = results.map { [$0.0,$0.1.contentIdentity] }.flatMap { $0 }
+        let inputRevision = AudioStableID.make([String(progress.revision),configurationKey,descriptor.contentIdentity]+jobIdentity)
+        let activityRows = try db.query("SELECT t.start,t.end,t.kind FROM audio_activity_intervals t JOIN audio_processing_jobs j ON j.id=t.job_id WHERE j.source_key=? AND j.active=1 AND j.configuration_key=? ORDER BY t.start,t.end,j.id,t.position",[.text(sourceID.key),.text(configurationKey)])
+        let activities = try activityRows.map { row -> ContentSegmentationV2.Activity in
+            guard let kind = AudioActivityKind(rawValue:try row.requiredString("kind")) else { throw AudioProcessingError.invalidInput }
+            let mapped: ContentSegmentationV2.ActivityKind = switch kind {
+            case .speech: .speech
+            case .uncertain: .uncertain
+            case .noSpeech: .noSpeech
+            }
+            return .init(start:try row.requiredDouble("start"),end:try row.requiredDouble("end"),kind:mapped)
+        }
+        var boundaries: [ContentSegmentationV2.Boundary] = []
+        for pair in zip(descriptor.ranges,descriptor.ranges.dropFirst()) where pair.1.sessionStartOffset > pair.0.end + ContentSegmentationV2.epsilon {
+            boundaries.append(.init(start:pair.0.end,end:pair.1.sessionStartOffset,kind:.discontinuity))
+        }
+        // The legacy content pass may be visible as a draft. A finalized/manual action or
+        // suppression must never be replaced by a fresh automatic plan.
+        if try !db.query("SELECT 1 FROM content_segment_edits WHERE source_key=? AND undone=0 AND kind IN ('split','merge','delete') LIMIT 1",[.text(sourceID.key)]).isEmpty { throw ContentSegmentError.invalidEdit }
+        if try !db.query("SELECT 1 FROM content_segment_suppression WHERE source_key=? LIMIT 1",[.text(sourceID.key)]).isEmpty { throw ContentSegmentError.invalidEdit }
+        if try allSegments(sourceID).contains(where: { $0.isManual || $0.titleManuallyEdited == true }) { throw ContentSegmentError.invalidEdit }
+        return .init(sourceID:sourceID.key,sourceRevision:inputRevision,duration:sourceDuration,spans:spans,
+            asrCoverage:asr,vadCoverage:vad,activities:activities,boundaries:boundaries)
+    }
+
+    func contentV2Checkpoint(sourceID:AudioSourceID,key:String) throws -> Data? {
+        guard let value = try db.query("SELECT text FROM content_enrichment_checkpoints WHERE source_key=? AND cache_key=? AND unit='content-v2'",[.text(sourceID.key),.text(key)]).first?["text"]?.string else { return nil }
+        return Data(base64Encoded:value)
+    }
+    func saveContentV2Checkpoint(sourceID:AudioSourceID,key:String,data:Data) throws {
+        try db.execute("INSERT INTO content_enrichment_checkpoints(cache_key,unit,source_key,text,segment_id,accepted_revision) VALUES (?,'content-v2',?,?,NULL,NULL) ON CONFLICT(cache_key,unit) DO UPDATE SET source_key=excluded.source_key,text=excluded.text,segment_id=NULL,accepted_revision=NULL",[.text(key),.text(sourceID.key),.text(data.base64EncodedString())])
+    }
+
+    /// Avoid re-publishing the same V2 segmentation whenever the app foregrounds.
+    /// This marker is tied to the exact transcript/coverage snapshot, model identity,
+    /// algorithm, and long-recording policy; field enrichment does not invalidate it.
+    func hasPublishedContentV2(sourceID:AudioSourceID,input:ContentSegmentationV2.Input,modelIdentity:String,topicSplitting:Bool) throws -> Bool {
+        let key=contentV2CompletionKey(input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
+        let rows=try db.query("SELECT 1 FROM content_enrichment_checkpoints WHERE source_key=? AND cache_key=? AND unit='content-v2-complete' LIMIT 1",[.text(sourceID.key),.text(key)])
+        return !rows.isEmpty
+    }
+    private func contentV2CompletionKey(input:ContentSegmentationV2.Input,modelIdentity:String,topicSplitting:Bool) -> String {
+        AudioStableID.make([input.sourceID,input.sourceRevision,ContentSegmentationV2.algorithmVersion,modelIdentity,topicSplitting ? "split-topics" : "single-topic"])
+    }
+
+    /// Recheck the exact ASR/VAD snapshot, manual state, and all output ownership before
+    /// replacing automatic drafts in one bounded transaction.
+    func publishContentV2(sourceID:AudioSourceID,input:ContentSegmentationV2.Input,output:ContentSegmentationV2.Output,model:String,modelIdentity:String,topicSplitting:Bool) throws {
+        try ContentSegmentationV2.validateOutput(plan:output.plan,segments:output.segments,original:input.spans)
+        guard input.sourceID == sourceID.key, let descriptor=try source(sourceID),
+              let key=try processing.progress(sourceID:sourceID).configurationKey else { throw ContentSegmentError.staleRevision }
+        let previous=try allSegments(sourceID)
+        try ensureAutomaticV2ReplacementAllowed(sourceID,segments:previous)
+        let prepared=try prepareContentV2Segments(sourceID:sourceID,input:input,output:output,model:model,key:key,descriptor:descriptor,previous:previous)
+        let activeIDs=Set(prepared.map { $0.0.id })
+        let jobs=try jobRows(sourceID:sourceID,columns:"j.window,j.result_hash").map { (try DaybookDatabase.decode(AudioProcessingWindow.self,$0["window"]),$0["result_hash"]?.string ?? "") }
+        let sourceSignature=AudioContentSnapshotIdentity.make(source:descriptor,key:key,jobs:jobs)
+        try db.transaction {
+            guard input.sourceID == sourceID.key, try contentV2Input(sourceID:sourceID) == input else { throw ContentSegmentError.staleRevision }
+            let current=try allSegments(sourceID)
+            guard current == previous else { throw ContentSegmentError.staleRevision }
+            try ensureAutomaticV2ReplacementAllowed(sourceID,segments:current)
+            for old in current where !activeIDs.contains(old.id) { try tombstone(old) }
+            for (value,transcript) in prepared {
+                try save(value)
+                try db.execute("INSERT INTO content_segment_presentations(segment_id,content_signature,transcript) VALUES (?,?,?) ON CONFLICT(segment_id) DO UPDATE SET content_signature=excluded.content_signature,transcript=excluded.transcript",[.text(value.id.uuidString),.text(value.provenance.contentSignature),.blob(transcript)])
+            }
+            try db.execute("INSERT INTO content_segment_sources(source_key,signature,semantic_signature,state,epoch) VALUES (?,?,?,'processed',1) ON CONFLICT(source_key) DO UPDATE SET signature=excluded.signature,semantic_signature=excluded.semantic_signature,state='processed',epoch=epoch+1",[.text(sourceID.key),.text(sourceSignature),.text(sourceSignature)])
+            let completionKey=contentV2CompletionKey(input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
+            try db.execute("INSERT INTO content_enrichment_checkpoints(cache_key,unit,source_key,text,segment_id,accepted_revision) VALUES (?,'content-v2-complete',?,?,NULL,NULL) ON CONFLICT(cache_key,unit) DO UPDATE SET source_key=excluded.source_key,text=excluded.text,segment_id=NULL,accepted_revision=NULL",[.text(completionKey),.text(sourceID.key),.text(input.sourceRevision)])
+        }
+    }
+    private func ensureAutomaticV2ReplacementAllowed(_ sourceID:AudioSourceID,segments:[ContentSegment]) throws {
+        guard segments.allSatisfy({ !$0.isManual && $0.titleManuallyEdited != true }),
+              try db.query("SELECT 1 FROM content_segment_edits WHERE source_key=? AND undone=0 AND kind IN ('split','merge','delete') LIMIT 1",[.text(sourceID.key)]).isEmpty,
+              try db.query("SELECT 1 FROM content_segment_suppression WHERE source_key=? LIMIT 1",[.text(sourceID.key)]).isEmpty else { throw ContentV2PublishError.protectedHistory }
+    }
+    private func prepareContentV2Segments(sourceID:AudioSourceID,input:ContentSegmentationV2.Input,output:ContentSegmentationV2.Output,model:String,key:String,descriptor:AudioSourceSnapshot,previous:[ContentSegment]) throws -> [(ContentSegment,Data)] {
+        let spanByID=Dictionary(uniqueKeysWithValues:input.spans.map { ($0.id,$0) })
+        let allJobIDs=Set(input.spans.compactMap { $0.id.split(separator:":",maxSplits:1).first.map(String.init) })
+        let sourceRevision=try processing.progress(sourceID:sourceID).revision
+        var prepared:[(ContentSegment,Data)]=[]
+        for segment in output.segments {
+            let ranges=try AudioWindowPlanner.slices(descriptor.ranges,start:segment.start,end:segment.end)
+            guard !ranges.isEmpty else { throw ContentV2PublishError.emptyGeneratedRange }
+            let owned=try segment.spanIDs.map { id -> AudioTranscriptSpan in
+                guard let span=spanByID[id],let separator=id.firstIndex(of:":") else { throw ContentSegmentError.staleRevision }
+                let jobID=String(id[..<separator])
+                guard allJobIDs.contains(jobID) else { throw ContentSegmentError.staleRevision }
+                return .init(start:span.start,end:span.end,text:span.text)
+            }
+            if let failure=owned.compactMap({ Self.spanCoverageFailure(start:$0.start,end:$0.end,ranges:ranges) }).first {
+                throw ContentV2PublishError.spanOutsideGeneratedRange(failure)
+            }
+            let digest=SHA256.hash(data:Data(segment.id.utf8)).map { String(format:"%02x",$0) }.joined()
+            let uuidText=String(digest.prefix(8))+"-"+String(digest.dropFirst(8).prefix(4))+"-"+String(digest.dropFirst(12).prefix(4))+"-"+String(digest.dropFirst(16).prefix(4))+"-"+String(digest.dropFirst(20).prefix(12))
+            guard let id=UUID(uuidString:uuidText) else { throw ContentV2PublishError.invalidGeneratedID }
+            let signature=AudioStableID.make([output.plan.inputFingerprint,segment.id,ContentSegmentationV2.algorithmVersion])
+            let isFinal = !segment.provisional && ContentSegmentationV2.covers(input.asrCoverage,segment.start,segment.end) && ContentSegmentationV2.covers(input.vadCoverage,segment.start,segment.end)
+            let editorial=ContentSegmentEditorial(classification:segment.classification.rawValue,engineVersion:ContentSegmentationV2.algorithmVersion,model:model,evidenceBlockIDs:segment.evidenceBlockIDs)
+            let prior=previous.first { $0.id == id }
+            var value=ContentSegment(id:id,sourceID:sourceID,sourceRevision:sourceRevision,ranges:ranges,
+                title:segment.title,summary:segment.summary,revision:prior?.revision ?? 1,isManual:false,isFinal:isFinal,boundaryReady:isFinal,
+                hasText:owned.contains { !$0.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty },
+                provenance:.init(algorithmVersion:ContentSegmentationV2.algorithmVersion,configurationKey:key,contentSignature:signature,semanticContentSignature:signature),editorial:editorial)
+            if let prior,prior != value { value.revision += 1 }
+            prepared.append((value,try JSONEncoder().encode(owned)))
+        }
+        return prepared
+    }
+    /// ASR windows may own a word whose timestamp straddles two adjacent audio files.
+    /// Check coverage by the ordered union of ranges, rather than requiring one file
+    /// to contain the whole word. A real discontinuity still blocks cross-gap ownership.
+    static func spanIsCoveredByRanges(start:Double,end:Double,ranges:[AudioSourceRange]) -> Bool {
+        spanCoverageFailure(start:start,end:end,ranges:ranges) == nil
+    }
+    static func spanCoverageFailure(start:Double,end:Double,ranges:[AudioSourceRange]) -> String? {
+        guard start.isFinite,end.isFinite,end > start else { return "invalidBounds" }
+        // ASR timestamps are floating-point seconds while slice endpoints are snapped
+        // to whole PCM frames. Permit only the timestamp rounding envelope of one frame.
+        let epsilon=max(0.000001,(ranges.map { 1.5 / $0.sampleRate }.max() ?? 0))
+        var cursor=start
+        for range in ranges.sorted(by:{$0.sessionStartOffset < $1.sessionStartOffset}) where range.end > cursor + epsilon {
+            guard range.sessionStartOffset <= cursor + epsilon else { return "sourceGap" }
+            if cursor > start + epsilon, range.discontinuityBefore != nil { return "discontinuity" }
+            cursor=max(cursor,range.end)
+            if cursor >= end - epsilon { return nil }
+        }
+        return "coverageEndsEarly"
     }
     func segments(sourceID: AudioSourceID, limit: Int = 200, offset: Int = 0) throws -> [ContentSegment] {
         try validatePage(limit,offset)
@@ -202,11 +366,16 @@ final class ContentSegmentRepository {
             if page.count < pageSize { break }
         }
         let asrEmpty=ContentSegmentation.subtract(asrCovered,transcriptRanges+silence)
-        let built = try ContentSegmentation.build(source:source,reliableNoSpeech:silence,successfulCoverage:covered,asrEmpty:asrEmpty,transcriptRanges:transcriptRanges)
+        let effectiveDuration=source.ranges.reduce(0) { $0 + $1.duration }
+        let keepAsSingleRecording=effectiveDuration <= 30 * 60
+        let built = try ContentSegmentation.build(source:source,reliableNoSpeech:silence,successfulCoverage:covered,asrEmpty:asrEmpty,transcriptRanges:transcriptRanges,
+                                                   keepAsSingleRecording:keepAsSingleRecording)
         // Accepted automatic cuts belong to an exact derivation input. Configuration/text/source
         // changes discard them; progress-only wakes retain them via the fast path above.
         let cuts = try db.query("SELECT position FROM content_topic_decisions WHERE source_key=? AND signature=? AND decision='newTopic' ORDER BY position",[.text(sourceID.key),.text(signature)]).map { try $0.requiredDouble("position") }
-        let drafts = try ContentSegmentation.applyingTopicCuts(cuts,to:built.segments)
+        let drafts:[ContentSegmentDraft]
+        if keepAsSingleRecording { drafts=built.segments }
+        else { drafts=try ContentSegmentation.applyingTopicCuts(cuts,to:built.segments) }
         var old = try allSegments(sourceID).map { try upgradedContentIdentity($0) }
         // Prior versions used isFinal for ASR/VAD coverage alone. Without the new
         // boundaryReady marker, an automatic final has no proof that topic AI ran.
@@ -263,11 +432,12 @@ final class ContentSegmentRepository {
             let exact = remaining.firstIndex { $0.ranges.map(\.contentIdentity) == ranges.map(\.contentIdentity) }
             let match = exact ?? remaining.firstIndex { old in old.ranges.contains { a in ranges.contains { b in a.chunkID == b.chunkID && a.sessionStartOffset < b.end && b.sessionStartOffset < a.end } } }
             var segment: ContentSegment
+            let directFinal=keepAsSingleRecording && draft.boundaryReady && content.hasText
             if let match { segment = remaining.remove(at:match) }
-            else { segment = .init(id:UUID(),sourceID:sourceID,sourceRevision:progress.revision,ranges:ranges,title:"",summary:"",revision:0,isManual:false,isFinal:false,boundaryReady:draft.boundaryReady,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)) }
-            let mutated = segment.revision == 0 || segment.ranges.map(\.contentIdentity) != ranges.map(\.contentIdentity) || segment.isFinal || segment.boundaryReady != draft.boundaryReady || (segment.provenance.semanticContentSignature ?? segment.provenance.contentSignature) != content.signature
+            else { segment = .init(id:UUID(),sourceID:sourceID,sourceRevision:progress.revision,ranges:ranges,title:"",summary:"",revision:0,isManual:false,isFinal:directFinal,boundaryReady:draft.boundaryReady,hasText:content.hasText,provenance:.init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature)) }
+            let mutated = segment.revision == 0 || segment.ranges.map(\.contentIdentity) != ranges.map(\.contentIdentity) || segment.isFinal != directFinal || segment.boundaryReady != draft.boundaryReady || (segment.provenance.semanticContentSignature ?? segment.provenance.contentSignature) != content.signature
             if mutated {
-                segment.ranges = ranges; segment.isFinal = false; segment.boundaryReady = draft.boundaryReady; segment.hasText = content.hasText
+                segment.ranges = ranges; segment.isFinal = directFinal; segment.boundaryReady = draft.boundaryReady; segment.hasText = content.hasText
                 segment.provenance = .init(algorithmVersion:Self.algorithmVersion,configurationKey:key,contentSignature:content.signature,semanticContentSignature:content.signature)
                 segment.editorial = nil
                 if segment.titleManuallyEdited != true { segment.title = "" }
@@ -369,7 +539,7 @@ final class ContentSegmentRepository {
             }
         }
     }
-    func applyEnrichment(id: UUID, expectedRevision: Int, sourceRevision: Int, title: String, summary: String, titleIsManual: Bool = false) throws {
+    func applyEnrichment(id: UUID, expectedRevision: Int, sourceRevision: Int, title: String, summary: String, titleIsManual: Bool = false, overwriteManualTitle: Bool = false) throws {
         try db.transaction {
             var value = try checked(id,expectedRevision)
             let progress = try processing.progress(sourceID:value.sourceID)
@@ -377,6 +547,8 @@ final class ContentSegmentRepository {
                   progress.configurationKey == value.provenance.configurationKey else { throw ContentSegmentError.staleRevision }
             if titleIsManual {
                 value.title=String(title.prefix(40)); value.titleManuallyEdited=true
+            } else if overwriteManualTitle {
+                value.title=String(title.prefix(40)); value.titleManuallyEdited=false
             } else if value.titleManuallyEdited != true {
                 value.title=String(title.prefix(40))
             }
@@ -411,13 +583,9 @@ final class ContentSegmentRepository {
                 try checkpoint(snapshot,key:key,unit:unit,text:String(text.prefix(220)),revision:nil)
             }
         case let .complete(snapshot,key,title,summary,context):
-            try db.transaction {
-                _ = try checkedEnrichment(snapshot)
-                if let context, try enrichmentContext(snapshot) != context { throw ContentSegmentError.staleRevision }
-                try applyEnrichment(id:snapshot.id,expectedRevision:snapshot.revision,sourceRevision:snapshot.sourceRevision,title:title,summary:summary)
-                // Completion and the exact revision it produced commit atomically with title/summary.
-                try checkpoint(snapshot,key:key,unit:"complete",text:"",revision:snapshot.revision+1)
-            }
+            try completeEnrichment(snapshot,key:key,title:title,summary:summary,context:context,overwriteManualTitle:false)
+        case let .completeTogether(snapshot,key,title,summary,context):
+            try completeEnrichment(snapshot,key:key,title:title,summary:summary,context:context,overwriteManualTitle:true)
         case let .field(snapshot,field,value,context):
             _ = try applyGeneratedField(snapshot,field:field,value:value,context:context)
         case let .topic(candidate,decision,key):
@@ -429,6 +597,16 @@ final class ContentSegmentRepository {
             try finalizeTopicPass(sourceID,expectedSourceRevision:expectedSourceRevision)
         }
         return .accepted
+    }
+    private func completeEnrichment(_ snapshot: ContentSegment, key: String, title: String, summary: String, context: String?, overwriteManualTitle: Bool) throws {
+        try db.transaction {
+            _ = try checkedEnrichment(snapshot)
+            if let context, try enrichmentContext(snapshot) != context { throw ContentSegmentError.staleRevision }
+            try applyEnrichment(id:snapshot.id,expectedRevision:snapshot.revision,sourceRevision:snapshot.sourceRevision,
+                title:title,summary:summary,overwriteManualTitle:overwriteManualTitle)
+            // Completion and the exact revision it produced commit atomically with title/summary.
+            try checkpoint(snapshot,key:key,unit:"complete",text:"",revision:snapshot.revision+1)
+        }
     }
     private func applyClassification(_ snapshot: ContentSegment, classification: String, model: String, engineVersion: String, evidenceID: String) throws -> ContentSegment {
         try db.transaction {

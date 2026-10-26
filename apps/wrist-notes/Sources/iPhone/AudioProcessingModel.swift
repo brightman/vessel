@@ -2,6 +2,7 @@ import AVFAudio
 import Combine
 import Foundation
 import UIKit
+import OSLog
 
 struct ContentEnrichmentConfirmation: Identifiable {
     let id = UUID()
@@ -12,6 +13,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
 
 /// App-lifetime observable facade. File discovery, validation, hashing and SQLite run on its actor worker.
 @MainActor final class AudioProcessingModel: ObservableObject {
+    private static let contentV2Logger = Logger(subsystem:"cloud.karama.wisenote",category:"ContentV2")
     static let enrichmentDidChange = Notification.Name("WiseLife.ContentEnrichmentDidChange")
     static let contentDidChange = Notification.Name("WiseLife.ContentSegmentsDidChange")
     static let didCommit = Notification.Name("WiseLife.AudioProcessingDidCommit")
@@ -182,7 +184,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
               settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
         return .init(scope:scope,configuration:configuration,configurationRevision:revision)
     }
-    func prepareFieldGeneration(sourceID: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField) async throws -> ContentEnrichmentConfirmation? {
+    func prepareFieldGeneration(sourceID: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField? = nil) async throws -> ContentEnrichmentConfirmation? {
         let configuration=settings.ai, revision=settings.aiRevision
         guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:sourceID,segmentID:segmentID,field:field) }),
               settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
@@ -198,8 +200,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
         let matches=current == confirmation.scope && settings.ai == confirmation.configuration && settings.aiRevision == confirmation.configurationRevision
         guard settings.authorizeRemoteAISend(confirmationIsCurrent:matches,rememberChoice:rememberChoice) else { throw ContentSegmentError.staleRevision }
         enrichmentApprovals[id]=confirmation
-        if let segmentID=confirmation.scope.segmentID,let field=confirmation.scope.field {
-            if await performFieldGeneration(sourceID:id,segmentID:segmentID,field:field,confirmation:confirmation) == .stale { throw ContentSegmentError.staleRevision }
+        if let segmentID=confirmation.scope.segmentID {
+            if await performFieldGeneration(sourceID:id,segmentID:segmentID,field:confirmation.scope.field,confirmation:confirmation) == .stale { throw ContentSegmentError.staleRevision }
         } else { scheduleEnrichment(id) }
     }
     private func enrichSource(_ id: AudioSourceID) async -> ContentEnrichmentStatus {
@@ -226,20 +228,90 @@ struct ContentEnrichmentConfirmation: Identifiable {
                         },sourceIsCurrent:allowed)
                 })
             let worker=coordinator
-            let service=ContentEnrichmentService(modelKey:ConfiguredContentTextModel.configurationKey(configuration),
-                model:{ try await router.respond($0) },store:{ [weak self] command in
-                    try Task.checkCancellation()
-                    guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
-                    return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
-                },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
-            let result=await service.enrich(sourceID:id)
-            if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
-            return result
+            guard let topicAction=try await worker.withRepository({ repository -> ContentSegmentationV2.LongRecordingTopicPolicy.Action? in
+                guard let source=try repository.currentSource(id) else { return nil }
+                let duration=source.ranges.reduce(0) { $0 + $1.duration }
+                return ContentSegmentationV2.LongRecordingTopicPolicy.action(
+                    duration:duration,sourceComplete:source.complete)
+            }) else { return .stale }
+            guard topicAction != .waitForSourceCompletion else { return .idle }
+            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
+            let modelKey=ConfiguredContentTextModel.configurationKey(configuration)
+            let budget=router.summaryBudget(context:"")
+            let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
+            let modelIdentity=modelKey+"|"+(configuration.model)
+            let topicSplitting=topicAction == .splitTopics
+            let fields=ContentEnrichmentService(modelKey:modelKey,model:{ try await router.respond($0) },store:{ [weak self] command in
+                try Task.checkCancellation()
+                guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
+                return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
+            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
+            if topicAction == .keepWholeRecording {
+                // The complete ASR/VAD source already has one final boundary from the
+                // deterministic whole-recording policy. Generate display fields later;
+                // this path never asks AI to split or classify the recording.
+                let result=await fields.generateMissingFields(sourceID:id)
+                if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
+                return result
+            }
+            let alreadyPublished=try await worker.withRepository {
+                try ContentSegmentRepository(database:$0.derivedDatabase).hasPublishedContentV2(sourceID:id,input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
+            }
+            if alreadyPublished {
+                let result=await fields.generateMissingFields(sourceID:id)
+                if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
+                return result
+            }
+            let output=try await ContentSegmentationV2Production.run(input:input,modelIdentity:modelIdentity,requestCharacterLimit:requestLimit,
+                topicSplitting:topicSplitting,
+                model:{ instruction,content in try await router.respond(instruction:instruction,content:content) },
+                loadCheckpoint:{ key in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Checkpoint(sourceID:id,key:key) } },
+                saveCheckpoint:{ key,data in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).saveContentV2Checkpoint(sourceID:id,key:key,data:data) } },
+                progress:{ stage in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        if stage == "complete" { self.publishEnrichmentProgress(id,nil) }
+                        else { self.publishEnrichmentProgress(id,.init(stage:stage == "final" ? .classification : .topicUnification,segmentID:nil)) }
+                    }
+                },
+                publish:{ value in
+                    guard self.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { throw CancellationError() }
+                    try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).publishContentV2(sourceID:id,input:input,output:value,model:configuration.model,modelIdentity:modelIdentity,topicSplitting:topicSplitting) }
+                    NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id])
+                })
+            _ = output
+            let fieldResult=await fields.generateMissingFields(sourceID:id)
+            guard fieldResult == .complete || fieldResult == .idle else { return fieldResult }
+            enrichmentApprovals.removeValue(forKey:id)
+            return .complete
         } catch is CancellationError { return .cancelled }
         catch ContentSegmentError.staleRevision { return .stale }
-        catch { return .failed }
+        catch let failure as ContentSegmentationV2.Failure {
+            Self.contentV2Logger.error("V2 failed: \(failure.description, privacy: .public)")
+            return .failed
+        }
+        catch ContentSegmentError.invalidEdit {
+            Self.contentV2Logger.error("V2 rejected input due to protected edit history")
+            return .stale
+        }
+        catch let failure as ContentSegmentRepository.ContentV2PublishError {
+            let reason: String
+            switch failure {
+            case .protectedHistory: reason = "protectedHistory"
+            case .emptyGeneratedRange: reason = "emptyGeneratedRange"
+            case .spanOutsideGeneratedRange(let detail): reason = "spanOutsideGeneratedRange/" + detail
+            case .invalidGeneratedID: reason = "invalidGeneratedID"
+            }
+            Self.contentV2Logger.error("V2 rejected publication: \(reason, privacy: .public)")
+            return .failed
+        }
+        catch {
+            let safeError=error as NSError
+            Self.contentV2Logger.error("V2 failed before publication: domain=\(safeError.domain, privacy: .public) code=\(safeError.code, privacy: .public)")
+            return .failed
+        }
     }
-    private func performFieldGeneration(sourceID id: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField, confirmation: ContentEnrichmentConfirmation?) async -> ContentEnrichmentStatus {
+    private func performFieldGeneration(sourceID id: AudioSourceID, segmentID: UUID, field: ContentEnrichmentField?, confirmation: ContentEnrichmentConfirmation?) async -> ContentEnrichmentStatus {
         let configuration=settings.ai, revision=settings.aiRevision
         fieldGenerationStatuses[segmentID] = .running
         do {
@@ -267,7 +339,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
                 return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
             },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
-            let result=await service.generateField(sourceID:id,segmentID:segmentID,field:field)
+            let result=await service.generateFields(sourceID:id,segmentID:segmentID,field:field)
             if let confirmation,enrichmentApprovals[id]?.id == confirmation.id { enrichmentApprovals.removeValue(forKey:id) }
             fieldGenerationStatuses[segmentID]=result
             if result == .complete { NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id]) }
@@ -445,7 +517,7 @@ private final class AudioSourceDiscovery {
             let note = try DaybookDatabase.decode(VoiceNote.self,row["payload"])
             let id = AudioSourceID(kind:.legacyNote,id:note.id)
             let forced = requested.contains(id) || known.contains(id)
-            guard forced || ((note.kind == .long || note.duration > 300 || note.duration <= 0) && note.transcriptionState != .ready && note.transcript.isEmpty) else { continue }
+            guard forced || (note.kind == .long && note.transcriptionState != .ready && note.transcript.isEmpty) else { continue }
             do {
                 let url = root.appendingPathComponent("Audio",isDirectory:true).appendingPathComponent(note.audioFilename)
                 let info = try inspect(url)

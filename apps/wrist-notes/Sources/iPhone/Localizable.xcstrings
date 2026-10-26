@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "·" : {
+
+    },
     "[%@] %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -23,6 +26,16 @@
     },
     "%@" : {
 
+    },
+    "%@ – %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ – %2$@"
+          }
+        }
+      }
     },
     "%@ · %@" : {
       "localizations" : {
@@ -145,6 +158,16 @@
         }
       }
     },
+    "%@ / %@ 窗口" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@ 窗口"
+          }
+        }
+      }
+    },
     "%@ / 6 张图片" : {
 
     },
@@ -158,10 +181,16 @@
         }
       }
     },
+    "%@ 个已定稿" : {
+
+    },
     "%@ 条" : {
 
     },
     "%@ 条记录" : {
+
+    },
+    "%@ 片" : {
 
     },
     "%@ 项" : {
@@ -565,6 +594,98 @@
         }
       }
     },
+    "Apple Intelligence" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        }
+      }
+    },
+    "Apple Intelligence不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple's on-device model is unavailable. Check device support, Apple Intelligence settings, and model downloads. No insight was generated."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appleの端末内モデルを利用できません。デバイスの対応、Apple Intelligence設定、モデルのダウンロード状況を確認してください。気づきは未生成です。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence可用" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligenceが利用可能"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence可用"
+          }
+        }
+      }
+    },
+    "Apple Intelligence暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple's on-device model does not support the selected language. No insight was generated. Change the interface language and retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appleの端末内モデルは選択した言語に対応していません。気づきは未生成です。表示言語を変更して再試行できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
+          }
+        }
+      }
+    },
     "Apple Watch 和 EurekaRing 可以同时连接，录音会汇集到你的本机记录中。" : {
 
     },
@@ -754,98 +875,6 @@
         }
       }
     },
-    "Apple 本地模型" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple on-device model"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleのオンデバイスモデル"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型"
-          }
-        }
-      }
-    },
-    "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple's on-device model is unavailable. Check device support, Apple Intelligence settings, and model downloads. No insight was generated."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleの端末内モデルを利用できません。デバイスの対応、Apple Intelligence設定、モデルのダウンロード状況を確認してください。気づきは未生成です。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
-          }
-        }
-      }
-    },
-    "Apple 本地模型可用" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple on-device model available"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleのオンデバイスモデルが利用可能"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型可用"
-          }
-        }
-      }
-    },
-    "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple's on-device model does not support the selected language. No insight was generated. Change the interface language and retry."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleの端末内モデルは選択した言語に対応していません。気づきは未生成です。表示言語を変更して再試行できます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
-          }
-        }
-      }
-    },
     "Apple 添加状态待确认" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -891,6 +920,9 @@
           }
         }
       }
+    },
+    "ASR 模型" : {
+
     },
     "ChatGPT 安全存储需要恢复" : {
       "extractionState" : "stale",
@@ -1351,6 +1383,9 @@
           }
         }
       }
+    },
+    "Mac 首次生成可能较慢，请保持服务运行。" : {
+
     },
     "OpenAI" : {
 
@@ -1856,6 +1891,9 @@
         }
       }
     },
+    "不会删除录音。移除后需重新扫码才能使用 Mac 模型。" : {
+
+    },
     "不会自动重建。可编辑行动，关闭关联并保存，再按需重新添加。" : {
 
     },
@@ -2095,6 +2133,28 @@
         }
       }
     },
+    "主题片段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Topic segments"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テーマ別セグメント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主题片段"
+          }
+        }
+      }
+    },
     "之后的录音，会尝试把你的发言标记为“我”。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2142,6 +2202,7 @@
       }
     },
     "仅为一次采集点，不能推断全程位置。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2163,25 +2224,25 @@
         }
       }
     },
-    "仅使用你允许的记录 · Apple 本地模型" : {
+    "仅使用你允许的记录 · Apple Intelligence" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only records you allow · Apple on-device model"
+            "value" : "Only records you allow · Apple Intelligence"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "許可した記録のみを利用 · Appleのオンデバイスモデル"
+            "value" : "許可した記録のみを利用 · Apple Intelligence"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅使用你允许的记录 · Apple 本地模型"
+            "value" : "仅使用你允许的记录 · Apple Intelligence"
           }
         }
       }
@@ -2944,6 +3005,7 @@
       }
     },
     "会话尚未同步完成" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3549,6 +3611,9 @@
         }
       }
     },
+    "共 %@ 段识别文字 · 保存在本机" : {
+
+    },
     "关于" : {
       "localizations" : {
         "en" : {
@@ -3639,6 +3704,9 @@
           }
         }
       }
+    },
+    "内容分类" : {
+
     },
     "内容已更新，等待重新整理" : {
       "extractionState" : "stale",
@@ -3769,16 +3837,6 @@
     "分片 %@" : {
 
     },
-    "分片 %@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "分片 %1$@ · %2$@"
-          }
-        }
-      }
-    },
     "分片 %@ 至 %@ 尚未同步" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3903,6 +3961,9 @@
           }
         }
       }
+    },
+    "分片详情与音频缺口" : {
+
     },
     "分钟" : {
       "extractionState" : "stale",
@@ -5275,7 +5336,6 @@
       }
     },
     "同步状态" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5655,6 +5715,9 @@
       }
     },
     "圆点表示这天有记录。今天是 %@。" : {
+
+    },
+    "在 Mac 打开“配对 iPhone”，扫描新生成的二维码。请保持两端连接同一网络。" : {
 
     },
     "在 WiseLife 开始录音，并显示录音实时活动。" : {
@@ -6129,7 +6192,6 @@
 
     },
     "处理状态" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6138,6 +6200,9 @@
           }
         }
       }
+    },
+    "处理进度" : {
+
     },
     "外观" : {
       "localizations" : {
@@ -6301,6 +6366,28 @@
         }
       }
     },
+    "完整转写" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全文"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完整转写"
+          }
+        }
+      }
+    },
     "定位超时，请在前台保存下一条记录时重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6386,6 +6473,9 @@
           }
         }
       }
+    },
+    "对准 Mac 上的 WiseLife 配对二维码" : {
+
     },
     "对话操作" : {
       "extractionState" : "stale",
@@ -6797,19 +6887,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展开查看分片进度"
-          }
-        }
-      }
-    },
-    "已保存 %@ 个分片" : {
-
-    },
-    "已保存 %@/%@ 个已封口分片到 iPhone" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "已保存 %1$@/%2$@ 个已封口分片到 iPhone"
           }
         }
       }
@@ -7562,6 +7639,9 @@
           }
         }
       }
+    },
+    "已配对 · %@" : {
+
     },
     "已配对 · 最近同步 %@" : {
       "extractionState" : "stale",
@@ -8443,10 +8523,11 @@
         }
       }
     },
-    "录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple 本地模型整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。" : {
+    "录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple Intelligence整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。" : {
 
     },
     "录音已中断" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8599,6 +8680,9 @@
         }
       }
     },
+    "录音文件" : {
+
+    },
     "录音时" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8639,6 +8723,7 @@
       }
     },
     "录音期间暂停回听" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8706,6 +8791,7 @@
       }
     },
     "录音结束状态待同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9787,6 +9873,7 @@
       }
     },
     "播放将跳过缺口；缺失音频不会填充为静音。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10186,6 +10273,7 @@
       }
     },
     "无法读取完整录音，请解锁后重试。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10622,6 +10710,9 @@
         }
       }
     },
+    "暂无已识别文字。录音转写完成后，可刷新查看。" : {
+
+    },
     "暂无数据" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10729,6 +10820,9 @@
           }
         }
       }
+    },
+    "暂时无法读取内容片段。" : {
+
     },
     "暂时无法读取音频信息。原文件和全文已保留，请稍后重试。" : {
       "extractionState" : "stale",
@@ -11786,15 +11880,8 @@
         }
       }
     },
-    "来自 %@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "来自 %1$@%2$@"
-          }
-        }
-      }
+    "来自 %@ · 录制时间缺失，按同步时间显示" : {
+
     },
     "来自 %lld 条记录" : {
       "extractionState" : "manual",
@@ -12019,6 +12106,29 @@
         }
       }
     },
+    "标题与摘要已更新" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title and summary updated"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を更新しました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题与摘要已更新"
+          }
+        }
+      }
+    },
     "标题或摘要已更新" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12127,6 +12237,9 @@
           }
         }
       }
+    },
+    "检测到 %@ 处音频缺口，详见下方分片详情。" : {
+
     },
     "检测到多种声音或明显的声音变化，请独自讲话并重新录制。" : {
       "localizations" : {
@@ -12736,6 +12849,29 @@
         }
       }
     },
+    "正在生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を生成中"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成标题与摘要"
+          }
+        }
+      }
+    },
     "正在生成标题或摘要" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12808,6 +12944,12 @@
           }
         }
       }
+    },
+    "正在读取本机转写…" : {
+
+    },
+    "正在连接 Mac…" : {
+
     },
     "正在验证地址、API Key 和模型，请稍候…" : {
 
@@ -13274,6 +13416,9 @@
         }
       }
     },
+    "测试中" : {
+
+    },
     "测试只发送固定测试文本。修改配置后需重新测试。" : {
 
     },
@@ -13609,6 +13754,29 @@
         }
       }
     },
+    "片段" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セグメント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "片段"
+          }
+        }
+      }
+    },
     "片段仍在处理中，边界与文字可能更新。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13841,6 +14009,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タイトルを生成"
+          }
+        }
+      }
+    },
+    "生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を生成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成标题与摘要"
           }
         }
       }
@@ -14529,6 +14720,29 @@
         }
       }
     },
+    "确认并生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm and generate title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認してタイトルと要約を生成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认并生成标题与摘要"
+          }
+        }
+      }
+    },
     "确认断开" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15194,6 +15408,7 @@
 
     },
     "缺口 %@ – %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16177,6 +16392,29 @@
         }
       }
     },
+    "说话人分析尚未执行；可能是录音时长未知，也可能尚未请求此阶段。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker analysis has not run. The recording duration may be unknown, or this stage may not have been requested."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話者分析はまだ実行されていません。録音時間が不明か、この処理段階がまだ要求されていない可能性があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说话人分析尚未执行；可能是录音时长未知，也可能尚未请求此阶段。"
+          }
+        }
+      }
+    },
     "说话人分析已取消，可重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16196,29 +16434,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "说话人分析已取消，可重试。"
-          }
-        }
-      }
-    },
-    "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speaker analysis was skipped. Recordings over 30 minutes or with unknown duration are protected; this stage may also not have been requested."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "話者分析はスキップされました。30 分を超える録音や長さが不明な録音には保護制限が適用されます。この段階が未要求の場合もあります。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。"
           }
         }
       }
@@ -16385,13 +16600,13 @@
         }
       }
     },
-    "请前往 ChatGPT 管理用量，或在设置中选择 Apple 本地模型。额度恢复后可重试。" : {
+    "请前往 ChatGPT 管理用量，或在设置中选择 Apple Intelligence。额度恢复后可重试。" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manage usage in ChatGPT or choose the Apple on-device model in settings. Retry when your allowance resets."
+            "value" : "Manage usage in ChatGPT or choose the Apple Intelligence in settings. Retry when your allowance resets."
           }
         },
         "ja" : {
@@ -16403,7 +16618,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请前往 ChatGPT 管理用量，或在设置中选择 Apple 本地模型。额度恢复后可重试。"
+            "value" : "请前往 ChatGPT 管理用量，或在设置中选择 Apple Intelligence。额度恢复后可重试。"
           }
         }
       }
@@ -17128,6 +17343,9 @@
         }
       }
     },
+    "边界已定稿 · %@" : {
+
+    },
     "返回" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17417,6 +17635,29 @@
         }
       }
     },
+    "这条录音无法安全地一次性解码；请使用分段处理。音频和全文已保留。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This recording cannot be safely decoded all at once. Use windowed processing; the audio and transcript are preserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この録音は一度にデコードできません。分割処理を使用してください。音声と全文は保持されています。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条录音无法安全地一次性解码；请使用分段处理。音频和全文已保留。"
+          }
+        }
+      }
+    },
     "这条洞察从哪里来" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17485,29 +17726,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这段录音中只有我在讲话"
-          }
-        }
-      }
-    },
-    "这段录音超过 30 分钟，暂不区分说话人，以避免内存不足。音频和全文已保留，可正常查看。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speaker identification is temporarily unavailable for recordings longer than 30 minutes to avoid running out of memory. Your audio and transcript are preserved."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メモリ不足を防ぐため、30 分を超える録音の話者識別は現在利用できません。音声と全文は保持されています。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这段录音超过 30 分钟，暂不区分说话人，以避免内存不足。音频和全文已保留，可正常查看。"
           }
         }
       }
@@ -18525,6 +18743,28 @@
         }
       }
     },
+    "长录音" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long recording"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長時間録音"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长录音"
+          }
+        }
+      }
+    },
     "长按操作按钮，说出这一刻。再次长按，自动保存。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -18587,7 +18827,7 @@
         }
       }
     },
-    "闪念在 iPhone 本地转写，并由 Apple 本地模型整理。模型暂不可用时可先回听、查看全文，稍后重试。" : {
+    "闪念在 iPhone 本地转写，并由 Apple Intelligence整理。模型暂不可用时可先回听、查看全文，稍后重试。" : {
 
     },
     "问问 AI 这些图片" : {
@@ -18793,9 +19033,6 @@
           }
         }
       }
-    },
-    "预期 %@ 个分片" : {
-
     },
     "预期 %lld 个分片" : {
       "extractionState" : "stale",

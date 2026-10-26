@@ -1,6 +1,6 @@
 # WiseLife 本地存储与检索
 
-更新：2026-10-20。实现范围：iPhone 原生 App。本地资料不需要 WiseLife 服务器。
+原始说明更新：2026-10-20；本次索引修订：2026-10-25。本文记录元数据迁移、检索和恢复边界；完整的当前 iPhone/Watch 数据目录、SQLite 表与字段请看[本地数据结构](local-data-schema.md)。当前主库已升级到 schema v13，本文不再作为完整表结构清单。本地资料不需要 WiseLife 服务器。
 
 ## 数据分工
 
@@ -20,7 +20,7 @@
 
 数据库位置：`Application Support/WristNotes/Database/daybook.sqlite3`。使用系统 SQLite、外键、绑定参数、串行访问、事务、WAL、FULL synchronous 和 busy timeout。独立数据库目录及 DB/WAL/SHM 使用 complete 文件保护；未改变录音/图片目录策略。
 
-数据库 schema v2 增加以上业务表，保留 v1 生活、对话、洞察和已有语义索引。日期沿用 Swift reference-date 秒数，包含有效的 2001 年之前日期。
+数据库日期沿用 Swift reference-date 秒数，包含有效的 2001 年之前日期。主库采用增量迁移，当前版本与所有持久表见[本地数据结构](local-data-schema.md)。
 
 ## 业务元数据迁移与恢复
 

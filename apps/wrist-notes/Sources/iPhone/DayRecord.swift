@@ -49,6 +49,9 @@ struct DayRecord: Codable, Equatable, Identifiable, Sendable {
         var classification: String? = nil
             /// Missing in old archives means readiness is unknown, so it cannot be shown.
             var isFinal: Bool? = nil
+        /// Original source duration distinguishes a direct short recording from a topic
+        /// segment cut out of a longer recording.
+        var sourceEffectiveDuration: TimeInterval? = nil
     }
     var contentProvenance: ContentProvenance? = nil
     var contentScope: DateInterval? = nil
@@ -69,6 +72,7 @@ struct LifeMomentDetails: Codable, Equatable, Sendable {
     var steps: StepMoment? = nil
     var sleep: SleepMoment? = nil
     var movement: LocationMovement? = nil
+    var workout: WorkoutMoment? = nil
 }
 struct StepMoment: Codable, Equatable, Sendable {
     let interval: DateInterval
@@ -152,7 +156,7 @@ extension DayRecord {
                     return span.start >= range.start-rounding && span.end <= range.end+rounding
                 }
             }
-            result.text = provenance.transcript.map(\.text).joined(separator:"\n")
+            result.text = provenance.transcript.map(\.text).joined()
             // Whole-segment generated descriptions cannot ground a narrower date's facts.
             if clipped != intervals { result.title = "录音片段"; result.summary = "" }
             result.contentProvenance = provenance
@@ -197,4 +201,17 @@ final class LegacyAudioDeletionLedger: @unchecked Sendable {
             return record.recordingSessionID != nil || !deleted.contains(record.id)
         }
     }
+}
+
+/// A single HealthKit workout; duration excludes pauses and is not exercise-ring time.
+struct WorkoutMoment: Codable, Equatable, Sendable {
+    let id: UUID
+    let activity: String
+    let startedAt: Date
+    let endedAt: Date
+    let duration: TimeInterval
+    let distanceMeters: Double?
+    let activeKilocalories: Double?
+    let sourceName: String
+    let manuallyEntered: Bool
 }

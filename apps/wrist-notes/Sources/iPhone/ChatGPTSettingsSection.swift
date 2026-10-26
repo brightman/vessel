@@ -127,7 +127,7 @@ struct ChatGPTSettingsSection: View {
                          text: "请重新授权，并允许 WiseLife 使用 ChatGPT 套餐。可用性取决于账号和应用的接入资格。")
         case .limited:
             SettingsInfo(title: "ChatGPT 用量已达上限",
-                         text: "请前往 ChatGPT 管理用量，或在设置中选择 Apple 本地模型。额度恢复后可重试。")
+                         text: "请前往 ChatGPT 管理用量，或在设置中选择 Apple Intelligence。额度恢复后可重试。")
         case .connected:
             if !account.needsPlanNotice { SettingsFootnote(text: "使用 ChatGPT 套餐") }
         }

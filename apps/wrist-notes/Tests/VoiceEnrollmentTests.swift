@@ -3,6 +3,14 @@ import XCTest
 @testable import WiseNote
 
 @MainActor final class VoiceEnrollmentTests: XCTestCase {
+    func testWhisperOnlyAcceptsTranscriptWithSpeechCharacters() {
+        XCTAssertTrue(WhisperTranscriptValidity.containsSpeechCharacters("你好，今天天气不错。"))
+        XCTAssertTrue(WhisperTranscriptValidity.containsSpeechCharacters("A short voice note."))
+        XCTAssertTrue(WhisperTranscriptValidity.containsSpeechCharacters("42"))
+        XCTAssertFalse(WhisperTranscriptValidity.containsSpeechCharacters(" (，。… "))
+        XCTAssertFalse(WhisperTranscriptValidity.containsSpeechCharacters("   "))
+    }
+
     private func profile() throws -> VoiceProfile {
         var vector = [Float](repeating: 0, count: 256); vector[0] = 1
         return try VoiceIdentityPolicy.makeProfile(embeddings: [vector, vector, vector], duration: 35)

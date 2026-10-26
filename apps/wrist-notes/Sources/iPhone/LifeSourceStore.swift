@@ -110,7 +110,7 @@ final class LifeSourceStore {
             return value
         }
         let unique = Dictionary(updated.filter { !next.suppressed.contains($0.id) }.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }).values.sorted { $0.id.uuidString < $1.id.uuidString }
-        let hasData = source == .health ? records.contains { $0.metricValue != nil } : !records.isEmpty
+        let hasData = source == .health ? records.contains { $0.metricValue != nil || $0.lifeMoment?.workout != nil } : !records.isEmpty
         next.snapshots.append(LifeSourceSnapshot(source: source, day: day, records: unique, status: hasData ? .ready : .empty, refreshedAt: refreshedAt, message: nil, isStale: false))
         try save(next)
     }

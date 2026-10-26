@@ -125,26 +125,33 @@ struct AISettingsView: View {
             catch { saveError = error.localizedDescription }
         }) {
             VStack(spacing: 0) {
-                ModelChoice(title: "Apple 本地模型", badge: "本机",
+                ModelChoice(title: "Apple Intelligence", badge: "本机",
                             description: "由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。",
                             selected: editor.configuration.mode == .local) {
-                    editor.configuration.mode = .local
+                    editor.selectMode(.local)
+                }
+                ModelChoice(title: "连接本地 Mac 模型", badge: "局域网",
+                            description: "连接 WiseLife Mac Companion，使用 Mac 上的 LLM 生成总结、标题与问答。",
+                            selected: editor.configuration.mode == .nearbyMac) {
+                    editor.selectMode(.nearbyMac)
                 }
                 ModelChoice(title: "ChatGPT 账号", badge: "云端",
                             description: "使用已有 ChatGPT 账号，按套餐额度在云端处理。",
                             selected: editor.configuration.mode == .chatgpt) {
-                    editor.configuration.mode = .chatgpt
+                    editor.selectMode(.chatgpt)
                 }
                 ModelChoice(title: "自定义模型", badge: "自有服务",
                             description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
                             selected: editor.configuration.mode == .custom) {
-                    editor.configuration.mode = .custom
+                    editor.selectMode(.custom)
                 }
             }
             if editor.configuration.mode == .local {
                 SettingsInfo(title: localAvailabilityTitle,
                              text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
                     .padding(.top, 20)
+            } else if editor.configuration.mode == .nearbyMac {
+                NearbyMacSettingsSection(settings: settings, configuration: $editor.configuration).padding(.top, 20)
             } else if editor.configuration.mode == .chatgpt {
                 ChatGPTSettingsSection(account: chatGPT, configuration: $editor.configuration).padding(.top, 20)
             } else {
@@ -216,7 +223,7 @@ struct AISettingsView: View {
 
     private var localAvailabilityTitle: String {
         if case .available = SystemLanguageModel.default.availability,
-           SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple 本地模型可用" }
+           SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple Intelligence可用" }
         return "需要 Apple Intelligence 可用"
     }
 

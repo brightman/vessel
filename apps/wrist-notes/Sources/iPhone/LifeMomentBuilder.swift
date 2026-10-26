@@ -119,9 +119,42 @@ enum LifeMomentBuilder {
         return [total] + sleepRecords
     }
 
+    /// Keep whole workouts on their start day, including overnight sessions.
+    static func workouts(_ samples: [WorkoutMoment], day: Date, now: Date, calendar: Calendar) -> [DayRecord] {
+        let interval = LifeAggregation.dayInterval(day, calendar: calendar)
+        var seen = Set<UUID>()
+        return samples.sorted { $0.startedAt < $1.startedAt }.compactMap { value in
+            guard value.startedAt >= interval.start, value.startedAt < interval.end,
+                  value.endedAt <= now, value.endedAt > value.startedAt,
+                  value.duration.isFinite, value.duration > 0, value.duration < Double(Int.max),
+                  value.duration <= value.endedAt.timeIntervalSince(value.startedAt) + 1,
+                  seen.insert(value.id).inserted else { return nil }
+            func valid(_ number: Double?) -> Double? {
+                number.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+            }
+            let detail = WorkoutMoment(id: value.id, activity: value.activity, startedAt: value.startedAt,
+                endedAt: value.endedAt, duration: value.duration, distanceMeters: valid(value.distanceMeters),
+                activeKilocalories: valid(value.activeKilocalories), sourceName: value.sourceName, manuallyEntered: value.manuallyEntered)
+            let seconds = Int(detail.duration)
+            let elapsed = "\(seconds / 3600)小时\(seconds / 60 % 60)分\(seconds % 60)秒"
+            let stamp: (Date) -> String = { $0.formatted(date: .numeric, time: .shortened) }
+            var lines = ["Apple 健康体能训练：\(detail.activity)",
+                         "开始：\(stamp(detail.startedAt))；结束：\(stamp(detail.endedAt))",
+                         "训练持续时长：\(elapsed)（不等于锻炼圆环分钟数）"]
+            if let distance = detail.distanceMeters { lines.append(String(format: "训练距离：%.2f 公里", distance / 1000)) }
+            if let energy = detail.activeKilocalories { lines.append(String(format: "训练活动能量：%.0f 千卡", energy)) }
+            lines.append("记录来源：\(detail.sourceName)" + (detail.manuallyEntered ? " · 手动录入，非设备自动测量" : ""))
+            lines.append("按训练开始日期归属；不同来源可能重复，不与步数、每日能量或锻炼圆环相加。")
+            var record = DayRecord(id: detail.id, capturedAt: detail.startedAt, kind: .activity,
+                title: "运动 · \(detail.activity)", text: lines.joined(separator: "\n"), duration: detail.duration)
+            record.lifeMoment = .init(workout: detail)
+            return record
+        }
+    }
+
     static func archive(records: [DayRecord], day: Date, updatedAt: Date?, calendar: Calendar) -> DayRecord {
         let end = calendar.startOfDay(for: day), start = calendar.date(byAdding: .day, value: -1, to: end)!
-        let original = records.first { $0.kind == .activity && $0.lifeMoment?.steps?.archived != true && $0.capturedAt >= start && $0.capturedAt < end }
+        let original = records.first { $0.kind == .activity && $0.lifeMoment?.workout == nil && $0.lifeMoment?.steps?.archived != true && $0.capturedAt >= start && $0.capturedAt < end }
         let count = original?.metricValue.flatMap { $0.isFinite && $0 >= 0 && $0 < Double(Int.max) ? $0 : nil }
         let date = start.formatted(.dateTime.month().day())
         var result = DayRecord(id: LifeAggregation.recordID(source: .health, key: "steps-archive", day: start),
@@ -143,7 +176,7 @@ enum LifeMomentBuilder {
                          calendar: Calendar, snapshot: (Date) -> LifeSourceSnapshot?,
                          isSuppressed: (UUID) -> Bool) -> [DayRecord] {
         let today = calendar.startOfDay(for: now), selected = calendar.startOfDay(for: day)
-        var days = Set(records.filter { $0.kind == .activity && $0.lifeMoment?.steps?.archived != true }
+        var days = Set(records.filter { $0.kind == .activity && $0.lifeMoment?.workout == nil && $0.lifeMoment?.steps?.archived != true }
             .compactMap { calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: $0.capturedAt)) })
         if healthEnabled { days.insert(selected) }
         var result: [DayRecord] = days.filter { $0 <= today }.compactMap { date in

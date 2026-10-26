@@ -45,6 +45,8 @@ struct DaybookInsightService: DaybookInsightGenerating {
             case .custom:
                 guard let apiKey else { throw AIServiceError.authentication }
                 response = try await custom.insight(content, instruction: instructions, configuration: configuration, apiKey: apiKey)
+            case .nearbyMac:
+                response = try await NearbyMacClient.shared.generate(content: content, instruction: instructions, configuration: configuration, isCurrent: isCurrent)
             case .chatgpt:
                 response = try await ChatGPTAccountModel.shared.complete(instruction: instructions, content: content,
                     modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID, isCurrent: isCurrent)

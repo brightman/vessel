@@ -84,7 +84,7 @@ struct RecordingTitleAction: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("将这些转写摘录发送给所选 AI，生成标题？").font(.system(size: 22, weight: .medium))
                     Text(request.configuration.label).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
-                    Text(request.configuration.mode == .chatgpt ? "OpenAI · ChatGPT" : request.configuration.baseURL)
+                    Text(request.configuration.destinationDescription)
                         .font(.system(size: 11)).textSelection(.enabled)
                     Text("仅发送下方开头、中间和结尾摘录，原始音频保留在本机。生成成功后替换当前标题。")
                         .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)

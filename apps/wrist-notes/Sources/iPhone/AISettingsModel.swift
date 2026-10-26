@@ -15,6 +15,9 @@ final class AISettingsModel: ObservableObject {
     private let test: (AIConfiguration, String) async throws -> Void
     private var testTask: Task<Void, Never>?
     private var generation = 0
+    private var drafts: [String: AIConfiguration] = [:]
+    private var testedCustom: AIConfiguration?
+    private var testedKey: String?
 
     init(settings: AppSettings, test: @escaping (AIConfiguration, String) async throws -> Void = {
         try await CustomAISummarizer().testConnection(configuration: $0, apiKey: $1)
@@ -24,15 +27,31 @@ final class AISettingsModel: ObservableObject {
         configuration = settings.ai
         do {
             apiKey = try settings.apiKey()
-            if configuration.mode == .custom, !apiKey.isEmpty { state = .success }
+            let custom = settings.configuration(for: .custom)
+            if let valid = try? custom.validated(apiKey: apiKey) {
+                testedCustom = valid; testedKey = apiKey
+                if configuration.mode == .custom { state = .success }
+            }
         } catch {
             apiKey = ""
             state = .failure(error.localizedDescription)
         }
     }
 
+    func selectMode(_ mode: AIConfiguration.Mode) {
+        guard configuration.mode != mode else { return }
+        drafts[configuration.mode.rawValue] = configuration
+        configuration = drafts[mode.rawValue] ?? settings.configuration(for: mode)
+        if mode == .custom,
+           let validated = try? configuration.validated(apiKey: apiKey),
+           validated == testedCustom, apiKey == testedKey {
+            state = .success
+        }
+    }
+
     var canSave: Bool {
         switch configuration.mode {
+        case .nearbyMac: UUID(uuidString: configuration.nearbyMacServiceID) != nil
         case .local: true
         case .custom: state == .success
         case .chatgpt: settings.chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID)
@@ -58,6 +77,7 @@ final class AISettingsModel: ObservableObject {
             do {
                 try await test(config, key)
                 guard let self, self.generation == version, !Task.isCancelled else { return }
+                self.testedCustom = config; self.testedKey = key
                 self.state = .success
             } catch {
                 guard let self, self.generation == version, !Task.isCancelled else { return }

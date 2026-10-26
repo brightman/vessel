@@ -27,7 +27,11 @@ import Foundation
         }
         let touching = try source([range(0,300),range(300,600)])
         try check(ContentSegmentation.build(source:touching,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:600)]).segments.count == 1,"physical file and midnight do not split content")
+        try check(ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:300.5,ranges:touching.ranges),"ASR word crossing a contiguous audio-file boundary stays owned")
+        try check(ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:600.00005,ranges:touching.ranges),"ASR rounding within one PCM frame remains covered")
+        try check(!ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:600.0002,ranges:touching.ranges),"coverage tolerance does not mask a real missing interval")
         let interrupted = try source([range(0,300),range(300,600,gap:"interrupted")])
+        try check(!ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:300.5,ranges:interrupted.ranges),"ASR word cannot bridge a real source discontinuity")
         try check(ContentSegmentation.build(source:interrupted,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:600)]).segments.count == 2,"touching captured discontinuity splits")
         let missing = try source([range(0,100),range(200,300)])
         try check(ContentSegmentation.build(source:missing,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:300)]).segments.count == 2,"missing audio is a hard gap")
@@ -151,8 +155,14 @@ import Foundation
         try finalizeTopics(repository,processing:processing,sourceID:s.id)
         let finalSegments=try repository.segments(sourceID:s.id)
         try check(finalSegments.allSatisfy(\.isFinal),"coverage-ready segments become final only after topic pass finalization")
+        let v2Input=try repository.contentV2Input(sourceID:s.id)
+        try check(v2Input?.spans.count == 3,"production V2 snapshot accepts automatic reconcile history and carries complete ASR rows")
+        let checkpoint=Data("validated-stage".utf8)
+        try repository.saveContentV2Checkpoint(sourceID:s.id,key:"test-stage",data:checkpoint)
+        try check(try repository.contentV2Checkpoint(sourceID:s.id,key:"test-stage") == checkpoint,"V2 stage checkpoints persist with their source foreign key")
         let original = try repository.merge(ids:finalSegments.map(\.id),expectedRevisions:finalSegments.map(\.revision))
         try check(original.isFinal && original.boundaryReady == true,"manual adjacent merge retains finality and readiness")
+        rejects { _ = try repository.contentV2Input(sourceID:s.id) }
         try repository.reconcile(sourceID:s.id)
         try check(repository.segment(id:original.id)?.revision == original.revision,"no-op reconciliation retains identity/revision")
         rejects { _ = try repository.split(id:original.id,at:450,expectedRevision:original.revision) }

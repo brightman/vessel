@@ -99,6 +99,16 @@ private final class ContentProtocol: URLProtocol {
         let revoked = ConfiguredContentTextModel(configuration:config,transport:transport,authorized:{ authorized },apiKey:{ fatalError("wrong route") },local:{ _ in fatalError("wrong route") },chat:{ _,_,_ in authorized = false; return "过时结果" })
         do { _ = try await revoked.respond(.init(kind:.summary,text:"输入")); fatalError("revoked result must be discarded") }
         catch is CancellationError {}
+        var macConfig = AIConfiguration(); macConfig.mode = .nearbyMac
+        macConfig.nearbyMacServiceID = "invalid-service"
+        let mac = ConfiguredContentTextModel(configuration:macConfig,transport:transport,authorized:{ true },
+            apiKey:{ fatalError("Mac must not read custom API key") },
+            local:{ _ in fatalError("Mac must not fall back to iPhone") },
+            chat:{ _,_,_ in fatalError("Mac must not fall back to ChatGPT") })
+        do { _ = try await mac.respond(.init(kind:.summary,text:"示例文字")); fatalError("invalid Mac must fail") }
+        catch NearbyMacFailure.pairing {}
+        do { _ = try await mac.respond(instruction:"总结",content:"示例文字"); fatalError("invalid Mac must fail") }
+        catch NearbyMacFailure.pairing {}
         print("Configured content model: consent, local/OpenAI/Anthropic/ChatGPT routing, context, topic validation and stale result passed")
     }
 }

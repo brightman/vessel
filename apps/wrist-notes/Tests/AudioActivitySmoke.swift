@@ -41,7 +41,8 @@ import CoreML
         precondition(AudioSpeakerMapping.match(model,candidates:["a":.init(localSpeakerID:"x",modelVersion:"m1",vector:[1])]) == nil)
         precondition(AudioSpeakerMapping.match(.init(localSpeakerID:"x",modelVersion:"m1",vector:[.nan,0]),candidates:["a":model]) == nil)
         precondition(!AudioSpeakerMapping.permitsAnalysis(sourceDuration:nil))
-        precondition(!AudioSpeakerMapping.permitsAnalysis(sourceDuration:1800.1))
+        precondition(AudioSpeakerMapping.permitsAnalysis(sourceDuration:1800.1))
+        precondition(AudioSpeakerMapping.permitsAnalysis(sourceDuration:21_600))
         precondition(AudioSpeakerMapping.permitsAnalysis(sourceDuration:1800))
         // Shape-derived timing: 6-second input, two 4-second overlapping windows, two frames.
         let ids = try MLMultiArray(shape:[2,2,1],dataType:.float32)

@@ -37,7 +37,7 @@ let package = Package(name: "VoicePipelineVerification", platforms: [.macOS("26.
     .product(name: "Hub", package: "swift-transformers")
 ])])
 PACKAGE
-for name in AppleSpeechReservationCoordinator AppleSpeechResources LocalTranscriptionService LocalAudioInferenceGate BoundedAudioReader OnDeviceSpeechActivity AudioSpeakerMapping AudioProcessing AudioAdaptiveInference AudioWindowPlanner OfflineWhisperTokenizer OnDeviceTranscriber SpeakerModelStore SpeakerTranscript TranscriptionConfiguration WhisperModelStore VoiceIdentity VoiceEmbeddingEngine VoiceIdentityModelStore VoiceSpeechSelection; do
+for name in AppleSpeechReservationCoordinator AppleSpeechResources LocalTranscriptionService LocalAudioInferenceGate BoundedAudioReader OnDeviceSpeechActivity AudioSpeakerMapping AudioProcessing AudioAdaptiveInference AudioWindowPlanner OnDeviceTranscriber SpeakerModelStore SpeakerTranscript TranscriptionConfiguration WhisperModelStore VoiceIdentity VoiceEmbeddingEngine VoiceIdentityModelStore VoiceSpeechSelection; do
     cp "$repo/Sources/iPhone/$name.swift" "$package/Sources/Smoke/$name.swift"
 done
 cp "$repo/Sources/Shared/VoiceNote.swift" "$package/Sources/Smoke/VoiceNote.swift"

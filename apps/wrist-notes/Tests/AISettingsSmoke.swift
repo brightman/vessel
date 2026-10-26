@@ -42,6 +42,54 @@ private final class StubProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+private final class MemoryChatGPTStore: ChatGPTAccountStoring {
+    var value: ChatGPTAccountVault?
+    var failWrites = false
+    var failReads = false
+    var saveCount = 0
+    var loadCount = 0
+    init(_ value: ChatGPTAccountVault) { self.value = value }
+    func load() throws -> ChatGPTAccountVault? { loadCount += 1; if failReads { throw ChatGPTError.storage }; return value }
+    func save(_ vault: ChatGPTAccountVault) throws {
+        saveCount += 1
+        if failWrites { throw ChatGPTError.storage }
+        value = vault
+    }
+}
+
+private actor FixtureChatGPTAPI: ChatGPTServing {
+    var refreshCount = 0, catalogCount = 0, requestCount = 0
+    var refreshFailure: ChatGPTError?
+    var hold = false
+    var completionHook: (@MainActor () -> Void)?
+    nonisolated func authorizationURL(attempt: ChatGPTAuthorizationAttempt) throws -> URL { URL(string: "https://auth.openai.com/api/accounts/authorize")! }
+    func exchange(callbackURL: URL, attempt: ChatGPTAuthorizationAttempt) async throws -> ChatGPTCredential { throw ChatGPTError.invalidCallback }
+    func refresh(_ credential: ChatGPTCredential) async throws -> ChatGPTCredential {
+        refreshCount += 1
+        try await Task.sleep(for: .milliseconds(30))
+        if let refreshFailure { throw refreshFailure }
+        return ChatGPTCredential(clientID: credential.clientID, subject: credential.subject, email: credential.email,
+            hostID: credential.hostID, idToken: "fixture-id", accessToken: "rotated-fixture-access", refreshToken: "rotated-fixture-refresh",
+            expiresAt: .now.addingTimeInterval(3600), scopes: credential.scopes)
+    }
+    func models(accessToken: String) async throws -> [ChatGPTModel] {
+        catalogCount += 1
+        try await Task.sleep(for: .milliseconds(15))
+        return [.init(id: "fixture-model", displayName: "Fixture model")]
+    }
+    func complete(instruction: String, content: String, model: String, accessToken: String) async throws -> String {
+        requestCount += 1
+        if let completionHook { await completionHook() }
+        if hold { try await Task.sleep(for: .seconds(30)) }
+        return "Fixture answer [1]"
+    }
+    func revoke(_ credential: ChatGPTCredential) async throws {}
+    func setFailure(_ error: ChatGPTError) { refreshFailure = error }
+    func setHold() { hold = true }
+    func setCompletionHook(_ hook: @escaping @MainActor () -> Void) { completionHook = hook }
+    func counts() -> (Int, Int, Int) { (refreshCount, catalogCount, requestCount) }
+}
+
 @main
 struct AISettingsSmoke {
     @MainActor static func main() async throws {
@@ -254,6 +302,57 @@ struct AISettingsSmoke {
         expect(editor.canSave, "local mode needs no remote test")
         try editor.save()
         expect(settings.ai.mode == .local && secrets.value == "fake-key", "returning local retains saved custom credentials")
+
+        // Switching providers must retain independently saved configuration and credentials.
+        try settings.saveAI(normalized, apiKey: "fake-key")
+        var mac = AIConfiguration(); mac.mode = .nearbyMac
+        mac.nearbyMacServiceID = UUID().uuidString; mac.nearbyMacName = "Test Mac"; mac.model = "mac-llm"
+        try settings.saveAI(mac, apiKey: "")
+        let switched = AISettingsModel(settings: settings)
+        switched.selectMode(.custom)
+        expect(switched.configuration.model == normalized.model && switched.configuration.baseURL == normalized.baseURL,
+               "Mac selection must not overwrite custom configuration")
+        expect(switched.apiKey == "fake-key" && switched.canSave, "saved custom configuration can be reused without entering or testing again")
+        try switched.save()
+        switched.selectMode(.nearbyMac)
+        expect(switched.configuration == mac, "Mac pairing and model survive custom selection")
+        try switched.save()
+        let restarted = AppSettings(defaults: defaults, secrets: secrets)
+        let restartedEditor = AISettingsModel(settings: restarted)
+        restartedEditor.selectMode(.custom)
+        expect(restartedEditor.configuration == normalized && restartedEditor.canSave, "custom configuration survives app restart")
+        restartedEditor.configuration.model = "unsaved-draft"
+        restartedEditor.selectMode(.local)
+        restartedEditor.selectMode(.custom)
+        expect(restartedEditor.configuration.model == "unsaved-draft" && !restartedEditor.canSave,
+               "switching within editor retains draft without treating it as tested")
+        restartedEditor.selectMode(.nearbyMac)
+        expect(restartedEditor.configuration == mac, "draft changes cannot corrupt Mac configuration")
+
+        let credential = ChatGPTCredential(clientID: "fixture-client", subject: "fixture-subject", email: nil,
+            hostID: "urn:uuid:fixture", idToken: "fixture-id", accessToken: "fixture-access", refreshToken: "fixture-refresh",
+            expiresAt: .now.addingTimeInterval(3600), scopes: ["chatgpt.tokens.use.direct", "resource.invoke"])
+        let vault = ChatGPTAccountVault(hostID: credential.hostID, registrations: [
+            ChatGPTRegistration(clientID: credential.clientID, subject: credential.subject, email: nil,
+                credential: credential, acknowledgedPlan: true)], selectedID: credential.clientID)
+        let account = ChatGPTAccountModel(storage: MemoryChatGPTStore(vault), api: FixtureChatGPTAPI(), defaults: defaults, isEnabled: true)
+        await account.loadModels()
+        let allSettings = AppSettings(defaults: defaults, secrets: secrets, chatGPT: account)
+        var chat = AIConfiguration(); chat.mode = .chatgpt
+        chat.chatGPTAccountID = credential.clientID; chat.chatGPTModel = "fixture-model"
+        try allSettings.saveAI(chat, apiKey: "")
+        let allEditor = AISettingsModel(settings: allSettings)
+        for mode in [AIConfiguration.Mode.local, .custom, .nearbyMac, .chatgpt] {
+            allEditor.selectMode(mode)
+            expect(allEditor.canSave, "all previously configured providers can be reselected")
+            try allEditor.save()
+        }
+        let allRestarted = AppSettings(defaults: defaults, secrets: secrets, chatGPT: account)
+        expect(allRestarted.configuration(for: .chatgpt) == chat, "ChatGPT account and model persist independently")
+        expect(allRestarted.configuration(for: .custom) == normalized, "ChatGPT save does not overwrite custom")
+        expect(allRestarted.configuration(for: .nearbyMac) == mac, "ChatGPT save does not overwrite Mac")
+        let profiles = String(data: defaults.data(forKey: "aiProviderConfigurations")!, encoding: .utf8)!
+        expect(!profiles.contains("fake-key") && !profiles.contains("fixture-access"), "profile storage contains no credentials")
 
         expect(PhoneWatchStatus(isSupported: false).title.contains("不可用"), "unsupported device")
         let asleep = PhoneWatchStatus(isPaired: true, isInstalled: true, isActivated: true, isReachable: false)

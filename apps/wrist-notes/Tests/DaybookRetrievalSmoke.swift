@@ -23,6 +23,19 @@ struct DaybookRetrievalSmoke {
         let records = [tomorrow, first, yesterday, last, historical]
         let service = DaybookRetrieval(calendar: calendar)
 
+        var workoutRecord = DayRecord(id: UUID(), capturedAt: now.addingTimeInterval(-3600), kind: .activity,
+            title: "运动 · 跑步", text: "Apple 健康体能训练：跑步，持续30分钟，来源 Apple Watch。", duration: 1800)
+        workoutRecord.lifeMoment = .init(workout: .init(id: workoutRecord.id, activity: "跑步",
+            startedAt: workoutRecord.capturedAt, endedAt: now.addingTimeInterval(-1800), duration: 1800,
+            distanceMeters: nil, activeKilocalories: nil, sourceName: "Apple Watch", manuallyEntered: false))
+        let workoutAnswer = try service.prepare(question: "今天跑步多久？", records: [workoutRecord, first],
+            selectedDate: now, now: now, allowedKinds: [.activity], automatic: true)
+        precondition(workoutAnswer.sources.contains { $0.id == workoutRecord.id }, "Ask AI retrieves workouts")
+        precondition(workoutAnswer.statistics.audioDuration == 0, "Workout duration never contributes to audio totals")
+        let deniedWorkout = try service.prepare(question: "今天跑步多久？", records: [workoutRecord],
+            selectedDate: now, now: now, allowedKinds: [.voice], automatic: true)
+        precondition(deniedWorkout.sources.isEmpty, "Health AI permission excludes workouts")
+
         // Automatic Ask AI is independent of the homepage date, keeps hard time boundaries,
         // and only expands a soft "recent" scope when requested by the loader.
         let autoAll = try service.prepare(question: "项目说了什么？", records: records, selectedDate: selected, now: now, automatic: true)

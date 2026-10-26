@@ -105,7 +105,7 @@ struct ActionProposalView: View {
                     if configuration.mode == .custom {
                         let secret = try settings.apiKey(); key = secret
                         _ = try configuration.validated(apiKey:secret)
-                    } else {
+                    } else if configuration.mode == .chatgpt {
                         guard settings.chatGPT.isReady, settings.chatGPT.selectedID == configuration.chatGPTAccountID else { throw ActionFailure.invalid("请先连接 ChatGPT。") }
                     }
                     guard settings.authorizeRemoteAISend(confirmationIsCurrent:confirmed ? true : nil,rememberChoice:confirmed && remember) else { throw ActionFailure.changed }

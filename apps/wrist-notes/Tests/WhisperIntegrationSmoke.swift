@@ -24,11 +24,11 @@ import Foundation
         let service = LocalTranscriptionService(store: reloaded)
         var config = TranscriptionConfiguration(engine: .whisper, whisperSize: .tiny, whisperLanguage: "en")
         let specified = try await service.transcribe(fileURL: URL(fileURLWithPath: args[3]), configuration: config)
-        precondition(specified.lowercased().contains("local") && specified.lowercased().contains("test"), "expected synthesized test speech")
+        precondition(specified.lowercased().contains("country") && specified.lowercased().contains("ask not"), "expected recognizable JFK test speech")
         print("Specified English: \(specified)")
         config.whisperLanguage = "auto"
         let automatic = try await service.transcribe(fileURL: URL(fileURLWithPath: args[3]), configuration: config)
-        precondition(automatic.lowercased().contains("local"))
+        precondition(automatic.lowercased().contains("country"))
         print("Automatic: \(automatic)")
         // A truncated asset cannot be treated as installed, even with a valid marker.
         let file = store.folder(for: .tiny).appendingPathComponent("tokenizer_config.json")

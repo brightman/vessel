@@ -23,16 +23,15 @@ enum ContentEnrichmentAuthorization {
             }
             let processing=AudioProcessingRepository(database:db)
             guard let source=try processing.currentSource(sourceID) else { return nil }
-            if segmentID != nil {
-                guard field != nil, let segmentID,
-                      let segment=try ContentSegmentRepository(database:db).segment(id:segmentID),
+            if let segmentID {
+                guard let segment=try ContentSegmentRepository(database:db).segment(id:segmentID),
                       segment.sourceID == sourceID, segment.isFinal, segment.hasText else { return nil }
-            }
+            } else if field != nil { return nil }
             let progress=try processing.progress(sourceID:sourceID)
             var digest=SHA256()
             digest.update(data:Data([source.contentIdentity,progress.configurationKey ?? "",String(progress.revision)].joined(separator:"|").utf8))
-            if let segmentID,let field,let segment=try ContentSegmentRepository(database:db).segment(id:segmentID) {
-                digest.update(data:Data([segment.id.uuidString,String(segment.revision),segment.provenance.contentSignature,field.rawValue].joined(separator:"|").utf8))
+            if let segmentID,let segment=try ContentSegmentRepository(database:db).segment(id:segmentID) {
+                digest.update(data:Data([segment.id.uuidString,String(segment.revision),segment.provenance.contentSignature,field?.rawValue ?? "title+summary"].joined(separator:"|").utf8))
             }
             for row in try db.query("SELECT result_hash FROM audio_processing_jobs WHERE source_key=? AND active=1 ORDER BY id",[.text(sourceID.key)]) {
                 digest.update(data:Data((row["result_hash"]?.string ?? "pending").utf8))

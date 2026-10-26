@@ -9,7 +9,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>把你主动录制的语音保存为本机记录，并转写为文字。</string>
 	<key>NSCameraUsageDescription</key>
-	<string>拍摄并保存你选择记录的这一刻。</string>
+	<string>拍摄并保存你选择记录的这一刻，或扫描 Mac 本地 AI 配对二维码。</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
@@ -20,12 +20,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array><string>_wiselife-llm._tcp</string></array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>连接你在 AI 设置中指定的本地模型服务。</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>在你启用后，只读当天步数和睡眠并保存在本机；不会写入健康。</string>
+	<string>在你启用后，只读步数、睡眠、体能训练及训练活动能量并保存在本机；不会写入健康。</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>WiseLife 不会向 Apple 健康写入或修改数据；此说明仅用于解释健康数据用途。App 只读取你授权的每日步数和睡眠，用于展示每日记录。</string>
+	<string>WiseLife 不会向 Apple 健康写入或修改数据；此说明仅用于解释健康数据用途。App 只读取你授权的每日步数、睡眠、体能训练及训练活动能量，用于展示每日记录。</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>在你选择添加后，创建、更新和移除关联的提醒事项。不会添加录音或全文；同步由所选列表的账户设置决定。</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>

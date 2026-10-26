@@ -101,7 +101,7 @@ struct DaybookView: View {
         return DaybookRetrieval.libraryRecords(query: search, records: records, dayStart: start, dayEnd: end,
             allowedKinds: allowedKinds, semantic: activeSemantic).filter {
                 filter.includes($0) && ($0.parentRecordID == nil || filter == .life)
-                    && !($0.kind == .activity && $0.lifeMoment?.steps?.archived != true)
+                    && !($0.kind == .activity && $0.lifeMoment?.workout == nil && $0.lifeMoment?.steps?.archived != true)
                     && !ContentSegmentPresentation.timelineRecords([$0]).isEmpty
             }
     }

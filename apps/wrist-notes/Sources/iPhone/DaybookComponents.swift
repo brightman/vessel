@@ -53,7 +53,7 @@ struct DaybookOverview: View {
     var healthStale = false
     let onOpenRecord: (UUID) -> Void
     var onOpenPlaces: () -> Void = {}
-    private var steps: Double? { records.first { $0.kind == .activity && $0.lifeMoment?.steps?.archived != true }?.metricValue }
+    private var steps: Double? { records.first { $0.kind == .activity && $0.lifeMoment?.workout == nil && $0.lifeMoment?.steps?.archived != true }?.metricValue }
     private var sleep: Double? { records.first { $0.kind == .sleep && ($0.lifeMoment?.sleep?.isMain ?? true) }?.metricValue }
     var body: some View {
         VStack(spacing: 0) {
@@ -225,7 +225,7 @@ struct DaybookRecordRow: View {
                 }
                 HStack(spacing: 9) {
                     HStack(spacing: 3) { DaybookIcon(record.kind.prototypeIcon, size: 11); Text(LocalizedStringKey(record.kind.title)) }
-                    Text(record.kind == .image ? (DaybookFormat.language == .english ? "\(photoCount) photos" : "\(photoCount) 张照片") : record.kind.isAudio ? DaybookFormat.duration(record.duration) : record.lifeMoment?.movement != nil ? (DaybookFormat.language == .english ? "2 source records" : "两条地点依据") : "本机快照")
+                    Text(record.kind == .image ? (DaybookFormat.language == .english ? "\(photoCount) photos" : "\(photoCount) 张照片") : (record.kind.isAudio || record.lifeMoment?.workout != nil) ? DaybookFormat.duration(record.duration) : record.lifeMoment?.movement != nil ? (DaybookFormat.language == .english ? "2 source records" : "两条地点依据") : "本机快照")
                     if let device = record.captureDevice { Text(device) }
                     if record.kind == .thought { Text("闪念") }
                     if isCompleteRecording { Text(LocalizedStringKey(record.recordingContinuation == true ? "续段 · 当日范围" : "当日范围")) }

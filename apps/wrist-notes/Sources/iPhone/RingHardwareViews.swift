@@ -96,7 +96,7 @@ struct EurekaRingDetailView: View {
                         }
                     }.font(.system(size: 12)).frame(maxWidth: .infinity).padding(.top, 4)
                 }
-                Text("录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple 本地模型整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。")
+                Text("录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple Intelligence整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。")
                     .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
             }.opacity(ring.isBusy ? 0.85 : 1)
         }

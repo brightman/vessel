@@ -58,16 +58,18 @@ struct ActionProposalParser {
         case .custom:
             guard let apiKey else { throw ActionFailure.invalid("请检查模型配置。") }
             result = try await CustomAISummarizer().insight(content,instruction:ActionProposalParser.instruction,configuration:configuration,apiKey:apiKey)
+        case .nearbyMac:
+            result = try await NearbyMacClient.shared.generate(content: content, instruction: ActionProposalParser.instruction, configuration: configuration, isCurrent: isCurrent)
         case .chatgpt:
             result = try await ChatGPTAccountModel.shared.complete(instruction:ActionProposalParser.instruction,content:content,modelID:configuration.chatGPTModel,accountID:configuration.chatGPTAccountID,isCurrent:isCurrent)
         case .local:
             #if canImport(FoundationModels)
             guard #available(iOS 26.0,macOS 26.0,*), case .available = SystemLanguageModel.default.availability,
-                  SystemLanguageModel.default.supportsLocale(Locale(identifier:"zh-CN")) else { throw ActionFailure.invalid("Apple 本地模型暂不可用，可手动转为行动或更换模型。") }
+                  SystemLanguageModel.default.supportsLocale(Locale(identifier:"zh-CN")) else { throw ActionFailure.invalid("Apple Intelligence暂不可用，可手动转为行动或更换模型。") }
             let session = LanguageModelSession(instructions:ActionProposalParser.instruction)
             result = try await session.respond(to:content,options:GenerationOptions(maximumResponseTokens:1600)).content
             #else
-            throw ActionFailure.invalid("此设备不支持 Apple 本地模型。")
+            throw ActionFailure.invalid("此设备不支持 Apple Intelligence。")
             #endif
         }
         try Task.checkCancellation(); guard isCurrent() else { throw ActionFailure.changed }

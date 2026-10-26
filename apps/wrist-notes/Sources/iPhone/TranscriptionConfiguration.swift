@@ -36,6 +36,12 @@ struct TranscriptionConfiguration: Codable, Equatable, Sendable {
     var validWhisperLanguage: Bool { whisperLanguage == "auto" || Self.whisperLanguageCodes.contains(whisperLanguage) }
 }
 
+enum WhisperTranscriptValidity {
+    static func containsSpeechCharacters(_ text: String) -> Bool {
+        text.unicodeScalars.contains { CharacterSet.alphanumerics.contains($0) }
+    }
+}
+
 struct SpeechDownloadProgress: Equatable, Sendable {
     var fraction: Double?
     var completedBytes: Int64? = nil

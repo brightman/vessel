@@ -362,7 +362,7 @@ struct DaybookAssistantView: View {
     private var composerHint: String {
         if question.count > 300 { return "请把问题缩短到 300 字以内" }
         if model.isPending { return "正在整理允许的记录，可随时停止" }
-        if settings.ai.mode == .local { return "仅使用你允许的记录 · Apple 本地模型" }
+        if settings.ai.mode == .local { return "仅使用你允许的记录 · Apple Intelligence" }
         return settings.requiresRemoteAIConfirmation ? "仅使用你允许的记录 · 发送文字前请你确认" : "仅使用你允许的记录 · 发送给所选外部 AI"
     }
 

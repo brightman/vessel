@@ -631,6 +631,7 @@ import BRRecorderOpus
         try await waitFor { notes.note(id)?.summaryState == .ready }
         XCTAssertEqual(repository.notes.first?.summary, "恢复后本地整理")
     }
+
 }
 
 @MainActor private final class Saver {

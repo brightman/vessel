@@ -222,7 +222,7 @@ final class DaybookAssistantModel: ObservableObject {
             complete(evidence, text: direct, generated: false, provider: "本地检索与统计")
         } else if configuration.isRemote {
             let endpoint = URLComponents(string: configuration.baseURL)
-            let destination = configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
+            let destination = configuration.mode == .nearbyMac ? configuration.destinationDescription : configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
             let confirmation = RemoteConfirmation(question: evidence.question, context: evidence.context,
                 sourceCount: evidence.sources.count, destination: destination, prepared: evidence, configuration: configuration, configurationRevision: revision)
             if settings.requiresRemoteAIConfirmation { remoteConfirmation = confirmation }
@@ -244,6 +244,12 @@ final class DaybookAssistantModel: ObservableObject {
         guard confirmation.configuration == settings.ai, confirmation.configurationRevision == settings.aiRevision,
               confirmation.prepared.isCurrent(records: latestRecords, allowedKinds: latestAllowedKinds) else { cancel(); return }
         do {
+            if confirmation.configuration.mode == .nearbyMac {
+                _ = try confirmation.configuration.validated(apiKey: "")
+                guard settings.authorizeRemoteAISend(confirmationIsCurrent: confirmed ? true : nil, rememberChoice: doNotAskAgain) else { cancel(); return }
+                start(confirmation.prepared, configuration: confirmation.configuration, apiKey: nil)
+                return
+            }
             if confirmation.configuration.mode == .chatgpt {
                 guard settings.chatGPT.isReady, settings.chatGPT.selectedID == confirmation.configuration.chatGPTAccountID else {
                     throw AIServiceError.invalidConfiguration("ChatGPT 当前不可用，请在 AI 模型设置中重新连接或管理用量。")
@@ -421,7 +427,7 @@ final class DaybookAssistantModel: ObservableObject {
                 guard evidence.isCurrent(records: self.latestRecords, allowedKinds: self.latestAllowedKinds),
                       self.latestConfiguration == configuration else { self.cancel(); return }
                 self.complete(evidence, text: result, generated: true,
-                    provider: configuration.mode == .local ? "Apple 本地模型" : configuration.label)
+                    provider: configuration.mode == .local ? "Apple Intelligence" : configuration.label)
                 self.isPending = false; self.task = nil
             } catch {
                 guard let self, self.version == token else { return }
