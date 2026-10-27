@@ -168,6 +168,7 @@ struct SimulatorChunkedFileAssembler {
     private let expiration: TimeInterval = 10 * 60
 
     mutating func discard(_ transferID: UUID) { pending.removeValue(forKey: transferID) }
+    mutating func reset() { pending.removeAll(keepingCapacity: true) }
 
     mutating func append(_ part: SimulatorChunkedFileTransfer.Part, now: Date = .now) throws -> (envelope: Data, audio: Data)? {
         pending = pending.filter { now.timeIntervalSince($0.value.createdAt) <= expiration }
@@ -234,6 +235,7 @@ struct TranscriptSegment: Codable, Equatable, Identifiable, Sendable {
 struct TranscriptionOutput: Equatable, Sendable {
     var text: String
     var segments: [TranscriptSegment] = []
+    var engineName: String? = nil
 }
 
 /// Frozen when opening the sheet, independently of later observed note updates.
@@ -306,6 +308,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var diarizationState: ProcessingState?
     var diarizationMessage: String?
     var transcriptRevision: UUID?
+    var transcriptionEngineName: String? = nil
     var titleSource: RecordingTitleSource?
     var titleRevision: UUID?
     var titleManuallyEdited: Bool?
@@ -376,6 +379,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
             titleRevision = nil
         }
         self.title = revisedTitle
+        if self.transcript != transcript { transcriptionEngineName = nil }
         guard self.transcript != transcript else { return }
         self.transcript = transcript
         transcriptRevision = UUID()
@@ -396,6 +400,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
 
     mutating func applyTranscription(_ output: TranscriptionOutput) {
         applyEdit(title: title, transcript: output.text)
+        transcriptionEngineName = output.engineName
         transcriptRevision = UUID()
         transcriptSegments = output.segments.isEmpty ? nil : output.segments
         speakerNames = nil

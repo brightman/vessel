@@ -47,6 +47,8 @@ swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConf
 
 swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionSettingsModel.swift Tests/TranscriptionSettingsSmoke.swift -o "$output/transcription"
 "$output/transcription"
+sh scripts/test_apple_asr_policy.sh
+sh scripts/test_asr_provenance.sh
 
 swiftc -module-cache-path "$output/cache" Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppleSpeechReservationCoordinator.swift Tests/AppleSpeechReservationsSmoke.swift -o "$output/reservations"
 "$output/reservations"

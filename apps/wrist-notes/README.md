@@ -163,6 +163,14 @@ xcrun simctl install booted /private/tmp/wiselife-simulator/Build/Products/Debug
 
 仅在构建成功后执行安装。此操作更新现有 App，保留其数据；不需要卸载 App 或重置模拟器。设备名称可替换成已有的 iOS 模拟器。模拟器使用临时签名，真机继续使用项目原有的开发者签名设置。
 
+如果 AI 设置页显示钥匙串错误 `-34018`，检查安装的是否为关闭代码签名的编译检查包。模拟器构建会使用 Bundle ID 作为隔离的钥匙串组；可在安装前检查 Xcode 生成的模拟器 entitlement：
+
+```sh
+python3 apps/wrist-notes/Tests/test_keychain_entitlements.py \\
+  --app /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseNote.app \\
+  --simulated-entitlements /private/tmp/wiselife-simulator/Build/Intermediates.noindex/WristNotes.build/Debug-iphonesimulator/WristNotes.build/WiseNote.app-Simulated.xcent
+```
+
 无需完整 App 或外部 AI 服务即可运行钥匙串回归检查（先启动一个 iOS 模拟器）：
 
 ```sh

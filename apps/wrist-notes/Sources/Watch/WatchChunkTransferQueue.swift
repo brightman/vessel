@@ -102,6 +102,15 @@ final class WatchChunkTransferQueue {
         guard binding == nil else { return }
         try sendHello(challenge ?? beginHandshake())
     }
+    /// A peer-level rejection means its in-memory receiver may have lost the
+    /// negotiated binding (for example after the iPhone app was relaunched).
+    /// Retain all source files and receipts, but negotiate a fresh binding before
+    /// the next file retry.
+    func retryAfterPeerRejection() throws {
+        if let binding { try clearRetryBackoff(for: binding) }
+        binding = nil
+        try requestCapability()
+    }
     var pendingHello: RecordingCapabilityHello? { challenge }
     func accept(_ reply: RecordingCapabilityReply) throws {
         guard reply.version == 2, let hello = challenge,
@@ -218,6 +227,15 @@ final class WatchChunkTransferQueue {
         let old = try? RecordingTransportDisk.read(Attempt.self, at: url)
         let count = min((old?.count ?? 0) + 1, 10)
         try RecordingTransportDisk.write(Attempt(count: count, retryAt: now().addingTimeInterval(min(30 * pow(2, Double(count - 1)), 900))), to: url)
+    }
+    private func clearRetryBackoff(for binding: RecordingTransferBinding) throws {
+        let keys = chunks.map { "chunk_\($0.id.uuidString)" } + ends.map { "end_\($0.sessionID.uuidString)_\($0.revision)" }
+        for key in keys {
+            let url = ledger("\(key).retry.json", binding: binding)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            try FileManager.default.removeItem(at: url)
+            try RecordingTransportDisk.syncDirectory(url.deletingLastPathComponent())
+        }
     }
     private func loadReceipts(for binding: RecordingTransferBinding, chunks: [RecordingChunkDescriptor],
                               ends: [RecordingSessionEnd], locations: [RecordingLocationSample]) throws -> ReceiptSnapshot {

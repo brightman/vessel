@@ -403,9 +403,6 @@ struct DaybookView: View {
                     VStack(alignment: .leading) { Text("录音时间待同步"); Text(LocalizedStringKey(RecordingSessionPresentation.status(session))).font(.caption) }
                 }
             }
-            ForEach(content.library.filter { segment in !content.records.contains { $0.id == segment.id } }) { segment in
-                Button { openRecord(segment.id) } label: { Label(segment.title.isEmpty ? "录音片段" : segment.title,systemImage:"waveform") }
-            }
             if let error = content.errorMessage { Text(LocalizedStringKey(error)).foregroundStyle(.orange); Button("重试") { content.refresh() } }
             if content.hasMore { Button("载入更早的片段") { content.loadMore() }.disabled(content.refreshing) }
             if sessions.hasMore { Button("载入更早的录音") { sessions.loadMore() }.disabled(sessions.loading) }
@@ -712,6 +709,7 @@ struct DaybookView: View {
             Button { present(.about) } label: {
                 DaybookOptionRow(icon: "BookOpen", title: "关于", subtitle: "常见问题与法律信息")
             }
+            AppReleaseInfoView()
         }
     }
     private func sourceRow(_ title: String, subtitle: String, icon: String, status: String, action: @escaping () -> Void) -> some View {

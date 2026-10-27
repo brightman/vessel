@@ -18,6 +18,22 @@ import SQLite3
         func remove(_ db: DaybookDatabase) throws { _ = try db.withConnection { sqlite3_trace_v2($0, 0, nil, nil) } }
     }
     @MainActor static func main() async throws {
+        let fieldSource = AudioSourceID(kind:.session,id:UUID())
+        func fieldSegment(_ classification:String?,title:String,summary:String,hasText:Bool = true,isFinal:Bool = true) -> ContentSegment {
+            var segment=ContentSegment(id:UUID(),sourceID:fieldSource,sourceRevision:1,ranges:[],title:title,summary:summary,
+                revision:1,isManual:false,isFinal:isFinal,boundaryReady:true,hasText:hasText,
+                provenance:.init(algorithmVersion:"test",configurationKey:"test",contentSignature:UUID().uuidString))
+            if let classification { segment.editorial = .init(classification:classification,engineVersion:"test",model:"test",evidenceBlockIDs:[]) }
+            return segment
+        }
+        let fieldSegments=(0..<4).map { _ in fieldSegment("meaningful",title:"标题",summary:"摘要") } +
+            (0..<3).map { _ in fieldSegment("lowInformation",title:"",summary:"") } +
+            [fieldSegment(nil,title:"",summary:""),fieldSegment("meaningful",title:"",summary:"",hasText:false),
+             fieldSegment("meaningful",title:"",summary:"",isFinal:false)]
+        let fieldCounts=ContentSegmentPresentation.fieldGenerationCounts(fieldSegments)
+        precondition(fieldCounts.eligible == 5 && fieldCounts.complete == 4,
+            "title/summary progress must exclude low-information, empty-text, and non-final segments while including unclassified short recordings")
+
         var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(secondsFromGMT: 0)!
         let day = cal.startOfDay(for: Date(timeIntervalSince1970: 1_700_000_000))
         let origin = day.addingTimeInterval(86_390), id = UUID(), parentID = UUID()
@@ -49,14 +65,14 @@ import SQLite3
         offsetFractional.contentProvenance?.ranges=[.init(chunkID:UUID(),startFrame:300,endFrame:900,sampleRate:1000,sourceOffset:0.3)]
         offsetFractional.contentProvenance?.transcript=[.init(start:0.4,end:0.9,text:"final punctuation。")]
         precondition(offsetFractional.recordingProjection(on:day,calendar:cal)?.text == "final punctuation。","fractional source offset preserves transcript exactly ending at the audio boundary")
-        var parent = DayRecord(id:parentID,capturedAt:origin,kind:.voice,title:"parent",text:"parent secret",duration:30,intervals:child.intervals)
+        var parent = DayRecord(id:parentID,capturedAt:origin,kind:.voice,title:"parent",text:"parent secret",duration:3600,intervals:[DateInterval(start:origin,duration:3600)])
         parent.recordingSessionID = parentID
         let scope = DateInterval(start:day,duration:86400)
         let records = DayRecord.evidenceRecords([parent,child],scope:scope)
         precondition(records.count == 1 && records.first?.id == id,"children replace parents")
         let rawOnly = DaybookRetrieval.originalRecordingRecords(query:"",records:[parent,child],dayStart:day,dayEnd:day.addingTimeInterval(86400))
         precondition(rawOnly.map(\.id) == [parentID],"original recording filter includes complete parent audio only")
-        precondition(rawOnly.first?.duration == 30,"original recording list preserves the full recording duration")
+        precondition(rawOnly.first?.duration == 3600,"original recording list preserves the full long recording duration")
         let rawSearch = DaybookRetrieval.originalRecordingRecords(query:"parent secret",records:[parent,child],dayStart:day,dayEnd:day.addingTimeInterval(86400))
         precondition(rawSearch.map(\.id) == [parentID],"original recording search stays within raw full recordings")
         var tomorrowChild = child
@@ -199,7 +215,7 @@ import SQLite3
         let failedStages = AudioProcessingPresentation(states:[.completed:1],asr:.init(failed:1),vad:.init(failed:1),speaker:.init(missingResource:1))
         precondition(failedStages.completedWindows == 1 && failedStages.totalWindows == 1 && failedStages.messages.contains(where: { $0.contains("语音转写") && $0.contains("失败") }) && failedStages.messages.contains(where: { $0.contains("语音活动检测") && $0.contains("失败") }) && failedStages.messages.contains(where: { $0.contains("说话人分析") && $0.contains("资源") }),"completed windows must expose independent stage failures and missing speaker resource")
         let skippedSpeaker = AudioProcessingPresentation(states:[.completed:1],asr:.init(success:1),vad:.init(success:1),speaker:.init(notRequested:1))
-        precondition(skippedSpeaker.messages.contains(where:{ $0.contains("跳过") && $0.contains("30 分钟") && $0.contains("时长未知") }),"protected speaker skip is explained without claiming success")
+        precondition(skippedSpeaker.messages.contains(where:{ $0.contains("说话人分析尚未执行") && $0.contains("时长未知") }),"unrequested speaker analysis is explained without claiming success")
         let cancelledStage = AudioProcessingPresentation(states:[.completed:1],asr:.init(cancelled:1),vad:.init(),speaker:.init())
         precondition(cancelledStage.messages.contains(where:{ $0.contains("语音转写") && $0.contains("取消") }),"stage cancellation remains visible independently of job state")
         print("Content presentation: boundary-straddling text/frames, scoped parent fallback, durable cache deletion, stage failure/missing/skip, citations, combined scope, gaps and old archives passed")

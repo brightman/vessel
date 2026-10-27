@@ -178,3 +178,7 @@ button{transition:background .18s,transform .18s}button:active:not(:disabled){tr
 }
 @media(max-width:360px){.app-view{padding-left:18px;padding-right:18px}.toolbar{padding-left:18px;padding-right:18px}.metrics{grid-template-columns:1.2fr 1fr 1fr}.metric{padding-left:12px}.metric-value{font-size:17px}.insight-card{padding:17px}.insight-card h3{font-size:20px}.capture-button{padding:11px;margin-left:5px}.bottom-nav{padding-left:15px;padding-right:15px}.action-form-grid:not(.stack){grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.about-release-info{margin:18px 0 8px;padding:14px 2px 0;border-top:1px solid var(--line);color:var(--secondary);font-size:12px;line-height:1.6}
+.about-release-info>div{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:5px 0}
+.about-release-info dt,.about-release-info dd{margin:0}.about-release-info dd{font-variant-numeric:tabular-nums;text-align:right}.about-release-info .release-example{font-size:10px;margin-left:7px}

@@ -538,7 +538,7 @@ actor ContentEnrichmentService {
 struct FoundationContentTextModel {
     static let configurationKey = "apple-foundation-zh-CN-v1"
     func respond(instruction:String,content:String) async throws -> String {
-        let model=SystemLanguageModel.default
+        let model=SystemLanguageModel(guardrails:.permissiveContentTransformations)
         guard case .available=model.availability, model.supportsLocale(Locale(identifier:"zh-CN")) else { throw ContentEnrichmentFailure.unavailable }
         let budget=ContentModelBudget.unknown(context:instruction)
         guard budget.tokenCount(content) <= budget.availableTranscriptTokens else { throw ContentEnrichmentFailure.invalidReply }
@@ -554,7 +554,7 @@ struct FoundationContentTextModel {
         return response.content
     }
     func respond(_ request: ContentLocalRequest) async throws -> ContentLocalReply {
-        let model=SystemLanguageModel.default
+        let model=SystemLanguageModel(guardrails:.permissiveContentTransformations)
         guard case .available=model.availability,
               model.supportsLocale(Locale(identifier:"zh-CN")) else { throw ContentEnrichmentFailure.unavailable }
         guard request.priorSummary.count <= 220, request.context.count <= 1200 else { throw ContentEnrichmentFailure.invalidReply }

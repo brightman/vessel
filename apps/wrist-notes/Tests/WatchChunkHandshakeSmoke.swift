@@ -53,6 +53,50 @@ import Foundation
         precondition(queue.binding == nil, "a failed ledger restore must not leave a half-accepted binding")
         precondition(queue.pendingHello == first, "the challenge must remain retryable after receipt restore fails")
 
-        print("Watch chunk handshake: duplicate start is idempotent; receipt restore is atomic")
+        var resentHellos: [RecordingCapabilityHello] = []
+        let reconnecting = try WatchChunkTransferQueue(
+            root: root.appendingPathComponent("reconnect"),
+            sendHello: { resentHellos.append($0) },
+            sendFile: { _, _ in }, sendEnd: { _ in })
+        let oldHello = try reconnecting.beginHandshake()
+        let oldBinding = RecordingTransferBinding(counterpart: counterpart, watchID: oldHello.watchID, nonce: oldHello.nonce)
+        try reconnecting.accept(.init(version: 2, versions: [2], binding: oldBinding,
+                                      maximumChunkDuration: 600, supportsLocationSamples: true))
+        precondition(reconnecting.binding == oldBinding, "the first capability handshake should establish a binding")
+        try reconnecting.retryAfterPeerRejection()
+        precondition(reconnecting.binding == nil, "a phone rejection must invalidate the stale binding")
+        precondition(resentHellos.count == 1, "a phone rejection must immediately renegotiate the transport")
+        precondition(resentHellos[0].generation == oldHello.generation + 1 && resentHellos[0].nonce != oldHello.nonce,
+                     "renegotiation must use a fresh generation and nonce")
+
+        var retryHello: RecordingCapabilityHello?
+        var retrySends = 0
+        let retryRoot = root.appendingPathComponent("peer-retry")
+        let retryAudio = retryRoot.appendingPathComponent("test.m4a")
+        try RecordingTransportDisk.directory(retryRoot)
+        try Data([1, 2, 3]).write(to: retryAudio)
+        let peerRetryQueue = try WatchChunkTransferQueue(root: retryRoot,
+            sendHello: { retryHello = $0 }, sendFile: { _, _ in retrySends += 1 }, sendEnd: { _ in })
+        let peerHello = try peerRetryQueue.beginHandshake()
+        let peerBinding = RecordingTransferBinding(counterpart: counterpart, watchID: peerHello.watchID, nonce: peerHello.nonce)
+        try peerRetryQueue.accept(.init(version: 2, versions: [2], binding: peerBinding,
+                                        maximumChunkDuration: 600, supportsLocationSamples: false))
+        try peerRetryQueue.update(chunks: [chunk], ends: [], audioURL: { _ in retryAudio })
+        try peerRetryQueue.pump(force: true)
+        precondition(retrySends == 1, "the initial upload should be scheduled")
+        let retryLedger = retryRoot.appendingPathComponent(counterpart.key)
+            .appendingPathComponent("chunk_\(chunkID.uuidString).retry.json")
+        precondition(FileManager.default.fileExists(atPath: retryLedger.path), "failed transfer backoff should be persisted")
+        try peerRetryQueue.retryAfterPeerRejection()
+        precondition(!FileManager.default.fileExists(atPath: retryLedger.path),
+                     "a peer rejection should clear stale backoff before renegotiation")
+        guard let freshHello = retryHello else { preconditionFailure("renegotiation must send a fresh hello") }
+        let freshBinding = RecordingTransferBinding(counterpart: counterpart, watchID: freshHello.watchID, nonce: freshHello.nonce)
+        try peerRetryQueue.accept(.init(version: 2, versions: [2], binding: freshBinding,
+                                        maximumChunkDuration: 600, supportsLocationSamples: false))
+        try peerRetryQueue.pump()
+        precondition(retrySends == 2, "a stale peer binding must retry immediately, without waiting for exponential backoff")
+
+        print("Watch chunk handshake: duplicate start is idempotent; receipt restore is atomic; peer rejection resets backoff and renegotiates")
     }
 }

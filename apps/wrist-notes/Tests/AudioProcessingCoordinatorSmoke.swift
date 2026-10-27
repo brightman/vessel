@@ -28,8 +28,9 @@ import Foundation
         try repo.register(source:source,configurationKey:"test",windows:windows)
         let beforeClaim = try repo.progress(sourceID:id).revision
         let first = try repo.claimNext()!
+        try require(try repo.stages(for:first) == [.asr,.speaker],"short recording initial claim unexpectedly requested VAD")
         try require(try repo.progress(sourceID:id).revision > beforeClaim,"claim did not advance observable source revision")
-        let partial = AudioWindowResult(spans:[.init(start:1,end:2,text:"synthetic")],activities:[],asr:.success,vad:.missingResource,speaker:.success,asrCoverage:[.init(start:0,end:300)],vadCoverage:[])
+        let partial = AudioWindowResult(spans:[.init(start:1,end:2,text:"synthetic")],activities:[],asr:.success,vad:.notRequested,speaker:.missingResource,asrCoverage:[.init(start:0,end:300)],vadCoverage:[])
         try repo.commit(job:first,result:partial)
         // A staged retry keeps the last committed snapshot visible while in flight.
         try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL WHERE id=?", [.text(first.window.id)])
@@ -47,9 +48,9 @@ import Foundation
         try require(try reader.spans(sourceID:id).count == 1,"cancelled replacement erased retained ASR")
         try repo.retryIncompleteStages(sourceID:id)
         retry = try repo.claimNext()!
-        try require(try repo.stages(for:retry) == [.vad],"partial retry selected successful or disabled stages")
-        try repo.commit(job:retry,delta:.init(result:.init(spans:[],activities:[.init(start:0,end:300,kind:.noSpeech)],asr:.notRequested,vad:.success,speaker:.notRequested,asrCoverage:[],vadCoverage:[.init(start:0,end:300)]),speakerSpanUpdates:[]))
-        try require(try repo.spans(sourceID:id).map(\.text) == ["synthetic"],"VAD retry erased retained text")
+        try require(try repo.stages(for:retry) == [.speaker],"partial retry selected successful or disabled stages")
+        try repo.commit(job:retry,delta:.init(result:.init(spans:[],activities:[],asr:.notRequested,vad:.notRequested,speaker:.success,asrCoverage:[],vadCoverage:[]),speakerSpanUpdates:[]))
+        try require(try repo.spans(sourceID:id).map(\.text) == ["synthetic"],"speaker retry erased retained text")
         try require(try repo.results(sourceID:id).first?.asr == .success,"VAD retry erased ASR outcome")
         // A suspended native boundary lets independent wakes/cancel/config changes race real storage.
         let state = InferenceState()
@@ -58,7 +59,7 @@ import Foundation
             do { try await Task.sleep(nanoseconds:2_000_000) }
             catch { await state.leave(); throw error }
             await state.leave()
-            return .init(result:.init(spans:stages.contains(.asr) ? [.init(start:window.coreStart+1,end:window.coreStart+2,text:"generated")] : [],activities:[],asr:stages.contains(.asr) ? .success : .notRequested,vad:.missingResource,speaker:stages.contains(.speaker) ? .success : .notRequested,asrCoverage:stages.contains(.asr) ? [.init(start:window.coreStart,end:window.coreEnd)] : [],vadCoverage:[]),speakerSpanUpdates:[])
+            return .init(result:.init(spans:stages.contains(.asr) ? [.init(start:window.coreStart+1,end:window.coreStart+2,text:"generated")] : [],activities:[],asr:stages.contains(.asr) ? .success : .notRequested,vad:.notRequested,speaker:stages.contains(.speaker) ? .missingResource : .notRequested,asrCoverage:stages.contains(.asr) ? [.init(start:window.coreStart,end:window.coreEnd)] : [],vadCoverage:[]),speakerSpanUpdates:[])
         })
         await withTaskGroup(of:Void.self) { group in
             for _ in 0..<12 { group.addTask { await worker.refresh() } }
@@ -80,11 +81,12 @@ import Foundation
         try require(await state.budgets.last == 150,"memory pressure failed to reduce native budget")
         let partialCalls = await state.calls
         await worker.resourcesAvailable(); await worker.waitUntilIdle()
-        try require(await state.calls == partialCalls + 2,"resource event failed to retry exactly the two missing VAD stages")
-        try require(await state.requestedStages.suffix(2).allSatisfy { $0 == [.vad] },"resource retry repeated successful ASR")
-        try require(try repo.spans(sourceID:id).count == 2,"resource retry erased successful source text")
+        let missingSpeakerWindows=max(0,windows.count-1)
+        try require(await state.calls == partialCalls + missingSpeakerWindows,"resource event failed to retry exactly the missing speaker stages")
+        try require(await state.requestedStages.suffix(missingSpeakerWindows).allSatisfy { $0 == [.speaker] },"resource retry repeated successful ASR")
+        try require(try repo.spans(sourceID:id).count == windows.count,"resource retry erased successful source text")
         await worker.refresh(); await worker.waitUntilIdle()
-        try require(await state.calls == partialCalls + 2,"missing VAD entered busy loop")
+        try require(await state.calls == partialCalls + missingSpeakerWindows,"missing speaker stage entered busy loop")
         let inner = try AudioAdaptiveInference.windows(windows[0],maximumCoreDuration:150)
         try require(inner.count == 2 && inner[0].coreEnd == 150 && inner[1].coreStart == 150,"adaptive cores changed ownership")
         try require(inner.allSatisfy { $0.inputDuration <= 154 },"adaptive native input not bounded")
@@ -117,7 +119,8 @@ import Foundation
         try require(!(await unavailable.storageUnavailable),"empty successful unlock left stale unavailable storage")
         let receivingID = AudioSourceID(kind:.session,id:UUID())
         try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(receivingID.id.uuidString)])
-        let receiving = try AudioSourceSnapshot(id:receivingID,capturedAt:source.capturedAt,title:"receiving",ranges:[range],complete:false)
+        let receivingRange = try AudioSourceRange(range:.init(chunkID:UUID(),url:root.appendingPathComponent("receiving.wav"),startFrame:0,endFrame:9_600_000,sampleRate:16000),contentHash:String(repeating:"b",count:64))
+        let receiving = try AudioSourceSnapshot(id:receivingID,capturedAt:source.capturedAt,title:"receiving",ranges:[receivingRange],complete:false)
         let receivingState = InferenceState()
         let receivingWorker = AudioProcessingCoordinator(open:{repo},configuration:.init(),discover:{ _ in [receiving] },infer:{ window,_,stages,duration,_,budget in
             await receivingState.enter(window:window,stages:stages,budget:budget,duration:duration); await receivingState.leave()
@@ -125,7 +128,7 @@ import Foundation
         })
         await receivingWorker.refresh(); await receivingWorker.waitUntilIdle()
         try require(await receivingState.durations == [nil],"receiving source incorrectly advertised a known full duration to speaker inference")
-        let finalized = try AudioSourceSnapshot(id:receivingID,capturedAt:source.capturedAt,title:"receiving",ranges:[range],complete:true)
+        let finalized = try AudioSourceSnapshot(id:receivingID,capturedAt:source.capturedAt,title:"receiving",ranges:[receivingRange],complete:true)
         let receivingKey = try repo.progress(sourceID:receivingID).configurationKey!
         try repo.register(source:finalized,configurationKey:receivingKey,windows:AudioWindowPlanner.plan(source:finalized,configurationKey:receivingKey))
         let finalTail = try repo.claimNext()!

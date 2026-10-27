@@ -235,12 +235,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                     duration:duration,sourceComplete:source.complete)
             }) else { return .stale }
             guard topicAction != .waitForSourceCompletion else { return .idle }
-            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
             let modelKey=ConfiguredContentTextModel.configurationKey(configuration)
-            let budget=router.summaryBudget(context:"")
-            let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
-            let modelIdentity=modelKey+"|"+(configuration.model)
-            let topicSplitting=topicAction == .splitTopics
             let fields=ContentEnrichmentService(modelKey:modelKey,model:{ try await router.respond($0) },store:{ [weak self] command in
                 try Task.checkCancellation()
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
@@ -254,6 +249,13 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
                 return result
             }
+            // Short recordings intentionally have no Content V2 input: they skip
+            // topic splitting and classification, but still need title and summary.
+            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
+            let budget=router.summaryBudget(context:"")
+            let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
+            let modelIdentity=modelKey+"|"+(configuration.model)
+            let topicSplitting=topicAction == .splitTopics
             let alreadyPublished=try await worker.withRepository {
                 try ContentSegmentRepository(database:$0.derivedDatabase).hasPublishedContentV2(sourceID:id,input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
             }

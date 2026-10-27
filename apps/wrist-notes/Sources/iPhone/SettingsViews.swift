@@ -68,6 +68,7 @@ struct SettingsView: View {
                     SettingsRow(symbol: "info.circle", title: "关于", subtitle: "常见问题与法律信息")
                 }
                 .settingsCard()
+                AppReleaseInfoView()
             }
         }
     }
@@ -421,5 +422,23 @@ extension View {
     func settingsCard() -> some View {
         self.overlay(alignment: .bottom) { Rectangle().fill(DaybookStyle.line).frame(height: 1) }
             .buttonStyle(.plain)
+    }
+}
+
+struct AppReleaseInfoView: View {
+    @Environment(\.locale) private var locale
+    private let release = AppReleaseInfo()
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack { Text("版本号"); Spacer(); Text(verbatim: release.versionLabel) }
+            HStack {
+                Text("发布时间"); Spacer()
+                if let date = release.releaseLabel(locale: locale) { Text(verbatim: date) }
+                else { Text("未提供") }
+            }
+        }
+        .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+        .monospacedDigit().padding(.top, 16)
+        .accessibilityIdentifier("settings.releaseInfo")
     }
 }

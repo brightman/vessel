@@ -193,9 +193,18 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                 let hello = try RecordingChunkWire.decode(RecordingCapabilityHello.self, key: RecordingChunkProtocol.capabilityKey, from: message)
                 let response = try transportLock.withLock { () throws -> RecordingCapabilityReply in
                     guard let pairing = activePairingID else { throw RecordingTransportError.unavailable }
+                    let previousBinding = chunkReceiver.currentBinding
                     let response = try chunkReceiver.negotiate(hello, systemPairingID: pairing)
                     guard activePairingID == pairing else { chunkReceiver.setBinding(nil); throw RecordingTransportError.unavailable }
                     chunkSystemPairingID = pairing
+#if targetEnvironment(simulator)
+                    if previousBinding != response.binding {
+                        // Part sets are only in memory and are bound to the old envelope.
+                        // On a fresh handshake, discard them so retries with the same
+                        // transfer IDs can use the new binding instead of conflicting.
+                        simulatorChunkAssembler.reset()
+                    }
+#endif
                     return response
                 }
                 let payload: [String: Any] = [RecordingChunkProtocol.capabilityKey: try JSONEncoder().encode(response)]

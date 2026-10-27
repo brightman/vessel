@@ -108,6 +108,7 @@
 		770D97A2D15E9E9AA4F56DD2 /* WatchRecordingLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20346C78522ABF905DCB3D98 /* WatchRecordingLauncher.swift */; };
 		7BA49D727A8987FE2F6A00EE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 080E9A2FC12C5C761058BB30 /* Foundation.framework */; };
 		7BBE964FFDF48CB1FA55A02D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 27C19C41829C22601A422B43 /* Localizable.xcstrings */; };
+		7DB240151602A08183B79AB3 /* AppReleaseInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79DDBEAA0A1B816672E4294B /* AppReleaseInfo.swift */; };
 		7E33BB924BB1655F4C6C06DB /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6B1886AAE87D0E35474ED3 /* PhoneConnectivity.swift */; };
 		7E44F6F0A1F29B1F1D5EB398 /* WatchSyncSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD4672AD58ABEC078709825 /* WatchSyncSnapshot.swift */; };
 		7E5ED6F9A040D5AFF3D2AE0A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F5CCA06757C91D83B7970789 /* PrivacyInfo.xcprivacy */; };
@@ -411,6 +412,7 @@
 		747A351492FDE25E6FE7B971 /* DaybookInsightService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookInsightService.swift; sourceTree = "<group>"; };
 		7608DFC30346AD7478B4F262 /* LifeMomentBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LifeMomentBuilder.swift; sourceTree = "<group>"; };
 		7927F4B170EC7C4557B48023 /* DaybookStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookStyle.swift; sourceTree = "<group>"; };
+		79DDBEAA0A1B816672E4294B /* AppReleaseInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppReleaseInfo.swift; sourceTree = "<group>"; };
 		7A299FE3E12A69E9EB8FCF92 /* Pods_WristNotes.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WristNotes.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7AA1C3DED7C5CF1511CAD136 /* RecordingSessionRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingSessionRepository.swift; sourceTree = "<group>"; };
 		7BBC767C6D879319E873289B /* ChatGPTAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTAPI.swift; sourceTree = "<group>"; };
@@ -758,6 +760,7 @@
 				B1B2AD346C783F4CEFBE563F /* NearbyMacClient.swift */,
 				E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */,
 				EAF7A0883DE81D706D708903 /* NearbyMacScanner.swift */,
+				79DDBEAA0A1B816672E4294B /* AppReleaseInfo.swift */,
 			);
 			path = iPhone;
 			sourceTree = "<group>";
@@ -1013,6 +1016,7 @@
 				27A4466C36AA65F80DC2A03D /* Resources */,
 				444E0331A23472D0E1ABC438 /* Embed Watch Content */,
 				109DBC555D2EDAE7D3E0ADBA /* Embed Recording Activity */,
+				06BC47E7C508A58F744857EA /* Write build metadata */,
 			);
 			buildRules = (
 			);
@@ -1123,6 +1127,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		06BC47E7C508A58F744857EA /* Write build metadata */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/write_build_metadata.sh",
+			);
+			name = "Write build metadata";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BuildMetadata.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/write_build_metadata.sh\"";
+		};
 		399C6E79C88681F9BB554BED /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1340,6 +1365,7 @@
 				F0F2D6456FB5CB5D1434668D /* NearbyMacClient.swift in Sources */,
 				F2BED047DA75FAE2590ECC3B /* NearbyMacSettingsView.swift in Sources */,
 				F77374A327B29654007F9FDA /* NearbyMacScanner.swift in Sources */,
+				7DB240151602A08183B79AB3 /* AppReleaseInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1696,6 +1722,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = S56V68L4NP;
@@ -1789,6 +1816,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = S56V68L4NP;

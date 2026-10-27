@@ -23,6 +23,7 @@ struct AudioProcessingStatus: Sendable {
     let vad: AudioStageProgress
     let speaker: AudioStageProgress
     var sourceUnavailable = false
+    var asrEngineNames: [String] = []
 }
 struct AudioProcessingChange: Sendable {
     let status: AudioProcessingStatus
@@ -165,8 +166,11 @@ actor AudioProcessingCoordinator {
     func status(_ sourceID: AudioSourceID) throws -> AudioProcessingStatus {
         let repository = try storage()
         var asr = AudioStageProgress(), vad = AudioStageProgress(), speaker = AudioStageProgress()
-        for result in try repository.results(sourceID:sourceID) { asr.add(result.asr); vad.add(result.vad); speaker.add(result.speaker) }
-        return AudioProcessingStatus(sourceID:sourceID,progress:try repository.progress(sourceID:sourceID),asr:asr,vad:vad,speaker:speaker,sourceUnavailable:unavailableSources.contains(sourceID))
+        let results = try repository.results(sourceID:sourceID)
+        for result in results { asr.add(result.asr); vad.add(result.vad); speaker.add(result.speaker) }
+        let engineNames = Set(results.filter { $0.asr == .success }.compactMap(\.asrEngineName)).sorted()
+        return AudioProcessingStatus(sourceID:sourceID,progress:try repository.progress(sourceID:sourceID),asr:asr,vad:vad,speaker:speaker,
+            sourceUnavailable:unavailableSources.contains(sourceID),asrEngineNames:engineNames)
     }
     /// Synchronous operations execute only on this worker. Never retain the repository across this closure.
     func withRepository<T: Sendable>(_ operation: @Sendable (AudioProcessingRepository) throws -> T) throws -> T {
@@ -183,7 +187,8 @@ actor AudioProcessingCoordinator {
             spans += page; offset += page.count
             if page.count < 1000 { break }
         }
-        return TranscriptionOutput(text:spans.map(\.text).joined(),segments:spans.map { .init(start:$0.start,end:$0.end,text:$0.text,speakerID:$0.speakerID) })
+        return TranscriptionOutput(text:spans.map(\.text).joined(),segments:spans.map { .init(start:$0.start,end:$0.end,text:$0.text,speakerID:$0.speakerID) },
+            engineName:state.asrEngineNames.joined(separator:" / "))
     }
     private func publish(_ sourceID: AudioSourceID, committed: Bool) throws {
         changed(AudioProcessingChange(status:try status(sourceID),committed:committed))

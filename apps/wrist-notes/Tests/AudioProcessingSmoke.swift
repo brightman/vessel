@@ -14,6 +14,11 @@ import Foundation
         defer { try? FileManager.default.removeItem(at: root) }
         let origin = AudioSourceOrigin(recordingOrigin: RecordingOrigin(device: "synthetic", deviceID: "fixture", fileName: "fixture.wav", recordingTimeIsEstimated: false))
         try expect(origin.recordingOrigin.deviceID == "fixture", "origin retains immutable metadata")
+        try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:16) == [.asr,.speaker], "short completed recordings skip VAD while retaining ASR and independent speaker analysis")
+        try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:1_800) == [.asr,.speaker], "the exact thirty-minute boundary skips VAD")
+        try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:1_801) == .all, "recordings beyond thirty minutes request VAD for topic processing")
+        try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:nil) == .all, "unknown duration keeps the existing conservative processing route")
+        try shortRecordingCrossingThresholdRequestsVAD()
         let id = AudioSourceID(kind: .session, id: UUID())
         let chunk = UUID()
         func range(_ start: Double, _ duration: Double, chunkID: UUID = UUID(), gap: String? = nil) throws -> AudioSourceRange {
@@ -81,7 +86,7 @@ import Foundation
         try expect(try AudioWindowPlanner.ownedSpans(repeated, window: windows[0]).isEmpty, "half open midpoint")
         try expect(try AudioWindowPlanner.ownedSpans(repeated, window: windows[1]).count == 2, "equal words survive by time")
         let transcript = [AudioTranscriptSpan(start: 1, end: 2, text: "first"), AudioTranscriptSpan(start: 3, end: 4, text: "second")]
-        try expect(AudioTranscriptPresentation.fullText(transcript) == "first\nsecond", "full transcript preserves every span in time order")
+        try expect(AudioTranscriptPresentation.fullText(transcript) == "firstsecond", "full transcript preserves every span in time order without splitting one-character ASR rows into lines")
         rejects { _ = try source([first, first]) }
         rejects { _ = try range(.infinity, 1) }
         rejects { _ = try AudioSourceRange(range: RecordingSourceRange(chunkID: UUID(), url: root, startFrame: 2, endFrame: 1, sampleRate: 16000), contentHash: "hash") }
@@ -164,5 +169,27 @@ import Foundation
         let disguised = try AudioSourceRange(range: RecordingSourceRange(chunkID: UUID(), url: first.url, startFrame: 0, endFrame: 16000, sampleRate: 16000, sessionStartOffset: 302), contentHash: first.contentHash)
         rejects { _ = try source([first, disguised]) }
         print("AudioProcessingSmoke passed: bounded/gapped/append plans, timestamp ownership, SQLite atomic rollback/reopen, leases, versions, outcomes, cancellation and tombstones")
+    }
+
+    static func shortRecordingCrossingThresholdRequestsVAD() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let db=try DaybookDatabase(inMemory:true),id=AudioSourceID(kind:.session,id:UUID())
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(id.id.uuidString)])
+        let chunkID=UUID(uuidString:"11111111-1111-4111-8111-111111111111")!
+        func makeSource(_ duration:Double) throws -> AudioSourceSnapshot {
+            let range=try AudioSourceRange(range:.init(chunkID:chunkID,url:root.appendingPathComponent("growing.wav"),startFrame:0,endFrame:Int64(duration*16_000),sampleRate:16_000),contentHash:String(repeating:"a",count:64))
+            return try AudioSourceSnapshot(id:id,capturedAt:Date(timeIntervalSinceReferenceDate:0),title:"growing",ranges:[range],complete:true)
+        }
+        let repository=AudioProcessingRepository(database:db),short=try makeSource(600),key="grow"
+        try repository.register(source:short,configurationKey:key,windows:AudioWindowPlanner.plan(source:short,configurationKey:key))
+        let job=try repository.claimNext()!
+        try expect(try repository.stages(for:job) == [.asr,.speaker],"short source stage selection unexpectedly requested VAD")
+        try repository.commit(job:job,result:.init(spans:[.init(start:1,end:2,text:"short")],activities:[],asr:.success,vad:.notRequested,speaker:.success,asrCoverage:[.init(start:0,end:300)],vadCoverage:[]))
+        let long=try makeSource(1_801)
+        try repository.register(source:long,configurationKey:key,windows:AudioWindowPlanner.plan(source:long,configurationKey:key))
+        let upgraded=try repository.claimNext()!
+        try expect(try repository.stages(for:upgraded) == [.vad],"recording crossing thirty minutes did not schedule VAD for retained ASR")
     }
 }

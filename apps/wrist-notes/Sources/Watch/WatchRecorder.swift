@@ -478,7 +478,16 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                     guard let self, self.simulatorChunkTransfers[chunkID] == attemptID else { return }
                     guard reply["accepted"] as? Bool == true else {
                         self.logger.error("iPhone rejected simulator V2 part \(index, privacy: .public); Watch original retained")
-                        self.simulatorChunkTransfers.removeValue(forKey: chunkID)
+                        // Cancel every in-flight attempt carrying the old binding.
+                        // Their late callbacks are ignored; a single handshake then
+                        // restarts the bounded batch with the fresh envelope.
+                        self.simulatorChunkTransfers.removeAll()
+                        do {
+                            try self.chunkQueue?.retryAfterPeerRejection()
+                            self.updateConnectivityStatus()
+                        } catch {
+                            self.logger.error("Simulator V2 renegotiation deferred: \(error.localizedDescription, privacy: .public)")
+                        }
                         return
                     }
                     if let next = SimulatorChunkedFileTransfer.nextPart(afterAccepted: index, total: parts.count) {

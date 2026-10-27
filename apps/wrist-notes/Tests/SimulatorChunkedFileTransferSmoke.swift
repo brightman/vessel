@@ -41,6 +41,21 @@ import Foundation
         for part in retriedParts { resumed = try retryAssembler.append(part) ?? resumed }
         precondition(resumed?.envelope == envelope && resumed?.audio == audio,
                      "retrying an incomplete chunk must reuse the same assembler slot and complete")
+
+        var renegotiatingAssembler = SimulatorChunkedFileAssembler()
+        let oldBindingEnvelope = Data(repeating: 0x11, count: 384)
+        let oldParts = try SimulatorChunkedFileTransfer.split(audio, envelope: oldBindingEnvelope,
+                                                               transferID: retryTransferID)
+        let oldPartial = try renegotiatingAssembler.append(oldParts[0])
+        precondition(oldPartial == nil)
+        renegotiatingAssembler.reset()
+        let newBindingEnvelope = Data(repeating: 0x22, count: 384)
+        let newParts = try SimulatorChunkedFileTransfer.split(audio, envelope: newBindingEnvelope,
+                                                               transferID: retryTransferID)
+        var renegotiated: (envelope: Data, audio: Data)?
+        for part in newParts { renegotiated = try renegotiatingAssembler.append(part) ?? renegotiated }
+        precondition(renegotiated?.envelope == newBindingEnvelope && renegotiated?.audio == audio,
+                     "a new capability binding must discard stale partial parts for the same chunk ID")
         print("Simulator V2 file parts reassemble and deduplicate")
     }
 }

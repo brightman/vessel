@@ -22,6 +22,8 @@ final class ContentSegmentRepository {
     /// explicit coverage hole and makes only dependent chapters provisional.
     func contentV2Input(sourceID: AudioSourceID) throws -> ContentSegmentationV2.Input? {
         guard let descriptor = try source(sourceID) else { return nil }
+        let sourceDuration=descriptor.ranges.reduce(0) { $0 + $1.duration }
+        guard sourceDuration > AudioInferenceStagePolicy.topicSplittingThreshold else { return nil }
         let progress = try processing.progress(sourceID:sourceID)
         guard let configurationKey = progress.configurationKey else { return nil }
         let jobs = try db.query("SELECT id,window,result,result_hash,state FROM audio_processing_jobs WHERE source_key=? AND active=1 AND configuration_key=? ORDER BY core_start,id",[.text(sourceID.key),.text(configurationKey)])
@@ -34,8 +36,7 @@ final class ContentSegmentRepository {
             guard result.asr == .success else { return nil }
             results.append((try row.requiredString("id"),try DaybookDatabase.decode(AudioProcessingWindow.self,row["window"]),result))
         }
-        let sourceDuration = descriptor.ranges.map(\.end).max() ?? 0
-        guard sourceDuration.isFinite, sourceDuration > 0 else { return nil }
+        guard sourceDuration.isFinite, sourceDuration > AudioInferenceStagePolicy.topicSplittingThreshold else { return nil }
         var spans: [ContentSegmentationV2.Span] = []
         for (jobID,_,_) in results {
             for row in try db.query("SELECT position,start,end,text FROM audio_transcript_spans WHERE job_id=? ORDER BY position",[.text(jobID)]) {
@@ -275,6 +276,8 @@ final class ContentSegmentRepository {
     private func prepareDerivation(sourceID: AudioSourceID) throws -> DerivationPlan? {
         traversal = .init()
         guard let source = try source(sourceID) else { return nil }
+        let effectiveDuration=source.ranges.reduce(0) { $0 + $1.duration }
+        let keepAsSingleRecording=effectiveDuration <= AudioInferenceStagePolicy.topicSplittingThreshold
         let progress = try processing.progress(sourceID:sourceID)
         guard let key = progress.configurationKey else { return nil }
         let jobs = try jobRows(sourceID:sourceID,columns:"j.window,j.result_hash").map {
@@ -316,7 +319,17 @@ final class ContentSegmentRepository {
             traversal.maximumPageRows = max(traversal.maximumPageRows,jobs.count)
             for job in jobs {
                 let result = try DaybookDatabase.decode(AudioWindowResult.self,job["result"])
-                if result.asr == .success { asrCovered = ContentSegmentation.normalized(asrCovered+result.asrCoverage) }
+                if result.asr == .success {
+                    asrCovered = ContentSegmentation.normalized(asrCovered+result.asrCoverage)
+                    if keepAsSingleRecording && result.vad != .success {
+                        // For short recordings, successful ASR coverage itself proves
+                        // the whole-source boundary. New short jobs skip VAD; when
+                        // retained historical VAD exists, the normal evidence path below
+                        // still preserves its prior blank/speech distinctions.
+                        covered = ContentSegmentation.normalized(covered+result.asrCoverage)
+                        continue
+                    }
+                }
                 guard result.asr == .success && result.vad == .success else { continue }
                 let valid = ContentSegmentation.intersect(ContentSegmentation.normalized(result.asrCoverage),ContentSegmentation.normalized(result.vadCoverage))
                 covered = ContentSegmentation.normalized(covered + valid)
@@ -366,8 +379,6 @@ final class ContentSegmentRepository {
             if page.count < pageSize { break }
         }
         let asrEmpty=ContentSegmentation.subtract(asrCovered,transcriptRanges+silence)
-        let effectiveDuration=source.ranges.reduce(0) { $0 + $1.duration }
-        let keepAsSingleRecording=effectiveDuration <= 30 * 60
         let built = try ContentSegmentation.build(source:source,reliableNoSpeech:silence,successfulCoverage:covered,asrEmpty:asrEmpty,transcriptRanges:transcriptRanges,
                                                    keepAsSingleRecording:keepAsSingleRecording)
         // Accepted automatic cuts belong to an exact derivation input. Configuration/text/source

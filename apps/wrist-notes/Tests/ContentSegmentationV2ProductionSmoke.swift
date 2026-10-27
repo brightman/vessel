@@ -32,6 +32,12 @@ import Foundation
                   "closed recordings beyond thirty minutes use topic segmentation")
         try check(V.LongRecordingTopicPolicy.action(duration:1_000,sourceComplete:true) == .keepWholeRecording,
                   "chunk count does not trigger topic segmentation below thirty minutes")
+        try check(V.LongRecordingTopicPolicy.stageDisposition(duration:16,sourceComplete:true) == .skippedWholeRecording,
+                  "a completed short recording is displayed as skipping the topic stage")
+        try check(V.LongRecordingTopicPolicy.stageDisposition(duration:16,sourceComplete:false) == .waitingForSourceCompletion,
+                  "an incomplete short recording waits instead of showing topic analysis")
+        try check(V.LongRecordingTopicPolicy.stageDisposition(duration:1_801,sourceComplete:false) == .processTopics,
+                  "a recording beyond thirty minutes displays topic processing")
 
         let input=fixture(), plan=try V.prepare(input), ids=plan.blocks.map(\.id)
         let chapter=V.ChapterReply(chapterID:plan.chapters[0].id,segments:[

@@ -80,7 +80,9 @@ final class AppSettings: ObservableObject {
         let locale = Locale(identifier: interfaceLanguage.rawValue)
         if transcription.engine == .apple {
             let language = locale.localizedString(forIdentifier: transcription.appleLocale) ?? transcription.appleLocale
-            return interfaceLanguage == .japanese ? "iPhone内で文字起こし · \(language)" : "On-device transcription · \(language)"
+            return interfaceLanguage == .japanese
+                ? "SpeechTranscriber 優先 · DictationTranscriber フォールバック · \(language)"
+                : "SpeechTranscriber first · DictationTranscriber fallback · \(language)"
         }
         let language = transcription.whisperLanguage == "auto" ? (interfaceLanguage == .japanese ? "自動検出" : "Auto detect")
             : (locale.localizedString(forLanguageCode: transcription.whisperLanguage) ?? transcription.whisperLanguage)
