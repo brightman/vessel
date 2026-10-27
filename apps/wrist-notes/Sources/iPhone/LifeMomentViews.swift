@@ -10,6 +10,7 @@ struct LifeMomentDetailView: View {
     private var current: DayRecord { model.records.first { $0.id == record.id } ?? record }
     private var title: String {
         if record.lifeMoment?.steps != nil { return "昨日累计步数" }
+        if record.lifeMoment?.workout != nil { return "体能训练" }
         if record.lifeMoment?.sleep != nil { return "起床与睡眠" }
         return "位置变化"
     }
@@ -18,6 +19,7 @@ struct LifeMomentDetailView: View {
             VStack(alignment: .leading, spacing: 22) {
                 if let steps = current.lifeMoment?.steps { stepsContent(steps) }
                 if let sleep = current.lifeMoment?.sleep { sleepContent(sleep) }
+                if let workout = current.lifeMoment?.workout { workoutContent(workout) }
                 if let movement = current.lifeMoment?.movement { movementContent(movement) }
                 if model.isStale(current), current.lifeMoment?.movement == nil {
                     Text("来源刷新失败；这是可能已过期的本机快照。").font(.caption).foregroundStyle(.orange)
@@ -28,6 +30,22 @@ struct LifeMomentDetailView: View {
                     Text("仅移除此片段，保留 Apple 健康数据、原始录音和照片。").font(.caption).foregroundStyle(DaybookStyle.secondary)
                 }.padding(.top, 8)
             }.padding(.top, 8)
+        }
+    }
+
+    private func workoutContent(_ workout: WorkoutMoment) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text(workout.activity).font(.title2.bold())
+            field("开始", value: stamp(workout.startedAt))
+            field("结束", value: stamp(workout.endedAt))
+            let seconds = Int(workout.duration)
+            field("训练持续时长", value: "\(seconds / 3600)小时\(seconds / 60 % 60)分\(seconds % 60)秒")
+            field("距离", value: workout.distanceMeters.map { String(format: "%.2f 公里", $0 / 1000) } ?? "未提供")
+            field("活动能量", value: workout.activeKilocalories.map { String(format: "%.0f 千卡", $0) } ?? "未提供")
+            field("来源", value: workout.sourceName)
+            if workout.manuallyEntered { explanation("此训练为手动录入，不是设备自动测量。") }
+            explanation("训练持续时长不等于锻炼圆环分钟数。跨午夜训练完整归属开始当天；不同来源可能重复，不与每日步数或能量相加。")
+            refreshButton(day: workout.startedAt)
         }
     }
 

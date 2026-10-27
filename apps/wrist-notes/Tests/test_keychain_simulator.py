@@ -30,6 +30,9 @@ def main():
             "CFBundlePackageType": "APPL", "CFBundleVersion": "1",
         }))
         sources = [root / "Sources/iPhone" / name for name in [
+            "ChatGPTProtocol.swift", "ChatGPTIDToken.swift", "ChatGPTAPI.swift",
+            "ChatGPTAccountStore.swift", "ChatGPTBrowserAuthorization.swift",
+            "ChatGPTLoopback.swift", "ChatGPTAccountModel.swift",
             "AIConfiguration.swift", "TranscriptionConfiguration.swift",
             "AppSettings.swift", "KeychainSecretStore.swift",
         ]]

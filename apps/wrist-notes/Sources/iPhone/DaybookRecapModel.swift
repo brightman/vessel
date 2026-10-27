@@ -23,6 +23,7 @@ import Foundation
     }
     @Published private(set) var entries: [DaybookRecapEntry] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isRefreshing = false
     @Published private(set) var isGenerating = false
     @Published private(set) var storageError: String?
     @Published private(set) var message: String?
@@ -38,6 +39,8 @@ import Foundation
     private var epoch = UUID()
     private var generation = UUID()
     private var activeAttempt: DaybookRecapEntry?
+    private var archiveRevision = 0
+    private var visibleRecords: [DayRecord] = []
 
     init(store: DaybookRecapStore = DaybookRecapStore(), service: (any DaybookRecapGenerating)? = nil) {
         self.store = store; self.service = service ?? DaybookRecapService()
@@ -52,27 +55,63 @@ import Foundation
 
     func synchronize(day: Date, records: [DayRecord], revisions: [Int], settings: AppSettings, allowedKinds: Set<DayRecord.Kind>, foreground: Bool, capturing: Bool) {
         self.settings = settings
-        let recordFingerprint = DaybookRecapInput.digest(records.map(DaybookRecapInput.factDigest).sorted())
+        let scope = Calendar.current.dateInterval(of:.day,for:day)!
+        let relevant = DayRecord.evidenceRecords(records,scope:scope).filter { allowedKinds.contains($0.kind) }
+        let recordFingerprint = DaybookRecapInput.digest(relevant.map(DaybookRecapInput.factDigest).sorted())
         let next = Context(day: Calendar.current.startOfDay(for: day), recordFingerprint: recordFingerprint, revisions: revisions,
             configuration: settings.ai, revision: settings.aiRevision, language: settings.interfaceLanguage.rawValue,
             requiresConfirmation: settings.requiresRemoteAIConfirmation, allowedKinds: allowedKinds, foreground: foreground, capturing: capturing)
-        guard context != next else { return }
-        context = next; reload()
+        let hadInput = input != nil
+        let changedIDs = changedVisibleRecords(from:visibleRecords,to:records)
+        visibleRecords = records
+        let affected = Set(entries.filter { entry in entry.references.contains { changedIDs.contains($0.id) } }.map(\.dayKey))
+        if !affected.isEmpty {
+            if let activeAttempt, affected.contains(activeAttempt.dayKey) { cancelGeneration(persistAttempt:false) }
+            entries.removeAll { affected.contains($0.dayKey) }
+            for key in affected { inputs.removeValue(forKey:key); sourceRecords.removeValue(forKey:key) }
+            archiveRevision += 1
+        }
+        guard context != next || !affected.isEmpty else { return }
+        let previous = context
+        let reset = previous == nil || previous?.day != next.day || previous?.allowedKinds != next.allowedKinds
+            || previous?.foreground != next.foreground || previous?.capturing != next.capturing
+            || previous?.configuration != next.configuration || previous?.revision != next.revision
+            || previous?.language != next.language || previous?.requiresConfirmation != next.requiresConfirmation
+        context = next
+        refresh(preservingExisting: !reset && hadInput)
+    }
+    private func changedVisibleRecords(from old: [DayRecord], to new: [DayRecord]) -> Set<UUID> {
+        let current = Dictionary(new.map { ($0.id,$0) },uniquingKeysWith:{ _,last in last })
+        let rawParents = Set(new.filter { $0.kind == .voice && $0.contentProvenance == nil }.map { $0.recordingSessionID ?? $0.id })
+        return Set(old.compactMap { record in
+            if let next = current[record.id] { return DaybookRecapInput.factDigest(record) == DaybookRecapInput.factDigest(next) ? nil : record.id }
+            // A selected-day UI cache can temporarily project the original parent;
+            // that is not evidence that one of its persisted children was deleted.
+            if let source = record.contentProvenance?.sourceID, rawParents.contains(source) { return nil }
+            return record.id
+        })
     }
     func reload() {
-        cancel(); task?.cancel(); epoch = UUID()
-        entries = []; inputs = [:]; sourceRecords = [:]; message = nil; storageError = nil
+        refresh(preservingExisting:false)
+    }
+    private func refresh(preservingExisting: Bool) {
+        if !preservingExisting { cancel() }
+        task?.cancel(); epoch = UUID()
+        if !preservingExisting { entries = []; inputs = [:]; sourceRecords = [:]; message = nil }
+        storageError = nil
         if let old = context, let settings {
             context = Context(day: old.day, recordFingerprint: old.recordFingerprint, revisions: old.revisions,
                 configuration: settings.ai, revision: settings.aiRevision, language: settings.interfaceLanguage.rawValue,
                 requiresConfirmation: settings.requiresRemoteAIConfirmation, allowedKinds: old.allowedKinds,
                 foreground: old.foreground, capturing: old.capturing)
         }
-        guard let context, context.foreground, scopeLoader != nil else { isLoading = false; return }
-        let token = epoch; isLoading = true
+        guard let context, context.foreground, scopeLoader != nil else { isLoading = false; isRefreshing = false; return }
+        let token = epoch
+        isLoading = !preservingExisting; isRefreshing = true
         task = Task { [weak self] in
             guard let self else { return }
             do {
+                let savedRevision = archiveRevision
                 let saved = try store.load()
                 var validated: [DaybookRecapEntry] = [], prepared: [String: DaybookRecapInput] = [:], sourceMap: [String: [UUID: DayRecord]] = [:]
                 // Full dated reads are required even for historical archive entries outside UI pagination.
@@ -83,15 +122,22 @@ import Foundation
                           let scope = Calendar.current.dateInterval(of: .day, for: date) else { throw DaybookRecapFailure.storage }
                     let records = try await readRecords(scope)
                     try Task.checkCancellation(); guard epoch == token else { return }
+                    guard archiveRevision == savedRevision else { refresh(preservingExisting:true); return }
                     let next = DaybookRecapInput.prepare(records: records, day: date, allowedKinds: context.allowedKinds)
                     if next.references.isEmpty {
                         // Keep a data-free day marker so an earlier generation does not run again
                         // automatically after records are deleted or permissions are revoked.
                         let marker = DaybookRecapEntry(input: next)
-                        try store.save(marker); prepared[next.dayKey] = next; validated.append(marker); continue
+                        if activeAttempt?.dayKey == entry.dayKey { cancelGeneration(persistAttempt:false) }
+                        if entry != marker { try store.save(marker) }
+                        prepared[next.dayKey] = next; validated.append(marker); continue
                     }
                     if entry.relationship(to: next) == .invalid {
+                        if activeAttempt?.dayKey == entry.dayKey { cancelGeneration(persistAttempt:false) }
                         entry = DaybookRecapEntry(input: next); try store.save(entry)
+                    } else {
+                        let upgraded = entry.upgradingDigests(to:next)
+                        if upgraded != entry { try store.save(upgraded); entry = upgraded }
                     }
                     prepared[next.dayKey] = next
                     for record in records { sourceMap[next.dayKey, default: [:]][record.id] = record }
@@ -102,11 +148,13 @@ import Foundation
                     let scope = Calendar.current.dateInterval(of: .day, for: context.day)!
                     let records = try await readRecords(scope)
                     try Task.checkCancellation(); guard epoch == token else { return }
+                    guard archiveRevision == savedRevision else { refresh(preservingExisting:true); return }
                     prepared[key] = DaybookRecapInput.prepare(records: records, day: context.day, allowedKinds: context.allowedKinds)
                     for record in records { sourceMap[key, default: [:]][record.id] = record }
                 }
+                if isGenerating, let old = input, prepared[key]?.fingerprint != old.fingerprint { cancelGeneration(persistAttempt:false) }
                 inputs = prepared; sourceRecords = sourceMap
-                entries = validated.sorted { $0.dayKey > $1.dayKey }; isLoading = false; task = nil
+                entries = validated.sorted { $0.dayKey > $1.dayKey }; isLoading = false; isRefreshing = false; task = nil
                 message = current?.message
                 if let input, !input.sources.isEmpty, !context.capturing,
                    (!context.configuration.isRemote || !context.requiresConfirmation),
@@ -115,8 +163,9 @@ import Foundation
                 }
             } catch {
                 guard epoch == token else { return }
-                isLoading = false; task = nil
+                isLoading = false; isRefreshing = false; task = nil
                 if !(error is CancellationError) {
+                    entries = []; inputs = [:]; sourceRecords = [:]
                     storageError = (error as? DaybookRecapFailure == .changed ? DaybookRecapFailure.changed : .storage).localizedDescription
                 }
             }
@@ -127,8 +176,11 @@ import Foundation
         return RemoteRequest(input: input, configuration: context.configuration, revision: context.revision, language: context.language)
     }
     func cancel() {
+        cancelGeneration(persistAttempt:true)
+    }
+    private func cancelGeneration(persistAttempt: Bool) {
         generation = UUID(); generationTask?.cancel(); generationTask = nil; isGenerating = false
-        if var entry = activeAttempt {
+        if persistAttempt, var entry = activeAttempt {
             entry.message = "生成已取消，可手动重试。"
             do { try store.save(entry); publish(entry) }
             catch { storageError = DaybookRecapFailure.storage.localizedDescription; entries = [] }
@@ -139,10 +191,12 @@ import Foundation
         startGeneration(confirmation: confirmation, rememberChoice: rememberChoice, automatic: false)
     }
     private func startGeneration(confirmation: RemoteRequest? = nil, rememberChoice: Bool = false, automatic: Bool) {
+#if WISELIFE_CONTENT_LAB && targetEnvironment(simulator)
+        if automatic { return }
+#endif
         guard canGenerate, let input, let context, let settings else { return }
         guard !automatic || !context.configuration.isRemote || !settings.requiresRemoteAIConfirmation else { return }
         let token = UUID(); generation = token; isGenerating = true; message = nil
-        let capturedEpoch = epoch
         var initialAttempt = current ?? DaybookRecapEntry(input: input)
         initialAttempt.attemptKey = attemptKey(input, context: context)
         initialAttempt.message = "上次生成未完成，可手动重试。"
@@ -166,7 +220,7 @@ import Foundation
             do {
                 let latest = try await readRecords(input.scope)
                 try Task.checkCancellation()
-                guard generation == token, epoch == capturedEpoch,
+                guard generation == token,
                       settings.ai == context.configuration, settings.aiRevision == context.revision,
                       settings.interfaceLanguage.rawValue == context.language,
                       DaybookRecapInput.prepare(records: latest, day: context.day, allowedKinds: context.allowedKinds).fingerprint == input.fingerprint else { throw DaybookRecapFailure.changed }
@@ -178,7 +232,9 @@ import Foundation
                 let consentAtSend = settings.requiresRemoteAIConfirmation
                 let current: @MainActor () -> Bool = { [weak self, weak settings] in
                     guard let self, let settings else { return false }
-                    return self.generation == token && self.epoch == capturedEpoch && self.context?.foreground == true && self.context?.capturing == false
+                    return self.generation == token && self.context?.day == context.day
+                        && self.context?.allowedKinds == context.allowedKinds
+                        && self.context?.foreground == true && self.context?.capturing == false
                         && settings.ai == context.configuration && settings.aiRevision == context.revision
                         && settings.interfaceLanguage.rawValue == context.language && settings.requiresRemoteAIConfirmation == consentAtSend
                 }
@@ -240,6 +296,7 @@ import Foundation
         throw DaybookRecapFailure.changed
     }
     private func publish(_ entry: DaybookRecapEntry) {
+        archiveRevision += 1
         entries.removeAll { $0.dayKey == entry.dayKey }; entries.append(entry); entries.sort { $0.dayKey > $1.dayKey }
     }
 }

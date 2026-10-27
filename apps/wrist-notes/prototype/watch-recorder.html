@@ -82,12 +82,12 @@
     .status-icons svg { display: block; }
 
     .record-area {
-      flex: 0 0 148px;
+      flex: 0 0 157px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1px 0 12px;
+      padding: 1px 0 8px;
     }
 
     .record-button {
@@ -125,20 +125,63 @@
 
     .record-button[aria-pressed="true"] { box-shadow: 0 0 0 6px #f52b352c; }
     .record-caption {
-      height: 20px;
-      margin-top: 15px;
+      min-height: 18px;
+      margin-top: 11px;
       color: #939398;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 550;
       font-variant-numeric: tabular-nums;
     }
 
     .record-caption.active {
       color: #ff575e;
-      font-size: 17px;
+      font-size: 14px;
       font-weight: 680;
       letter-spacing: .04em;
     }
+
+    .sync-summary {
+      min-height: 18px;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: #a6a6ab;
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 550;
+      text-align: center;
+    }
+
+    .sync-summary::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      flex: 0 0 5px;
+      border-radius: 50%;
+      background: #8f9095;
+    }
+
+    .sync-summary[data-state="recording"]::before,
+    .sync-summary[data-state="pending"]::before { background: #e7b85d; }
+    .sync-summary[data-state="synced"]::before { background: #62c887; }
+    .sync-summary[data-state="paused"]::before { background: #ff747a; }
+
+    .retry-button {
+      display: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 3px 7px;
+      background: #312326;
+      color: #ff9da1;
+      font: inherit;
+      font-size: 9px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .sync-summary[data-state="paused"] .retry-button:not([hidden]) { display: inline-flex; }
 
     .list-section {
       min-height: 0;
@@ -231,7 +274,7 @@
     .meta { color: #89898f; font-size: 11px; font-variant-numeric: tabular-nums; }
     .duration { color: #aaaab0; flex: 0 0 auto; }
 
-    .upload-state {
+    .sync-state {
       flex: 0 0 auto;
       font-size: 10px;
       line-height: 1;
@@ -241,8 +284,8 @@
       border-radius: 5px;
     }
 
-    .upload-state.pending { color: #f9bb65; background: #513a1b85; }
-    .upload-state.uploaded { color: #94dda9; background: #23402b9c; }
+    .sync-state.pending { color: #d9bd80; background: #3a322485; }
+    .sync-state.synced { color: #93d6a7; background: #23402b75; }
 
     .empty {
       margin: 39px 0 0;
@@ -257,6 +300,79 @@
       font-size: 12px;
       letter-spacing: .01em;
       text-align: center;
+    }
+
+    .demo-picker {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+      max-width: 420px;
+      margin-top: 4px;
+    }
+
+    .demo-picker button {
+      min-height: 32px;
+      border: 1px solid #39393d;
+      border-radius: 999px;
+      padding: 0 12px;
+      background: #202023;
+      color: #b9b9be;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background .16s ease, color .16s ease, border-color .16s ease;
+    }
+
+    .demo-picker button[aria-pressed="true"] {
+      border-color: #56565d;
+      background: #343438;
+      color: #fff;
+    }
+
+    .demo-label {
+      width: 100%;
+      margin: 0 0 1px;
+      color: #85858a;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .list-explainer {
+      width: min(398px, calc(100vw - 32px));
+      padding: 17px 19px 16px;
+      border: 1px solid #353539;
+      border-radius: 18px;
+      background: #202023;
+    }
+
+    .list-explainer h2 {
+      margin: 0 0 11px;
+      color: #f0f0f2;
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    .list-explainer ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list-explainer li {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 8px;
+      color: #aaaab0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .list-explainer strong {
+      color: #dedee1;
+      font-weight: 600;
     }
 
     @media (max-width: 430px) {
@@ -286,6 +402,10 @@
             <span class="record-glyph" aria-hidden="true"></span>
           </button>
           <div id="recordCaption" class="record-caption" role="status" aria-live="polite">轻点长录音 · 按住闪念</div>
+          <div id="syncSummary" class="sync-summary" data-state="idle" aria-live="polite">
+            <span id="syncText">已同步到 iPhone</span>
+            <button id="retryButton" class="retry-button" type="button" hidden>重试</button>
+          </div>
         </section>
 
         <section class="list-section" aria-label="录音文件列表">
@@ -295,14 +415,29 @@
       </div>
     </div>
     <p class="prototype-note">交互原型 · 轻点长录音 · 按住闪念，松开保存 · 上滑取消</p>
+    <div class="demo-picker" role="group" aria-label="预览同步状态">
+      <p class="demo-label">预览状态</p>
+      <button type="button" data-scene="recording" aria-pressed="true">录音中</button>
+      <button type="button" data-scene="pending" aria-pressed="false">稍后自动同步</button>
+      <button type="button" data-scene="synced" aria-pressed="false">已同步</button>
+      <button type="button" data-scene="paused" aria-pressed="false">同步暂停</button>
+    </div>
+    <section class="list-explainer" aria-labelledby="list-explainer-title">
+      <h2 id="list-explainer-title">录音列表说明</h2>
+      <ul>
+        <li><strong>新录音优先</strong><span>结束录音后自动加入列表，最近的记录排在前面。</span></li>
+        <li><strong>快速回看</strong><span>每条显示录音名称、时间、时长和简明同步状态。</span></li>
+        <li><strong>轻扫删除</strong><span>向左轻扫一条记录，露出删除按钮；列表不展示分片等传输细节。</span></li>
+      </ul>
+    </section>
   </main>
 
   <script>
     // UI demo only: no microphone, storage, transfer, or server calls.
     const recordings = [
-      { id: 1, name: '晨间想法', startedAt: '今天 08:46', seconds: 74, uploaded: false },
-      { id: 2, name: '项目讨论', startedAt: '昨天 19:32', seconds: 764, uploaded: true },
-      { id: 3, name: '路上的灵感', startedAt: '10月16日 14:08', seconds: 38, uploaded: true }
+      { id: 1, name: '晨间想法', startedAt: '今天 08:46', seconds: 74, sync: 'pending' },
+      { id: 2, name: '项目讨论', startedAt: '昨天 19:32', seconds: 764, sync: 'synced' },
+      { id: 3, name: '路上的灵感', startedAt: '10月16日 14:08', seconds: 38, sync: 'synced' }
     ];
 
     const button = document.getElementById('recordButton');
@@ -310,10 +445,15 @@
     const list = document.getElementById('recordingList');
     const count = document.getElementById('recordCount');
     const watchTime = document.getElementById('watchTime');
-    let startedAt = null;
+    const syncSummary = document.getElementById('syncSummary');
+    const syncText = document.getElementById('syncText');
+    const retryButton = document.getElementById('retryButton');
+    const sceneButtons = [...document.querySelectorAll('[data-scene]')];
+    let startedAt = new Date(Date.now() - (13 * 60 + 42) * 1000);
     let timer = null;
     let nextId = 4;
-    let mode = 'idle';
+    let mode = 'long';
+    let demoScene = 'recording';
     let pressed = false;
     let pressStartedAt = 0;
     let pressStartX = 0;
@@ -363,8 +503,9 @@
         content.className = 'item-content';
         content.tabIndex = 0;
         content.setAttribute('role', 'group');
-        content.setAttribute('aria-label', `${recording.name}，${recording.startedAt}，${formatDuration(recording.seconds)}，${recording.uploaded ? '已上传' : '未上传'}。左划删除`);
-        content.innerHTML = `<div class="item-line"><span class="name"></span><span class="upload-state ${recording.uploaded ? 'uploaded' : 'pending'}">${recording.uploaded ? '已上传' : '未上传'}</span></div><div class="item-line meta"><span class="started"></span><span class="duration"></span></div>`;
+        const isSynced = recording.sync === 'synced';
+        content.setAttribute('aria-label', `${recording.name}，${recording.startedAt}，${formatDuration(recording.seconds)}，${isSynced ? '已同步' : '稍后自动同步'}。左划删除`);
+        content.innerHTML = `<div class="item-line"><span class="name"></span><span class="sync-state ${isSynced ? 'synced' : 'pending'}">${isSynced ? '已同步' : '稍后同步'}</span></div><div class="item-line meta"><span class="started"></span><span class="duration"></span></div>`;
         content.querySelector('.name').textContent = recording.name;
         content.querySelector('.started').textContent = recording.startedAt;
         content.querySelector('.duration').textContent = formatDuration(recording.seconds);
@@ -427,6 +568,50 @@
       }
     }
 
+    function updateSyncSummary() {
+      syncSummary.dataset.state = demoScene;
+      if (demoScene === 'recording') {
+        syncText.textContent = '自动同步中';
+        retryButton.hidden = true;
+      } else if (demoScene === 'pending') {
+        syncText.textContent = '录音已保存在手表，稍后自动同步';
+        retryButton.hidden = true;
+      } else if (demoScene === 'synced') {
+        syncText.textContent = '已同步到 iPhone';
+        retryButton.hidden = true;
+      } else {
+        syncText.textContent = '同步暂停，录音仍保存在手表';
+        retryButton.hidden = false;
+      }
+    }
+
+    function updateSceneButtons() {
+      for (const sceneButton of sceneButtons) {
+        sceneButton.setAttribute('aria-pressed', String(sceneButton.dataset.scene === demoScene));
+      }
+    }
+
+    function selectScene(scene) {
+      demoScene = scene;
+      if (scene === 'recording') {
+        if (mode !== 'long') {
+          startedAt = new Date();
+          mode = 'long';
+          updateRecordingDisplay();
+          startTimer();
+        }
+      } else if (mode !== 'idle') {
+        clearInterval(timer);
+        timer = null;
+        mode = 'idle';
+        startedAt = null;
+        cancelThought = false;
+        updateRecordingDisplay();
+      }
+      updateSyncSummary();
+      updateSceneButtons();
+    }
+
     function startTimer() {
       clearInterval(timer);
       timer = setInterval(updateRecordingDisplay, 250);
@@ -440,14 +625,17 @@
         name: kind === 'thought' ? `闪念 ${number}` : `新录音 ${number}`,
         startedAt: `今天 ${localTime(startedAt)}`,
         seconds,
-        uploaded: false
+        sync: 'pending'
       });
       clearInterval(timer);
       timer = null;
       startedAt = null;
       mode = 'idle';
+      demoScene = 'pending';
       cancelThought = false;
       updateRecordingDisplay();
+      updateSyncSummary();
+      updateSceneButtons();
       caption.textContent = kind === 'thought' ? '闪念已保存' : '长录音已保存';
       clearTimeout(noticeTimer);
       noticeTimer = setTimeout(updateRecordingDisplay, 1700);
@@ -503,7 +691,10 @@
       holdTimer = null;
       if (mode === 'arming') {
         mode = 'long';
+        demoScene = 'recording';
         updateRecordingDisplay();
+        updateSyncSummary();
+        updateSceneButtons();
         startTimer();
       } else if (mode === 'long') {
         // Holding an active long recording does nothing; only a deliberate tap stops it.
@@ -554,7 +745,23 @@
       if (mode === 'idle' || mode === 'long') { beginPress(0, 0); endPress(); }
     });
 
+    sceneButtons.forEach(sceneButton => {
+      sceneButton.addEventListener('click', () => selectScene(sceneButton.dataset.scene));
+    });
+    retryButton.addEventListener('click', () => {
+      demoScene = 'pending';
+      updateSyncSummary();
+      updateSceneButtons();
+    });
+
     watchTime.textContent = localTime(new Date());
+    button.dataset.mode = mode;
+    button.setAttribute('aria-pressed', 'true');
+    caption.classList.add('active');
+    updateRecordingDisplay();
+    updateSyncSummary();
+    updateSceneButtons();
+    startTimer();
     render();
   </script>
 </body>

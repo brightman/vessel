@@ -19,7 +19,7 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
     private var configuredBackgroundGeneration: UUID?
     private var healthReadCancellations: [UUID: () -> Void] = [:]
 
-    private var observedHealthTypes: [HKSampleType] { [HKQuantityType(.stepCount), HKCategoryType(.sleepAnalysis)] }
+    private var observedHealthTypes: [HKSampleType] { [HKQuantityType(.stepCount), HKCategoryType(.sleepAnalysis), HKObjectType.workoutType()] }
 
     override init() { super.init(); location.delegate = self; location.desiredAccuracy = kCLLocationAccuracyHundredMeters }
     func authorize(_ source: LifeSource) async throws {
@@ -27,7 +27,7 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
         case .health:
             guard HKHealthStore.isHealthDataAvailable() else { throw failure(.unavailable, "此设备不支持 Apple 健康。") }
             // HealthKit deliberately hides read authorization. Success means the prompt completed only.
-            try await health.requestAuthorization(toShare: [], read: [HKQuantityType(.stepCount), HKCategoryType(.sleepAnalysis)])
+            try await health.requestAuthorization(toShare: [], read: Set(observedHealthTypes).union([HKQuantityType(.activeEnergyBurned)]))
         case .calendar:
             if EKEventStore.authorizationStatus(for: .event) == .notDetermined { _ = try await events.requestFullAccessToEvents() }
             try checkCalendar()
@@ -48,7 +48,9 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
             let start = calendar.date(byAdding: .day, value: -1, to: interval.start)!
             let end = calendar.date(byAdding: .day, value: 1, to: interval.end)!
             let sleep = try await sleepSamples(.init(start: start, end: end))
-            return LifeMomentBuilder.health(day: day, steps: steps, samples: sleep, now: .now, calendar: calendar)
+            try Task.checkCancellation()
+            let workouts = try await workoutSamples(interval)
+            return LifeMomentBuilder.workouts(workouts, day: day, now: .now, calendar: calendar) + LifeMomentBuilder.health(day: day, steps: steps, samples: sleep, now: .now, calendar: calendar)
         case .calendar:
             try checkCalendar()
             let found = events.events(matching: events.predicateForEvents(withStart: interval.start, end: interval.end, calendars: nil))
@@ -188,6 +190,62 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
             }
         }
     }
+    private func workoutSamples(_ interval: DateInterval) async throws -> [WorkoutMoment] {
+        try await healthQuery { complete in
+            HKSampleQuery(sampleType: HKObjectType.workoutType(),
+                predicate: HKQuery.predicateForSamples(withStart: interval.start, end: interval.end, options: [.strictStartDate]),
+                limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+                if let error { complete(.failure(error)); return }
+                complete(.success((samples as? [HKWorkout] ?? []).map { workout in
+                    WorkoutMoment(id: workout.uuid, activity: Self.workoutName(workout.workoutActivityType),
+                        startedAt: workout.startDate, endedAt: workout.endDate, duration: workout.duration,
+                        distanceMeters: workout.totalDistance?.doubleValue(for: .meter()),
+                        activeKilocalories: workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie()),
+                        sourceName: workout.sourceRevision.source.name,
+                        manuallyEntered: workout.metadata?[HKMetadataKeyWasUserEntered] as? Bool ?? false)
+                }))
+            }
+        }
+    }
+    nonisolated private static func workoutName(_ type: HKWorkoutActivityType) -> String {
+        switch type {
+        case .walking: "步行"
+        case .running: "跑步"
+        case .cycling: "骑行"
+        case .swimming: "游泳"
+        case .hiking: "徒步"
+        case .yoga: "瑜伽"
+        case .pilates: "普拉提"
+        case .traditionalStrengthTraining: "传统力量训练"
+        case .functionalStrengthTraining: "功能性力量训练"
+        case .highIntensityIntervalTraining: "高强度间歇训练"
+        case .elliptical: "椭圆机"
+        case .rowing: "划船"
+        case .stairClimbing, .stairs: "爬楼梯"
+        case .coreTraining: "核心训练"
+        case .dance, .cardioDance, .socialDance: "舞蹈"
+        case .cooldown: "放松整理"
+        case .mindAndBody: "身心训练"
+        case .basketball: "篮球"
+        case .badminton: "羽毛球"
+        case .tennis: "网球"
+        case .tableTennis: "乒乓球"
+        case .soccer: "足球"
+        case .golf: "高尔夫"
+        case .jumpRope: "跳绳"
+        case .boxing: "拳击"
+        case .martialArts: "武术"
+        case .climbing: "攀岩"
+        case .crossCountrySkiing: "越野滑雪"
+        case .downhillSkiing: "高山滑雪"
+        case .snowboarding: "单板滑雪"
+        case .wheelchairRunPace: "轮椅跑步配速"
+        case .wheelchairWalkPace: "轮椅步行配速"
+        case .other: "其他训练"
+        default: "其他训练（类型 \(type.rawValue)）"
+        }
+    }
+
     private func checkCalendar() throws {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { throw failure(.denied, "未获日历读取权限。请在系统设置中允许完整访问；本应用只读取日程，不会写入日历。") }
     }

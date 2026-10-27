@@ -2,7 +2,7 @@
 window.createDaybookRecordMerge = function() {
   'use strict';
 
-  const isEligible = record => record?.kind === 'voice' && Number(record.duration) > 0 && !record.lifeMoment;
+  const isEligible = record => record?.kind === 'voice' && Number(record.duration) > 0 && !record.lifeMoment && !record.segment;
 
   function selectionIndices(records, selectedIds) {
     const indexes = selectedIds.map(id => records.findIndex(record => record.id === id));

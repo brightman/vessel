@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EBD457350296330A077B9C6D"
+               BlueprintIdentifier = "D99CFB98FC7D5706AF078607"
                BuildableName = "WiseNote.app"
                BlueprintName = "WristNotes"
                ReferencedContainer = "container:WristNotes.xcodeproj">
@@ -28,7 +28,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1F54B4BAFBB7B4C0ACD24C07"
+               BlueprintIdentifier = "C1A94FC9519C7EE880A1DCD3"
                BuildableName = "RingIntegrationTests.xctest"
                BlueprintName = "RingIntegrationTests"
                ReferencedContainer = "container:WristNotes.xcodeproj">
@@ -44,7 +44,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EBD457350296330A077B9C6D"
+            BlueprintIdentifier = "D99CFB98FC7D5706AF078607"
             BuildableName = "WiseNote.app"
             BlueprintName = "WristNotes"
             ReferencedContainer = "container:WristNotes.xcodeproj">
@@ -55,7 +55,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1F54B4BAFBB7B4C0ACD24C07"
+               BlueprintIdentifier = "C1A94FC9519C7EE880A1DCD3"
                BuildableName = "RingIntegrationTests.xctest"
                BlueprintName = "RingIntegrationTests"
                ReferencedContainer = "container:WristNotes.xcodeproj">
@@ -77,7 +77,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EBD457350296330A077B9C6D"
+            BlueprintIdentifier = "D99CFB98FC7D5706AF078607"
             BuildableName = "WiseNote.app"
             BlueprintName = "WristNotes"
             ReferencedContainer = "container:WristNotes.xcodeproj">
@@ -94,7 +94,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EBD457350296330A077B9C6D"
+            BlueprintIdentifier = "D99CFB98FC7D5706AF078607"
             BuildableName = "WiseNote.app"
             BlueprintName = "WristNotes"
             ReferencedContainer = "container:WristNotes.xcodeproj">

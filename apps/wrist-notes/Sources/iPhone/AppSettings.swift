@@ -37,6 +37,7 @@ final class AppSettings: ObservableObject {
     @Published private(set) var transcription: TranscriptionConfiguration
     @Published private(set) var aiRevision = 0
     @Published private(set) var ai: AIConfiguration
+    private var aiProfiles: [String: AIConfiguration] = [:]
     private let defaults: UserDefaults
     private let secrets: any SecretStore
     let chatGPT: ChatGPTAccountModel
@@ -54,6 +55,20 @@ final class AppSettings: ObservableObject {
             .flatMap { try? JSONDecoder().decode(TranscriptionConfiguration.self, from: $0) }
             ?? TranscriptionConfiguration(appleLocale: defaults.string(forKey: "transcriptionLocale") ?? "zh-CN")
         ai = defaults.data(forKey: "aiConfiguration").flatMap { try? JSONDecoder().decode(AIConfiguration.self, from: $0) } ?? AIConfiguration()
+        aiProfiles = defaults.data(forKey: "aiProviderConfigurations")
+            .flatMap { try? JSONDecoder().decode([String: AIConfiguration].self, from: $0) } ?? [:]
+        // Older versions kept all providers in one record. Preserve every recoverable field.
+        if aiProfiles.isEmpty {
+            for mode in [AIConfiguration.Mode.local, .chatgpt, .nearbyMac] {
+                var profile = ai; profile.mode = mode
+                aiProfiles[mode.rawValue] = profile
+            }
+            if ai.mode != .nearbyMac {
+                var custom = ai; custom.mode = .custom
+                aiProfiles[AIConfiguration.Mode.custom.rawValue] = custom
+            }
+        }
+        aiProfiles[ai.mode.rawValue] = ai
         localeIdentifier = transcription.appleLocale
         chatGPTObservation = self.chatGPT.$revision.dropFirst().sink { [weak self] _ in
             if self?.ai.mode == .chatgpt { self?.aiRevision += 1 }
@@ -91,17 +106,25 @@ final class AppSettings: ObservableObject {
         return !requiresRemoteAIConfirmation
     }
 
+    func configuration(for mode: AIConfiguration.Mode) -> AIConfiguration {
+        var profile = aiProfiles[mode.rawValue] ?? AIConfiguration()
+        profile.mode = mode
+        return profile
+    }
+
     func saveAI(_ configuration: AIConfiguration, apiKey: String) throws {
         let saved: AIConfiguration
         if configuration.mode == .custom {
             saved = try configuration.validated(apiKey: apiKey)
             // Store the secret first; a Keychain failure must not enable a broken configuration.
             try secrets.write(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if configuration.mode == .nearbyMac {
+            saved = try configuration.validated(apiKey: "")
         } else if configuration.mode == .chatgpt {
             guard chatGPT.canSave(modelID: configuration.chatGPTModel, accountID: configuration.chatGPTAccountID) else {
                 throw AIServiceError.invalidConfiguration("请先连接 ChatGPT、确认套餐提示并选择可用模型。")
             }
-            var connected = ai
+            var connected = configuration
             connected.mode = .chatgpt
             connected.chatGPTModel = configuration.chatGPTModel
             connected.chatGPTAccountID = configuration.chatGPTAccountID
@@ -112,8 +135,13 @@ final class AppSettings: ObservableObject {
             local.mode = .local
             saved = local
         }
+        var profiles = aiProfiles
+        profiles[saved.mode.rawValue] = saved
+        let profileData = try JSONEncoder().encode(profiles)
         let data = try JSONEncoder().encode(saved)
+        defaults.set(profileData, forKey: "aiProviderConfigurations")
         defaults.set(data, forKey: "aiConfiguration")
+        aiProfiles = profiles
         ai = saved
         aiRevision += 1
     }

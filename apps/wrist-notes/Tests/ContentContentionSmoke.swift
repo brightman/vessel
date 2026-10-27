@@ -8,14 +8,15 @@ import SQLite3
         let action: () throws -> Void
         var fired = false
         var failure: Error?
-        init(_ action: @escaping () throws -> Void) { self.action = action }
+        let marker: String
+        init(marker: String = "FROM audio_transcript_spans", _ action: @escaping () throws -> Void) { self.marker = marker; self.action = action }
         func install(on db: DaybookDatabase) throws {
             _ = try db.withConnection { handle in
                 sqlite3_trace_v2(handle, UInt32(SQLITE_TRACE_STMT), { _, context, rawStatement, _ in
                     guard let context, let rawStatement,
                           let sql = sqlite3_sql(OpaquePointer(rawStatement)) else { return 0 }
                     let probe = Unmanaged<DuringTranscriptRead>.fromOpaque(context).takeUnretainedValue()
-                    guard !probe.fired, String(cString: sql).contains("FROM audio_transcript_spans") else { return 0 }
+                    guard !probe.fired, String(cString: sql).contains(probe.marker) else { return 0 }
                     probe.fired = true
                     do { try probe.action() } catch { probe.failure = error }
                     return 0
@@ -61,6 +62,7 @@ import SQLite3
         defer { try? FileManager.default.removeItem(at: root) }
         try unrelatedWriter(root.appendingPathComponent("status.sqlite3"))
         try dateSnapshotWriter(root.appendingPathComponent("date-snapshot.sqlite3"))
+        try stalePresentation(root.appendingPathComponent("stale-presentation.sqlite3"))
         try changedSource(root.appendingPathComponent("source.sqlite3"))
         try manualEdit(root.appendingPathComponent("manual.sqlite3"))
         print("Content contention passed: independent status writes during derivation and date snapshots; stale source and manual edits preserved")
@@ -84,7 +86,7 @@ import SQLite3
     static func dateSnapshotWriter(_ url: URL) throws {
         let f = try Fixture(url: url)
         try f.content.reconcile(sourceID: f.source.id)
-        let probe = DuringTranscriptRead {
+        let probe = DuringTranscriptRead(marker:"JOIN content_segment_presentations") {
             try f.other.transaction {
                 try f.other.execute("INSERT INTO life_settings(source,enabled) VALUES ('health',1)")
             }
@@ -107,6 +109,19 @@ import SQLite3
         try check(stale && f.content.segments(sourceID: f.source.id).isEmpty, "source revision change rejects stale derived output")
         try f.content.reconcile(sourceID: f.source.id)
         try check(f.content.segments(sourceID: f.source.id).count == 2, "fresh retry derives retained committed evidence")
+    }
+    static func stalePresentation(_ url: URL) throws {
+        let f = try Fixture(url:url)
+        try f.content.reconcile(sourceID:f.source.id)
+        let scope = DateInterval(start:Date(timeIntervalSince1970:0),duration:86400)
+        let processing = AudioProcessingRepository(database:f.db)
+        try processing.register(source:f.source,configurationKey:"new-configuration",windows:AudioWindowPlanner.plan(source:f.source,configurationKey:"new-configuration"))
+        try check(processing.spans(sourceID:f.source.id).isEmpty,"configuration change has no current ASR yet")
+        var stale = false
+        do { _ = try ContentSegmentSnapshot.read(processing,scope:scope) }
+        catch ContentSegmentError.staleRevision { stale = true }
+        try check(stale,"full evidence must reject a presentation from an older processing configuration")
+        try check(ContentSegmentSnapshot.read(processing,scope:scope,requireComplete:false).isEmpty,"timeline hides old processed content during reprocessing")
     }
     static func manualEdit(_ url: URL) throws {
         let f = try Fixture(url: url)

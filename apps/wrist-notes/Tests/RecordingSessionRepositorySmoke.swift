@@ -134,6 +134,8 @@ struct RecordingSessionRepositorySmoke {
             repo.importStep = nil
             (repo, db) = try repository(folder)
             try expect(try repo.chunks(sessionID: chunk.sessionID).count == 1, "reopen replays retained journal")
+            try expect(repo.consumeRecoveryChanges() == (step != .reclaim), "only a newly recovered commit invalidates content")
+            try expect(!repo.consumeRecoveryChanges(), "recovery notification is consumed once")
             try expect(try repo.sourceRanges(sessionID: chunk.sessionID).count == 1, "recovered audio readable")
             _ = try repo.importChunk(chunk, from: audio, pairingID: "A")
             try expect(try db.query("SELECT * FROM recording_receipts").count == 1, "restart and replay do not duplicate")
@@ -154,6 +156,7 @@ struct RecordingSessionRepositorySmoke {
         try expect(try db.query("SELECT * FROM recording_file_cleanup").count == 1, "failed deletion cleanup persists")
         try expect(try repo.cleanupPending(sessionID: chunk.sessionID) && repo.pendingCleanupSessionIDs() == [chunk.sessionID], "cleanup state exposed after tombstone")
         (repo, db) = try repository(root)
+        try expect(repo.consumeRecoveryChanges(), "successful pending file cleanup still updates its status")
         try expect(try repo.session(id: chunk.sessionID) == nil && db.query("SELECT * FROM recording_file_cleanup").isEmpty, "reopen retries cleanup")
         try expect(try !repo.cleanupPending(sessionID: chunk.sessionID), "successful cleanup state cleared")
         try fails { _ = try repo.importChunk(chunk, from: audio, pairingID: "new") }

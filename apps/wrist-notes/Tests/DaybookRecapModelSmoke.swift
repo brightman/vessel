@@ -44,7 +44,7 @@ private final class RecapSecrets: SecretStore {
             model.synchronize(day: day, records: records, revisions: [], settings: settings, allowedKinds: allowed, foreground: active, capturing: capturing)
         }
         func wait(line: UInt = #line, _ predicate: () -> Bool) async {
-            for _ in 0..<10000 { if predicate() { return }; await Task.yield() }
+            for _ in 0..<10000 { if predicate() && !model.isRefreshing { return }; await Task.yield() }
             fatalError("State not reached at \(line)")
         }
         sync(); await wait { !model.isLoading }
@@ -120,7 +120,8 @@ private final class RecapSecrets: SecretStore {
         let localService = RecapGenerator()
         let localModel = DaybookRecapModel(store: localStore, service: localService)
         var localRecords = [DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(3600), kind: .thought, title: "早晨", text: "整理了花园。")]
-        localModel.scopeLoader = { _ in localRecords }
+        var localReads = 0
+        localModel.scopeLoader = { _ in localReads += 1; return localRecords }
         func syncLocal(revision: Int = 0) {
             localModel.synchronize(day: day, records: localRecords, revisions: [revision], settings: localSettings,
                 allowedKinds: [.thought], foreground: true, capturing: false)
@@ -128,8 +129,20 @@ private final class RecapSecrets: SecretStore {
         syncLocal(); await wait { localService.waiting.count == 1 }
         localService.finish("昨天整理了花园。[1]"); await wait { !localModel.isGenerating }
         precondition(localModel.current?.text != nil && localService.requests.count == 1, "yesterday recap generates automatically once")
+        // Global progress notifications are validation hints, not a reason to clear
+        // a completed archive or show another foreground loading spinner.
+        for revision in 1...20 {
+            syncLocal(revision:revision)
+            precondition(localModel.current?.text != nil && !localModel.isLoading,"progress-only updates must keep the completed recap visible without flicker")
+        }
+        await wait { !localModel.isLoading && !localModel.isRefreshing }
+        let readsBeforeToday = localReads
+        let todayRecord = DayRecord(id:UUID(),capturedAt:day.addingTimeInterval(86400+3600),kind:.thought,title:"今天",text:"今天的数据不能刷新昨天")
+        localModel.synchronize(day:day,records:localRecords+[todayRecord],revisions:[20],settings:localSettings,allowedKinds:[.thought],foreground:true,capturing:false)
+        for _ in 0..<20 { await Task.yield() }
+        precondition(localReads == readsBeforeToday && localService.requests.count == 1,"another day's data does not reload yesterday or older archives")
         localRecords.append(DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(7200), kind: .thought, title: "计划", text: "今天给花园浇水。"))
-        syncLocal(revision: 1); await wait { !localModel.isLoading }
+        syncLocal(revision: 1); await wait { !localModel.isLoading && !localModel.isRefreshing }
         precondition(localModel.current?.text != nil && localModel.isStale, "new records preserve the earlier recap as stale")
         precondition(!localModel.isGenerating && localService.requests.count == 1, "new records never trigger another automatic recap")
         let localRelaunched = DaybookRecapModel(store: localStore, service: localService)
@@ -140,8 +153,35 @@ private final class RecapSecrets: SecretStore {
         precondition(localService.requests.count == 1, "once-per-day automatic generation survives relaunch")
         localModel.generate(); await wait { localService.waiting.count == 1 }
         precondition(localService.requests.count == 2, "manual refresh can regenerate the stale recap")
+        syncLocal(revision:2)
+        precondition(localModel.isGenerating && localModel.current?.text != nil,"progress-only validation must not cancel an in-flight manual recap")
+        await wait { !localModel.isRefreshing }
         localService.finish("整理了花园，也计划浇水。[1]"); await wait { !localModel.isGenerating }
         precondition(!localModel.isStale && localModel.current?.text != nil, "manual refresh replaces the stale recap")
+        // A quiet validation can suspend after loading the old archive. Completion
+        // of a manual generation in that gap must not be overwritten by the old row.
+        localModel.generate(); await wait { localService.waiting.count == 1 }
+        var validationGate: CheckedContinuation<[DayRecord],Error>?
+        var delayValidation = true
+        localModel.scopeLoader = { _ in
+            if delayValidation {
+                delayValidation = false
+                return try await withCheckedThrowingContinuation { validationGate = $0 }
+            }
+            return localRecords
+        }
+        syncLocal(revision:3); await wait { validationGate != nil }
+        localService.finish("新完成的回顾必须保留。[1]"); await wait { !localModel.isGenerating }
+        validationGate!.resume(returning:localRecords)
+        await wait { !localModel.isRefreshing }
+        precondition(localModel.current?.text == "新完成的回顾必须保留。[1]","late background validation cannot replace a newer completed recap")
+        delayValidation = true; validationGate = nil
+        localRecords.removeFirst(); syncLocal(revision:4)
+        precondition(localModel.current?.text == nil,"a visibly deleted source hides earlier claims before an asynchronous validation returns")
+        await wait { validationGate != nil }; validationGate!.resume(returning:localRecords)
+        await wait { !localModel.isRefreshing }
+        let afterVisibleDeletion = try localStore.load()
+        precondition(afterVisibleDeletion.first?.text == nil,"deleted-source claims are durably removed after validation")
 
         // A cross-midnight segment retains one ID, with a different projection for each date.
         settings.requiresRemoteAIConfirmation = true

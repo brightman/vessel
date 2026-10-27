@@ -15,9 +15,10 @@ enum AudioSpeakerMapping {
     // Conservative uncalibrated policy; ambiguous evidence stays unknown.
     static let minimumSimilarity: Double = 0.90
     static let minimumMargin: Double = 0.10
+    /// Long recordings are diarized in bounded windows; total source duration is not a cap.
     static func permitsAnalysis(sourceDuration: Double?) -> Bool {
         guard let sourceDuration, sourceDuration.isFinite, sourceDuration > 0 else { return false }
-        return sourceDuration <= 1800
+        return true
     }
     static func normalized(_ values: [Float]) -> [Float]? {
         guard !values.isEmpty, values.count <= 4096, values.allSatisfy(\.isFinite) else { return nil }

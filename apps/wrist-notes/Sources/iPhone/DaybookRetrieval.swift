@@ -53,8 +53,8 @@ struct DaybookRetrieval {
             switch self {
             case .emptyQuestion: "请输入一个问题。"
             case .questionTooLong: "请把问题缩短到 300 字以内。"
-            case .invalidDate: "日期无效，请使用 YYYY-MM-DD 或在日记中选择日期。"
-            case .ambiguousDate: "目前一次查询一天，请只指定一个日期。"
+            case .invalidDate: "日期无效，请在问题中写明有效的起止日期，例如 2026-10-17 至 2026-10-19。"
+            case .ambiguousDate: "时间范围不明确，请说明起止日期。"
             }
         }
     }
@@ -120,13 +120,15 @@ struct DaybookRetrieval {
 
     func prepare(question: String, records: [DayRecord], selectedDate: Date, now: Date = .now,
                  allowedKinds: Set<DayRecord.Kind> = [.voice, .thought, .image],
-                 priorTurns: [DaybookConversationTurn] = [], usableTextOnly: Bool = false, semantic: DaybookSemanticMatches? = nil) throws -> Prepared {
+                 priorTurns: [DaybookConversationTurn] = [], usableTextOnly: Bool = false, semantic: DaybookSemanticMatches? = nil, automatic: Bool = false, expanded: Bool = false) throws -> Prepared {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty else { throw Failure.emptyQuestion }
         guard question.count <= 300 else { throw Failure.questionTooLong }
-        let resolved = try resolveDate(question, selectedDate: selectedDate, now: now)
-        let start = calendar.startOfDay(for: resolved.date)
-        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        let autoScope = automatic ? try automaticScope(question, now: now, priorTurns: priorTurns, expanded: expanded) : nil
+        let resolved = automatic ? (date: autoScope!.start, remaining: autoScope!.topic, unsupportedRange: false)
+            : try resolveDate(question, selectedDate: selectedDate, now: now)
+        let start = autoScope?.start ?? calendar.startOfDay(for: resolved.date)
+        let end = autoScope?.end ?? calendar.date(byAdding: .day, value: 1, to: start)!
         let day = Self.scoped(records, from: start, to: end, allowedKinds: allowedKinds)
         let stats = Statistics(totalCount: day.count, voiceCount: day.filter { $0.kind == .voice }.count,
                                thoughtCount: day.filter { $0.kind == .thought }.count,
@@ -136,18 +138,18 @@ struct DaybookRetrieval {
                                    let duration = record.kind.isAudio && record.duration.isFinite ? max(0, record.duration) : 0
                                    return min(Double(Int.max / 2), sum + duration)
                                })
-        let dateLabel = format(start, pattern: "yyyy-MM-dd")
+        let dateLabel = autoScope?.label ?? format(start, pattern: "yyyy-MM-dd")
         let terms = Self.keywords(resolved.remaining)
-        let requestedKind = Self.requestedKind(for: question)
+        let requestedKind = Self.requestedKind(for: autoScope?.topic ?? question)
         let history = priorTurns.suffix(3).filter {
             $0.completionState == .completed && $0.evidence.allowedKinds.isSubset(of: allowedKinds) &&
-            calendar.isDate($0.evidence.dayStart, inSameDayAs: start)
+            (automatic || calendar.isDate($0.evidence.dayStart, inSameDayAs: start))
         }
         let precedingMap = Self.sourceMap(history.last?.sources ?? [])
         let questionReferences = Self.citationNumbers(in: question)
         let questionReferenceIDs = precedingMap.filter { questionReferences.contains($0.key) }
         let currentIDs = Set(questionReferenceIDs.values)
-        let previousIDs = Set(history.flatMap { turn in
+        let previousIDs = Set((!automatic || Self.isFollowup(question) ? Array(history) : []).flatMap { turn in
             // A historical question used its predecessor's numbering. Its own answer map cannot recover that input.
             let userIDs = turn.questionReferenceIDs ?? [:]
             return Array(turn.referencedSourceIDs) + Array(userIDs.values)
@@ -172,13 +174,13 @@ struct DaybookRetrieval {
             return $0.0.id.uuidString < $1.0.id.uuidString
         }
         let maxContext = max(0, limits.maxContextCharacters)
-        var context = String("日期：\(dateLabel)（设备时区）。以下统计由程序对当天全部允许读取的记录计算，不能用摘录数量替代：\n\(stats.description)\n检索候选 \(ranked.count) 条。以下仅为有限原文摘录，不保证覆盖当天所有细节。\n".prefix(maxContext))
+        var context = String("日期：\(dateLabel)（设备时区）。以下统计由程序对范围内全部允许读取的记录计算，不能用摘录数量替代：\n\(stats.description)\n检索候选 \(ranked.count) 条。以下仅为有限原文摘录，不保证覆盖范围内所有细节。\n".prefix(maxContext))
         var sources: [Source] = []
         if !resolved.unsupportedRange {
             for (record, _) in ranked.prefix(max(0, limits.maxSources)) {
                 let number = sources.count + 1
                 let title = String(record.title.prefix(48))
-                let header = "\n[\(number)] ID=\(record.id.uuidString) \(format(record.capturedAt, pattern: "HH:mm")) \(Self.kindLabel(record.kind)) · \(title)\n"
+                let header = "\n[\(number)] ID=\(record.id.uuidString) \(format(record.capturedAt, pattern: "yyyy-MM-dd HH:mm")) \(Self.kindLabel(record.kind)) · \(title)\n"
                 let available = maxContext - context.count - header.count - 1
                 guard available >= 12 else { break }
                 let original = record.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -210,8 +212,12 @@ struct DaybookRetrieval {
                 context += "用户：\(userText)\n先前回答：\(String(oldText.prefix(500)))\n"
             }
         }
-        let method = validSemantic?.status ?? "按日期与关键词检索"
-        let scope = "\(dateLabel) · \(method)；当天允许读取 \(day.count) 条，匹配 \(ranked.count) 条，提供 \(sources.count) 条摘录。"
+        let method = validSemantic?.status ?? "本机时间解析与关键词检索"
+        let citedDates = sources.map(\.capturedAt).sorted()
+        let citationCoverage = citedDates.first.map { first in
+            format(first, pattern:"yyyy-MM-dd") + (citedDates.last.map { calendar.isDate(first, inSameDayAs:$0) ? "" : " 至 " + format($0,pattern:"yyyy-MM-dd") } ?? "")
+        } ?? "无"
+        let scope = "查找范围：\(dateLabel) · \(method)；范围内允许读取 \(day.count) 条，匹配 \(ranked.count) 条，提供 \(sources.count) 条摘录。引用日期：\(citationCoverage)。摘录不代表完整经历。"
         let direct: String?
         if resolved.unsupportedRange {
             context = ""
@@ -226,7 +232,7 @@ struct DaybookRetrieval {
         } else if Self.isAggregateQuestion(question) {
             let photoNote = requestedKind == .image || ["多少张", "几张"].contains(where: question.contains)
                 ? "\n这里计算的是图片记录条数；一条可含多张照片，不表示照片张数。" : ""
-            direct = "\(dateLabel) 的全天统计：\n\(stats.description)" + (terms.isEmpty && requestedKind == nil ? "" : "\n其中符合本次类型与关键词筛选的记录有 \(ranked.count) 条。") + photoNote
+            direct = "\(dateLabel) 的记录统计：\n\(stats.description)" + (terms.isEmpty && requestedKind == nil ? "" : "\n其中符合本次类型与关键词筛选的记录有 \(ranked.count) 条。") + photoNote
         } else if sources.isEmpty {
             direct = "在 \(dateLabel) 允许读取的 \(day.count) 条记录中，没有找到可用于回答的文字摘录。目前按日期和关键词检索，可换一个更具体的关键词。"
         } else if !sources.contains(where: { source in
@@ -239,6 +245,92 @@ struct DaybookRetrieval {
         return Prepared(question: question, providerQuestion: providerQuestion, questionReferenceIDs: questionReferenceIDs, dayStart: start, dayEnd: end, dateLabel: dateLabel,
                         statistics: stats, matchedCount: ranked.count, sources: sources, context: context,
                         directResponse: direct, scopeDescription: scope, snapshots: day, allowedKinds: allowedKinds)
+    }
+
+    struct AutomaticScope {
+        let start: Date
+        let end: Date // exclusive, in the device timezone
+        let label: String
+        let topic: String
+        let canExpand: Bool
+    }
+
+    static func isFollowup(_ question: String) -> Bool {
+        ["只看", "再往前", "更早", "那接下来", "继续", "那天", "这一天", "这些", "这条", "它"].contains(where: question.contains)
+            || question.range(of: #"\[\d+\]"#, options: .regularExpression) != nil
+    }
+
+    /// Planning is local and never grants data access. Hard user dates are never broadened.
+    func automaticScope(_ question: String, now: Date = .now, priorTurns: [DaybookConversationTurn] = [], expanded: Bool = false) throws -> AutomaticScope {
+        let today = calendar.startOfDay(for: now)
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        var topic = question
+        var start = Date(timeIntervalSince1970: 0), end = tomorrow
+        var label = "全部获准记录", soft = false
+        let pattern = #"(?:(\d{4})[-/年])?(\d{1,2})[-/月](\d{1,2})日?"#
+        let regex = try NSRegularExpression(pattern: pattern)
+        let matches = regex.matches(in: question, range: NSRange(question.startIndex..., in: question))
+        var dates: [Date] = []
+        for match in matches {
+            let token = String(question[Range(match.range, in: question)!])
+            dates.append(try resolveDate(token, selectedDate: now, now: now).date)
+            topic = topic.replacingOccurrences(of: token, with: " ")
+        }
+        for (word, offset) in [("今天",0),("今日",0),("昨天",-1),("昨日",-1),("前天",-2),("明天",1)] where topic.contains(word) {
+            dates.append(calendar.date(byAdding: .day, value: offset, to: today)!)
+            topic = topic.replacingOccurrences(of: word, with: " ")
+        }
+        let unique = Array(Set(dates)).sorted()
+        if !unique.isEmpty {
+            guard unique.count <= 2 else { throw Failure.ambiguousDate }
+            start = unique.first!; end = calendar.date(byAdding: .day, value: 1, to: unique.last!)!
+            // A two-date range is inclusive; reversed written ranges need clarification.
+            if matches.count == 2 && dates.count == 2 && dates[0] > dates[1] { throw Failure.invalidDate }
+        } else if ["上个月","上月","本月","这个月"].contains(where: topic.contains) {
+            let month = calendar.dateInterval(of: .month, for: now)!
+            let previous = topic.contains("上个月") || topic.contains("上月")
+            start = previous ? calendar.date(byAdding: .month, value: -1, to: month.start)! : month.start
+            end = previous ? month.start : tomorrow
+        } else if ["上周","本周","这周"].contains(where: topic.contains) {
+            // A week starts on Monday regardless of the user's calendar display preference.
+            let offset = (calendar.component(.weekday, from: today) + 5) % 7
+            let monday = calendar.date(byAdding: .day, value: -offset, to: today)!
+            start = topic.contains("上周") ? calendar.date(byAdding: .day, value: -7, to: monday)! : monday
+            end = topic.contains("上周") ? monday : tomorrow
+        } else if ["再往前","更早","全部","所有","之前","以前"].contains(where: topic.contains) {
+            label = "跨时间查找全部获准记录"
+        } else if ["最近","近期","这段时间","过去","近一周","近7天"].contains(where: topic.contains) {
+            var days = topic.contains("月") || topic.contains("30天") ? 30 : 7
+            if let numberRange = topic.range(of: #"\d+(?=天)"#, options: .regularExpression), let value = Int(topic[numberRange]) { days = min(3650, max(1,value)) }
+            start = calendar.date(byAdding: .day, value: 1-days, to: today)!
+            soft = !["过去", "天", "周", "月"].contains(where: topic.contains)
+            if expanded { start = Date(timeIntervalSince1970:0); label = "近期匹配不足，已扩大到全部获准记录" }
+        } else if Self.isFollowup(question), let previous = priorTurns.last {
+            start = previous.evidence.dayStart; end = previous.evidence.dayEnd
+        }
+        if start != Date(timeIntervalSince1970:0) {
+            let last = calendar.date(byAdding: .day, value: -1, to: end)!
+            label = format(start, pattern:"yyyy-MM-dd") + (calendar.isDate(start, inSameDayAs:last) ? "" : " 至 " + format(last, pattern:"yyyy-MM-dd"))
+        }
+        for word in ["只看","再往前找找","再往前","更早","继续","上个月","上月","本月","这个月","上周","本周","这周","最近一个月","最近一周","过去一周","近一周","最近七天","最近7天","近7天","最近几天","最近","近期","这段时间","过去","全部","所有日期","所有","之前","以前","到","至"] {
+            topic = topic.replacingOccurrences(of:word,with:" ")
+        }
+        topic = topic.replacingOccurrences(of:#"\d+天"#,with:" ",options:.regularExpression)
+        if Self.isFollowup(question), Self.keywords(topic).isEmpty, let previous = priorTurns.last {
+            // Reuse intent, never historical answer text. Bounded recursion over completed turns.
+            topic = try automaticScope(previous.question, now:now, priorTurns:Array(priorTurns.dropLast())).topic
+        }
+        return AutomaticScope(start:start,end:end,label:label,topic:topic,canExpand:soft && !expanded)
+    }
+
+    /// Manual substring matches include all local sources. Semantic additions obey AI scope and freshness.
+    static func originalRecordingRecords(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date) -> [DayRecord] {
+        let query = normalize(query)
+        return records.filter { record in
+            guard record.kind == .voice, record.contentProvenance == nil, record.parentRecordID == nil,
+                  record.capturedAt >= dayStart, record.capturedAt < dayEnd else { return false }
+            return query.isEmpty || [record.title, record.text, record.summary].contains { normalize($0).contains(query) }
+        }.sorted { $0.capturedAt > $1.capturedAt }
     }
 
     /// Manual substring matches include all local sources. Semantic additions obey AI scope and freshness.
@@ -291,13 +383,15 @@ struct DaybookRetrieval {
 
     static func requestedKind(for question: String) -> DayRecord.Kind? {
         if ["照片", "图片", "相片"].contains(where: question.contains) { return .image }
-        if question.contains("闪念") { return .thought }
+        if ["闪念", "想法", "灵感"].contains(where: question.contains) { return .thought }
+        if ["睡眠", "睡了", "睡得"].contains(where: question.contains) { return .sleep }
+        if ["步数", "步行", "运动", "训练", "跑步", "骑行", "游泳", "健身"].contains(where: question.contains) { return .activity }
         if question.contains("录音") { return .voice }
         return nil
     }
 
     static func kindLabel(_ kind: DayRecord.Kind) -> String {
-        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录"; case .activity: "活动日汇总"; case .sleep: "睡眠"; case .calendar: "日历"; case .location: "地点" }
+        switch kind { case .voice: "录音"; case .thought: "闪念"; case .image: "图片记录"; case .activity: "活动与体能训练"; case .sleep: "睡眠"; case .calendar: "日历"; case .location: "地点" }
     }
 
     private static func scoped(_ records: [DayRecord], from start: Date, to end: Date,
@@ -370,7 +464,7 @@ struct DaybookRetrieval {
     static func keywords(_ question: String) -> [String] {
         var query = normalize(question)
         // Remove question scaffolding before CJK n-grams, keeping the actual topic.
-        let fillers = ["最值得跟进什么", "有哪些要点", "有哪些待办", "有什么待办", "有什么记录", "有哪些记录", "有多少条记录", "有多少记录", "说了什么", "记录了什么", "发生了什么", "回顾这一天", "总结这一天", "多长时间", "总时长", "几分钟", "这一天", "这一天的", "选中的日期", "所选日期", "请帮我", "帮我", "请问", "总结", "回顾", "概括", "要点", "待办", "行动项", "记录", "录音", "闪念", "图片", "照片", "相片", "拍了", "多少", "几条", "几张", "数量", "多久", "有哪些", "有什么", "是什么", "怎么样", "如何", "什么", "有关", "关于", "的", "了", "呢", "吗", "请"]
+        let fillers = ["有哪些值得跟进的事", "那接下来", "记下过", "找找", "想法", "灵感", "只看", "睡眠", "最近", "之前", "情况", "变化", "最值得跟进什么", "有哪些要点", "有哪些待办", "有什么待办", "有什么记录", "有哪些记录", "有多少条记录", "有多少记录", "说了什么", "记录了什么", "发生了什么", "回顾这一天", "总结这一天", "多长时间", "总时长", "几分钟", "这一天", "这一天的", "选中的日期", "所选日期", "请帮我", "帮我", "请问", "总结", "回顾", "概括", "要点", "待办", "行动项", "记录", "录音", "闪念", "图片", "照片", "相片", "拍了", "多少", "几条", "几张", "数量", "多久", "有哪些", "有什么", "是什么", "怎么样", "如何", "什么", "有关", "关于", "的", "了", "呢", "吗", "请"]
         for filler in fillers { query = query.replacingOccurrences(of: filler, with: " ") }
         let expression = try! NSRegularExpression(pattern: #"[\p{Han}]+|[a-z0-9]+"#)
         var result = Set<String>()

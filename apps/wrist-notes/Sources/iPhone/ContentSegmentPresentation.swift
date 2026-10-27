@@ -2,6 +2,20 @@ import Foundation
 
 /// Pure conversion; lightweight persisted provenance remains independent of processing types.
 enum ContentSegmentPresentation {
+    /// Raw long audio is a library asset, not a timeline event. Empty/no-speech
+    /// segments remain in storage for provenance and playback but are not events.
+    /// Direct recordings up to 30 minutes need final ASR/VAD and readable text, but
+    /// do not need an AI meaningful classification to appear on the timeline.
+    static func timelineRecords(_ records: [DayRecord]) -> [DayRecord] {
+        records.filter { record in
+            guard record.kind == .voice else { return true }
+            guard !record.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { return false }
+            guard let provenance = record.contentProvenance else { return record.duration <= 30 * 60 }
+            guard provenance.isFinal == true else { return false }
+            if let duration=provenance.sourceEffectiveDuration,duration <= 30 * 60 { return true }
+            return provenance.classification == "meaningful"
+        }
+    }
     /// Requested-date inputs are assembled before any selected-day parent replacement.
     static func evidenceRecords(legacyParents: [DayRecord], sessionParents: [DayRecord], derived: [DayRecord], scope: DateInterval) -> [DayRecord] {
         DayRecord.evidenceRecords(LegacyAudioDeletionLedger.shared.filter(legacyParents + sessionParents + derived),scope:scope)
@@ -9,7 +23,7 @@ enum ContentSegmentPresentation {
     static func record(_ segment: ContentSegment, source: AudioSourceSnapshot, spans: [AudioTranscriptSpan]) -> DayRecord {
         let intervals = segment.ranges.map { DateInterval(start:source.capturedAt.addingTimeInterval($0.sessionStartOffset),duration:$0.duration) }
         var value = DayRecord(id:segment.id,capturedAt:intervals.first?.start ?? source.capturedAt,kind:.voice,
-            title:segment.displayTitle,text:spans.map(\.text).joined(separator:"\n"),summary:segment.summary,
+            title:segment.displayTitle,text:AudioTranscriptPresentation.fullText(spans),summary:segment.summary,
             duration:segment.ranges.reduce(0) { $0 + $1.duration },intervals:intervals)
         value.recordingSessionID = source.id.kind == .session ? source.id.id : nil
         value.captureDevice = source.origin?.device
@@ -18,7 +32,9 @@ enum ContentSegmentPresentation {
             sourceRevision:segment.sourceRevision,segmentRevision:segment.revision,configurationKey:segment.provenance.configurationKey,
             contentSignature:segment.provenance.contentSignature,sourceDate:source.capturedAt,
             ranges:segment.ranges.map { .init(chunkID:$0.chunkID,startFrame:$0.startFrame,endFrame:$0.endFrame,sampleRate:$0.sampleRate,sourceOffset:$0.sessionStartOffset) },
-            transcript:spans.map { .init(start:$0.start,end:$0.end,text:$0.text) })
+            transcript:spans.map { .init(start:$0.start,end:$0.end,text:$0.text) },
+            classification:segment.editorial?.classification,isFinal:segment.isFinal,
+            sourceEffectiveDuration:source.ranges.reduce(0) { $0 + $1.duration })
         return value
     }
     static func sourceTime(at compact: Double, ranges: [DayRecord.ContentProvenance.AudioRange]) -> Double? {
@@ -65,7 +81,7 @@ struct AudioProcessingPresentation {
             if stage.cancelled > 0 { messages.append("\(label)已取消，可重试。") }
             if stage.notRequested > 0 {
                 if label == "说话人分析" {
-                    messages.append("说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。")
+                    messages.append("说话人分析尚未执行；可能是录音时长未知，也可能尚未请求此阶段。")
                 } else { messages.append("\(label)未请求，不计为分析成功。") }
             }
         }

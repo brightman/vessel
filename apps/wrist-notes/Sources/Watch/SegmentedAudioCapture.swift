@@ -136,6 +136,19 @@ final class RecordingChunkWriter {
 /// Bounded preallocated handoff. The tap never waits, allocates a buffer, opens a
 /// file, or enqueues a closure. DispatchSource coalesces wakeups on one worker.
 final class RecordingPCMBufferPool: @unchecked Sendable {
+    static let microphoneBufferDuration: Double = 10
+    static let microphoneBufferFrameCapacity: AVAudioFrameCount = 8192
+    static func microphoneBufferCount(sampleRate: Double) -> Int {
+        max(1, Int(ceil(sampleRate * microphoneBufferDuration / Double(microphoneBufferFrameCapacity))))
+    }
+    enum OfferResult: Int32 {
+        case accepted = 0
+        case inputBufferTooLarge = 1
+        case formatMismatch = 2
+        case poolBusy = 3
+        case bufferLayoutMismatch = 4
+        var accepted: Bool { self == .accepted }
+    }
     private let buffers: [AVAudioPCMBuffer]
     // Single producer / single consumer ring. Atomic state transitions publish
     // copied PCM with full memory barriers: free -> filling -> ready -> reading.
@@ -150,10 +163,12 @@ final class RecordingPCMBufferPool: @unchecked Sendable {
         states.initialize(repeating: 0, count: count)
     }
     deinit { states.deinitialize(count: buffers.count); states.deallocate() }
-    func offer(_ input: AVAudioPCMBuffer) -> Bool {
+    func offer(_ input: AVAudioPCMBuffer) -> Bool { offerDetailed(input).accepted }
+    func offerDetailed(_ input: AVAudioPCMBuffer) -> OfferResult {
         let slot = writeIndex
-        guard input.frameLength <= buffers[slot].frameCapacity, input.format == buffers[slot].format,
-              OSAtomicCompareAndSwap32Barrier(0, 1, states.advanced(by: slot)) else { return false }
+        guard input.frameLength <= buffers[slot].frameCapacity else { return .inputBufferTooLarge }
+        guard input.format == buffers[slot].format else { return .formatMismatch }
+        guard OSAtomicCompareAndSwap32Barrier(0, 1, states.advanced(by: slot)) else { return .poolBusy }
         let target = buffers[slot]
         target.frameLength = input.frameLength
         let sourceBuffers = UnsafeMutableAudioBufferListPointer(input.mutableAudioBufferList)
@@ -162,13 +177,13 @@ final class RecordingPCMBufferPool: @unchecked Sendable {
             guard let source = sourceBuffers[index].mData, let destination = targetBuffers[index].mData,
                   sourceBuffers[index].mDataByteSize <= targetBuffers[index].mDataByteSize else {
                 _ = OSAtomicCompareAndSwap32Barrier(1, 0, states.advanced(by: slot))
-                return false
+                return .bufferLayoutMismatch
             }
             memcpy(destination, source, Int(sourceBuffers[index].mDataByteSize))
         }
         _ = OSAtomicCompareAndSwap32Barrier(1, 2, states.advanced(by: slot))
         writeIndex = (writeIndex + 1) % buffers.count
-        return true
+        return .accepted
     }
     func take() -> (Int, AVAudioPCMBuffer)? {
         let slot = readIndex
@@ -189,6 +204,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
     private let pool: RecordingPCMBufferPool
     private let signal: DispatchSourceUserDataAdd
     private let overflow: DispatchSourceUserDataAdd
+    private let overflowReason: UnsafeMutablePointer<Int32>
     private let onFailure: (Error) -> Void
     private var terminalError: Error?
     private var finished = false
@@ -215,18 +231,34 @@ final class RecordingCapturePipeline: @unchecked Sendable {
             try RecordingChunkWriter(sessionID: sessionID, root: root, origin: origin,
                 capacityReader: capacityReader, onStorageWarning: { DispatchQueue.main.async(execute: onStorageWarning) }, onSeal: onSeal)
         }
-        // Allocated native capacity <= two seconds, independent of recording length.
-        pool = RecordingPCMBufferPool(format: format, count: max(1, Int(format.sampleRate * 2) / 4096))
+        // Absorb short watchOS scheduling and file-I/O stalls without blocking
+        // the real-time tap. Ten seconds at 48 kHz mono is about 1.9 MiB.
+        pool = RecordingPCMBufferPool(format: format,
+            count: RecordingPCMBufferPool.microphoneBufferCount(sampleRate: format.sampleRate),
+            frameCapacity: RecordingPCMBufferPool.microphoneBufferFrameCapacity)
+        overflowReason = .allocate(capacity: 1)
+        overflowReason.initialize(to: RecordingPCMBufferPool.OfferResult.accepted.rawValue)
         self.onFailure = onFailure
         signal = DispatchSource.makeUserDataAddSource(queue: worker)
         overflow = DispatchSource.makeUserDataAddSource(queue: worker)
         signal.setEventHandler { [weak self] in self?.drain() }
-        overflow.setEventHandler { [weak self] in self?.fail(SegmentedAudioCapture.Failure.bufferOverflow) }
+        overflow.setEventHandler { [weak self] in if let self { self.fail(self.overflowFailure) } }
         signal.resume(); overflow.resume()
     }
 
+    deinit { overflowReason.deinitialize(count: 1); overflowReason.deallocate() }
+
+    private var overflowFailure: SegmentedAudioCapture.Failure {
+        .bufferOverflow(RecordingPCMBufferPool.OfferResult(rawValue: OSAtomicAdd32Barrier(0, overflowReason)) ?? .poolBusy)
+    }
+
     func submit(_ input: AVAudioPCMBuffer) {
-        if pool.offer(input) { signal.add(data: 1) } else { overflow.add(data: 1) }
+        let result = pool.offerDetailed(input)
+        if result.accepted { signal.add(data: 1) }
+        else {
+            _ = OSAtomicCompareAndSwap32Barrier(RecordingPCMBufferPool.OfferResult.accepted.rawValue, result.rawValue, overflowReason)
+            overflow.add(data: 1)
+        }
     }
     func updateLocation(_ location: CaptureLocation) {
         worker.async {
@@ -242,7 +274,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             worker.async {
                 if !self.finished {
-                    if self.overflow.data > 0 { self.fail(SegmentedAudioCapture.Failure.bufferOverflow) }
+                    if self.overflow.data > 0 { self.fail(self.overflowFailure) }
                     self.drain()
                     do {
                         if self.terminalError == nil { try self.convert(nil) }
@@ -300,10 +332,16 @@ final class RecordingCapturePipeline: @unchecked Sendable {
 /// Main-thread lifecycle adapter. Never starts until the user starts a recording.
 final class SegmentedAudioCapture {
     enum Failure: LocalizedError {
-        case bufferOverflow, routeChanged, conversion, alreadyStarted, lowStorage, storageUnavailable
+        case bufferOverflow(RecordingPCMBufferPool.OfferResult), routeChanged, conversion, alreadyStarted, lowStorage, storageUnavailable
         var errorDescription: String? {
             switch self {
-            case .bufferOverflow: "录音缓冲已满，录音已中断；已保存的片段仍保留"
+            case .bufferOverflow(let reason):
+                switch reason {
+                case .inputBufferTooLarge: "手表音频回调超出缓冲区容量，录音已中断；已保存的片段仍保留"
+                case .formatMismatch: "手表音频格式发生变化，录音已中断；已保存的片段仍保留"
+                case .bufferLayoutMismatch: "无法读取手表音频缓冲，录音已中断；已保存的片段仍保留"
+                case .accepted, .poolBusy: "音频处理未及时跟上录音，录音已中断；已保存的片段仍保留"
+                }
             case .routeChanged: "音频设备发生变化，录音已中断"
             case .conversion: "音频转换失败，录音已中断"
             case .alreadyStarted: "录音正在进行"

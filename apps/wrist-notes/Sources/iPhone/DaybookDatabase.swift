@@ -200,7 +200,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 12 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 13 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -329,6 +329,13 @@ final class DaybookDatabase: @unchecked Sendable {
         if version < 12 {
             try execute("CREATE TABLE IF NOT EXISTS recording_location_addresses (sample_id TEXT PRIMARY KEY REFERENCES recording_location_samples(id) ON DELETE CASCADE, payload BLOB NOT NULL)")
             try execute("PRAGMA user_version = 12")
+        }
+
+        if version < 13 {
+            // Rebuildable processed content, separate from immutable original ASR rows.
+            // A semantic signature prevents an old artifact representing edited ranges.
+            try execute("CREATE TABLE IF NOT EXISTS content_segment_presentations (segment_id TEXT PRIMARY KEY REFERENCES content_segments(id) ON DELETE CASCADE, content_signature TEXT NOT NULL, transcript BLOB NOT NULL)")
+            try execute("PRAGMA user_version = 13")
         }
 
     }

@@ -25,6 +25,30 @@ private final class ContentProtocol: URLProtocol {
 
 @main struct ConfiguredContentModelSmoke {
     @MainActor static func main() async throws {
+        let configuredWindowJSON = Data(#"{"mode":"custom","model":"test-model","baseURL":"https://model.example/v1","apiProtocol":"openai","contextWindowTokens":8192}"#.utf8)
+        let configuredWindow = try JSONDecoder().decode(AIConfiguration.self, from: configuredWindowJSON)
+        let roundTrip = try JSONSerialization.jsonObject(with: JSONEncoder().encode(configuredWindow)) as! [String: Any]
+        expect(roundTrip["contextWindowTokens"] as? Int == 8192, "custom context-window setting survives persistence")
+        let legacyJSON = Data(#"{"mode":"local","model":"","baseURL":"","apiProtocol":"openai"}"#.utf8)
+        let legacy = try JSONDecoder().decode(AIConfiguration.self, from: legacyJSON)
+        let legacyRoundTrip = try JSONSerialization.jsonObject(with: JSONEncoder().encode(legacy)) as? [String: Any]
+        expect(legacyRoundTrip != nil && legacyRoundTrip?["contextWindowTokens"] == nil,
+               "settings saved before the optional context window still decode")
+        let wideBudget = ContentModelBudget(windowTokens:8192,fixedInputTokens:1400,outputReserveTokens:192)
+        let compactBudget = ContentModelBudget(windowTokens:4096,fixedInputTokens:1400,outputReserveTokens:192)
+        expect(wideBudget.availableTranscriptTokens == 4552 && wideBudget.chunkTargetTokens == 4096,
+               "8k window reserves prompt, response, and 25 percent safety margin")
+        expect(compactBudget.availableTranscriptTokens == 1480 && compactBudget.chunkTargetTokens == 1332,
+               "unknown 4k window sizes chunks from remaining input budget")
+        expect(ContentModelBudget.estimateTokens("中文ABC!") == 4,"token estimate counts CJK and punctuation directly")
+        var budgetConfiguration=configuredWindow
+        let budgetRouter=ConfiguredContentTextModel(configuration:budgetConfiguration,authorized:{ true },apiKey:{ "unused" },
+            local:{ _ in .init(text:"") },chat:{ _,_,_ in "" })
+        expect(budgetRouter.summaryBudget(context:"位置观察").windowTokens == 8192,"custom route uses its configured context window")
+        budgetConfiguration.contextWindowTokens=nil; budgetConfiguration.mode = .chatgpt
+        let unknownRouter=ConfiguredContentTextModel(configuration:budgetConfiguration,authorized:{ true },apiKey:{ "unused" },
+            local:{ _ in .init(text:"") },chat:{ _,_,_ in "" })
+        expect(unknownRouter.summaryBudget(context:"位置观察").windowTokens == 4096,"route without window metadata uses the conservative 4k baseline")
         let sessionConfiguration = URLSessionConfiguration.ephemeral
         sessionConfiguration.protocolClasses = [ContentProtocol.self]
         let transport = CustomAISummarizer(session:URLSession(configuration:sessionConfiguration))
@@ -48,6 +72,13 @@ private final class ContentProtocol: URLProtocol {
         expect(messages[1]["content"]!.contains("13:00；位置精度约100米"),"actual sampled context sent with excerpt")
         expect(messages[0]["content"]!.contains("untrusted"),"source text remains data, not instructions")
 
+        ContentProtocol.response = #"{"choices":[{"message":{"content":"{\"classification\":\"meaningful\"}"},"finish_reason":"stop"}]}"#
+        let classification=try await router.respond(.init(kind:.classification,text:"今天确定了发布计划"))
+        expect(classification.classification == "meaningful","remote classifier accepts the bounded classification schema")
+        ContentProtocol.response = #"{"choices":[{"message":{"content":"{\"classification\":\"invented\"}"},"finish_reason":"stop"}]}"#
+        do { _ = try await router.respond(.init(kind:.classification,text:"今天确定了发布计划")); fatalError("classifier labels outside the schema must fail") }
+        catch ContentEnrichmentFailure.invalidReply {}
+
         config.apiProtocol = .anthropic
         ContentProtocol.response = #"{"type":"message","role":"assistant","content":[{"type":"text","text":"{\"decision\":\"sameTopic\",\"timestamp\":1800}"}],"stop_reason":"end_turn"}"#
         let anthropic = ConfiguredContentTextModel(configuration:config,transport:transport,authorized:{ authorized },apiKey:{ "test-key" },local:{ _ in fatalError("wrong route") },chat:{ _,_,_ in fatalError("wrong route") })
@@ -68,6 +99,16 @@ private final class ContentProtocol: URLProtocol {
         let revoked = ConfiguredContentTextModel(configuration:config,transport:transport,authorized:{ authorized },apiKey:{ fatalError("wrong route") },local:{ _ in fatalError("wrong route") },chat:{ _,_,_ in authorized = false; return "过时结果" })
         do { _ = try await revoked.respond(.init(kind:.summary,text:"输入")); fatalError("revoked result must be discarded") }
         catch is CancellationError {}
+        var macConfig = AIConfiguration(); macConfig.mode = .nearbyMac
+        macConfig.nearbyMacServiceID = "invalid-service"
+        let mac = ConfiguredContentTextModel(configuration:macConfig,transport:transport,authorized:{ true },
+            apiKey:{ fatalError("Mac must not read custom API key") },
+            local:{ _ in fatalError("Mac must not fall back to iPhone") },
+            chat:{ _,_,_ in fatalError("Mac must not fall back to ChatGPT") })
+        do { _ = try await mac.respond(.init(kind:.summary,text:"示例文字")); fatalError("invalid Mac must fail") }
+        catch NearbyMacFailure.pairing {}
+        do { _ = try await mac.respond(instruction:"总结",content:"示例文字"); fatalError("invalid Mac must fail") }
+        catch NearbyMacFailure.pairing {}
         print("Configured content model: consent, local/OpenAI/Anthropic/ChatGPT routing, context, topic validation and stale result passed")
     }
 }

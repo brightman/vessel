@@ -5,6 +5,9 @@ import Foundation
         guard try value() else { fatalError(message) }
     }
     static func rejects(_ body: () throws -> Void) { do { try body(); fatalError("invalid mutation accepted") } catch {} }
+    static func finalizeTopics(_ repository: ContentSegmentRepository, processing: AudioProcessingRepository, sourceID: AudioSourceID) throws {
+        _ = try repository.enrichment(.finalizeTopics(sourceID,try processing.progress(sourceID:sourceID).revision))
+    }
     static func range(_ start: Double, _ end: Double, gap: String? = nil) throws -> AudioSourceRange {
         let id = UUID()
         return try .init(range:.init(chunkID:id,url:URL(fileURLWithPath:"/synthetic/\(id).wav"),startFrame:0,endFrame:Int64((end-start)*16000),sampleRate:16000,sessionStartOffset:start,discontinuityBefore:gap),contentHash:String(repeating:"a",count:64))
@@ -24,12 +27,18 @@ import Foundation
         }
         let touching = try source([range(0,300),range(300,600)])
         try check(ContentSegmentation.build(source:touching,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:600)]).segments.count == 1,"physical file and midnight do not split content")
+        try check(ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:300.5,ranges:touching.ranges),"ASR word crossing a contiguous audio-file boundary stays owned")
+        try check(ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:600.00005,ranges:touching.ranges),"ASR rounding within one PCM frame remains covered")
+        try check(!ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:600.0002,ranges:touching.ranges),"coverage tolerance does not mask a real missing interval")
         let interrupted = try source([range(0,300),range(300,600,gap:"interrupted")])
+        try check(!ContentSegmentRepository.spanIsCoveredByRanges(start:299,end:300.5,ranges:interrupted.ranges),"ASR word cannot bridge a real source discontinuity")
         try check(ContentSegmentation.build(source:interrupted,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:600)]).segments.count == 2,"touching captured discontinuity splits")
         let missing = try source([range(0,100),range(200,300)])
         try check(ContentSegmentation.build(source:missing,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:300)]).segments.count == 2,"missing audio is a hard gap")
         let pending = try ContentSegmentation.build(source:touching,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:300)])
-        try check(pending.state == .pending && !pending.segments[0].isFinal,"failed/unanalysed coverage is pending")
+        try check(pending.state == .pending && !pending.segments[0].boundaryReady,"failed/unanalysed coverage is not boundary-ready")
+        let coveredButNotUnified = try ContentSegmentation.build(source:touching,reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:600)])
+        try check(coveredButNotUnified.segments[0].boundaryReady,"full ASR/VAD coverage closes the boundary but still awaits topic unification")
         let empty = try ContentSegmentation.build(source:touching,reliableNoSpeech:[.init(start:0,end:600)],successfulCoverage:[.init(start:0,end:600)])
         try check(empty.state == .processedNoSpeech && empty.segments.isEmpty,"processed ambient only recording remains explicitly accessible")
         try check(ContentSegmentation.build(source:source([]),reliableNoSpeech:[],successfulCoverage:[]).state == .pending,"empty input cannot prove no-speech")
@@ -55,6 +64,8 @@ import Foundation
         }
         try r.reconcile(sourceID:s.id)
         let segments=try r.segments(sourceID:s.id)
+        let persisted=try JSONSerialization.jsonObject(with:JSONEncoder().encode(segments[0])) as! [String:Any]
+        try check(persisted["boundaryReady"] as? Bool == true && !segments[0].isFinal,"reconciled range stores complete ASR/VAD readiness separately from finality")
         let assigned=try segments.flatMap { try r.spans(segmentID:$0.id) }
         try check(assigned.count == rows.count && Set(assigned.map { $0.text }).count == rows.count,"fractional ASR blank edges assign every raw row exactly once after frame slicing")
         let overlap=try ContentSegmentation.build(source:source([range(0,3600)]),reliableNoSpeech:[],successfulCoverage:[.init(start:0,end:3600)],transcriptRanges:[.init(start:1780,end:1805.18),.init(start:1804,end:1820.32)])
@@ -86,7 +97,8 @@ import Foundation
         let historical=ContentSegment(id:chapters[0].id,sourceID:s.id,sourceRevision:chapters[0].sourceRevision,ranges:s.ranges,title:"Old giant segment",summary:"",revision:chapters[0].revision,isManual:false,isFinal:true,hasText:true,provenance:.init(algorithmVersion:"confirmed-gap-600-padding-2-v1",configurationKey:"chapters",contentSignature:"old-content"))
         try db.execute("UPDATE content_segments SET deleted=1 WHERE source_key=?",[.text(s.id.key)])
         try db.execute("UPDATE content_segments SET deleted=0,payload=? WHERE id=?",[try DaybookDatabase.json(historical),.text(historical.id.uuidString)])
-        try db.execute("UPDATE content_segment_sources SET signature='old-strategy',semantic_signature='old-strategy' WHERE source_key=?",[.text(s.id.key)])
+        let unchangedSignature=try db.query("SELECT signature FROM content_segment_sources WHERE source_key=?",[.text(s.id.key)])[0].requiredString("signature")
+        try db.execute("UPDATE content_segment_sources SET signature=?,semantic_signature=? WHERE source_key=?",[.text(unchangedSignature),.text(unchangedSignature),.text(s.id.key)])
         try r.reconcile(sourceID:s.id)
         let refreshed=try r.segments(sourceID:s.id)
         try check(refreshed.count == chapters.count && p.claimNext() == nil,"strategy upgrade replaces old giant segment without re-ASR")
@@ -139,13 +151,22 @@ import Foundation
         var segments = try repository.segments(sourceID:s.id)
         try check(segments.first!.ranges.first!.sessionStartOffset == 0 && segments.last!.ranges.last!.end == 900,"crossing text protects hard noSpeech exclusion; ASR blanks remain visible")
         try check(segments.flatMap { try repository.spans(segmentID:$0.id) }.count == 3,"same text at distinct source times retained")
-        let original = try repository.merge(ids:segments.map(\.id),expectedRevisions:segments.map(\.revision))
+        rejects { _ = try repository.merge(ids:segments.map(\.id),expectedRevisions:segments.map(\.revision)) }
+        try finalizeTopics(repository,processing:processing,sourceID:s.id)
+        let finalSegments=try repository.segments(sourceID:s.id)
+        try check(finalSegments.allSatisfy(\.isFinal),"coverage-ready segments become final only after topic pass finalization")
+        let v2Input=try repository.contentV2Input(sourceID:s.id)
+        try check(v2Input?.spans.count == 3,"production V2 snapshot accepts automatic reconcile history and carries complete ASR rows")
+        let checkpoint=Data("validated-stage".utf8)
+        try repository.saveContentV2Checkpoint(sourceID:s.id,key:"test-stage",data:checkpoint)
+        try check(try repository.contentV2Checkpoint(sourceID:s.id,key:"test-stage") == checkpoint,"V2 stage checkpoints persist with their source foreign key")
+        let original = try repository.merge(ids:finalSegments.map(\.id),expectedRevisions:finalSegments.map(\.revision))
+        try check(original.isFinal && original.boundaryReady == true,"manual adjacent merge retains finality and readiness")
+        rejects { _ = try repository.contentV2Input(sourceID:s.id) }
         try repository.reconcile(sourceID:s.id)
         try check(repository.segment(id:original.id)?.revision == original.revision,"no-op reconciliation retains identity/revision")
-        let parts = try repository.split(id:original.id,at:450,expectedRevision:original.revision)
-        try check(parts.count == 2 && parts.allSatisfy(\.isManual),"manual split durable boundaries")
-        rejects { _ = try repository.split(id:original.id,at:10,expectedRevision:original.revision) }
-        let merged = try repository.merge(ids:parts.map(\.id),expectedRevisions:parts.map(\.revision))
+        rejects { _ = try repository.split(id:original.id,at:450,expectedRevision:original.revision) }
+        let merged = original
         try check(merged.ranges.count >= 2,"merge retains physical ranges")
         try repository.delete(id:merged.id,expectedRevision:merged.revision)
         rejects { try repository.applyEnrichment(id:merged.id,expectedRevision:merged.revision,sourceRevision:merged.sourceRevision,title:"late",summary:"late") }
@@ -202,11 +223,13 @@ import Foundation
         try r.reconcile(sourceID:s.id)
         try check(r.segments(sourceID:s.id).contains { $0.hasText } && r.state(sourceID:s.id) == .processed,"ASR-only retry crossing neighbor prevents 600 second silence")
         let automaticPieces=try r.segments(sourceID:s.id)
-        let old = try r.merge(ids:automaticPieces.map(\.id),expectedRevisions:automaticPieces.map(\.revision))
-        let pieces = try r.split(id:old.id,at:450,expectedRevision:old.revision)
+        let old=automaticPieces[0]
+        let selectedRange=old.ranges.first!
+        let pieces=try r.split(id:old.id,at:selectedRange.sessionStartOffset+selectedRange.duration/2,expectedRevision:old.revision)
         try register(s,"v2")
         try r.reconcile(sourceID:s.id)
-        try check(r.segments(sourceID:s.id).map(\.id) == pieces.map(\.id),"reprocess preserves frozen manual boundaries")
+        let reprocessed=try r.segments(sourceID:s.id)
+        try check(Set(reprocessed.map(\.id)).isSuperset(of:Set(pieces.map(\.id))) && pieces.allSatisfy({ piece in reprocessed.contains(where:{ $0.id == piece.id && $0.isManual && !$0.isFinal }) }),"reprocess preserves frozen manual boundaries")
         try check(db.query("SELECT sequence FROM content_segment_edits WHERE kind='reprocess'").count == 1,"reprocess is auditable")
         try check(r.segments(sourceID:s.id).allSatisfy { !$0.isFinal },"manual boundaries remain pending until new configuration succeeds")
 
@@ -231,13 +254,35 @@ import Foundation
         }
         try r.reconcile(sourceID:gapped.id)
         let before = try r.segments(sourceID:gapped.id)
-        let merged = try r.merge(ids:before.map(\.id),expectedRevisions:before.map(\.revision))
+        rejects { _ = try r.merge(ids:before.map(\.id),expectedRevisions:before.map(\.revision)) }
+        try finalizeTopics(r,processing:p,sourceID:gapped.id)
+        let readyGaps=try r.segments(sourceID:gapped.id)
+        let merged = try r.merge(ids:readyGaps.map(\.id),expectedRevisions:readyGaps.map(\.revision))
         // A stray contextual span in the enclosing gap must never be returned in segment detail.
         let jobID = try db.query("SELECT id FROM audio_processing_jobs WHERE source_key=? LIMIT 1",[.text(gapped.id.key)])[0].requiredString("id")
         try db.execute("INSERT INTO audio_transcript_spans(job_id,position,start,end,text) VALUES (?,999,150,151,'gap')",[.text(jobID)])
         try check(r.spans(segmentID:merged.id,limit:1,offset:0)[0].start == 10 && r.spans(segmentID:merged.id,limit:1,offset:1)[0].start == 210 && r.spans(segmentID:merged.id,limit:1,offset:2).isEmpty,"manual gap merge pages actual ranges")
         try check(merged.ranges[0].end == 100 && merged.ranges[1].sessionStartOffset == 200,"visible gap retained")
         rejects { _ = try r.merge(ids:[merged.id,pieces[0].id],expectedRevisions:[merged.revision,pieces[0].revision]) }
+
+        let threeDB=try DaybookDatabase(inMemory:true)
+        let pThree=AudioProcessingRepository(database:threeDB),rThree=ContentSegmentRepository(database:threeDB)
+        let three=try source([range(0,300),range(300,600,gap:"interrupted"),range(600,900,gap:"interrupted")])
+        try threeDB.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(three.id.id.uuidString)])
+        try pThree.register(source:three,configurationKey:"v1",windows:AudioWindowPlanner.plan(source:three,configurationKey:"v1"))
+        while let job=try pThree.claimNext() {
+            let a=job.window.coreStart,b=job.window.coreEnd
+            try pThree.commit(job:job,result:.init(spans:[.init(start:a+1,end:b-1,text:"chapter \(Int(a))")],activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        try rThree.reconcile(sourceID:three.id)
+        try finalizeTopics(rThree,processing:pThree,sourceID:three.id)
+        let orderedThree=try rThree.segments(sourceID:three.id)
+        try check(orderedThree.count == 3 && orderedThree.allSatisfy(\.isFinal),"three captured recording runs create three final adjacent chapters count=\(orderedThree.count) readiness=\(orderedThree.map { ($0.boundaryReady,$0.isFinal,$0.ranges.first?.sessionStartOffset,$0.ranges.last?.end) })")
+        let middle=orderedThree[1]
+        let evidence=AudioStableID.make([middle.id.uuidString,middle.provenance.contentSignature,"segment-transcript"])
+        _ = try rThree.enrichment(.classification(middle,"lowInformation","test","test",evidence))
+        try rThree.preparePresentations(sourceID:three.id)
+        rejects { _ = try rThree.merge(ids:[orderedThree[0].id,orderedThree[2].id],expectedRevisions:[orderedThree[0].revision,orderedThree[2].revision]) }
 
         let automatic = try source([range(0,300)],complete:false)
         try register(automatic)

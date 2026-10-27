@@ -36,14 +36,19 @@ enum AudioAdaptiveInference {
                     if evidence[canonical] == nil { evidence[canonical] = .init(localSpeakerID:canonical,modelVersion:feature.modelVersion,vector:vector) }
                 }
             }
+            let featureIDs = Set(result.speakerFeatures.map(\.localSpeakerID))
+            let localIDs = Set((result.spans + delta.speakerSpanUpdates).compactMap(\.speakerID))
+            for localID in localIDs.sorted() where labels[localID] == nil && !featureIDs.contains(localID) {
+                labels[localID] = "speaker:" + AudioStableID.make([part.sourceID.key,part.configurationKey,part.id,localID])
+            }
             func mapped(_ values: [AudioTranscriptSpan]) -> [AudioTranscriptSpan] {
                 values.map { span in var value = span; value.speakerID = span.speakerID.flatMap { labels[$0] }; return value }
             }
             outcomes.append(result); spans += mapped(result.spans); updates += mapped(delta.speakerSpanUpdates); activities += result.activities
         }
         func combined(_ key: KeyPath<AudioWindowResult,AudioAnalysisOutcome>) -> AudioAnalysisOutcome {
-            let values = outcomes.map { $0[keyPath:key] }
-            if values.allSatisfy({ $0 == .notRequested }) { return .notRequested }
+            let values = outcomes.map { $0[keyPath:key] }.filter { $0 != .notRequested }
+            if values.isEmpty { return .notRequested }
             if values.allSatisfy({ $0 == .success }) { return .success }
             if values.contains(.missingResource) { return .missingResource }
             if values.contains(.cancelled) { return .cancelled }

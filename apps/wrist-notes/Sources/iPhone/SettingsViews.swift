@@ -65,33 +65,39 @@ struct SettingsView: View {
             }
             SettingsSection("关于") {
                 NavigationLink(value: SettingsRoute.about) {
-                    SettingsRow(symbol: "info.circle", title: "关于", subtitle: "隐私协议、服务协议与联系信息")
+                    SettingsRow(symbol: "info.circle", title: "关于", subtitle: "常见问题与法律信息")
                 }
                 .settingsCard()
+                AppReleaseInfoView()
             }
         }
     }
 }
 
 struct AboutView: View {
+    private let faqURL = URL(string: "https://wiselife.cloud/#questions")!
     private let privacyPolicyURL = URL(string: "https://wiselife.cloud/privacy")!
     private let termsOfServiceURL = URL(string: "https://wiselife.cloud/terms")!
     private let contactURL = URL(string: "mailto:hello@wiselife.cloud")!
 
     var body: some View {
-        SettingsPage(title: "关于", subtitle: "WiseLife 的隐私、服务条款与联系渠道。") {
+        SettingsPage(title: "关于", subtitle: "查看常见问题、隐私与服务条款，或联系 WiseLife。") {
             SettingsSection("法律与支持") {
                 VStack(spacing: 0) {
+                    Link(destination: faqURL) {
+                        SettingsRow(symbol: "questionmark.circle", title: "常见问题", subtitle: "常见问题与使用说明")
+                    }
+                    Divider().overlay(NotesStyle.border)
                     Link(destination: privacyPolicyURL) {
-                        SettingsRow(symbol: "hand.raised", title: "隐私协议", subtitle: "查看隐私政策与数据使用说明")
+                        SettingsRow(symbol: "hand.raised", title: "隐私条款", subtitle: "查看隐私政策与数据使用说明")
                     }
                     Divider().overlay(NotesStyle.border)
                     Link(destination: termsOfServiceURL) {
-                        SettingsRow(symbol: "doc.text", title: "服务协议", subtitle: "查看应用服务条款")
+                        SettingsRow(symbol: "doc.text", title: "服务条款", subtitle: "查看应用服务条款")
                     }
                     Divider().overlay(NotesStyle.border)
                     Link(destination: contactURL) {
-                        SettingsRow(symbol: "envelope", title: "联系我", subtitle: "hello@wiselife.cloud")
+                        SettingsRow(symbol: "envelope", title: "联系我们", subtitle: "hello@wiselife.cloud")
                     }
                 }
                 .settingsCard()
@@ -120,26 +126,33 @@ struct AISettingsView: View {
             catch { saveError = error.localizedDescription }
         }) {
             VStack(spacing: 0) {
-                ModelChoice(title: "Apple 本地模型", badge: "本机",
+                ModelChoice(title: "Apple Intelligence", badge: "本机",
                             description: "由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。",
                             selected: editor.configuration.mode == .local) {
-                    editor.configuration.mode = .local
+                    editor.selectMode(.local)
+                }
+                ModelChoice(title: "连接本地 Mac 模型", badge: "局域网",
+                            description: "连接 WiseLife Mac Companion，使用 Mac 上的 LLM 生成总结、标题与问答。",
+                            selected: editor.configuration.mode == .nearbyMac) {
+                    editor.selectMode(.nearbyMac)
                 }
                 ModelChoice(title: "ChatGPT 账号", badge: "云端",
                             description: "使用已有 ChatGPT 账号，按套餐额度在云端处理。",
                             selected: editor.configuration.mode == .chatgpt) {
-                    editor.configuration.mode = .chatgpt
+                    editor.selectMode(.chatgpt)
                 }
                 ModelChoice(title: "自定义模型", badge: "自有服务",
                             description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
                             selected: editor.configuration.mode == .custom) {
-                    editor.configuration.mode = .custom
+                    editor.selectMode(.custom)
                 }
             }
             if editor.configuration.mode == .local {
                 SettingsInfo(title: localAvailabilityTitle,
                              text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
                     .padding(.top, 20)
+            } else if editor.configuration.mode == .nearbyMac {
+                NearbyMacSettingsSection(settings: settings, configuration: $editor.configuration).padding(.top, 20)
             } else if editor.configuration.mode == .chatgpt {
                 ChatGPTSettingsSection(account: chatGPT, configuration: $editor.configuration).padding(.top, 20)
             } else {
@@ -157,6 +170,18 @@ struct AISettingsView: View {
                         TextField("例如 my-model", text: $editor.configuration.model)
                             .accessibilityLabel("模型名称")
                     }
+                    DaybookSettingsField("上下文窗口（tokens，可选）") {
+                        TextField("留空：按 4,096 估算", text: Binding(
+                            get: { editor.configuration.contextWindowTokens.map(String.init) ?? "" },
+                            set: { input in
+                                let digits=String(input.filter(\.isNumber))
+                                editor.configuration.contextWindowTokens=digits.isEmpty ? nil : Int(digits)
+                            }))
+                            .keyboardType(.numberPad)
+                            .accessibilityLabel("上下文窗口（tokens，可选）")
+                    }
+                    SettingsFootnote(text: "填写模型服务商公布的上下文窗口；不确定时留空，按 4,096 tokens 估算。")
+                        .padding(.top, -8)
                     DaybookSettingsField("服务地址 · Base URL") {
                         TextField(editor.configuration.apiProtocol.baseURLHint, text: $editor.configuration.baseURL)
                             .keyboardType(.URL).accessibilityLabel("Base URL")
@@ -199,7 +224,7 @@ struct AISettingsView: View {
 
     private var localAvailabilityTitle: String {
         if case .available = SystemLanguageModel.default.availability,
-           SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple 本地模型可用" }
+           SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple Intelligence可用" }
         return "需要 Apple Intelligence 可用"
     }
 
@@ -397,5 +422,23 @@ extension View {
     func settingsCard() -> some View {
         self.overlay(alignment: .bottom) { Rectangle().fill(DaybookStyle.line).frame(height: 1) }
             .buttonStyle(.plain)
+    }
+}
+
+struct AppReleaseInfoView: View {
+    @Environment(\.locale) private var locale
+    private let release = AppReleaseInfo()
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack { Text("版本号"); Spacer(); Text(verbatim: release.versionLabel) }
+            HStack {
+                Text("发布时间"); Spacer()
+                if let date = release.releaseLabel(locale: locale) { Text(verbatim: date) }
+                else { Text("未提供") }
+            }
+        }
+        .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+        .monospacedDigit().padding(.top, 16)
+        .accessibilityIdentifier("settings.releaseInfo")
     }
 }

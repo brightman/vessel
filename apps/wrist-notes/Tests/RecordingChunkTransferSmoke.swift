@@ -46,18 +46,28 @@ import Foundation
         repository.importStep = { step in if step == .commit { trace.append("publish") } }
         let receiver = try RecordingChunkReceiver(root: root.appendingPathComponent("inbox"), openRepository: { repository }, send: { ack in acknowledgements.append(ack); trace.append("ACK") }, event: { trace.append($0.rawValue) })
         receiver.setBinding(binding)
+        let contentChanges = ReceiverNotificationCount()
+        let observation = NotificationCenter.default.addObserver(forName: RecordingChunkReceiver.didChange, object: nil, queue: nil) { _ in contentChanges.increment() }
+        defer { NotificationCenter.default.removeObserver(observation) }
+        var statusChecks = 0
+        receiver.onStatusChange = { statusChecks += 1 }
+        for _ in 0..<20 { try receiver.drain() }
+        expect(contentChanges.value == 0, "empty receipt retries must not invalidate timeline content")
+        expect(statusChecks == 20, "empty retries must still publish transfer health")
         let temporary = root.appendingPathComponent("WC-temp.m4a")
         try FileManager.default.copyItem(at: source, to: temporary)
         try receiver.stage(files[0].1, temporaryFile: temporary)
         expect(!FileManager.default.fileExists(atPath: temporary.path), "callback must move temporary before returning")
         expect(acknowledgements.isEmpty, "intake cannot ACK")
         try receiver.drain()
+        expect(contentChanges.value == 1, "a newly committed audio chunk must invalidate timeline content")
         expect(trace == ["inbox", "validate", "publish", "commit", "outbox", "ACK"], "durable event order")
         guard case let .chunk(ack) = acknowledgements.first else { fatalError("missing chunk receipt") }
         try queue.receive(ack)
         expect(queue.sessionStates.first?.isComplete == false, "first chunk cannot acknowledge end")
         try receiver.stage(ends[0])
         try receiver.drain()
+        expect(contentChanges.value == 2, "a committed end marker must invalidate timeline content")
         guard case let .end(endAck) = acknowledgements.last else { fatalError("missing end receipt") }
         try queue.receive(endAck)
         expect(queue.sessionStates.first?.isComplete == true, "all receipts plus exact end completes session")
@@ -585,5 +595,12 @@ import Foundation
             precondition(queue.binding == nil, "nonfinite duration cannot establish a binding")
         }
     }
+
+private final class ReceiverNotificationCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func increment() { lock.withLock { count += 1 } }
+}
 
 }

@@ -94,6 +94,29 @@ import Foundation
         try reopened.delete(archive.id)
         let deletedReload = try LifeSourceStore(url: url)
         precondition(deletedReload.isSuppressed(archive.id), "Deleting a derived archive persists its suppression")
+        let workoutStart = date("2026-10-18T23:40:00Z"), workoutEnd = date("2026-10-19T00:20:00Z")
+        let workout = WorkoutMoment(id: UUID(), activity: "跑步", startedAt: workoutStart, endedAt: workoutEnd,
+            duration: 2100, distanceMeters: 5000, activeKilocalories: 240, sourceName: "Apple Watch", manuallyEntered: false)
+        let training = LifeMomentBuilder.workouts([workout, workout], day: workoutStart, now: now, calendar: calendar)
+        precondition(training.count == 1 && training[0].id == workout.id, "Repeated workout UUIDs deduplicate")
+        precondition(training[0].duration == 2100 && training[0].text.contains("35分"), "Use duration excluding pauses")
+        precondition(training[0].lifeMoment?.workout == workout && training[0].metricValue == nil, "Workout cannot masquerade as steps")
+        precondition(LifeMomentBuilder.workouts([workout], day: workoutEnd, now: now, calendar: calendar).isEmpty, "Cross-midnight workout belongs to start day")
+        precondition(LifeMomentBuilder.workouts([workout], day: workoutStart, now: workoutStart, calendar: calendar).isEmpty, "Exclude unfinished workouts")
+        let decodedWorkout = try JSONDecoder().decode(DayRecord.self, from: JSONEncoder().encode(training[0]))
+        precondition(decodedWorkout == training[0], "Workout metadata roundtrip")
+        let noMetrics = WorkoutMoment(id: UUID(), activity: "瑜伽", startedAt: workoutStart, endedAt: workoutEnd,
+            duration: 1800, distanceMeters: nil, activeKilocalories: nil, sourceName: "健康", manuallyEntered: true)
+        let noMetricsRecord = LifeMomentBuilder.workouts([noMetrics], day: workoutStart, now: now, calendar: calendar)[0]
+        precondition(!noMetricsRecord.text.contains("千卡") && noMetricsRecord.text.contains("手动录入"), "Missing metrics not fabricated; manual provenance retained")
+        let workoutArchive = LifeMomentBuilder.archive(records: training, day: workoutEnd, updatedAt: now, calendar: calendar)
+        precondition(workoutArchive.lifeMoment?.steps?.count == nil, "Workout cannot pollute step archive")
+        try reopened.replace(source: .health, day: previous, records: training, refreshedAt: now)
+        precondition(reopened.snapshot(source: .health, day: previous)?.status == .ready, "Workout-only health authorization is readable")
+        let workoutReload = try LifeSourceStore(url: url)
+        precondition(workoutReload.records.contains { $0.lifeMoment?.workout == workout }, "SQLite preserves workout metadata")
+        try reopened.replace(source: .health, day: previous, records: [], refreshedAt: now)
+        precondition(!reopened.records.contains { $0.id == workout.id }, "Health deletion removed on refresh")
         print("Life moments: whole-night sleep, overlap, source choice, nap, missing data, archive identity and SQLite confirmation passed")
     }
 }

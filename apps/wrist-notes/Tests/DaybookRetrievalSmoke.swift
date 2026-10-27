@@ -23,6 +23,33 @@ struct DaybookRetrievalSmoke {
         let records = [tomorrow, first, yesterday, last, historical]
         let service = DaybookRetrieval(calendar: calendar)
 
+        var workoutRecord = DayRecord(id: UUID(), capturedAt: now.addingTimeInterval(-3600), kind: .activity,
+            title: "运动 · 跑步", text: "Apple 健康体能训练：跑步，持续30分钟，来源 Apple Watch。", duration: 1800)
+        workoutRecord.lifeMoment = .init(workout: .init(id: workoutRecord.id, activity: "跑步",
+            startedAt: workoutRecord.capturedAt, endedAt: now.addingTimeInterval(-1800), duration: 1800,
+            distanceMeters: nil, activeKilocalories: nil, sourceName: "Apple Watch", manuallyEntered: false))
+        let workoutAnswer = try service.prepare(question: "今天跑步多久？", records: [workoutRecord, first],
+            selectedDate: now, now: now, allowedKinds: [.activity], automatic: true)
+        precondition(workoutAnswer.sources.contains { $0.id == workoutRecord.id }, "Ask AI retrieves workouts")
+        precondition(workoutAnswer.statistics.audioDuration == 0, "Workout duration never contributes to audio totals")
+        let deniedWorkout = try service.prepare(question: "今天跑步多久？", records: [workoutRecord],
+            selectedDate: now, now: now, allowedKinds: [.voice], automatic: true)
+        precondition(deniedWorkout.sources.isEmpty, "Health AI permission excludes workouts")
+
+        // Automatic Ask AI is independent of the homepage date, keeps hard time boundaries,
+        // and only expands a soft "recent" scope when requested by the loader.
+        let autoAll = try service.prepare(question: "项目说了什么？", records: records, selectedDate: selected, now: now, automatic: true)
+        precondition(Set(autoAll.sources.map(\.id)) == Set([first.id, historical.id]))
+        let autoRecent = try service.prepare(question: "最近有哪些记录？", records: records, selectedDate: selected, now: now, automatic: true)
+        precondition(autoRecent.statistics.totalCount == 4 && !autoRecent.sources.contains { $0.id == tomorrow.id })
+        let autoMonth = try service.prepare(question: "上个月有哪些记录？", records: records, selectedDate: selected, now: now, automatic: true)
+        precondition(calendar.component(.month, from: autoMonth.dayStart) == 9 && autoMonth.statistics.totalCount == 0)
+        let autoRange = try service.prepare(question: "10月17日到10月18日有哪些记录？", records: records, selectedDate: now, now: now, automatic: true)
+        precondition(Set(autoRange.sources.map(\.id)) == Set([historical.id, yesterday.id]))
+        precondition(autoRange.context.contains("2026-10-17") && autoRange.context.contains("2026-10-18"))
+        let autoDenied = try service.prepare(question: "项目说了什么？", records: records, selectedDate: selected, now: now, allowedKinds: [.image], automatic: true)
+        precondition(autoDenied.sources.isEmpty)
+
         // Removing calendar boundaries would leak yesterday/tomorrow; today must ignore selected date.
         let today = try service.prepare(question: "今天有多少条记录？", records: records, selectedDate: selected, now: now)
         precondition(today.statistics.totalCount == 2)
@@ -103,6 +130,7 @@ struct DaybookRetrievalSmoke {
             preconditionFailure("Invalid explicit dates must not silently use the selected day")
         } catch is DaybookRetrieval.Failure { }
         #if DAYBOOK_ASSISTANT_MODEL_TESTS
+        try await automaticScopeLoadingTests()
         try await requestedContentScopeTests()
         try await durableSourceDeletionTests()
         try await remoteConfirmationPreferenceTests()
@@ -121,6 +149,35 @@ struct DaybookRetrievalSmoke {
 
 #if DAYBOOK_ASSISTANT_MODEL_TESTS
 @MainActor
+private func automaticScopeLoadingTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at:root) }
+    let suite = "AutoScope-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName:suite)!
+    defer { defaults.removePersistentDomain(forName:suite) }
+    let settings = AppSettings(defaults:defaults,secrets:DaybookTestSecrets())
+    let now = Date.now
+    let old = Calendar.current.date(byAdding:.day,value:-40,to:now)!
+    let record = DayRecord(id:UUID(),capturedAt:old,kind:.voice,title:"旧录音",text:"客户项目记录",duration:10)
+    let model = DaybookAssistantModel(store:DaybookConversationStore(url:root.appendingPathComponent("auto.json")))
+    var scopes: [DateInterval] = []
+    model.scopeLoader = { scope in scopes.append(scope); return scope.contains(old) ? [record] : [] }
+    model.ask("最近有多少条记录？",records:[],selectedDate:old,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<2000 { if !model.isPending && model.answer != nil { break }; await Task.yield() }
+    precondition(scopes.count == 2 && scopes[0].duration < 8*86400 && scopes[1].contains(old), "Soft recent query must load again before expanding evidence")
+    precondition(model.answer?.sources.first?.id == record.id && model.answer?.scopeDescription.contains("扩大") == true)
+    scopes = []
+    model.ask("过去7天有多少条记录？",records:[],selectedDate:old,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<2000 { if !model.isPending && model.answer != nil { break }; await Task.yield() }
+    precondition(scopes.count == 1 && model.answer?.sources.isEmpty == true, "Explicit durations cannot silently expand")
+    scopes = []
+    model.ask("昨天有多少条记录？",records:[],selectedDate:old,allowedKinds:[.voice],settings:settings)
+    for _ in 0..<2000 { if !model.isPending && model.answer != nil { break }; await Task.yield() }
+    precondition(scopes.count == 1 && scopes[0].duration <= 25*3600 && !scopes[0].contains(old))
+    print("Automatic scope loading: soft expansion, hard duration/date boundaries passed")
+}
+
+@MainActor
 private func requestedContentScopeTests() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at:root) }
@@ -136,7 +193,7 @@ private func requestedContentScopeTests() async throws {
     var requested: DateInterval?
     model.scopeLoader = { scope in requested = scope; return rows }
     model.ask("2001-01-01 有多少条记录？",records:[],selectedDate:selected,allowedKinds:[.voice],settings:settings)
-    for _ in 0..<1000 { if model.answer != nil { break }; await Task.yield() }
+    for _ in 0..<1000 { if !model.isPending && model.answer != nil { break }; await Task.yield() }
     precondition(requested?.start == target && model.prepared?.statistics.totalCount == 121,"explicit old date loads complete evidence independently of UI selection")
     precondition(model.prepared?.isCurrent(records:model.recordsForEvidence([]),allowedKinds:[.voice]) == true,"loaded evidence stays current through UI base")
     model.scopeLoader = { _ in throw URLError(.cannotLoadFromNetwork) }
@@ -735,7 +792,9 @@ private actor DelayedSemantic: DaybookSemanticSearching {
     await wait()
     model.synchronize(records: [note], selectedDate: day.addingTimeInterval(86400), allowedKinds: [.voice], configuration: settings.ai, configurationRevision: settings.aiRevision)
     await semantic.finish(); await settle()
-    precondition(model.remoteConfirmation == nil && model.prepared == nil, "late other-day retrieval is rejected")
+    precondition(model.remoteConfirmation != nil && model.prepared?.sources.first?.id == note.id,
+                 "Homepage day changes must not replace the automatically chosen evidence scope")
+    model.cancel()
     settings.requiresRemoteAIConfirmation = false
     model.ask("stress", records: [note], selectedDate: day, allowedKinds: [.voice], settings: settings)
     await wait(); await semantic.finish(); await settle()
@@ -872,7 +931,12 @@ private func conversationPersistenceTests() async throws {
         try db.execute("DROP TRIGGER fail_mutation")
         model.retryPersistence()
         let durable = try store.load().flatMap(\.turns)
-        precondition(durable.count == 1 && durable[0].question == "客户说了什么？" && durable[0].completionState == .cancelled && !durable[0].text.contains("未提交的建议"))
+        precondition(durable.count == 1 && durable[0].question == "客户说了什么？")
+        if change == "day" {
+            precondition(durable[0].completionState == .completed && durable[0].text.contains("未提交的建议"), "Homepage date does not invalidate independent Ask AI evidence")
+        } else {
+            precondition(durable[0].completionState == .cancelled && !durable[0].text.contains("未提交的建议"))
+        }
     }
     print("Conversation lifecycle: question-first commit, success/failure/cancel/interruption, write rollback/retry, privacy redaction and stale retries passed")
 }

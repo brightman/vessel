@@ -12,6 +12,6 @@ swiftc -module-cache-path "$output/cache" \
   Sources/iPhone/AudioProcessing.swift Sources/iPhone/AudioWindowPlanner.swift Sources/iPhone/AudioSpeakerMapping.swift \
   Sources/iPhone/AudioProcessingRepository.swift Sources/iPhone/TranscriptionConfiguration.swift \
   Sources/iPhone/AudioProcessingCoordinator.swift Sources/iPhone/ContentSegmentation.swift \
-  Sources/iPhone/ContentSegmentRepository.swift Sources/iPhone/ContentEnrichmentService.swift \
+  Sources/iPhone/ContentSegmentationV2.swift Sources/iPhone/ContentSegmentRepository.swift Sources/iPhone/ContentEnrichmentService.swift \
   Sources/iPhone/BoundedAudioReader.swift Tests/StreamingRecordingSmoke.swift -o "$output/streaming"
 "$output/streaming"

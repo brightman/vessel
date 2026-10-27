@@ -53,7 +53,7 @@ struct DaybookOverview: View {
     var healthStale = false
     let onOpenRecord: (UUID) -> Void
     var onOpenPlaces: () -> Void = {}
-    private var steps: Double? { records.first { $0.kind == .activity && $0.lifeMoment?.steps?.archived != true }?.metricValue }
+    private var steps: Double? { records.first { $0.kind == .activity && $0.lifeMoment?.workout == nil && $0.lifeMoment?.steps?.archived != true }?.metricValue }
     private var sleep: Double? { records.first { $0.kind == .sleep && ($0.lifeMoment?.sleep?.isMain ?? true) }?.metricValue }
     var body: some View {
         VStack(spacing: 0) {
@@ -126,17 +126,33 @@ struct DaybookOverview: View {
             Text(records.isEmpty ? "上至下：语音 · 闪念 · 图片 · 地点，有记录的时段会出现在这里。" : "上至下：语音 · 闪念 · 图片 · 地点，点击片段回看。")
                 .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 9)
-            let places = records.filter { $0.kind == .location && $0.location != nil }
-            if !places.isEmpty {
-                Button(action: onOpenPlaces) {
-                    HStack(spacing: 6) {
-                        DaybookIcon("MapPin", size: 14)
-                        Text("地点 · \(places.count) 条记录")
-                        Spacer()
-                        DaybookIcon("ChevronRight", size: 12)
-                    }.font(.system(size: 11)).foregroundStyle(DaybookStyle.green).padding(.vertical, 13)
-                }
-            }
+            let places = DaybookPlaces.homeSummary(records)
+            Button(action: onOpenPlaces) {
+                HStack(alignment: .center, spacing: 9) {
+                    DaybookIcon("MapPin", size: 16).foregroundStyle(DaybookStyle.green)
+                    if places.recordCount == 0 {
+                        Text("这一天还没有地点记录").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("地点 \(places.placeCount) 处").font(.system(size: 11, weight: .semibold)).foregroundStyle(DaybookStyle.ink)
+                            Text(places.labels.isEmpty ? "地点地址正在解析" : places.labels.joined(separator: " · "))
+                                .font(.system(size: 10)).lineSpacing(4).lineLimit(2).multilineTextAlignment(.leading)
+                                .foregroundStyle(DaybookStyle.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    if places.recordCount > 0 {
+                        Spacer(minLength: 2)
+                        HStack(spacing: 4) {
+                            Text("\(places.recordCount) 条记录").font(.system(size: 9)).lineLimit(1)
+                            DaybookIcon("ChevronRight", size: 13)
+                        }.foregroundStyle(DaybookStyle.secondary)
+                    } else {
+                        DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary)
+                    }
+                }.padding(.top, 13).frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+            }.buttonStyle(.plain)
         }
     }
     private func rhythmTick(_ tick: Int) -> String {
@@ -165,8 +181,9 @@ struct DaybookRecordRow: View {
     var status: String? = nil
     var showsMergeSelection = false
     var isMergeSelected = false
+    private var isCompleteRecording: Bool { record.recordingSessionID != nil && record.contentProvenance == nil }
     @ViewBuilder private var displayTitle: some View {
-        if record.recordingSessionID != nil { Text("完整录音") }
+        if isCompleteRecording { Text("完整录音") }
         else if record.kind == .location && record.location != nil && record.location?.address == nil { Text("地点待解析") }
         else { Text(record.title) }
     }
@@ -189,7 +206,11 @@ struct DaybookRecordRow: View {
                     } else { DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary) }
                 }.padding(.bottom, 5)
                 Group {
-                    if record.recordingSessionID != nil { Text(LocalizedStringKey(status ?? "")) }
+                    if isCompleteRecording { Text(LocalizedStringKey(status ?? "")) }
+                    else if record.kind.isAudio, !record.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(record.summary).accessibilityIdentifier("daybook.record.summary.\(record.id.uuidString)")
+                    }
+                    else if record.contentProvenance != nil { Text("摘要尚未生成") }
                     else { Text(record.kind == .location ? (record.location?.source.label ?? record.text)
                         : record.text.isEmpty ? (status ?? "") : String(record.text.prefix(240))) }
                 }
@@ -204,10 +225,10 @@ struct DaybookRecordRow: View {
                 }
                 HStack(spacing: 9) {
                     HStack(spacing: 3) { DaybookIcon(record.kind.prototypeIcon, size: 11); Text(LocalizedStringKey(record.kind.title)) }
-                    Text(record.kind == .image ? (DaybookFormat.language == .english ? "\(photoCount) photos" : "\(photoCount) 张照片") : record.kind.isAudio ? DaybookFormat.duration(record.duration) : record.lifeMoment?.movement != nil ? (DaybookFormat.language == .english ? "2 source records" : "两条地点依据") : "本机快照")
+                    Text(record.kind == .image ? (DaybookFormat.language == .english ? "\(photoCount) photos" : "\(photoCount) 张照片") : (record.kind.isAudio || record.lifeMoment?.workout != nil) ? DaybookFormat.duration(record.duration) : record.lifeMoment?.movement != nil ? (DaybookFormat.language == .english ? "2 source records" : "两条地点依据") : "本机快照")
                     if let device = record.captureDevice { Text(device) }
                     if record.kind == .thought { Text("闪念") }
-                    if record.recordingSessionID != nil { Text(LocalizedStringKey(record.recordingContinuation == true ? "续段 · 当日范围" : "当日范围")) }
+                    if isCompleteRecording { Text(LocalizedStringKey(record.recordingContinuation == true ? "续段 · 当日范围" : "当日范围")) }
                 }.font(.system(size: 9)).foregroundStyle(DaybookStyle.secondary).padding(.top, 8)
                 if let point = record.location, record.kind != .location {
                     CapturePlaceRow(point: point).padding(.top, 9)

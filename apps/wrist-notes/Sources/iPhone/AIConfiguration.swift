@@ -11,7 +11,7 @@ enum AppAppearance: String, CaseIterable {
 }
 
 struct AIConfiguration: Codable, Equatable {
-    enum Mode: String, Codable { case local, chatgpt, custom }
+    enum Mode: String, Codable { case local, chatgpt, custom, nearbyMac }
     enum APIProtocol: String, Codable, CaseIterable {
         case openai, anthropic
 
@@ -31,27 +31,46 @@ struct AIConfiguration: Codable, Equatable {
     var apiProtocol: APIProtocol = .openai
     var chatGPTModel = ""
     var chatGPTAccountID = ""
+    var nearbyMacServiceID = ""
+    var nearbyMacName = ""
+    var contextWindowTokens: Int? = nil
 
-    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol, chatGPTModel, chatGPTAccountID }
+    private enum CodingKeys: String, CodingKey { case mode, model, baseURL, apiProtocol, chatGPTModel, chatGPTAccountID, contextWindowTokens, nearbyMacServiceID, nearbyMacName }
 
     var label: String {
         switch mode {
-        case .local: "Apple 本地模型"
+        case .nearbyMac: "\(nearbyMacName.isEmpty ? "本地 Mac" : nearbyMacName) · 本地模型"
+        case .local: "Apple Intelligence"
         case .chatgpt: "ChatGPT · \(chatGPTModel)"
         case .custom: "\(model) · \(apiProtocol == .openai ? "OpenAI" : "Anthropic")"
         }
     }
     var isRemote: Bool { mode != .local }
+    var destinationDescription: String {
+        switch mode {
+        case .nearbyMac: "\(nearbyMacName.isEmpty ? "已配对的 Mac" : nearbyMacName) · 局域网加密传输 · Mac 本地推理"
+        case .local: "这台 iPhone"
+        case .chatgpt: "OpenAI · ChatGPT"
+        case .custom: baseURL
+        }
+    }
     // Use only after validation, immediately before making a request.
     var endpoint: URL { URL(string: baseURL)!.appendingPathComponent(apiProtocol.endpointPath) }
 
     func validated(apiKey: String) throws -> AIConfiguration {
+        if mode == .nearbyMac {
+            guard UUID(uuidString: nearbyMacServiceID) != nil else { throw AIServiceError.invalidConfiguration("请先扫描并配对本地 Mac。") }
+            return self
+        }
         guard mode == .custom else { throw AIServiceError.invalidConfiguration("请选择自定义模型后再测试服务连接。") }
         var value = self
         value.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
         value.baseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         while value.baseURL.hasSuffix("/") { value.baseURL.removeLast() }
         guard !value.model.isEmpty else { throw AIServiceError.invalidConfiguration("请填写服务提供的模型名称。") }
+        if let window = value.contextWindowTokens, !(1_024...1_000_000).contains(window) {
+            throw AIServiceError.invalidConfiguration("上下文窗口需填写 1,024 到 1,000,000 tokens；不确定时请留空。")
+        }
         guard let components = URLComponents(string: value.baseURL),
               let host = components.host, !host.isEmpty,
               components.url != nil else {
@@ -84,6 +103,9 @@ extension AIConfiguration {
         apiProtocol = try values.decodeIfPresent(APIProtocol.self, forKey: .apiProtocol) ?? .openai
         chatGPTModel = try values.decodeIfPresent(String.self, forKey: .chatGPTModel) ?? ""
         chatGPTAccountID = try values.decodeIfPresent(String.self, forKey: .chatGPTAccountID) ?? ""
+        nearbyMacServiceID = try values.decodeIfPresent(String.self, forKey: .nearbyMacServiceID) ?? ""
+        nearbyMacName = try values.decodeIfPresent(String.self, forKey: .nearbyMacName) ?? ""
+        contextWindowTokens = try values.decodeIfPresent(Int.self, forKey: .contextWindowTokens)
     }
 }
 

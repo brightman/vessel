@@ -3,8 +3,8 @@ import Combine
 
 /// All pages are bounded SQL reads. The requested scope is complete regardless of UI pagination.
 enum ContentSegmentSnapshot {
-    static func read(_ processing: AudioProcessingRepository, scope: DateInterval) throws -> [DayRecord] {
-        let db = processing.derivedDatabase, repository = ContentSegmentRepository(database:processing.derivedDatabase)
+    static func read(_ processing: AudioProcessingRepository, scope: DateInterval, requireComplete: Bool = true) throws -> [DayRecord] {
+        let db = processing.derivedDatabase
         // A day's transcript can span hours; keep a consistent WAL snapshot
         // without holding the writer needed by location, health and recap state.
         return try db.readTransaction {
@@ -12,7 +12,8 @@ enum ContentSegmentSnapshot {
         while true {
             try Task.checkCancellation()
             let rows = try db.query("""
-                SELECT c.payload,s.descriptor FROM content_segments c JOIN audio_processing_sources s ON s.source_key=c.source_key
+                SELECT c.payload,s.descriptor,s.revision AS source_revision,s.configuration_key,p.content_signature,p.transcript FROM content_segments c JOIN audio_processing_sources s ON s.source_key=c.source_key
+                LEFT JOIN content_segment_presentations p ON p.segment_id=c.id
                 WHERE c.deleted=0 AND EXISTS (SELECT 1 FROM content_segment_ranges r WHERE r.segment_id=c.id
                 AND json_extract(CAST(s.descriptor AS TEXT),'$.capturedAt')+r.end>?
                 AND json_extract(CAST(s.descriptor AS TEXT),'$.capturedAt')+r.start<?)
@@ -21,13 +22,16 @@ enum ContentSegmentSnapshot {
             for row in rows {
                 let segment = try DaybookDatabase.decode(ContentSegment.self,row["payload"])
                 let source = try DaybookDatabase.decode(AudioSourceSnapshot.self,row["descriptor"])
-                var spans: [AudioTranscriptSpan] = [], spanOffset = 0
-                while true {
-                    let page = try repository.spans(segmentID:segment.id,limit:100,offset:spanOffset)
-                    spans += page.filter { source.capturedAt.addingTimeInterval($0.start) >= scope.start && source.capturedAt.addingTimeInterval($0.end) <= scope.end }
-                    spanOffset += page.count
-                    if page.count < 100 { break }
+                let signature = segment.provenance.semanticContentSignature ?? segment.provenance.contentSignature
+                guard row["content_signature"]?.string == signature, row["transcript"]?.data != nil,
+                      row["configuration_key"]?.string == segment.provenance.configurationKey,
+                      try row.requiredInt("source_revision") == segment.sourceRevision else {
+                    // UI may show already prepared segments while processing continues.
+                    // AI/full-date evidence must never silently accept an incomplete snapshot.
+                    if requireComplete { throw ContentSegmentError.staleRevision }
+                    continue
                 }
+                let spans = try DaybookDatabase.decode([AudioTranscriptSpan].self,row["transcript"])
                 if let projected = ContentSegmentPresentation.record(segment,source:source,spans:spans).recordingProjection(from:scope.start,to:scope.end) { result.append(projected) }
             }
             offset += rows.count
@@ -66,13 +70,16 @@ enum ContentSegmentSnapshot {
         calendarDates = []; revision += 1; onDeletion?()
     }
     func publish(records: [DayRecord], library: [ContentSegment], dates: [Date]) {
-        self.records = LegacyAudioDeletionLedger.shared.filter(records)
-        self.library = library.filter { $0.sourceID.kind != .legacyNote || !LegacyAudioDeletionLedger.shared.contains($0.sourceID.id) }
-        known.formUnion(self.library.map(\.id)); calendarDates = dates
+        let visibleRecords = LegacyAudioDeletionLedger.shared.filter(records)
+        let visibleLibrary = library.filter { $0.sourceID.kind != .legacyNote || !LegacyAudioDeletionLedger.shared.contains($0.sourceID.id) }
+        if self.records != visibleRecords { self.records = visibleRecords }
+        if self.library != visibleLibrary { self.library = visibleLibrary }
+        known.formUnion(self.library.map(\.id))
+        if calendarDates != dates { calendarDates = dates }
     }
 }
 
-#if os(iOS)
+#if os(iOS) || CONTENT_SEGMENT_MODEL_TESTS
 
 struct ContentSegmentDetail: Sendable {
     let segment: ContentSegment
@@ -84,7 +91,10 @@ struct ContentSegmentDetail: Sendable {
 }
 
 @MainActor final class ContentSegmentModel: ContentSegmentCache {
+    /// Only an unread date shows a foreground loading indicator. Already loaded
+    /// dates, including empty ones, stay visible during background updates.
     @Published private(set) var loading = false
+    @Published private(set) var refreshing = false
     @Published private(set) var hasMore = false
     @Published var errorMessage: String?
     private let processing: AudioProcessingModel
@@ -92,6 +102,10 @@ struct ContentSegmentDetail: Sendable {
     private var day = Date.now
     private var month = Date.now
     private var limit = 50
+    private var refreshTask: Task<Void, Never>?
+    private var refreshRequested = false
+    private var loadedDay: DateInterval?
+    private var loadedMonth: DateInterval?
 
     init(processing: AudioProcessingModel) {
         self.processing = processing
@@ -106,53 +120,86 @@ struct ContentSegmentDetail: Sendable {
         }
     }
     func contains(_ id: UUID) -> Bool { known.contains(id) }
-    func selectDay(_ date: Date) { day = date; refresh() }
-    func selectMonth(_ date: Date) { month = date; refresh() }
+    func selectDay(_ date: Date) {
+        let scope = Calendar.current.dateInterval(of:.day,for:date)!
+        if scope == Calendar.current.dateInterval(of:.day,for:day), errorMessage == nil,
+           loadedDay == scope || refreshTask != nil { return }
+        day = date; refresh()
+    }
+    func selectMonth(_ date: Date) {
+        let scope = Calendar.current.dateInterval(of:.month,for:date)!
+        if scope == Calendar.current.dateInterval(of:.month,for:month), errorMessage == nil,
+           loadedMonth == scope || refreshTask != nil { return }
+        month = date; refresh()
+    }
     func loadMore() { limit += 50; refresh() }
     func refresh() {
-        let request = UUID(); token = request; loading = true
-        let dayScope = Calendar.current.dateInterval(of:.day,for:day)!
-        let monthScope = Calendar.current.dateInterval(of:.month,for:month)!
-        let count = limit
-        Task {
-            do {
-                let snapshot = try await load(scope:dayScope)
-                let result = try await processing.withRepository { processing in
-                    let db = processing.derivedDatabase
-                    var library: [ContentSegment] = [], libraryOffset = 0
-                    while library.count < count+1 {
-                        let pageCount = min(100,count+1-library.count)
-                        let rows = try db.query("SELECT c.payload FROM content_segments c JOIN audio_processing_sources s ON s.source_key=c.source_key WHERE c.deleted=0 ORDER BY json_extract(CAST(s.descriptor AS TEXT),'$.capturedAt')+c.start DESC,c.id LIMIT ? OFFSET ?",[.integer(Int64(pageCount)),.integer(Int64(libraryOffset))])
-                        library += try rows.map { try DaybookDatabase.decode(ContentSegment.self,$0["payload"]) }
-                        libraryOffset += rows.count; if rows.count < pageCount { break }
-                    }
-                    // Date occupancy needs only actual ranges, never transcript bodies.
-                    var dates = Set<Date>(), offset = 0
-                    while true {
-                        let ranges = try db.query("SELECT s.descriptor,r.start,r.end FROM content_segment_ranges r JOIN content_segments c ON c.id=r.segment_id JOIN audio_processing_sources s ON s.source_key=c.source_key WHERE c.deleted=0 ORDER BY c.id,r.position LIMIT 200 OFFSET ?",[.integer(Int64(offset))])
-                        for row in ranges {
-                            let source = try DaybookDatabase.decode(AudioSourceSnapshot.self,row["descriptor"])
-                            let low = max(monthScope.start,source.capturedAt.addingTimeInterval(try row.requiredDouble("start")))
-                            let high = min(monthScope.end,source.capturedAt.addingTimeInterval(try row.requiredDouble("end")))
-                            var day = Calendar.current.startOfDay(for:low)
-                            while low < high && day < high {
-                                dates.insert(day); day = Calendar.current.date(byAdding:.day,value:1,to:day)!
-                            }
+        token = UUID(); refreshRequested = true
+        let needsDay = loadedDay != Calendar.current.dateInterval(of:.day,for:day)!
+        if loading != needsDay { loading = needsDay }
+        // Keep at most one reader and one pending refresh. Cancelling/restarting
+        // on every worker notification queues redundant SQLite work and can
+        // prevent the latest snapshot from ever reaching the screen.
+        guard refreshTask == nil else { return }
+        refreshing = true
+        refreshTask = Task {
+            defer { refreshTask = nil; refreshing = false; loading = false }
+            while refreshRequested {
+                refreshRequested = false
+                let request = token
+                let dayScope = Calendar.current.dateInterval(of:.day,for:day)!
+                let monthScope = Calendar.current.dateInterval(of:.month,for:month)!
+                let count = limit
+                do {
+                    let snapshot = try await load(scope:dayScope,requireComplete:false)
+                    try Task.checkCancellation()
+                    guard token == request else { continue }
+                    // Publish the requested day before unrelated library/calendar pagination.
+                    if records != snapshot { records = snapshot }
+                    loadedDay = dayScope
+                    if loading { loading = false }
+                    let result = try await processing.withRepository { processing in
+                        try Task.checkCancellation()
+                        let db = processing.derivedDatabase
+                        var library: [ContentSegment] = [], libraryOffset = 0
+                        while library.count < count+1 {
+                            try Task.checkCancellation()
+                            let pageCount = min(100,count+1-library.count)
+                            let rows = try db.query("SELECT c.payload FROM content_segments c JOIN audio_processing_sources s ON s.source_key=c.source_key WHERE c.deleted=0 ORDER BY json_extract(CAST(s.descriptor AS TEXT),'$.capturedAt')+c.start DESC,c.id LIMIT ? OFFSET ?",[.integer(Int64(pageCount)),.integer(Int64(libraryOffset))])
+                            library += try rows.map { try DaybookDatabase.decode(ContentSegment.self,$0["payload"]) }
+                            libraryOffset += rows.count; if rows.count < pageCount { break }
                         }
-                        offset += ranges.count; if ranges.count < 200 { break }
+                        // Date occupancy needs only actual ranges, never transcript bodies.
+                        var dates = Set<Date>(), offset = 0
+                        while true {
+                            try Task.checkCancellation()
+                            let ranges = try db.query("SELECT s.descriptor,r.start,r.end FROM content_segment_ranges r JOIN content_segments c ON c.id=r.segment_id JOIN audio_processing_sources s ON s.source_key=c.source_key WHERE c.deleted=0 ORDER BY c.id,r.position LIMIT 200 OFFSET ?",[.integer(Int64(offset))])
+                            for row in ranges {
+                                let source = try DaybookDatabase.decode(AudioSourceSnapshot.self,row["descriptor"])
+                                let low = max(monthScope.start,source.capturedAt.addingTimeInterval(try row.requiredDouble("start")))
+                                let high = min(monthScope.end,source.capturedAt.addingTimeInterval(try row.requiredDouble("end")))
+                                var day = Calendar.current.startOfDay(for:low)
+                                while low < high && day < high {
+                                    dates.insert(day); day = Calendar.current.date(byAdding:.day,value:1,to:day)!
+                                }
+                            }
+                            offset += ranges.count; if ranges.count < 200 { break }
+                        }
+                        return (library,dates.sorted())
                     }
-                    return (library,dates.sorted())
-                }
-                guard token == request else { return }
-                publish(records:snapshot,library:Array(result.0.prefix(count)),dates:result.1); hasMore = result.0.count > count
-                errorMessage = nil
-            } catch { if token == request { errorMessage = "无法读取录音片段，请解锁后重试。" } }
-            if token == request { loading = false }
+                    guard token == request else { continue }
+                    publish(records:snapshot,library:Array(result.0.prefix(count)),dates:result.1); hasMore = result.0.count > count
+                    loadedMonth = monthScope
+                    errorMessage = nil
+                } catch is CancellationError { }
+                catch { if token == request { errorMessage = "无法读取录音片段，请解锁后重试。" } }
+            }
         }
     }
-    func load(scope: DateInterval) async throws -> [DayRecord] {
+    func load(scope: DateInterval, requireComplete: Bool = true) async throws -> [DayRecord] {
         let captured = epoch
-        let result = try await processing.withRepository { try ContentSegmentSnapshot.read($0,scope:scope) }
+        let result = try await processing.withRepository { try ContentSegmentSnapshot.read($0,scope:scope,requireComplete:requireComplete) }
+        try Task.checkCancellation()
         guard captured == epoch else { throw ContentSegmentError.staleRevision }
         let current = LegacyAudioDeletionLedger.shared.filter(result)
         known.formUnion(current.map(\.id)); return current
@@ -183,8 +230,13 @@ struct ContentSegmentDetail: Sendable {
     }
     func mutate(sourceID: AudioSourceID, _ operation: @escaping @Sendable (ContentSegmentRepository) throws -> Void) async -> Bool {
         do {
-            try await processing.withRepository { try operation(ContentSegmentRepository(database:$0.derivedDatabase)) }
-            epoch += 1; revision += 1; refresh(); processing.retryEnrichment(sourceID); errorMessage = nil; return true
+            try await processing.withRepository {
+                let repository = ContentSegmentRepository(database:$0.derivedDatabase)
+                try operation(repository)
+            }
+            // The edit is already durable. Artifact work may lose a source revision
+            // race and is retried by the worker; it must not report the edit as failed.
+            epoch += 1; revision += 1; refresh(); processing.rebuildContent(sourceID); errorMessage = nil; return true
         } catch { errorMessage = "片段已更新或操作未完成，请刷新后重试。"; return false }
     }
 }

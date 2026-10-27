@@ -1,7 +1,5 @@
 import AVFAudio
 import Foundation
-import Hub
-import Tokenizers
 import WhisperKit
 import SpeakerKit
 
@@ -55,30 +53,25 @@ actor LocalTranscriptionService {
             guard configuration.validWhisperLanguage else { throw TranscriptionResourceError.unsupported }
             try store.validate(configuration.whisperSize)
             let folder = store.folder(for: configuration.whisperSize)
-            // Decode tokenizer directly from files. WhisperKit's fallback Hub download is never used.
-            let tokenizer = try PreTrainedTokenizer(
-                tokenizerConfig: JSONDecoder().decode(Config.self, from: Data(contentsOf: folder.appendingPathComponent("tokenizer_config.json"))),
-                tokenizerData: JSONDecoder().decode(Config.self, from: Data(contentsOf: folder.appendingPathComponent("tokenizer.json"))))
+            // Let WhisperKit inspect the loaded model dimensions before it chooses the tokenizer
+            // variant. Pre-setting the tokenizer bypasses that step and leaves modelVariant as Tiny.
             let engine = try await WhisperKit(WhisperKitConfig(modelFolder: folder.path,
                 tokenizerFolder: folder, verbose: false, prewarm: false, load: false, download: false))
-            engine.tokenizer = try OfflineWhisperTokenizer(tokenizer: tokenizer)
-            engine.textDecoder.isModelMultilingual = true
             do {
                 try await engine.loadModels()
                 let automatic = configuration.whisperLanguage == "auto"
                 let options = DecodingOptions(language: automatic ? nil : configuration.whisperLanguage,
-                    detectLanguage: automatic, skipSpecialTokens: true, withoutTimestamps: false, wordTimestamps: true, concurrentWorkerCount: 1)
+                    detectLanguage: automatic, skipSpecialTokens: true, withoutTimestamps: false, wordTimestamps: false, concurrentWorkerCount: 1)
                 // Upstream's 16 kHz file loader reads once and can truncate a large CAF read.
                 // Supply exactly accumulated, bounded samples instead of trusting its header.
                 let samples = try audio.samples(maximumFrames:4_864_000)
                 let results: [TranscriptionResult] = try await engine.transcribe(audioArray:samples,decodeOptions:options)
-                let pieces: [TranscriptSegment] = results.flatMap(\.segments).flatMap { segment in
-                    if let words = segment.words, !words.isEmpty {
-                        return words.map { TranscriptSegment(start: Double($0.start), end: Double($0.end), text: $0.word) }
-                    }
-                    return [TranscriptSegment(start: Double(segment.start), end: Double(segment.end), text: segment.text)]
+                let pieces = results.flatMap(\.segments).map {
+                    TranscriptSegment(start: Double($0.start), end: Double($0.end), text: $0.text)
                 }
-                output = TranscriptionOutput(text: pieces.map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines), segments: pieces)
+                let text = pieces.map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines)
+                guard WhisperTranscriptValidity.containsSpeechCharacters(text) else { throw TranscriptionResourceError.emptyTranscript }
+                output = TranscriptionOutput(text:text,segments:pieces)
                 await engine.unloadModels()
             } catch {
                 await engine.unloadModels()
@@ -253,12 +246,18 @@ actor LocalTranscriptionService {
                     let midpoint = $0.start + ($0.end-$0.start)/2
                     return midpoint >= window.coreStart && midpoint < window.coreEnd
                 }
-                let relative = relativeSegments(selected,audio:audio)
-                let result = try await analyzeSpeakers(audio:audio,segments:relative,profile:nil)
-                let updated = try AudioSpeakerMapping.annotating(selected,speakerIDs:result.segments.map(\.speakerID))
-                if asr == .success { spans = updated }
-                else { speakerSpanUpdates = updated }
-                features = result.features; speaker = .success
+                if selected.isEmpty {
+                    speaker = .notRequested
+                } else {
+                    let relative = relativeSegments(selected,audio:audio)
+                    // Speaker turns are useful even when the optional voice-identity model
+                    // cannot produce enough clean windows to match speakers across recordings.
+                    let result = try await analyzeSpeakers(audio:audio,segments:relative,profile:nil,requireFeatures:false)
+                    let updated = try AudioSpeakerMapping.annotating(selected,speakerIDs:result.segments.map(\.speakerID))
+                    if asr == .success { spans = updated }
+                    else { speakerSpanUpdates = updated }
+                    features = result.features; speaker = .success
+                }
             } catch { try Task.checkCancellation(); speaker = outcome(error) }
         }
         try Task.checkCancellation()

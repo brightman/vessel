@@ -44,8 +44,8 @@ enum DaybookInsightFailure: Error {
     case unavailable, unsupportedLanguage, invalid, generation
     var message: String {
         switch self {
-        case .unavailable: "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
-        case .unsupportedLanguage: "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
+        case .unavailable: "Apple Intelligence不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
+        case .unsupportedLanguage: "Apple Intelligence暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
         case .invalid: "洞察未提供至少两条有效来源和有依据的行动建议，未显示结果。请重试。"
         case .generation: "洞察生成失败，未显示结果。请稍后重试。"
         }

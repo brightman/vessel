@@ -34,7 +34,7 @@ iPhone 首页、我的记录和语音详情显示“长录音·内容标题”�
 - **生活来源**：可选健康步数/睡眠、只读日历、保存时的一次定位；默认关闭，不在启动时请求权限。支持暂停、刷新、旧快照状态与独立 AI 读取范围。 健康来源支持数据变化通知与前台补刷，更新今天、昨天和所选日期；后台时间由系统调度，详见 [HealthKit 更新说明](docs/2026-10-20-health-background.md)。 地点在前台通过 Apple 地图解析为地址，并随原记录缓存在 SQLite；首次解析可能联网，见 [地点地址说明](docs/2026-10-20-capture-addresses.md)。
 - **统一设置**：语音转写模型和语言包、AI 模型、本地语义检索资源与索引管理、主动建议频率／安静时段／数据范围、提醒管理、外观与音频导入。首页及设置提供硬件选择器；Apple Watch 和 EurekaRing 展示真实连接状态；Ring 支持录音控制与本地音频同步。
 
-图片、提醒保留相邻的 `PhotoMoments`、`DaybookReminders` 本地目录；录音与现有 UUID 保持兼容。生活数据、会话与洞察使用系统 SQLite；可重建的文本向量也保存到本地数据库，端上资源不可用时回退关键词。跨天语义记忆及自有云备份尚未实现。EurekaRing 原生接入与设备验证边界见 [Ring 接入记录](verification/eureka-ring-native.md)。最新完成范围与验收见 [原型差异核对](docs/prototype-completion-audit.md)，存储与索引边界见 [本地存储与检索](docs/local-storage-and-retrieval.md)。此前阶段记录保留在 [`verification/daybook-native.md`](verification/daybook-native.md) 和 [`verification/prototype-parity.md`](verification/prototype-parity.md)。
+图片、录音和 Watch 收件箱保存在本机文件中；生活数据、会话、行动、回顾、洞察和同步状态使用本地 SQLite，可重建的全文/向量索引也保存在本地数据库，端上资源不可用时回退关键词。跨天语义记忆及自有云备份尚未实现。当前 iPhone/Watch 文件格式与 SQLite 表结构见[本地数据结构](docs/local-data-schema.md)；存储迁移与检索边界见[本地存储与检索](docs/local-storage-and-retrieval.md)。EurekaRing 原生接入与设备验证边界见 [Ring 接入记录](verification/eureka-ring-native.md)。最新完成范围与验收见 [原型差异核对](docs/prototype-completion-audit.md)。此前阶段记录保留在 [`verification/daybook-native.md`](verification/daybook-native.md) 和 [`verification/prototype-parity.md`](verification/prototype-parity.md)。
 
 Watch 单按钮界面方案见 [`prototype/watch-recorder.html`](prototype/watch-recorder.html)。轻点按钮开始或结束长录音，按住约 0.45 秒进入闪念并在松手时保存，上滑可取消。SwiftUI 已实现同一套单按钮交互、录音列表、上传状态和左划删除；具体核对记录见 [`verification/README.md`](verification/README.md)。
 
@@ -78,10 +78,8 @@ git clone --branch dev-300 --single-branch git@git.100credit.cn:ai2c/app/flutter
 ### 安装步骤
 
 1. 在本目录运行 `pod install`。仅 Ring 开启时，需要先运行 `sh ../../../br_flutter_plugin_ble/ios/bootstrap_recorder_core.sh` 准备其 SDK。用 Xcode 打开 `WristNotes.xcworkspace`，选择 `WristNotes` scheme。若重新运行 `ruby scripts/generate_project.rb`，之后需再次 `pod install`。
-2. 在 `WristNotes`、`WristNotesWatch`、`WiseLifeRecordingActivity`、`WiseLifeWatchRecordingWidget` 四个 target 的 **Signing & Capabilities** 中选择同一个有权限的 Team；每个 Bundle ID 都需要对应描述文件，Watch 描述文件需要包含测试手表。已有设备更新应沿用原 Team 和 Bundle ID，以保留 App 身份与数据容器。新项目如需改 ID，须同步修改手机 ID、Watch ID、两个扩展 ID、Watch `Info.plist` 的 `WKCompanionAppBundleIdentifier` 和生成脚本；Watch ID 以手机 ID 加 `.` 开头，扩展 ID 以所属 App ID 加 `.` 开头。生成脚本保留现有 Team、手机版本和构建号，并把版本同步给 Watch 与扩展，其他 Xcode 设置仍可能被覆盖。
-3. iPhone 解锁并信任 Mac，两端均开启开发者模式。在 Xcode 设备列表确认 Watch 的开发连接可用；与手机正常配对不代表 Mac 调试通道已连接。先用 `WristNotes` scheme 安装手机，再用共享的 `WristNotesWatch` scheme 选择真实手表运行，分别核对两端安装结果。只有手机安装成功时，不能判定手表已更新。
-
-Watch 安装排查和本次签名／连接证据见 [Watch 安装诊断](verification/watch-installation.md)。无签名的 generic 构建只验证编译和嵌入结构，不能证明真机可安装。
+2. 在 iPhone、Watch 和 `WiseLifeRecordingActivity` 三个 target 的 **Signing & Capabilities** 中选择自己的 Team。若 Bundle Identifier 被占用，一起修改 iPhone ID、Watch ID、实时活动扩展 ID 与 Watch `Info.plist` 中的 `WKCompanionAppBundleIdentifier`；扩展 ID 必须以 iPhone ID 加 `.` 开头。再运行 `ruby scripts/generate_project.rb` 前先同步修改生成脚本；重新生成工程会覆盖 Xcode 中直接改的项目设置。
+3. iPhone 解锁并信任 Mac，开启开发者模式；确认 Apple Watch 已与该 iPhone 配对，在 Xcode 的设备列表中可选。先在 iPhone 上运行 `WristNotes`，再确认手表 App 已安装。Xcode 若无法看到手表，检查配对、同一 Apple ID、蓝牙/Wi-Fi 和设备支持组件。
 4. 首次轻点手表红色按钮授权麦克风。闪念首次授权时，松开后再次按住按钮，触觉反馈后开始说话。
 5. iPhone 设置 → 语音转写模型，先选转写引擎和语言，再下载所需资源并保存。已有系统资源直接复用；缺少资源时不会静默下载，也不会回退到云端转写。
 
@@ -164,6 +162,14 @@ xcrun simctl install booted /private/tmp/wiselife-simulator/Build/Products/Debug
 ```
 
 仅在构建成功后执行安装。此操作更新现有 App，保留其数据；不需要卸载 App 或重置模拟器。设备名称可替换成已有的 iOS 模拟器。模拟器使用临时签名，真机继续使用项目原有的开发者签名设置。
+
+如果 AI 设置页显示钥匙串错误 `-34018`，检查安装的是否为关闭代码签名的编译检查包。模拟器构建会使用 Bundle ID 作为隔离的钥匙串组；可在安装前检查 Xcode 生成的模拟器 entitlement：
+
+```sh
+python3 apps/wrist-notes/Tests/test_keychain_entitlements.py \\
+  --app /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseNote.app \\
+  --simulated-entitlements /private/tmp/wiselife-simulator/Build/Intermediates.noindex/WristNotes.build/Debug-iphonesimulator/WristNotes.build/WiseNote.app-Simulated.xcent
+```
 
 无需完整 App 或外部 AI 服务即可运行钥匙串回归检查（先启动一个 iOS 模拟器）：
 

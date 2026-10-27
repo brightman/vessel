@@ -46,9 +46,9 @@ final class NotesModel: ObservableObject {
         guard let self, isCurrent() else { throw CancellationError() }
         switch configuration.mode {
         case .local: return await self.generateRecordingTitle(transcript)
-        case .custom:
+        case .custom, .nearbyMac:
             return try await CustomAISummarizer().recordingTitle(transcript, configuration: configuration,
-                apiKey: self.settings.apiKey(), isCurrent: isCurrent)
+                apiKey: configuration.mode == .custom ? self.settings.apiKey() : "", isCurrent: isCurrent)
         case .chatgpt:
             return try await self.settings.chatGPT.complete(instruction: CustomAISummarizer.recordingTitleInstruction,
                 content: CustomAISummarizer.recordingTitleExcerpts(transcript), modelID: configuration.chatGPTModel,
@@ -490,7 +490,7 @@ final class NotesModel: ObservableObject {
             } else if configuration.mode == .chatgpt {
                 summary = try await ChatGPTSummarizer(account: settings.chatGPT).summarize(text, configuration: configuration, isCurrent: isCurrent)
             } else {
-                summary = try await CustomAISummarizer().summarize(text, configuration: configuration, apiKey: settings.apiKey(), isCurrent: isCurrent)
+                summary = try await CustomAISummarizer().summarize(text, configuration: configuration, apiKey: configuration.mode == .custom ? settings.apiKey() : "", isCurrent: isCurrent)
             }
             if configuration.isRemote && (settings.ai != configuration || settings.aiRevision != revision) { throw CancellationError() }
             edit(id) {

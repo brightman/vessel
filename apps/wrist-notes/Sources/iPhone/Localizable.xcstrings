@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "·" : {
+
+    },
     "[%@] %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -23,6 +26,16 @@
     },
     "%@" : {
 
+    },
+    "%@ – %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ – %2$@"
+          }
+        }
+      }
     },
     "%@ · %@" : {
       "localizations" : {
@@ -50,16 +63,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$@ 张图片"
-          }
-        }
-      }
-    },
-    "%@ · %@ 条可用记录" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ 条可用记录"
           }
         }
       }
@@ -155,6 +158,16 @@
         }
       }
     },
+    "%@ / %@ 窗口" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@ 窗口"
+          }
+        }
+      }
+    },
     "%@ / 6 张图片" : {
 
     },
@@ -168,7 +181,19 @@
         }
       }
     },
+    "%@ 个已定稿" : {
+
+    },
     "%@ 条" : {
+
+    },
+    "%@ 条记录" : {
+
+    },
+    "%@ 片" : {
+
+    },
+    "%@ 项" : {
 
     },
     "%@–%@" : {
@@ -177,6 +202,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@–%2$@"
+          }
+        }
+      }
+    },
+    "%@：%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@：%2$@"
           }
         }
       }
@@ -233,6 +268,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 条录音的文件在手表上缺失，请在手表录音列表中检查。重试无法恢复已丢失的文件。"
+          }
+        }
+      }
+    },
+    "%lld 条记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld records"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 件の記録"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 条记录"
           }
         }
       }
@@ -390,6 +448,9 @@
         }
       }
     },
+    "AI 只生成待确认建议。确认标题、时间和系统关联后，才会安排通知或写入系统。" : {
+
+    },
     "AI 回顾线索 · %@" : {
 
     },
@@ -412,6 +473,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI 模型"
+          }
+        }
+      }
+    },
+    "AI 正在从当前片段全文生成摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI is generating a summary from this segment’s transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIがこのセグメントの文字起こしから要約を生成しています"
+          }
+        }
+      }
+    },
+    "AI 正在从当前片段全文生成标题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI is generating a title from this segment’s transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIがこのセグメントの文字起こしからタイトルを生成しています"
+          }
+        }
+      }
+    },
+    "AI 正在判断相邻内容是否同一话题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI is checking whether adjacent content belongs to the same topic"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIが隣接する内容が同じトピックか確認しています"
+          }
+        }
+      }
+    },
+    "AI 正在按片段全文进行分类" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI is classifying this segment from its transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIがこのセグメントの文字起こしを分類しています"
           }
         }
       }
@@ -461,6 +590,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API 接口兼容"
+          }
+        }
+      }
+    },
+    "Apple Intelligence" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        }
+      }
+    },
+    "Apple Intelligence不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple's on-device model is unavailable. Check device support, Apple Intelligence settings, and model downloads. No insight was generated."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appleの端末内モデルを利用できません。デバイスの対応、Apple Intelligence設定、モデルのダウンロード状況を確認してください。気づきは未生成です。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence可用" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligenceが利用可能"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence可用"
+          }
+        }
+      }
+    },
+    "Apple Intelligence暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple's on-device model does not support the selected language. No insight was generated. Change the interface language and retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appleの端末内モデルは選択した言語に対応していません。気づきは未生成です。表示言語を変更して再試行できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
           }
         }
       }
@@ -654,98 +875,6 @@
         }
       }
     },
-    "Apple 本地模型" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple on-device model"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleのオンデバイスモデル"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型"
-          }
-        }
-      }
-    },
-    "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple's on-device model is unavailable. Check device support, Apple Intelligence settings, and model downloads. No insight was generated."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleの端末内モデルを利用できません。デバイスの対応、Apple Intelligence設定、モデルのダウンロード状況を確認してください。気づきは未生成です。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型不可用。请检查设备支持、Apple Intelligence 开关与模型下载状态；尚未生成洞察。"
-          }
-        }
-      }
-    },
-    "Apple 本地模型可用" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple on-device model available"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleのオンデバイスモデルが利用可能"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型可用"
-          }
-        }
-      }
-    },
-    "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple's on-device model does not support the selected language. No insight was generated. Change the interface language and retry."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appleの端末内モデルは選択した言語に対応していません。気づきは未生成です。表示言語を変更して再試行できます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple 本地模型暂不支持所选语言；尚未生成洞察。可以切换界面语言后重试。"
-          }
-        }
-      }
-    },
     "Apple 添加状态待确认" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -791,6 +920,9 @@
           }
         }
       }
+    },
+    "ASR 模型" : {
+
     },
     "ChatGPT 安全存储需要恢复" : {
       "extractionState" : "stale",
@@ -1251,6 +1383,9 @@
           }
         }
       }
+    },
+    "Mac 首次生成可能较慢，请保持服务运行。" : {
+
     },
     "OpenAI" : {
 
@@ -1756,6 +1891,15 @@
         }
       }
     },
+    "不会删除录音。移除后需重新扫码才能使用 Mac 模型。" : {
+
+    },
+    "不会自动重建。可编辑行动，关闭关联并保存，再按需重新添加。" : {
+
+    },
+    "不发送音频文件。发送授权不会自动确认或安排任何行动。" : {
+
+    },
     "不可用" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1989,6 +2133,28 @@
         }
       }
     },
+    "主题片段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Topic segments"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テーマ別セグメント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主题片段"
+          }
+        }
+      }
+    },
     "之后的录音，会尝试把你的发言标记为“我”。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2036,6 +2202,7 @@
       }
     },
     "仅为一次采集点，不能推断全程位置。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2057,25 +2224,25 @@
         }
       }
     },
-    "仅使用你允许的记录 · Apple 本地模型" : {
+    "仅使用你允许的记录 · Apple Intelligence" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only records you allow · Apple on-device model"
+            "value" : "Only records you allow · Apple Intelligence"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "許可した記録のみを利用 · Appleのオンデバイスモデル"
+            "value" : "許可した記録のみを利用 · Apple Intelligence"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅使用你允许的记录 · Apple 本地模型"
+            "value" : "仅使用你允许的记录 · Apple Intelligence"
           }
         }
       }
@@ -2245,6 +2412,23 @@
         }
       }
     },
+    "仅将所选片段的转写和相关时间、地点信息发送给所选 AI？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send only the selected segment’s transcript and related time and place context to the selected AI?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したセグメントの文字起こしと関連する時刻・場所の情報のみを、選択したAIに送信しますか？"
+          }
+        }
+      }
+    },
     "仅新记录时获取" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2392,6 +2576,7 @@
       }
     },
     "仅隐藏此派生片段，保留完整录音。可撤销上次片段编辑。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2400,6 +2585,9 @@
           }
         }
       }
+    },
+    "仅隐藏此片段，保留完整录音。可撤销上次片段编辑。" : {
+
     },
     "今天" : {
       "extractionState" : "stale",
@@ -2587,6 +2775,9 @@
         }
       }
     },
+    "从一件小事开始。" : {
+
+    },
     "从今天出发" : {
       "localizations" : {
         "en" : {
@@ -2677,6 +2868,7 @@
       }
     },
     "从自己的记录里，找到一点线索。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2813,6 +3005,7 @@
       }
     },
     "会话尚未同步完成" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2856,6 +3049,9 @@
           }
         }
       }
+    },
+    "低信息内容保留在录音库中，不在时间轴展示。" : {
+
     },
     "你确认过的小行动，都在这里。\n可以随时调整内容与时间。" : {
 
@@ -2979,6 +3175,9 @@
           }
         }
       }
+    },
+    "保存后移除关联的系统项目，保留本机行动。" : {
+
     },
     "保存我的声音" : {
       "extractionState" : "stale",
@@ -3367,9 +3566,6 @@
         }
       }
     },
-    "全文" : {
-
-    },
     "全部" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3415,8 +3611,10 @@
         }
       }
     },
+    "共 %@ 段识别文字 · 保存在本机" : {
+
+    },
     "关于" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3506,6 +3704,9 @@
           }
         }
       }
+    },
+    "内容分类" : {
+
     },
     "内容已更新，等待重新整理" : {
       "extractionState" : "stale",
@@ -3636,16 +3837,6 @@
     "分片 %@" : {
 
     },
-    "分片 %@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "分片 %1$@ · %2$@"
-          }
-        }
-      }
-    },
     "分片 %@ 至 %@ 尚未同步" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3770,6 +3961,9 @@
           }
         }
       }
+    },
+    "分片详情与音频缺口" : {
+
     },
     "分钟" : {
       "extractionState" : "stale",
@@ -4480,7 +4674,7 @@
         }
       }
     },
-    "历史保存在本机 · 下拉加载更早的 10 轮对话\n日期用于选择查询资料，不影响历史消息" : {
+    "历史保存在本机 · 按问题查找获准使用的记录\n可以追问「只看上周」或「再往前找找」" : {
 
     },
     "原始录音" : {
@@ -4538,6 +4732,15 @@
     "原记录已删除" : {
 
     },
+    "原记录暂不可用或已删除" : {
+
+    },
+    "原话位置：约 %@ 秒" : {
+
+    },
+    "原话依据" : {
+
+    },
     "原语音笔记与模型设置原型" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4561,6 +4764,9 @@
         }
       }
     },
+    "发布时间" : {
+
+    },
     "发送本次问题与文字摘录？" : {
       "localizations" : {
         "en" : {
@@ -4582,6 +4788,9 @@
           }
         }
       }
+    },
+    "发送的原文与时间" : {
+
     },
     "发送确认" : {
       "extractionState" : "stale",
@@ -4754,8 +4963,31 @@
         }
       }
     },
+    "只写入标题与时间，不发送录音、原话或本机备注。所选账户可能同步到云端。" : {
+
+    },
+    "只分析当前展示的有限摘录。日程结束时间或原始时区不明确时，需要手动补充。" : {
+
+    },
     "只发送下方文字。长文本使用开头、中间和结尾摘录，多条记录会分批归纳后合并。原始音频和图片保留在本机。" : {
 
+    },
+    "只合并同一录音中的相邻最终片段，按原音频范围保留来源，不拼接或删除原始音频。合并片段会重新生成分类、标题和摘要。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only adjacent final segments from the same recording are merged. Their original audio ranges are preserved; audio is not concatenated or deleted. The merged segment will be classified and receive a new title and summary."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ録音内の隣接する確定済みセグメントのみを結合します。元の音声範囲を維持し、音声の連結や削除は行いません。結合後に分類・タイトル・要約を生成します。"
+          }
+        }
+      }
     },
     "只在本机检索所选日期、所选语言和允许 AI 读取的原文。每条最多索引前 1,800 字，每次最多处理 128 条；不会跨语言检索。缺少资源或检索失败时使用关键词。原始转写和图片文字保留完整。" : {
 
@@ -4824,6 +5056,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只把有把握的片段标记为“我”；不确定时保留说话人标签，可手动修改。"
+          }
+        }
+      }
+    },
+    "只能选择同一录音中相邻的最终片段。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select adjacent final segments from the same recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ録音内で隣接する確定済みセグメントを選択してください。"
+          }
+        }
+      }
+    },
+    "只能选择相邻长录音。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select adjacent long recordings."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隣接する長時間録音を選択してください。"
           }
         }
       }
@@ -4970,6 +5236,40 @@
     "可编辑的转写文本" : {
 
     },
+    "合并内容片段？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge content segments?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容セグメントを結合しますか？"
+          }
+        }
+      }
+    },
+    "同一录音中的相邻片段" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjacent segments in the same recording"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ録音内の隣接セグメント"
+          }
+        }
+      }
+    },
     "同时添加到 Apple 提醒事项" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5039,7 +5339,6 @@
       }
     },
     "同步状态" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5304,6 +5603,7 @@
       }
     },
     "回顾一段对话，串起几个想法，\n或给接下来的一天留一点提醒。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5420,6 +5720,9 @@
     "圆点表示这天有记录。今天是 %@。" : {
 
     },
+    "在 Mac 打开“配对 iPhone”，扫描新生成的二维码。请保持两端连接同一网络。" : {
+
+    },
     "在 WiseLife 开始录音，并显示录音实时活动。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5477,6 +5780,9 @@
         }
       }
     },
+    "地址：%@" : {
+
+    },
     "地址尚未解析，联网后再次查看可补齐。原始坐标已保存在本机。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5523,9 +5829,6 @@
         }
       }
     },
-    "地点 · %@ 条记录" : {
-
-    },
     "地点 · %lld 条记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5545,6 +5848,55 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "地点 · %lld 条记录"
+          }
+        }
+      }
+    },
+    "地点 %@ 处" : {
+
+    },
+    "地点 %lld 处" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld places"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld か所"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地点 %lld 处"
+          }
+        }
+      }
+    },
+    "地点地址正在解析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolving place names"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所の住所を確認中"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地点地址正在解析"
           }
         }
       }
@@ -5836,8 +6188,13 @@
         }
       }
     },
+    "处理指令" : {
+
+    },
+    "处理服务：%@" : {
+
+    },
     "处理状态" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5846,6 +6203,9 @@
           }
         }
       }
+    },
+    "处理进度" : {
+
     },
     "外观" : {
       "localizations" : {
@@ -5961,6 +6321,9 @@
         }
       }
     },
+    "安排时间" : {
+
+    },
     "完成" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6002,6 +6365,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完整录音"
+          }
+        }
+      }
+    },
+    "完整转写" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全文"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完整转写"
           }
         }
       }
@@ -6091,6 +6476,9 @@
           }
         }
       }
+    },
+    "对准 Mac 上的 WiseLife 配对二维码" : {
+
     },
     "对话操作" : {
       "extractionState" : "stale",
@@ -6506,19 +6894,6 @@
         }
       }
     },
-    "已保存 %@ 个分片" : {
-
-    },
-    "已保存 %@/%@ 个已封口分片到 iPhone" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "已保存 %1$@/%2$@ 个已封口分片到 iPhone"
-          }
-        }
-      }
-    },
     "已保存 %lld 个分片" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6893,6 +7268,9 @@
         }
       }
     },
+    "已安排的通知也会取消。若系统删除失败，将保留行动供你重试。" : {
+
+    },
     "已安装" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7265,6 +7643,9 @@
         }
       }
     },
+    "已配对 · %@" : {
+
+    },
     "已配对 · 最近同步 %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7399,6 +7780,75 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "帮我回顾这一天"
+          }
+        }
+      }
+    },
+    "常见问题" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "よくある質問"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常见问题"
+          }
+        }
+      }
+    },
+    "常见问题与使用说明" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQs and usage guide"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "よくある質問と使い方"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常见问题与使用说明"
+          }
+        }
+      }
+    },
+    "常见问题与法律信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQs and legal information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "よくある質問と法的情報"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常见问题与法律信息"
           }
         }
       }
@@ -7691,6 +8141,9 @@
           }
         }
       }
+    },
+    "当前时区 · %@" : {
+
     },
     "当前显示上次保存的快照，可能已过期。" : {
       "localizations" : {
@@ -8073,10 +8526,11 @@
         }
       }
     },
-    "录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple 本地模型整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。" : {
+    "录音和闪念通过蓝牙同步，转换后保存在本机。Ring 闪念自动使用本地转写和 Apple Intelligence整理，在“一天 → 闪念”中查看。同步不会删除设备原录音。" : {
 
     },
     "录音已中断" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8229,6 +8683,9 @@
         }
       }
     },
+    "录音文件" : {
+
+    },
     "录音时" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8269,6 +8726,7 @@
       }
     },
     "录音期间暂停回听" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8336,6 +8794,7 @@
       }
     },
     "录音结束状态待同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8425,6 +8884,9 @@
         }
       }
     },
+    "待办、提醒、日程，都从你的决定开始。" : {
+
+    },
     "待同步%lld条" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8510,9 +8972,6 @@
           }
         }
       }
-    },
-    "总结" : {
-
     },
     "懂你的记录，也听你说。" : {
       "localizations" : {
@@ -8694,8 +9153,28 @@
         }
       }
     },
+    "截止时间不会自动产生通知；需要通知请选择“提醒”。" : {
+
+    },
     "所有录音" : {
 
+    },
+    "所选 AI 模型暂不可用" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected AI model is unavailable"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したAIモデルは現在利用できません"
+          }
+        }
+      }
     },
     "所选提醒事项列表不可写。请重新选择列表，或关闭 Apple 关联。" : {
       "extractionState" : "manual",
@@ -8719,6 +9198,9 @@
           }
         }
       }
+    },
+    "手动创建默认关联第一条来源；AI 可以分别识别各条来源。" : {
+
     },
     "手机正在录音，保存后可从这里开始 Ring 录音。" : {
 
@@ -8911,6 +9393,9 @@
         }
       }
     },
+    "把理解，变成下一步" : {
+
+    },
     "拍一张照片，或从相册选择。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9097,6 +9582,9 @@
           }
         }
       }
+    },
+    "按问题查找相关记录" : {
+
     },
     "授权已过期" : {
       "extractionState" : "stale",
@@ -9328,6 +9816,9 @@
         }
       }
     },
+    "摘要尚未生成" : {
+
+    },
     "撤销" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9385,6 +9876,7 @@
       }
     },
     "播放将跳过缺口；缺失音频不会填充为静音。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9536,6 +10028,9 @@
           }
         }
       }
+    },
+    "整理模型：%@" : {
+
     },
     "文件清理待重试" : {
       "localizations" : {
@@ -9781,6 +10276,7 @@
       }
     },
     "无法读取完整录音，请解锁后重试。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9949,6 +10445,9 @@
       }
     },
     "日本語" : {
+
+    },
+    "时区：%@" : {
 
     },
     "明天提醒我做个语音回顾" : {
@@ -10156,6 +10655,9 @@
         }
       }
     },
+    "暂不确认，时间手动填写" : {
+
+    },
     "暂停后不再读取新数据，已有快照保留在本机。AI 是否可用这些数据，需在 AI 偏好中另行开启。" : {
       "localizations" : {
         "en" : {
@@ -10210,6 +10712,9 @@
           }
         }
       }
+    },
+    "暂无已识别文字。录音转写完成后，可刷新查看。" : {
+
     },
     "暂无数据" : {
       "extractionState" : "stale",
@@ -10319,6 +10824,9 @@
         }
       }
     },
+    "暂时无法读取内容片段。" : {
+
+    },
     "暂时无法读取音频信息。原文件和全文已保留，请稍后重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10391,6 +10899,55 @@
     "有值得跟进的事，再轻轻提醒你。" : {
 
     },
+    "有新记录 · 可手动更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New records · update manually"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記録があります · 手動で更新できます"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有新记录 · 可手动更新"
+          }
+        }
+      }
+    },
+    "有新记录 · 待更新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New records · update available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記録があります · 更新可能"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有新记录 · 待更新"
+          }
+        }
+      }
+    },
+    "有缺失音频，播放时会跳过。" : {
+
+    },
     "服务协议" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10433,6 +10990,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "服务地址 · Base URL"
+          }
+        }
+      }
+    },
+    "服务条款" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Service"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用規約"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务条款"
           }
         }
       }
@@ -10591,6 +11171,9 @@
           }
         }
       }
+    },
+    "未提供" : {
+
     },
     "未登记 · 让笔记认出我说的话" : {
       "extractionState" : "stale",
@@ -11061,6 +11644,43 @@
         }
       }
     },
+    "本次只生成所选片段摘要；AI 会读取下方片段全文及时间、地点上下文。原始音频保留在本机。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will generate only the selected segment’s summary. The AI will read the transcript and its time and place context below. Original audio stays on this iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したセグメントの要約のみを生成します。AIは下記の文字起こしと時刻・場所のコンテキストを読み取ります。元の音声はiPhone内に残ります。"
+          }
+        }
+      }
+    },
+    "本次只生成所选片段标题；AI 会读取下方片段全文及时间、地点上下文。原始音频保留在本机。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will generate only the selected segment’s title. The AI will read the transcript and its time and place context below. Original audio stays on this iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したセグメントのタイトルのみを生成します。AIは下記の文字起こしと時刻・場所のコンテキストを読み取ります。元の音声はiPhone内に残ります。"
+          }
+        }
+      }
+    },
+    "本次确认仅适用于当前这份数据和所选模型；新增转写、地点或更换模型后会重新确认。" : {
+
+    },
     "权限受限" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11266,12 +11886,28 @@
         }
       }
     },
-    "来自 %@%@" : {
+    "来自 %@ · 录制时间缺失，按同步时间显示" : {
+
+    },
+    "来自 %lld 条记录" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %lld records"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録 %lld 件から"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "来自 %1$@%2$@"
+            "state" : "translated",
+            "value" : "来自 %lld 条记录"
           }
         }
       }
@@ -11351,7 +11987,27 @@
       }
     },
     "查看回顾" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View recap"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "振り返りを見る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看回顾"
+          }
+        }
+      }
     },
     "查看完整录音" : {
       "extractionState" : "stale",
@@ -11360,6 +12016,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View full recording"
+          }
+        }
+      }
+    },
+    "查看常见问题、隐私与服务条款，或联系 WiseLife。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find answers, review the privacy policy and terms, or contact WiseLife."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "よくある質問、プライバシーと利用規約を確認するか、WiseLife にお問い合わせください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看常见问题、隐私与服务条款，或联系 WiseLife。"
           }
         }
       }
@@ -11429,6 +12108,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看隐私政策与数据使用说明"
+          }
+        }
+      }
+    },
+    "标题与摘要已更新" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title and summary updated"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を更新しました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题与摘要已更新"
+          }
+        }
+      }
+    },
+    "标题或摘要已更新" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title or summary updated"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルまたは要約を更新しました"
           }
         }
       }
@@ -11524,6 +12243,9 @@
           }
         }
       }
+    },
+    "检测到 %@ 处音频缺口，详见下方分片详情。" : {
+
     },
     "检测到多种声音或明显的声音变化，请独自讲话并重新录制。" : {
       "localizations" : {
@@ -11756,6 +12478,40 @@
     "正在下载，关闭页面或切换资源会取消。" : {
 
     },
+    "正在从此片段全文生成摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating a summary from this segment’s transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセグメントの文字起こしから要約を生成しています"
+          }
+        }
+      }
+    },
+    "正在从此片段全文生成标题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating a title from this segment’s transcript"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセグメントの文字起こしからタイトルを生成しています"
+          }
+        }
+      }
+    },
     "正在准备图片" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11775,6 +12531,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在准备图片"
+          }
+        }
+      }
+    },
+    "正在判断此片段是否值得出现在时间轴" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking whether this segment belongs on the timeline"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセグメントをタイムラインに表示するか判定しています"
+          }
+        }
+      }
+    },
+    "正在判断相邻内容是否属于同一话题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking whether adjacent content belongs to the same topic"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隣接する内容が同じトピックか確認しています"
           }
         }
       }
@@ -12065,6 +12855,46 @@
         }
       }
     },
+    "正在生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を生成中"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成标题与摘要"
+          }
+        }
+      }
+    },
+    "正在生成标题或摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating title or summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルまたは要約を生成中"
+          }
+        }
+      }
+    },
     "正在等待 ChatGPT 授权…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12121,6 +12951,12 @@
         }
       }
     },
+    "正在读取本机转写…" : {
+
+    },
+    "正在连接 Mac…" : {
+
+    },
     "正在验证地址、API Key 和模型，请稍候…" : {
 
     },
@@ -12158,6 +12994,7 @@
       }
     },
     "此片段尚无全文；空转写不表示无人声。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -12166,6 +13003,26 @@
           }
         }
       }
+    },
+    "此片段已整理并保存" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This segment is processed and saved"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセグメントは処理され、保存されています"
+          }
+        }
+      }
+    },
+    "此片段的内容尚待确认，暂不在时间轴展示。" : {
+
     },
     "此版本尚未启用 ChatGPT 登录。" : {
       "localizations" : {
@@ -12328,6 +13185,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每日洞察 · Apple 本地分析"
+          }
+        }
+      }
+    },
+    "每日记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily record"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎日の記録"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每日记录"
           }
         }
       }
@@ -12541,6 +13421,9 @@
           }
         }
       }
+    },
+    "测试中" : {
+
     },
     "测试只发送固定测试文本。修改配置后需重新测试。" : {
 
@@ -12877,7 +13760,31 @@
         }
       }
     },
+    "片段" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セグメント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "片段"
+          }
+        }
+      }
+    },
     "片段仍在处理中，边界与文字可能更新。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -12888,11 +13795,29 @@
       }
     },
     "片段删除只隐藏派生内容；完整录音及原始音频仍保留。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deleting a segment only hides derived content. The full recording and original audio remain."
+          }
+        }
+      }
+    },
+    "片段已更新，请重新发起生成" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The segment changed. Start generation again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セグメントが更新されました。もう一度生成してください"
           }
         }
       }
@@ -12917,6 +13842,9 @@
           }
         }
       }
+    },
+    "版本号" : {
+
     },
     "状态更新于 %@" : {
       "extractionState" : "stale",
@@ -12986,6 +13914,57 @@
         }
       }
     },
+    "生成内容片段 · 发送确认" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate segment content · Send confirmation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セグメント内容を生成 · 送信確認"
+          }
+        }
+      }
+    },
+    "生成失败，可手动重试" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generation failed. You can retry manually."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成に失敗しました。手動で再試行できます"
+          }
+        }
+      }
+    },
+    "生成已取消" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generation cancelled"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成をキャンセルしました"
+          }
+        }
+      }
+    },
     "生成录音标题" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13005,6 +13984,63 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成录音标题"
+          }
+        }
+      }
+    },
+    "生成摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要約を生成"
+          }
+        }
+      }
+    },
+    "生成标题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを生成"
+          }
+        }
+      }
+    },
+    "生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと要約を生成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成标题与摘要"
           }
         }
       }
@@ -13328,6 +14364,9 @@
         }
       }
     },
+    "直接说你想知道什么。\n我会从你允许的记录里寻找线索。" : {
+
+    },
     "相机权限未开启。可在系统设置中允许 WiseLife 使用相机，或从相册选择。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13350,9 +14389,6 @@
           }
         }
       }
-    },
-    "相邻长录音" : {
-
     },
     "看看建议" : {
       "extractionState" : "stale",
@@ -13653,6 +14689,23 @@
         }
       }
     },
+    "确认并生成摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm and generate summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認して要約を生成"
+          }
+        }
+      }
+    },
     "确认并生成标题" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13672,6 +14725,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确认并生成标题"
+          }
+        }
+      }
+    },
+    "确认并生成标题与摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm and generate title and summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認してタイトルと要約を生成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认并生成标题与摘要"
           }
         }
       }
@@ -13917,6 +14993,40 @@
         }
       }
     },
+    "等待生成" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to generate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成待ち"
+          }
+        }
+      }
+    },
+    "等待确认发送到外部 AI" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for confirmation to send to external AI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外部AIへの送信確認待ち"
+          }
+        }
+      }
+    },
     "等待设备 SDK 与通信协议" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13967,6 +15077,9 @@
 
     },
     "管理已确认的提醒" : {
+
+    },
+    "管理片段" : {
 
     },
     "管理用量" : {
@@ -14124,6 +15237,9 @@
       }
     },
     "结合生活、工作与学习记录回顾这一天，按需给出跟进建议。推断可能有误，请核对来源；建议不会自动创建待办或日程。" : {
+
+    },
+    "结束：%@" : {
 
     },
     "结束并保存" : {
@@ -14301,6 +15417,7 @@
 
     },
     "缺口 %@ – %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14341,6 +15458,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "联系我"
+          }
+        }
+      }
+    },
+    "联系我们" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact Us"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お問い合わせ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "联系我们"
           }
         }
       }
@@ -14389,6 +15529,15 @@
           }
         }
       }
+    },
+    "行动与已保存的原话仍保留在本机。" : {
+
+    },
+    "行动保存在本机。关联 Apple 列表或日历后，内容可能随该账户同步。" : {
+
+    },
+    "行动已移除" : {
+
     },
     "补充一句（选填）" : {
 
@@ -14784,6 +15933,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "试试更短的关键词，或切换记录类型。"
+          }
+        }
+      }
+    },
+    "该片段尚未完成 ASR/VAD 覆盖或话题整理，暂不显示在时间轴。请查看下方处理状态。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ASR/VAD coverage or topic unification is still pending for this segment, so it is hidden from the timeline. See processing status below."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセグメントはASR/VADの対象範囲またはトピック統合が未完了のため、タイムラインに表示されません。下の処理状況をご確認ください。"
           }
         }
       }
@@ -15236,6 +16401,29 @@
         }
       }
     },
+    "说话人分析尚未执行；可能是录音时长未知，也可能尚未请求此阶段。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speaker analysis has not run. The recording duration may be unknown, or this stage may not have been requested."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話者分析はまだ実行されていません。録音時間が不明か、この処理段階がまだ要求されていない可能性があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说话人分析尚未执行；可能是录音时长未知，也可能尚未请求此阶段。"
+          }
+        }
+      }
+    },
     "说话人分析已取消，可重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15255,29 +16443,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "说话人分析已取消，可重试。"
-          }
-        }
-      }
-    },
-    "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speaker analysis was skipped. Recordings over 30 minutes or with unknown duration are protected; this stage may also not have been requested."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "話者分析はスキップされました。30 分を超える録音や長さが不明な録音には保護制限が適用されます。この段階が未要求の場合もあります。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "说话人分析已跳过；超过 30 分钟或时长未知的录音受保护限制，也可能尚未请求此阶段。"
           }
         }
       }
@@ -15444,13 +16609,13 @@
         }
       }
     },
-    "请前往 ChatGPT 管理用量，或在设置中选择 Apple 本地模型。额度恢复后可重试。" : {
+    "请前往 ChatGPT 管理用量，或在设置中选择 Apple Intelligence。额度恢复后可重试。" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manage usage in ChatGPT or choose the Apple on-device model in settings. Retry when your allowance resets."
+            "value" : "Manage usage in ChatGPT or choose the Apple Intelligence in settings. Retry when your allowance resets."
           }
         },
         "ja" : {
@@ -15462,7 +16627,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请前往 ChatGPT 管理用量，或在设置中选择 Apple 本地模型。额度恢复后可重试。"
+            "value" : "请前往 ChatGPT 管理用量，或在设置中选择 Apple Intelligence。额度恢复后可重试。"
           }
         }
       }
@@ -15737,6 +16902,9 @@
           }
         }
       }
+    },
+    "请补充日程结束时间。" : {
+
     },
     "请选择列表" : {
       "extractionState" : "manual",
@@ -16184,6 +17352,9 @@
         }
       }
     },
+    "边界已定稿 · %@" : {
+
+    },
     "返回" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16301,6 +17472,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这一天的图片记录了什么？"
+          }
+        }
+      }
+    },
+    "这一天还没有地点记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No places recorded for this day"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この日の場所はまだ記録されていません"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这一天还没有地点记录"
           }
         }
       }
@@ -16450,6 +17644,29 @@
         }
       }
     },
+    "这条录音无法安全地一次性解码；请使用分段处理。音频和全文已保留。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This recording cannot be safely decoded all at once. Use windowed processing; the audio and transcript are preserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この録音は一度にデコードできません。分割処理を使用してください。音声と全文は保持されています。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条录音无法安全地一次性解码；请使用分段处理。音频和全文已保留。"
+          }
+        }
+      }
+    },
     "这条洞察从哪里来" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16518,29 +17735,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这段录音中只有我在讲话"
-          }
-        }
-      }
-    },
-    "这段录音超过 30 分钟，暂不区分说话人，以避免内存不足。音频和全文已保留，可正常查看。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speaker identification is temporarily unavailable for recordings longer than 30 minutes to avoid running out of memory. Your audio and transcript are preserved."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メモリ不足を防ぐため、30 分を超える録音の話者識別は現在利用できません。音声と全文は保持されています。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这段录音超过 30 分钟，暂不区分说话人，以避免内存不足。音频和全文已保留，可正常查看。"
           }
         }
       }
@@ -16640,7 +17834,7 @@
         }
       }
     },
-    "适用于外部 AI 问答、总结、每日回顾、每日洞察与长录音标题。开启免提示后，每日回顾、每日洞察与长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。" : {
+    "适用于外部 AI 问答、总结、每日回顾、每日洞察与长录音整理。开启免提示后，每日回顾、每日洞察和录音主题、标题、总结会自动生成；录音整理会使用转写及已有时间、地点信息。可在「设置 → AI 模型」中恢复确认。" : {
 
     },
     "适用于外部 AI 问答、总结与长录音标题。开启免提示后，长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。" : {
@@ -17211,6 +18405,40 @@
         }
       }
     },
+    "重新生成摘要" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate summary"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要約を再生成"
+          }
+        }
+      }
+    },
+    "重新生成标题" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを再生成"
+          }
+        }
+      }
+    },
     "重置所有本机对话" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17524,6 +18752,28 @@
         }
       }
     },
+    "长录音" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long recording"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長時間録音"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长录音"
+          }
+        }
+      }
+    },
     "长按操作按钮，说出这一刻。再次长按，自动保存。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17586,13 +18836,14 @@
         }
       }
     },
-    "闪念在 iPhone 本地转写，并由 Apple 本地模型整理。模型暂不可用时可先回听、查看全文，稍后重试。" : {
+    "闪念在 iPhone 本地转写，并由 Apple Intelligence整理。模型暂不可用时可先回听、查看全文，稍后重试。" : {
 
     },
     "问问 AI 这些图片" : {
 
     },
     "问问 AI，理一理今天" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17706,6 +18957,29 @@
         }
       }
     },
+    "隐私条款" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私条款"
+          }
+        }
+      }
+    },
     "零点是归档时间。系统可能延后同步，健康数据更新或打开 App 后会补齐；晚到数据会更新同一条记录。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17752,11 +19026,22 @@
         }
       }
     },
-    "音频将按时间顺序拼接，并重新生成全文、总结与标题。保存新录音后会删除选中的原条目。外部 AI 仍按当前确认设置运行。" : {
-
-    },
-    "预期 %@ 个分片" : {
-
+    "音频合并和内容片段合并请分别选择。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio recordings and content segments must be merged separately."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音音声と内容セグメントは別々に選択して結合してください。"
+          }
+        }
+      }
     },
     "预期 %lld 个分片" : {
       "extractionState" : "stale",

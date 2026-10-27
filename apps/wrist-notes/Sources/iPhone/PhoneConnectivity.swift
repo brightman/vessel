@@ -28,6 +28,9 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     private var receiptRetryTimer: Timer?
     private var locationObservation: NSObjectProtocol?
     private var simulatorTransfers: [UUID: SimulatorIncomingRecording] = [:]
+#if targetEnvironment(simulator)
+    private var simulatorChunkAssembler = SimulatorChunkedFileAssembler()
+#endif
     private let failureLock = NSLock()
     private let contextLock = NSLock()
     private var localSaveFailures: [String: Set<UUID>] = [:]
@@ -115,9 +118,18 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             try self.transportLock.withLock {
                 guard self.currentChunkBinding == acknowledgement.binding else { throw RecordingTransportError.unavailable }
                 let message = try acknowledgement.message()
-                if !WCSession.default.outstandingUserInfoTransfers.contains(where: { transfer in
-                    message.allSatisfy { key, value in (transfer.userInfo[key] as? Data) == (value as? Data) }
-                }) { WCSession.default.transferUserInfo(message) }
+                let session = WCSession.default
+                let queueDurably = {
+                    guard !session.outstandingUserInfoTransfers.contains(where: { transfer in
+                        message.allSatisfy { key, value in (transfer.userInfo[key] as? Data) == (value as? Data) }
+                    }) else { return }
+                    session.transferUserInfo(message)
+                }
+                RecordingReachableMessageDelivery.submit(isReachable: session.isReachable, sendImmediately: { completion in
+                    session.sendMessage(message, replyHandler: { reply in
+                        completion(reply["accepted"] as? Bool == true)
+                    }, errorHandler: { _ in completion(false) })
+                }, queue: queueDurably)
             }
         }, retainUntilDelivery: true, committed: { [weak self] acknowledgement in
             guard let self else { throw RecordingTransportError.unavailable }
@@ -181,9 +193,18 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                 let hello = try RecordingChunkWire.decode(RecordingCapabilityHello.self, key: RecordingChunkProtocol.capabilityKey, from: message)
                 let response = try transportLock.withLock { () throws -> RecordingCapabilityReply in
                     guard let pairing = activePairingID else { throw RecordingTransportError.unavailable }
+                    let previousBinding = chunkReceiver.currentBinding
                     let response = try chunkReceiver.negotiate(hello, systemPairingID: pairing)
                     guard activePairingID == pairing else { chunkReceiver.setBinding(nil); throw RecordingTransportError.unavailable }
                     chunkSystemPairingID = pairing
+#if targetEnvironment(simulator)
+                    if previousBinding != response.binding {
+                        // Part sets are only in memory and are bound to the old envelope.
+                        // On a fresh handshake, discard them so retries with the same
+                        // transfer IDs can use the new binding instead of conflicting.
+                        simulatorChunkAssembler.reset()
+                    }
+#endif
                     return response
                 }
                 let payload: [String: Any] = [RecordingChunkProtocol.capabilityKey: try JSONEncoder().encode(response)]
@@ -341,6 +362,12 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+#if targetEnvironment(simulator)
+        if message["type"] as? String == SimulatorChunkedFileTransfer.messageType {
+            receiveSimulatorChunkPart(message, replyHandler: replyHandler)
+            return
+        }
+#endif
         if RecordingChunkWire.owns(message) { handleChunkMessage(message, reply: replyHandler); return }
 #if targetEnvironment(simulator)
         guard message["type"] as? String == "simulator-audio-chunk" else {
@@ -405,6 +432,39 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
         replyHandler(["accepted": false])
 #endif
     }
+
+#if targetEnvironment(simulator)
+    private func receiveSimulatorChunkPart(_ message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        do {
+            let part = try SimulatorChunkedFileTransfer.Part(message: message)
+            let completed = try transportLock.withLock { try simulatorChunkAssembler.append(part) }
+            guard let completed else { replyHandler(["accepted": true]); return }
+            guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
+            let envelope = try JSONDecoder().decode(
+                RecordingWireEnvelope<RecordingChunkDescriptor>.self, from: completed.envelope
+            )
+            let directory = inbox.appendingPathComponent("RecordingV2", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let temporaryFile = directory.appendingPathComponent(".sim-\(part.transferID.uuidString).m4a")
+            try completed.audio.write(to: temporaryFile, options: .atomic)
+            do {
+                try chunkReceiver.stage(envelope, temporaryFile: temporaryFile)
+                resumeRecordingInbox()
+            } catch {
+                try? FileManager.default.removeItem(at: temporaryFile)
+                throw error
+            }
+            logger.notice("Assembled simulator V2 recording chunk \(envelope.payload.id.uuidString, privacy: .public); bytes: \(completed.audio.count, privacy: .public)")
+            replyHandler(["accepted": true])
+        } catch {
+            if let rawID = message["transferID"] as? String, let id = UUID(uuidString: rawID) {
+                transportLock.withLock { simulatorChunkAssembler.discard(id) }
+            }
+            logger.error("Rejected simulator V2 file part: \(error.localizedDescription, privacy: .public)")
+            replyHandler(["accepted": false])
+        }
+    }
+#endif
 
     func session(_ session: WCSession, didReceive file: WCSessionFile) {
         logger.notice("Received Watch file callback")

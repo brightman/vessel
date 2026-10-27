@@ -13,6 +13,9 @@ import Foundation
         let places = DaybookPlaces.records(notes: [note], photos: [])
         precondition(places.count == 1 && places[0].parentRecordID == note.id && places[0].capturedAt == date)
         precondition(audio.captureDevice == "Apple Watch" && audio.text == "测试原文")
+        let unresolvedSummary = DaybookPlaces.homeSummary(places)
+        precondition(unresolvedSummary.placeCount == 1 && unresolvedSummary.recordCount == 1)
+        precondition(unresolvedSummary.labels.isEmpty, "raw coordinates must not be exposed as home place names")
         let retrieval = DaybookRetrieval()
         let privateScope = try retrieval.prepare(question: "总结这一天", records: [audio] + places, selectedDate: date, allowedKinds: [.voice])
         precondition(!privateScope.context.contains("31.2345") && !privateScope.context.contains("121.5432"))
@@ -22,6 +25,12 @@ import Foundation
         note.location?.address = CaptureAddress(text: "上海市浦东新区世纪大道 1 号", localeIdentifier: "zh-Hans")!
         let addressed = DaybookPlaces.records(notes: [note], photos: [])
         precondition(addressed[0].title == "上海市浦东新区世纪大道 1 号", "timeline title must use the resolved address")
+        let addressedSummary = DaybookPlaces.homeSummary(addressed)
+        precondition(addressedSummary.placeCount == 1 && addressedSummary.labels == ["上海市浦东新区世纪大道 1 号"])
+        let repeatedAddress = DaybookPlaces.homeSummary(addressed + addressed)
+        precondition(repeatedAddress.placeCount == 1 && repeatedAddress.recordCount == 2 && repeatedAddress.labels.count == 1,
+                     "same resolved address counts as one place while retaining every location record")
+        precondition(DaybookPlaces.homeSummary([]).recordCount == 0, "empty day still has a stable summary model")
         let privateAddress = try retrieval.prepare(question: "总结这一天", records: [DaybookPlaces.voice(note)] + addressed, selectedDate: date, allowedKinds: [.voice])
         precondition(!privateAddress.context.contains("世纪大道"), "resolved addresses require the separate AI location permission")
         let permittedAddress = try retrieval.prepare(question: "总结这一天", records: addressed, selectedDate: date, allowedKinds: [.location])

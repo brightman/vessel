@@ -1,12 +1,33 @@
 import CryptoKit
 import Foundation
 
+enum DaybookHomeRecapTitle {
+    static func text(date: Date, yesterday: Bool, localeIdentifier: String) -> String {
+        let language = localeIdentifier.split(separator: "-").first.map(String.init) ?? "zh"
+        if yesterday {
+            switch language {
+            case "en": return "Yesterday's recap"
+            case "ja": return "昨日の振り返り"
+            default: return "昨日回顾"
+            }
+        }
+        let formattedDate = date.formatted(.dateTime.locale(Locale(identifier: localeIdentifier)).month().day())
+        let label: String
+        switch language {
+        case "en": label = "Recap"
+        case "ja": label = "振り返り"
+        default: label = "回顾"
+        }
+        return "\(formattedDate) · \(label)"
+    }
+}
+
 enum DaybookRecapFailure: LocalizedError, Equatable {
     case unavailable, unsupportedLanguage, invalid, generation, storage, changed
     var errorDescription: String? {
         switch self {
-        case .unavailable: "Apple 本地模型尚不可用。请检查 Apple Intelligence 设置，或选择其他 AI 模型后重试。"
-        case .unsupportedLanguage: "当前 Apple 本地模型不支持所选语言，请更换语言或模型后重试。"
+        case .unavailable: "Apple Intelligence尚不可用。请检查 Apple Intelligence 设置，或选择其他 AI 模型后重试。"
+        case .unsupportedLanguage: "当前 Apple Intelligence不支持所选语言，请更换语言或模型后重试。"
         case .invalid: "AI 未返回有效的回顾及来源，未保存此次结果。请重试。"
         case .generation: "回顾生成未完成，请稍后重试。"
         case .storage: "每日回顾未能读取或保存，请解锁设备并检查存储空间后重试。"
@@ -24,6 +45,7 @@ struct DaybookRecapInput: Equatable, Sendable {
         let kind: DayRecord.Kind
         let capturedAt: Date
         let digest: String
+        var legacyDigest: String? = nil
     }
     struct Source: Equatable, Sendable {
         let number: Int
@@ -58,6 +80,28 @@ struct DaybookRecapInput: Equatable, Sendable {
         return SHA256.hash(data: try! encoder.encode(value)).map { String(format: "%02x", $0) }.joined()
     }
     static func factDigest(_ record: DayRecord) -> String {
+        struct Evidence: Encodable {
+            let sourceID: UUID
+            let sourceKind: String
+            let sourceDate: Date
+            let configurationKey: String
+            let contentSignature: String
+            let ranges: [DayRecord.ContentProvenance.AudioRange]
+            let transcript: [DayRecord.ContentProvenance.TextSpan]
+        }
+        struct Fact: Encodable {
+            let id: UUID; let capturedAt: Date; let kind: DayRecord.Kind; let text: String
+            let provenance: Evidence?
+        }
+        let evidence = record.contentProvenance.map {
+            Evidence(sourceID:$0.sourceID,sourceKind:$0.sourceKind,sourceDate:$0.sourceDate,
+                configurationKey:$0.configurationKey,contentSignature:$0.contentSignature,ranges:$0.ranges,transcript:$0.transcript)
+        }
+        return digest(Fact(id:record.id,capturedAt:record.capturedAt,kind:record.kind,text:record.text,provenance:evidence))
+    }
+    /// Exact pre-v2 digest permits a proven-compatible archive upgrade without
+    /// discarding saved prose merely because the hashing format changed.
+    private static func legacyFactDigest(_ record: DayRecord) -> String {
         struct Fact: Encodable {
             let id: UUID
             let capturedAt: Date
@@ -76,7 +120,7 @@ struct DaybookRecapInput: Equatable, Sendable {
         switch kind {
         case .thought: "主动闪念：优先理解用户意图；区分设想、决定和已完成，引用他人不代表本人意图。"
         case .voice: "录音转写：说话人未确认，不默认属于用户；背景音仅作弱辅助线索，录音设备不提高内容权威性。"
-        case .activity: "系统活动数据：对应测量范围内的优先事实依据；注意统计范围、缺失与延迟，不推断活动目的。"
+        case .activity: "系统活动数据：对应测量范围内的优先事实依据；注意统计范围、缺失与延迟，不推断活动目的。体能训练按开始日期归属，训练持续时长不等于锻炼圆环分钟数，不与每日步数或能量相加；标注手动录入的记录属于用户填写，不能当作设备测量；不同来源的重复训练不能重复累计。"
         case .sleep: "系统睡眠数据：对应测量范围内的优先事实依据；属于测量或估算，不推断原因或诊断。"
         case .calendar: "日程安排：计划依据，不证明实际参加或完成。"
         case .location: "位置记录或派生变化：仅支持采集点及其变化；不证明完整行程、驾驶身份或停留时长，派生记录不算独立佐证。"
@@ -96,7 +140,8 @@ struct DaybookRecapInput: Equatable, Sendable {
             let ready = !raw.isEmpty || record.kind == .image
             let number = ready ? sources.count + 1 : nil
             references.append(Reference(id: record.id, number: number, title: String(record.title.prefix(100)), kind: record.kind,
-                capturedAt: record.capturedAt, digest: factDigest(record)))
+                capturedAt: record.capturedAt, digest: factDigest(record),
+                legacyDigest: record.contentProvenance == nil ? nil : legacyFactDigest(record)))
             guard let number else { pending += 1; continue }
             let body: String
             if raw.count > 600 {
@@ -161,8 +206,26 @@ struct DaybookRecapEntry: Codable, Equatable, Identifiable {
     func relationship(to input: DaybookRecapInput) -> Relationship {
         guard scope == input.scope else { return .invalid }
         if fingerprint == input.fingerprint { return .current }
-        let current = Dictionary(uniqueKeysWithValues: input.references.map { ($0.id, $0.digest) })
-        return references.allSatisfy { current[$0.id] == $0.digest } ? .additions : .invalid
+        let current = Dictionary(uniqueKeysWithValues: input.references.map { ($0.id, $0) })
+        guard references.allSatisfy({ old in
+            guard let next = current[old.id] else { return false }
+            return next.digest == old.digest || next.legacyDigest == old.digest
+        }) else { return .invalid }
+        return references.count == input.references.count ? .current : .additions
+    }
+    func upgradingDigests(to input: DaybookRecapInput) -> Self {
+        let current = Dictionary(uniqueKeysWithValues:input.references.map { ($0.id,$0) })
+        var result = self
+        result.references = references.map { old in
+            guard let next = current[old.id], next.legacyDigest == old.digest, next.digest != old.digest else { return old }
+            // Keep the archived citation numbers/titles, including when new records
+            // were inserted earlier in the day and the new input numbers differ.
+            return .init(id:old.id,number:old.number,title:old.title,kind:old.kind,capturedAt:old.capturedAt,digest:next.digest)
+        }
+        if result.references != references {
+            result.fingerprint = DaybookRecapInput.digest([dayKey,String(scope.start.timeIntervalSinceReferenceDate),String(scope.end.timeIntervalSinceReferenceDate)] + result.references.map(\.digest))
+        }
+        return result
     }
     func matches(_ query: String) -> Bool {
         let date = scope.start.formatted(.dateTime.year().month().day())

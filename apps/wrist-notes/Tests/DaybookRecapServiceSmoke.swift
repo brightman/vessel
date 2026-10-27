@@ -3,6 +3,7 @@ import Foundation
 private final class RecapTransport: URLProtocol {
     static var content: [String] = []
     static var invalid = false
+    static var queuedResponses: [String] = []
     static var instructions: [String] = []
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -26,7 +27,7 @@ private final class RecapTransport: URLProtocol {
             let regex = try NSRegularExpression(pattern: #"\[(\d+)\]"#)
             let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text))!
             let number = text[Range(match.range(at: 1), in: text)!]
-            let result = Self.invalid ? "无效引用 [99999]" : "记录了园艺的想法。[\(number)]"
+            let result = Self.invalid ? "无效引用 [99999]" : (Self.queuedResponses.isEmpty ? "记录了园艺的想法。[\(number)]" : Self.queuedResponses.removeFirst())
             let data = try JSONSerialization.data(withJSONObject: ["choices": [["message": ["content": result], "finish_reason": "stop"]]])
             client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data); client?.urlProtocolDidFinishLoading(self)
@@ -62,6 +63,13 @@ private final class RecapTransport: URLProtocol {
         _ = try await service.generate(single, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true })
         precondition(RecapTransport.content.count == beforeSingle + 1 && RecapTransport.instructions.last!.contains("next steps") && !RecapTransport.instructions.last!.contains("Produce compact evidence notes"),
                      "a single source batch must directly produce a user-facing recap, not intermediate notes")
+        RecapTransport.queuedResponses = ["今天整理了花园，并想种罗勒。", "今天整理了花园，并想种罗勒。[1]"]
+        let beforeCitationRepair = RecapTransport.content.count
+        let repaired = try await service.generate(single, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true })
+        precondition(repaired == "今天整理了花园，并想种罗勒。[1]", "a recap draft missing citations is repaired from the same source before being rejected")
+        precondition(RecapTransport.content.count == beforeCitationRepair + 2, "citation repair makes exactly one bounded correction request")
+        precondition(RecapTransport.instructions.last!.contains("source markers") || RecapTransport.instructions.last!.contains("来源编号"),
+                     "the correction request explicitly constrains citations to source markers")
         RecapTransport.invalid = true
         do { _ = try await service.generate(input, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true }); fatalError("invalid provider citation accepted") }
         catch DaybookRecapFailure.invalid {}

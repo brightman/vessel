@@ -11,7 +11,13 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         try processing.register(source:source,configurationKey:"test",windows:AudioWindowPlanner.plan(source:source,configurationKey:"test"))
         let job=try processing.claimNext()!
         try processing.commit(job:job,result:.init(spans:[.init(start:0,end:5,text:"确认材料")],activities:[],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:0,end:10)],vadCoverage:[.init(start:0,end:10)]))
-        try ContentSegmentRepository(database:db).reconcile(sourceID:id)
+        let repository=ContentSegmentRepository(database:db)
+        try repository.reconcile(sourceID:id)
+        _ = try repository.enrichment(.finalizeTopics(id,try processing.progress(sourceID:id).revision))
+        let segment=try repository.segments(sourceID:id)[0]
+        let fieldScope=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary)!
+        expect(fieldScope.segmentID == segment.id && fieldScope.field == .summary,"field authorization is bound to one final segment and operation")
+        expect(try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:fieldScope,offset:0).map(\.text) == ["确认材料"],"segment consent previews only the requested segment transcript")
         let a=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id)!
         expect(try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:a,offset:0).first?.text == "确认材料","preview reads the actual current transcript")
         let point=CaptureLocation(latitude:40,longitude:116,accuracy:100,measuredAt:source.capturedAt,source:.watchRecording)!
@@ -19,6 +25,7 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         try db.execute("INSERT INTO recording_location_samples(id,session_id,session_offset,requested_at,payload) VALUES (?,?,?,?,?)",[.text(sample.id.uuidString),.text(id.id.uuidString),.real(0),.real(source.capturedAt.timeIntervalSinceReferenceDate),try DaybookDatabase.json(sample)])
         let b=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id)!
         expect(a != b,"late location invalidates a previously displayed consent snapshot")
+        expect(try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary) != fieldScope,"late location also invalidates the field-specific authorization")
         do { _ = try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:a,offset:0); fatalError("stale preview must fail") } catch ContentSegmentError.staleRevision {}
         expect(try ContentEnrichmentAuthorization.contextPage(database:db,scope:b,offset:0).contains("100"),"preview discloses accuracy with observed position")
         let address=CaptureAddress(text:"地点测试楼",localeIdentifier:"zh-CN")!

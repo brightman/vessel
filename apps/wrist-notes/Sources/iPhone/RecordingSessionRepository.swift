@@ -45,6 +45,7 @@ final class RecordingSessionRepository {
     /// Injectable storage boundary; failures before commit propagate, reclamation is retryable.
     var importStep: ((ImportStep) throws -> Void)?
     private(set) var recoveryIssues: [String] = []
+    private var recoveryChanged = false
     private let root: URL
     private let audioDirectory: URL
     private let importsDirectory: URL
@@ -53,7 +54,7 @@ final class RecordingSessionRepository {
     private let lock = NSRecursiveLock()
     private struct Journal: Codable {
         let descriptor: RecordingChunkDescriptor
-        let pairingID: String
+        let pairingID: String?
     }
 
     init(root: URL, database: DaybookDatabase) throws {
@@ -68,9 +69,18 @@ final class RecordingSessionRepository {
     /// Caller owns the persistent receiver inbox. Its source is never removed here.
     /// One private retry copy per chunk/hash survives publication or SQL failure.
     func importChunk(_ incoming: RecordingChunkDescriptor, from source: URL, pairingID: String) throws -> RecordingChunkReceipt {
+        try persistChunk(incoming, from: source, pairingID: pairingID)
+    }
+
+    /// Local iPhone capture shares immutable chunk/source storage but has no Watch receipt ledger.
+    func storeLocalChunk(_ incoming: RecordingChunkDescriptor, from source: URL) throws {
+        _ = try persistChunk(incoming, from: source, pairingID: nil)
+    }
+
+    private func persistChunk(_ incoming: RecordingChunkDescriptor, from source: URL, pairingID: String?) throws -> RecordingChunkReceipt {
         lock.lock(); defer { lock.unlock() }
         try incoming.validate()
-        try validatePairing(pairingID)
+        if let pairingID { try validatePairing(pairingID) }
         let chunk = normalized(incoming)
         try RecordingAudioFile.requireSafePath(source)
         _ = try RecordingAudioFile.validate(chunk, at: source)
@@ -79,7 +89,7 @@ final class RecordingSessionRepository {
             if let existing = try existingChunk(id: chunk.id) {
                 guard existing == chunk else { throw RepositoryError.conflict }
                 _ = try RecordingAudioFile.validate(existing, at: audioURL(existing))
-                try saveReceipt(chunk, pairingID: pairingID)
+                if let pairingID { try saveReceipt(chunk, pairingID: pairingID) }
                 return receiptFor(chunk)
             }
             try checkIdentityAndTimeline(chunk)
@@ -122,7 +132,7 @@ final class RecordingSessionRepository {
             _ = try RecordingAudioFile.validate(chunk, at: destination)
             try establishSession(chunk)
             try db.execute("INSERT INTO recording_chunks(id,session_id,ordinal,filename,captured_at,session_start_offset,frame_count,sample_rate,byte_count,sha256,payload) VALUES (?,?,?,?,?,?,?,?,?,?,?)", try chunkValues(chunk))
-            try saveReceipt(chunk, pairingID: pairingID)
+            if let pairingID { try saveReceipt(chunk, pairingID: pairingID) }
             try rebuildGaps(chunk.sessionID)
             guard try existingChunk(id: chunk.id) == chunk else { throw RepositoryError.invalidStorage }
             try importStep?(.commit)
@@ -306,7 +316,9 @@ final class RecordingSessionRepository {
         lock.lock(); defer { lock.unlock() }
         try prepareDirectories()
         recoveryIssues = []
+        let pendingCleanup = try pendingCleanupSessionIDs()
         try? cleanupDeletedFiles()
+        if try pendingCleanupSessionIDs() != pendingCleanup { recoveryChanged = true }
         for folder in try files.contentsOfDirectory(at: importsDirectory, includingPropertiesForKeys: nil) {
             do {
                 try RecordingAudioFile.requireSafePath(folder)
@@ -318,12 +330,24 @@ final class RecordingSessionRepository {
                 }
                 let stage = folder.appendingPathComponent("audio.m4a")
                 let source = (try? RecordingAudioFile.validate(journal.descriptor, at: stage)) != nil ? stage : audioURL(journal.descriptor)
-                _ = try importChunk(journal.descriptor, from: source, pairingID: journal.pairingID)
+                let wasMissing = try existingChunk(id:journal.descriptor.id) == nil
+                if let pairingID=journal.pairingID { _ = try importChunk(journal.descriptor, from: source, pairingID: pairingID) }
+                else { try storeLocalChunk(journal.descriptor,from:source) }
+                if wasMissing { recoveryChanged = true }
             } catch {
                 // Bounded diagnostics contain only internal folder identifiers, never metadata.
                 if recoveryIssues.count < 100 { recoveryIssues.append(folder.lastPathComponent) }
             }
         }
+    }
+
+    /// The receiver publishes recovered commits once, including recovery during init.
+    /// Merely opening the repository or retrying receipts is not a content change.
+    func consumeRecoveryChanges() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        let changed = recoveryChanged
+        recoveryChanged = false
+        return changed
     }
 
     private func summaries(whereSQL: String, values: [DaybookDatabase.Value], limit: Int, offset: Int) throws -> [RecordingSessionSummary] {

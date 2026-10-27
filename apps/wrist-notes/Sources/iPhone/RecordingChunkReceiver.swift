@@ -160,8 +160,12 @@ final class RecordingChunkReceiver {
         let folders: [URL]
         do {
             repository = try openRepository()
-            // Successful open includes repository journal recovery and actual COMMITs.
-            NotificationCenter.default.post(name: Self.didChange, object: nil)
+            // The 30-second receipt retry also visits an empty inbox. Only actual
+            // recovery commits may invalidate content; transfer health is still
+            // published by the deferred onStatusChange callback on every drain.
+            if repository.consumeRecoveryChanges() {
+                NotificationCenter.default.post(name: Self.didChange, object: nil)
+            }
             let inbox = root.appendingPathComponent("Incoming")
             try RecordingTransportDisk.directory(inbox)
             folders = try FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil)

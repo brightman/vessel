@@ -99,3 +99,19 @@ window.wiseLifeSiteCopy.push(
   ["当前可体验原型，正式发布后提供购买入口。", "Explore the prototype now. Purchasing opens at release.", "現在はプロトタイプを体験できます。正式公開時に購入できます。"],
   ["自选外部 AI 的服务费用由提供方另行收取。", "Optional external AI is billed separately by its provider.", "外部 AI の利用料金は提供元が別途請求します。"]
 );
+
+// WiseLife Companion prelaunch teaser.
+window.wiseLifeSiteCopy.push(
+  ["Mac 伴侣", "Mac Companion", "Mac 連携"],
+  ["即将推出 · WiseLife Mac 伴侣", "Coming soon · WiseLife Mac Companion", "近日公開予定 · WiseLife Mac Companion"],
+  ["Watch、iPhone、Mac，组成你的私人 AI。", "Watch, iPhone, Mac. Your personal AI.", "Watch、iPhone、Mac。自分のための AI。"],
+  ["手表捕捉灵感，iPhone 整理记录，WiseLife Companion 在 Mac 上运行本地模型，帮你回顾、总结并继续思考。", "Capture ideas on Watch, organize records on iPhone, and run a local model on Mac with WiseLife Companion—to recap, summarize and keep thinking.", "Watch でひらめきを記録し、iPhone で整理。WiseLife Companion は Mac でローカルモデルを実行し、振り返りや要約を支援します。"],
+  ["计划由 iPhone 与附近的 Mac 直接协作，不经过 WiseLife 云服务；记录和模型由你掌控。", "The planned workflow connects your iPhone and a nearby Mac directly, without WiseLife cloud services; your records and model stay under your control.", "iPhone と近くの Mac が直接連携する予定です。WiseLife のクラウドサービスを経由せず、記録とモデルは自分で管理できます。"],
+  ["计划支持的单机模型", "Planned single-Mac model candidate", "対応予定の単体 Mac モデル候補"],
+  ["单机候选模型；实际兼容性取决于 Mac 配置、量化版本及后续实测。", "A single-Mac candidate; compatibility depends on Mac configuration, quantization and real-device testing.", "単体 Mac 向けの候補モデルです。互換性は Mac の構成、量子化版、実機テストによって異なります。"],
+  ["联系了解进展", "Contact us for updates", "お問い合わせ"],
+  ["开发中", "In development", "開発中"],
+  ["WiseLife Companion 正在开发中，最低配置与运行速度尚未验证。", "WiseLife Companion is in development. Minimum requirements and performance are not yet verified.", "WiseLife Companion は開発中です。最低要件と処理速度はまだ検証されていません。"],
+  ["Apple Watch、iPhone 与银色 Mac mini 风格电脑通过蓝色闭环连接组成个人 AI 的概念图", "Concept image of Apple Watch, iPhone and a silver Mac mini-style desktop connected in a blue local loop", "Apple Watch、iPhone、シルバーの Mac mini 風デスクトップが青いローカル接続でつながるパーソナル AI のコンセプト画像"],
+  ["Watch、iPhone 与 Mac mini 的连接为产品概念示意图。", "Product concept visual showing Watch, iPhone and Mac mini connected locally.", "Watch、iPhone、Mac mini がローカル接続する製品コンセプトです。"]
+);

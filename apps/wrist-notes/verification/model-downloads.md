@@ -19,7 +19,7 @@
 | Whisper Small | 489,252,808 | 多语言，共用一次下载 |
 | iPhone 系统模型 | 由 Apple 管理 | 根据设备和所选语言决定 |
 
-- WhisperKit 固定 `0.15.0`，swift-transformers 固定 `1.1.2`，仅链接 iPhone target。
+- WhisperKit 固定 `0.18.0`，swift-transformers 固定 `1.1.6`，仅链接 iPhone target。
 - 模型源：`argmaxinc/whisperkit-coreml@0f63a7800b00dd0226abd051b906c246e1907482`。
 - 原版多语言 tokenizer 源：`openai/whisper-tiny@169d4a4341b33bc18d8881c4b69c2e104e1cc0af`，供三种大小共用。
 - `WhisperModels.json` 固定每个文件的 URL、大小和 SHA256 / Git blob SHA1。共 22 个文件／模型。
@@ -80,3 +80,10 @@ sh apps/wrist-notes/scripts/test_whisper_integration.sh
 4. 两种自定义总结协议已通过可控 HTTP 请求／响应合同测试；本轮未用用户真实 Key 调用远程服务。
 
 已有 Watch 录音和传输源码保持不变。
+
+## 2026-10-25 Whisper 转写复查
+
+- 当前 Xcode 工程解析到 WhisperKit `0.18.0`、swift-transformers `1.1.6`；独立集成脚本已同步版本，但本轮未运行该脚本的模型推理。
+- 模拟器中的 Whisper Base 多语言模型文件已通过本地校验；中文使用同一多语言模型，不另下载中文模型包。
+- 一条 16.8 秒、16 kHz 单声道录音的 VAD 检出约 14.6 秒语音。此前 Whisper 只返回标点／极短文本，应用仍错误标记为成功；现在这类结果会作为空转写失败，允许重试。Whisper 不再请求词级时间戳，保留段级时间戳。
+- 对该录音的模拟器推理未能验收：CoreML 日志报告当前模拟器 Espresso/MPSGraph 后端不兼容，测试未确认有效文本。用户反馈真机 Apple 语音引擎可返回全文、Whisper 不行；以上改动尚未在真机复测，不能据此宣称中文 Whisper 已修复。

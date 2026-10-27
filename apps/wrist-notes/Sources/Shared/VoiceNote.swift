@@ -24,6 +24,22 @@ enum RecordingMergeSelection {
         return orderedIDs.filter(selectedIDs.contains)
     }
 
+    static func canAddSameSource(_ candidate: UUID, to selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>, sourceKeys: [UUID:String]) -> Bool {
+        guard let sourceKey=sourceKeys[candidate],selectedIDs.allSatisfy({ sourceKeys[$0] == sourceKey }) else { return false }
+        return canAdd(candidate,to:selectedIDs,orderedIDs:orderedIDs,eligibleIDs:eligibleIDs)
+    }
+
+    static func canMergeSameSource(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>, sourceKeys: [UUID:String]) -> Bool {
+        guard let sourceKey=selectedIDs.first.flatMap({ sourceKeys[$0] }),
+              selectedIDs.allSatisfy({ sourceKeys[$0] == sourceKey }) else { return false }
+        return canMerge(selectedIDs,orderedIDs:orderedIDs,eligibleIDs:eligibleIDs)
+    }
+
+    static func orderedSameSourceSelection(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>, sourceKeys: [UUID:String]) -> [UUID]? {
+        guard canMergeSameSource(selectedIDs,orderedIDs:orderedIDs,eligibleIDs:eligibleIDs,sourceKeys:sourceKeys) else { return nil }
+        return orderedIDs.filter(selectedIDs.contains)
+    }
+
     private static func isContiguous(_ selectedIDs: Set<UUID>, orderedIDs: [UUID], eligibleIDs: Set<UUID>) -> Bool {
         guard !selectedIDs.isEmpty, Set(orderedIDs).count == orderedIDs.count,
               selectedIDs.isSubset(of: eligibleIDs) else { return false }
@@ -75,6 +91,110 @@ struct SimulatorAudioChunkAssembler {
         case invalidChunk
         case inconsistentChunkCount
         case conflictingDuplicate
+    }
+}
+
+enum SimulatorChunkedFileTransfer {
+    static let messageType = "simulator-v2-file-part"
+    static let maximumPartSize = 48 * 1024
+    static let maximumPartCount = 512
+
+    /// Retries for one saved Watch chunk must reuse its assembler slot.
+    static func transferID(for chunkID: UUID) -> UUID { chunkID }
+
+    /// Returns the next part index, or nil after the final part is accepted.
+    static func nextPart(afterAccepted index: Int, total: Int) -> Int? {
+        guard total > 0, index >= 0, index < total, index + 1 < total else { return nil }
+        return index + 1
+    }
+
+    struct Part {
+        let transferID: UUID
+        let index: Int
+        let count: Int
+        let envelope: Data
+        let audio: Data
+
+        var message: [String: Any] {
+            ["type": SimulatorChunkedFileTransfer.messageType, "transferID": transferID.uuidString,
+             "partIndex": index, "partCount": count, "envelope": envelope, "audioPart": audio]
+        }
+
+        init(transferID: UUID, index: Int, count: Int, envelope: Data, audio: Data) {
+            self.transferID = transferID; self.index = index; self.count = count
+            self.envelope = envelope; self.audio = audio
+        }
+
+        init(message: [String: Any]) throws {
+            guard message["type"] as? String == SimulatorChunkedFileTransfer.messageType,
+                  let rawID = message["transferID"] as? String, let id = UUID(uuidString: rawID),
+                  let index = message["partIndex"] as? Int, let count = message["partCount"] as? Int,
+                  let envelope = message["envelope"] as? Data, let audio = message["audioPart"] as? Data,
+                  count > 0, count <= SimulatorChunkedFileTransfer.maximumPartCount,
+                  index >= 0, index < count,
+                  !envelope.isEmpty, envelope.count <= 128 * 1024,
+                  !audio.isEmpty, audio.count <= SimulatorChunkedFileTransfer.maximumPartSize else {
+                throw Failure.invalidPart
+            }
+            self.init(transferID: id, index: index, count: count, envelope: envelope, audio: audio)
+        }
+    }
+
+    enum Failure: Error { case invalidPart, conflictingPart, tooManyTransfers, fileTooLarge }
+
+    static func split(_ audio: Data, envelope: Data, transferID: UUID) throws -> [Part] {
+        guard !audio.isEmpty, !envelope.isEmpty, envelope.count <= 128 * 1024 else { throw Failure.invalidPart }
+        let count = (audio.count + maximumPartSize - 1) / maximumPartSize
+        guard count > 0, count <= maximumPartCount else { throw Failure.fileTooLarge }
+        return stride(from: 0, to: audio.count, by: maximumPartSize).enumerated().map { index, start in
+            let end = min(start + maximumPartSize, audio.count)
+            return Part(transferID: transferID, index: index, count: count, envelope: envelope,
+                        audio: Data(audio[start..<end]))
+        }
+    }
+}
+
+struct SimulatorChunkedFileAssembler {
+    private struct Pending {
+        let envelope: Data
+        let count: Int
+        let createdAt: Date
+        var parts: [Int: Data] = [:]
+        var byteCount = 0
+    }
+    private var pending: [UUID: Pending] = [:]
+    private let maximumFileSize = 16 * 1024 * 1024
+    private let maximumConcurrentTransfers = 4
+    private let expiration: TimeInterval = 10 * 60
+
+    mutating func discard(_ transferID: UUID) { pending.removeValue(forKey: transferID) }
+    mutating func reset() { pending.removeAll(keepingCapacity: true) }
+
+    mutating func append(_ part: SimulatorChunkedFileTransfer.Part, now: Date = .now) throws -> (envelope: Data, audio: Data)? {
+        pending = pending.filter { now.timeIntervalSince($0.value.createdAt) <= expiration }
+        var value: Pending
+        if let existing = pending[part.transferID] {
+            guard existing.count == part.count, existing.envelope == part.envelope else { throw SimulatorChunkedFileTransfer.Failure.conflictingPart }
+            value = existing
+        } else {
+            guard pending.count < maximumConcurrentTransfers else { throw SimulatorChunkedFileTransfer.Failure.tooManyTransfers }
+            value = Pending(envelope: part.envelope, count: part.count, createdAt: now)
+        }
+        if let existing = value.parts[part.index] {
+            guard existing == part.audio else { throw SimulatorChunkedFileTransfer.Failure.conflictingPart }
+        } else {
+            guard value.byteCount + part.audio.count <= maximumFileSize else { throw SimulatorChunkedFileTransfer.Failure.fileTooLarge }
+            value.parts[part.index] = part.audio
+            value.byteCount += part.audio.count
+        }
+        guard value.parts.count == value.count else { pending[part.transferID] = value; return nil }
+        var audio = Data(capacity: value.byteCount)
+        for index in 0..<value.count {
+            guard let bytes = value.parts[index] else { pending[part.transferID] = value; return nil }
+            audio.append(bytes)
+        }
+        pending.removeValue(forKey: part.transferID)
+        return (value.envelope, audio)
     }
 }
 

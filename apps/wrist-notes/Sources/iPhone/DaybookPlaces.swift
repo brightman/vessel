@@ -3,6 +3,12 @@ import Foundation
 /// Independent location evidence ensures disabling AI's location source removes coordinates
 /// from retrieval, even when voice/photo sources remain enabled.
 enum DaybookPlaces {
+    struct HomeSummary: Equatable {
+        let placeCount: Int
+        let recordCount: Int
+        let labels: [String]
+    }
+
     static func voice(_ note: VoiceNote) -> DayRecord {
         var record = DayRecord(id: note.id, capturedAt: note.capturedAt,
             kind: note.kind == .thought ? .thought : .voice, title: note.displayTitle,
@@ -42,5 +48,25 @@ enum DaybookPlaces {
     static func placeCount(_ records: [DayRecord]) -> Int {
         // Coordinate cells are a compact overview, never inferred venue names.
         Set(records.compactMap { $0.location.map { String(format: "%.3f,%.3f", $0.latitude, $0.longitude) } }).count
+    }
+
+    static func homeSummary(_ records: [DayRecord]) -> HomeSummary {
+        let located = records.filter { $0.kind == .location && $0.location != nil }
+        var seenPlaces = Set<String>()
+        var seenLabels = Set<String>()
+        var labels: [String] = []
+        for record in located {
+            guard let point = record.location else { continue }
+            let label = point.address?.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let identity: String
+            if let label, !label.isEmpty {
+                identity = "address:\(label.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX")))"
+                if seenLabels.insert(label).inserted { labels.append(label) }
+            } else {
+                identity = "coordinate:\(String(format: "%.3f,%.3f", point.latitude, point.longitude))"
+            }
+            seenPlaces.insert(identity)
+        }
+        return HomeSummary(placeCount: seenPlaces.count, recordCount: located.count, labels: labels)
     }
 }

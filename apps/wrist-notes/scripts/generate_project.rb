@@ -34,19 +34,19 @@ phone = sources.new_group('iPhone', 'iPhone')
 watch = sources.new_group('Watch', 'Watch')
 shared_files = %w[VoiceNote.swift WatchSyncSnapshot.swift RecordingFormat.swift CaptureMetadata.swift CaptureLocationService.swift RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift].map { |name| shared.new_file(name) }
 phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
-                 NoteRepository.swift AudioProcessing.swift AudioProcessingCoordinator.swift AudioProcessingModel.swift AudioAdaptiveInference.swift AudioWindowPlanner.swift AudioProcessingRepository.swift ContentSegmentation.swift ContentSegmentRepository.swift ContentEnrichmentService.swift ConfiguredContentTextModel.swift ContentEnrichmentAuthorization.swift ContentEnrichmentConfirmationView.swift ContentSegmentPresentation.swift ContentSegmentModel.swift ContentSegmentDetailView.swift RecordingSessionRepository.swift RecordingChunkReceiver.swift
+                 NoteRepository.swift AudioProcessing.swift AudioProcessingCoordinator.swift AudioProcessingModel.swift AudioAdaptiveInference.swift AudioWindowPlanner.swift AudioProcessingRepository.swift ContentSegmentation.swift ContentSegmentationV2.swift ContentSegmentRepository.swift ContentEnrichmentService.swift ConfiguredContentTextModel.swift ContentEnrichmentAuthorization.swift ContentEnrichmentConfirmationView.swift ContentSegmentPresentation.swift ContentSegmentModel.swift ContentSegmentDetailView.swift RecordingSessionRepository.swift RecordingChunkReceiver.swift
                  RecordingSessionModel.swift RecordingSessionDetailView.swift RecordingRangePlayback.swift RecordingSessionPresentation.swift
                  PhoneConnectivity.swift OnDeviceTranscriber.swift
                  RingTransferStore.swift EurekaRingModel.swift RingHardwareViews.swift
                  OnDeviceSummarizer.swift OnDeviceRecordingTitleGenerator.swift RecordingTitleCoordinator.swift NotesStyle.swift AudioPlayback.swift
-                 AIConfiguration.swift AppSettings.swift KeychainSecretStore.swift
+                 AIConfiguration.swift AppReleaseInfo.swift NearbyMacClient.swift NearbyMacSettingsView.swift NearbyMacScanner.swift AppSettings.swift KeychainSecretStore.swift
                  CustomAISummarizer.swift ChatGPTProtocol.swift ChatGPTIDToken.swift ChatGPTAPI.swift
                  ChatGPTLoopback.swift ChatGPTBrowserAuthorization.swift ChatGPTAccountStore.swift ChatGPTAccountModel.swift
                  ChatGPTSettingsSection.swift ChatGPTSummarizer.swift RemoteSummaryConfirmationView.swift AISettingsModel.swift PhoneWatchStatus.swift WatchSyncStore.swift SettingsViews.swift
                  TranscriptionConfiguration.swift TranscriptionSettingsModel.swift TranscriptionSettingsView.swift
-                 AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift LocalAudioInferenceGate.swift BoundedAudioReader.swift OnDeviceSpeechActivity.swift AudioSpeakerMapping.swift OfflineWhisperTokenizer.swift SpeakerTranscript.swift SpeakerModelStore.swift SpeakerTranscriptView.swift SpeakerContactViews.swift
+                 AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift LocalAudioInferenceGate.swift BoundedAudioReader.swift OnDeviceSpeechActivity.swift AudioSpeakerMapping.swift SpeakerTranscript.swift SpeakerModelStore.swift SpeakerTranscriptView.swift SpeakerContactViews.swift
                  VoiceIdentity.swift VoiceEmbeddingEngine.swift VoiceIdentityModelStore.swift VoiceSpeechSelection.swift MyVoiceProfileModel.swift MyVoiceEnrollmentView.swift
-                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
+                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
 watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift SegmentedAudioCapture.swift WatchRecordingSessionStore.swift WatchChunkTransferQueue.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
@@ -68,6 +68,7 @@ phone_target.build_configurations.each do |configuration|
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
   settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'
+  settings['CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]'] = 'Sources/iPhone/WristNotesSimulator.entitlements'
   settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'WiseLife'
   settings['INFOPLIST_KEY_CFBundleName'] = 'WiseLife'
   settings['INFOPLIST_KEY_UIApplicationSceneManifest_Generation'] = 'YES'
@@ -204,6 +205,11 @@ test_target.build_configurations.each do |configuration|
   configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote'
   configuration.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
 end
+metadata_phase = phone_target.new_shell_script_build_phase('Write build metadata')
+metadata_phase.shell_script = '/bin/sh "${SRCROOT}/scripts/write_build_metadata.sh"'
+metadata_phase.input_paths = ['$(SRCROOT)/scripts/write_build_metadata.sh']
+metadata_phase.output_paths = ['$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BuildMetadata.plist']
+metadata_phase.always_out_of_date = '1'
 WristNotesBuildFeatures.apply(project, enabled: WristNotesBuildFeatures.enabled?(root))
 project.save
 scheme = Xcodeproj::XCScheme.new

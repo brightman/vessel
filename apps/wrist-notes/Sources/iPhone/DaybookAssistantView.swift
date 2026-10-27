@@ -11,9 +11,9 @@ struct DaybookAssistantView: View {
     let onReminder: (String, UUID) -> Void
     let onPreferences: () -> Void
     let onReminders: () -> Void
-    let onDate: () -> Void
     let reminderCount: Int
     let onNewReminder: (String) -> Void
+    var onActions: ([DaybookRetrieval.Source]) -> Void = { _ in }
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var model: DaybookAssistantModel
     @State private var confirmingReset = false
@@ -26,20 +26,18 @@ struct DaybookAssistantView: View {
          allowedKinds: Set<DayRecord.Kind> = [.voice, .thought, .image], initialQuestion: String = "",
          onOpenRecord: @escaping (UUID) -> Void, onReminder: @escaping (String, UUID) -> Void,
          onPreferences: @escaping () -> Void = {}, onReminders: @escaping () -> Void = {},
-         onDate: @escaping () -> Void = {}, reminderCount: Int = 0, onNewReminder: @escaping (String) -> Void = { _ in }, onOpenCitation: ((DaybookRetrieval.Source) -> Void)? = nil) {
+         reminderCount: Int = 0, onNewReminder: @escaping (String) -> Void = { _ in }, onOpenCitation: ((DaybookRetrieval.Source) -> Void)? = nil, onActions: @escaping ([DaybookRetrieval.Source]) -> Void = { _ in }) {
+        self.onActions = onActions
         self.onOpenCitation = onOpenCitation
         self.model = model
         self.records = records; self.selectedDate = selectedDate; self.settings = settings
         self.allowedKinds = allowedKinds; self.onOpenRecord = onOpenRecord; self.onReminder = onReminder
-        self.onPreferences = onPreferences; self.onReminders = onReminders; self.onDate = onDate
+        self.onPreferences = onPreferences; self.onReminders = onReminders
         self.reminderCount = reminderCount
         self.onNewReminder = onNewReminder
         _question = State(initialValue: initialQuestion)
     }
 
-    private var availableRecords: [DayRecord] {
-        records.filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: selectedDate) && allowedKinds.contains($0.kind) }
-    }
     private var displayedTurns: [DaybookAssistantModel.Answer] {
         model.validatedTurns(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds)
     }
@@ -51,9 +49,7 @@ struct DaybookAssistantView: View {
         !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && question.count <= 300 && !model.isPending && model.storageError == nil
     }
     private var prompts: [String] {
-        if availableRecords.isEmpty { return ["这一天有哪些记录？", "明天提醒我做个语音回顾"] }
-        return ["这一天最值得跟进什么？", "帮我回顾这一天",
-                availableRecords.contains(where: { $0.kind == .image }) ? "这一天的图片记录了什么？" : "这一天有哪些记录？"]
+        ["昨天有哪些值得跟进的事？", "我之前记下过哪些想法？", "最近的睡眠有什么变化？"]
     }
 
     var body: some View {
@@ -62,7 +58,7 @@ struct DaybookAssistantView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         identity
-                        dateContext
+                        retrievalContext
                         storageNotice
                         if model.hasMoreHistory {
                             Button("加载更早的 10 轮对话") { model.loadMoreHistory() }
@@ -91,7 +87,7 @@ struct DaybookAssistantView: View {
                                         retryButton(turn.question)
                                     }
                                 } else if turn.completionState == .pending {
-                                    statusText(model.storageError != nil ? "本次更改尚未保存，请重试保存。" : model.remoteConfirmation != nil ? "等待确认发送本次文字。" : "正在整理允许使用的记录…")
+                                    statusText(model.storageError != nil ? "本次更改尚未保存，请重试保存。" : model.remoteConfirmation != nil ? "等待确认发送本次文字。" : model.retrievalStatus)
                                 } else {
                                     statusText(turn.text)
                                     if turn.id == model.preparedTurnID, let evidence = activeEvidence {
@@ -181,18 +177,13 @@ struct DaybookAssistantView: View {
         }.padding(.top, 4).padding(.bottom, 18)
     }
 
-    private var dateContext: some View {
+    private var retrievalContext: some View {
         VStack(spacing: 0) {
             DaybookStyle.line.frame(height: 1)
             HStack(spacing: 7) {
-                Button(action: onDate) {
-                    HStack(spacing: 5) {
-                        DaybookIcon("CalendarDays", size: 13)
-                        Text("\(dateLabel(selectedDate)) · \(availableRecords.count) 条可用记录")
-                            .lineLimit(1).minimumScaleFactor(0.85)
-                        DaybookIcon("ChevronDown", size: 13)
-                    }.font(.system(size: 10)).padding(.vertical, 5)
-                }.accessibilityIdentifier("daybook.assistant.date")
+                Text("按问题查找相关记录")
+                    .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                    .accessibilityIdentifier("daybook.assistant.retrievalContext")
                 Spacer(minLength: 0)
                 Button(action: onReminders) {
                     HStack(spacing: 3) {
@@ -214,7 +205,7 @@ struct DaybookAssistantView: View {
             Text("今天，有什么\n想一起理一理？").font(.system(size: 29, weight: .medium))
                 .tracking(-1).lineSpacing(9).frame(height: 87, alignment: .leading).padding(.vertical, 10)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("回顾一段对话，串起几个想法，\n或给接下来的一天留一点提醒。")
+            Text("直接说你想知道什么。\n我会从你允许的记录里寻找线索。")
                 .font(.system(size: 12)).lineSpacing(8).frame(height: 46, alignment: .leading)
                 .foregroundStyle(DaybookStyle.secondary)
         }.padding(.top, 29).padding(.bottom, 25)
@@ -256,7 +247,7 @@ struct DaybookAssistantView: View {
             HStack(spacing: 6) {
                 DaybookIcon("MessageCircle", size: 15); Text("WiseLife AI").font(.system(size: 10))
                 Spacer(minLength: 0)
-                Text("\(dateLabel(answer.evidence.dayStart)) · \(answer.generated ? answer.provider : "本地检索")")
+                Text("\(answer.generated ? answer.provider : "本地检索")")
                     .font(.system(size: 9)).foregroundStyle(DaybookStyle.secondary).lineLimit(1)
             }.foregroundStyle(DaybookStyle.accent).padding(.bottom, 12)
             // Preserve provider text verbatim; generated links never become trusted actions.
@@ -293,6 +284,7 @@ struct DaybookAssistantView: View {
 
     private func answerActions(sources: [DaybookRetrieval.Source], question: String, canRetry: Bool) -> some View {
         HStack(spacing: 8) {
+            if !sources.isEmpty { Button("加入行动") { onActions(sources) }.buttonStyle(AssistantSecondaryButtonStyle()) }
             if sources.count == 1, let source = sources.first {
                 Button { remind(from: source) } label: { reminderButtonLabel }.buttonStyle(AssistantSecondaryButtonStyle())
             } else if !sources.isEmpty {
@@ -316,7 +308,7 @@ struct DaybookAssistantView: View {
             .padding(.vertical, 12).accessibilityIdentifier("daybook.assistant.status")
     }
     private var liveScopeNote: some View {
-        Text("历史保存在本机 · 下拉加载更早的 10 轮对话\n日期用于选择查询资料，不影响历史消息")
+        Text("历史保存在本机 · 按问题查找获准使用的记录\n可以追问「只看上周」或「再往前找找」")
             .font(.system(size: 9)).lineSpacing(6).multilineTextAlignment(.center)
             .foregroundStyle(DaybookStyle.secondary).frame(maxWidth: .infinity).padding(.top, 24)
     }
@@ -370,7 +362,7 @@ struct DaybookAssistantView: View {
     private var composerHint: String {
         if question.count > 300 { return "请把问题缩短到 300 字以内" }
         if model.isPending { return "正在整理允许的记录，可随时停止" }
-        if settings.ai.mode == .local { return "仅使用你允许的记录 · Apple 本地模型" }
+        if settings.ai.mode == .local { return "仅使用你允许的记录 · Apple Intelligence" }
         return settings.requiresRemoteAIConfirmation ? "仅使用你允许的记录 · 发送文字前请你确认" : "仅使用你允许的记录 · 发送给所选外部 AI"
     }
 

@@ -8,8 +8,16 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
         let now = calendar.date(from: DateComponents(year: 2026, month: 3, day: 9, hour: 0, minute: 15))!
         let yesterday = DaybookRecapInput.homeDay(selected: now, now: now, calendar: calendar)
-        expect(calendar.component(.day, from: yesterday) == 8, "yesterday uses calendar days across DST, not 86400 seconds")
         let day = calendar.date(from: DateComponents(year: 2026, month: 10, day: 18))!
+        expect(calendar.component(.day, from: yesterday) == 8, "yesterday uses calendar days across DST, not 86400 seconds")
+        expect(DaybookHomeRecapTitle.text(date: yesterday, yesterday: true, localeIdentifier: "zh-Hans") == "昨日回顾",
+               "today's home recap uses the yesterday label")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "zh-Hans") == "10月18日 · 回顾",
+               "past-day home recap uses its date instead of the generic daily label")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "en") == "Oct 18 · Recap",
+               "past-day recap title follows the selected interface language")
+        expect(DaybookHomeRecapTitle.text(date: day, yesterday: false, localeIdentifier: "ja") == "10月18日 · 振り返り",
+               "Japanese recap title follows the selected interface language")
         let records = (0..<12).map { i in DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(Double(i * 60)), kind: .thought, title: "想法 \(i)", text: "种植罗勒 \(i)") }
         let secret = DayRecord(id: UUID(), capturedAt: day, kind: .sleep, title: "私人睡眠", text: "不允许发送的健康信息")
         let blank = DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(900), kind: .voice, title: "尚未转写", text: "")
@@ -37,6 +45,22 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         steps.lifeMoment = .init(steps: .init(interval: DateInterval(start: day, duration: 86400), count: 6000, updatedAt: day.addingTimeInterval(3600), archived: false))
         let refreshedHealth = DaybookRecapInput.prepare(records: [steps], day: day, allowedKinds: [.activity], calendar: calendar)
         expect(health.fingerprint == refreshedHealth.fingerprint, "health refresh timestamp alone must not trigger another AI call")
+        var segment = voice
+        segment.intervals = [DateInterval(start:day,duration:1)]; segment.duration = 1
+        segment.contentProvenance = .init(segmentID:voice.id,sourceID:UUID(),sourceKind:"legacyNote",sourceRevision:1,segmentRevision:1,configurationKey:"asr",contentSignature:"same-content",sourceDate:day,ranges:[.init(chunkID:UUID(),startFrame:0,endFrame:16000,sampleRate:16000,sourceOffset:0)],transcript:[.init(start:0,end:1,text:voice.text)])
+        let stable = DaybookRecapInput.prepare(records:[segment],day:day,allowedKinds:[.voice],calendar:calendar)
+        let provenance = segment.contentProvenance!
+        segment.contentProvenance = .init(segmentID:provenance.segmentID,sourceID:provenance.sourceID,sourceKind:provenance.sourceKind,sourceRevision:99,segmentRevision:77,configurationKey:provenance.configurationKey,contentSignature:provenance.contentSignature,sourceDate:day,ranges:provenance.ranges,transcript:provenance.transcript)
+        segment.title = "AI changed title"; segment.summary = "AI changed summary"
+        let progressed = DaybookRecapInput.prepare(records:[segment],day:day,allowedKinds:[.voice],calendar:calendar)
+        expect(stable.fingerprint == progressed.fingerprint && DaybookRecapEntry(input:stable).relationship(to:progressed) == .current,"processing/source/title revisions are not changed recap facts")
+        var legacy = DaybookRecapEntry(input:stable)
+        let reference = stable.references[0]
+        legacy.references = [.init(id:reference.id,number:reference.number,title:reference.title,kind:reference.kind,capturedAt:reference.capturedAt,digest:reference.legacyDigest!)]
+        legacy.fingerprint = "legacy-fingerprint"
+        expect(legacy.relationship(to:stable) == .current,"identical legacy evidence upgrades without discarding historical prose")
+        let upgraded = legacy.upgradingDigests(to:stable)
+        expect(upgraded.relationship(to:progressed) == .current,"upgraded historical references survive the next pure progress revision")
         try DaybookRecapInput.validate("记录了种植罗勒的想法。[1]", sourceNumbers: [1])
         for text in ["无引用", "错误 [2]", "溢出 [99999999999999999999999]"] {
             do { try DaybookRecapInput.validate(text, sourceNumbers: [1]); fatalError("invalid citation accepted") } catch {}

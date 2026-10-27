@@ -1,16 +1,17 @@
 import Foundation
 
 enum ContentProcessingState: String, Codable, Sendable { case pending, processed, processedNoSpeech }
+enum ContentSegmentClassification: String, Codable, Sendable { case meaningful, lowInformation, pendingConfirmation }
 struct ContentSegmentDraft: Equatable, Sendable {
     let ranges: [AudioSourceRange]
-    let isFinal: Bool
+    let boundaryReady: Bool
 }
 struct ContentSegmentationResult: Sendable {
     let segments: [ContentSegmentDraft]
     let state: ContentProcessingState
 }
 enum ContentSegmentation {
-    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = []) throws -> ContentSegmentationResult {
+    static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = [], keepAsSingleRecording: Bool = false) throws -> ContentSegmentationResult {
         try source.validate()
         for interval in reliableNoSpeech + successfulCoverage + asrEmpty + transcriptRanges { try interval.validate() }
         let silence = normalized(reliableNoSpeech)
@@ -37,13 +38,21 @@ enum ContentSegmentation {
             for gap in gaps {
                 if gap.start > cursor {
                     let stop = min(end,gap.start+2)
-                    drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:stop),isFinal:covers(coverage,start:cursor,end:stop)))
+                    drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:stop),boundaryReady:covers(coverage,start:cursor,end:stop)))
                 }
                 cursor = gap.end == end ? end : max(cursor,gap.end-2)
             }
             if cursor < end {
-                drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:end),isFinal:source.complete && covers(coverage,start:cursor,end:end)))
+                drafts.append(.init(ranges:try AudioWindowPlanner.slices(group,start:cursor,end:end),boundaryReady:source.complete && covers(coverage,start:cursor,end:end)))
             }
+        }
+        if keepAsSingleRecording {
+            let whole = source.ranges.isEmpty ? [] : [ContentSegmentDraft(
+                ranges:source.ranges,
+                boundaryReady:source.complete && allCovered
+            )]
+            let done = source.complete && !source.ranges.isEmpty && allCovered
+            return .init(segments:whole,state:done ? .processed : .pending)
         }
         // ASR-empty successful coverage is retained as a low-information chapter. It is
         // not acoustic silence and cannot authorize dropping media or transcript rows.
@@ -68,10 +77,10 @@ enum ContentSegmentation {
                     let gaps=subtract([.init(start:cursor,end:cap)],speech)
                     let safe=gaps.compactMap { safeFrameCut(near:target,in:$0,ranges:piece.ranges) }
                     let cut=safe.min { abs($0-target) < abs($1-target) } ?? cap
-                    separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:cut),isFinal:piece.isFinal))
+                    separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:cut),boundaryReady:piece.boundaryReady))
                     cursor=cut
                 }
-                if cursor < b { separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:b),isFinal:piece.isFinal)) }
+                if cursor < b { separated.append(.init(ranges:try AudioWindowPlanner.slices(piece.ranges,start:cursor,end:b),boundaryReady:piece.boundaryReady)) }
             }
         }
         drafts=separated
@@ -102,10 +111,10 @@ enum ContentSegmentation {
             for cut in Set(cuts).sorted() where cut > cursor && cut < last.end {
                 guard draft.ranges.contains(where:{ cut >= $0.sessionStartOffset && cut <= $0.end }) else { continue }
                 let ranges=try AudioWindowPlanner.slices(draft.ranges,start:cursor,end:cut)
-                if !ranges.isEmpty { output.append(.init(ranges:ranges,isFinal:draft.isFinal)); cursor=cut }
+                if !ranges.isEmpty { output.append(.init(ranges:ranges,boundaryReady:draft.boundaryReady)); cursor=cut }
             }
             let tail=try AudioWindowPlanner.slices(draft.ranges,start:cursor,end:last.end)
-            if !tail.isEmpty { output.append(.init(ranges:tail,isFinal:draft.isFinal)) }
+            if !tail.isEmpty { output.append(.init(ranges:tail,boundaryReady:draft.boundaryReady)) }
         }
         return output
     }
@@ -168,12 +177,26 @@ struct ContentSegment: Codable, Equatable, Identifiable, Sendable {
     var revision: Int
     var isManual: Bool
     var isFinal: Bool
+    /// Whether this range has complete successful ASR/VAD coverage and a closed
+    /// deterministic/manual boundary. Topic inference is a separate finalization gate.
+    var boundaryReady: Bool? = nil
     var hasText: Bool
     var provenance: ContentSegmentProvenance
+    /// Optional so existing on-device content remains readable. This is persisted
+    /// editorial output, not a heuristic derived each time the timeline opens.
+    var editorial: ContentSegmentEditorial? = nil
+    /// Missing in older stores means model-generated, so adaptive enrichment may refresh it.
+    var titleManuallyEdited: Bool? = nil
     var displayTitle: String {
         if !title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty { return title }
-        return hasText ? "录音片段" : (isFinal ? "未识别到文字" : "等待识别")
+        return hasText ? "录音片段" : (isFinal || boundaryReady == true ? "未识别到文字" : "等待识别")
     }
+}
+struct ContentSegmentEditorial: Codable, Equatable, Sendable {
+    let classification: String
+    let engineVersion: String
+    let model: String
+    let evidenceBlockIDs: [String]
 }
 enum ContentSegmentError: Error { case notFound, staleRevision, invalidEdit, undoConflict }
 struct ContentSegmentationTraversal: Sendable {

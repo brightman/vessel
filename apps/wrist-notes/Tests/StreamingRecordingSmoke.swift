@@ -96,7 +96,9 @@ import Foundation
         try require(try checkDB.query("SELECT chunk_id FROM recording_receipts WHERE chunk_id=?", [.text(second.1.payload.id.uuidString)]).count == 1, "duplicate receipt row")
         notifications.close(); await worker.shutdown()
         worker = coordinator(); notifications = StreamingReceiveNotifications(worker: worker)
-        // Empty receiver replay posts the same documented refresh boundary after reopening SQLite.
+        // App startup/foreground discovers persisted work; empty receipt retries
+        // do not announce nonexistent content changes.
+        await worker.refresh()
         try receiver.drain(); await notifications.flush()
         try require(await inference.starts == calls, "reopen must preserve committed progress")
         print("Streaming: second file, replay and SQLite/coordinator reopen preserved committed windows")

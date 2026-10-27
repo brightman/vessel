@@ -59,6 +59,19 @@ enum RecordingTransferAcknowledgement {
 }
 enum RecordingTransportError: Error { case invalidEnvelope, unsupported, unavailable, conflict, invalidStorage }
 
+/// Small recording control messages use the acknowledged realtime path while
+/// the counterpart is reachable, with durable user-info delivery as fallback.
+enum RecordingReachableMessageDelivery {
+    static func submit(isReachable: Bool,
+                       sendImmediately: (@escaping (Bool) -> Void) -> Void,
+                       queue: @escaping () -> Void) {
+        guard isReachable else { queue(); return }
+        sendImmediately { accepted in
+            if !accepted { queue() }
+        }
+    }
+}
+
 enum RecordingChunkWire {
     static let locationKey = "wiseLifeRecordingLocationV2"
     static let locationReceiptKey = "wiseLifeRecordingLocationReceiptV2"

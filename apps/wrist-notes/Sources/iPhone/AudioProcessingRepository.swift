@@ -199,7 +199,9 @@ final class AudioProcessingRepository {
             var spans = old?.asr == .success ? retained : fresh.spans
             var features = old?.speaker == .success ? old!.speakerFeatures : fresh.speakerFeatures
             if old?.speaker != .success && fresh.speaker == .success {
-                let mapping = try mapSpeakers(job:job,features:fresh.speakerFeatures)
+                let diarized = old?.asr == .success ? delta.speakerSpanUpdates : fresh.spans
+                let localSpeakerIDs = Set(diarized.compactMap(\.speakerID))
+                let mapping = try mapSpeakers(job:job,features:fresh.speakerFeatures,localSpeakerIDs:localSpeakerIDs)
                 if old?.asr == .success {
                     guard delta.speakerSpanUpdates.count == retained.count,
                           zip(retained,delta.speakerSpanUpdates).allSatisfy({ $0.start == $1.start && $0.end == $1.end && $0.text == $1.text }) else { throw AudioProcessingError.staleJob }
@@ -232,7 +234,7 @@ final class AudioProcessingRepository {
         }
     }
 
-    private func mapSpeakers(job: AudioProcessingJob, features: [AudioSpeakerFeature]) throws -> [String:String] {
+    private func mapSpeakers(job: AudioProcessingJob, features: [AudioSpeakerFeature], localSpeakerIDs: Set<String>) throws -> [String:String] {
         var candidates: [String:AudioSpeakerFeature] = [:]
         for row in try db.query("SELECT m.canonical_id,m.feature FROM audio_speaker_mappings m JOIN audio_processing_jobs j ON j.id=m.job_id WHERE j.source_key=? AND j.configuration_key=? AND j.active=1 AND j.result IS NOT NULL AND m.canonical_id IS NOT NULL ORDER BY j.core_start,j.id,m.local_id", [.text(job.window.sourceID.key),.text(job.window.configurationKey)]) {
             let id = try row.requiredString("canonical_id")
@@ -247,6 +249,12 @@ final class AudioProcessingRepository {
             let evidence = AudioSpeakerFeature(localSpeakerID:feature.localSpeakerID,modelVersion:feature.modelVersion,vector:normalized)
             try db.execute("INSERT INTO audio_speaker_mappings(job_id,local_id,canonical_id,feature) VALUES (?,?,?,?)", [.text(job.window.id),.text(feature.localSpeakerID),canonical.map(DaybookDatabase.Value.text) ?? .null,try DaybookDatabase.json(evidence)])
             if let canonical { mapping[feature.localSpeakerID] = canonical }
+        }
+        // Without an embedding, retain the diarizer's within-window distinction while
+        // avoiding an unsupported match against speakers found in other windows.
+        let featureIDs = Set(features.map(\.localSpeakerID))
+        for localID in localSpeakerIDs.sorted() where !featureIDs.contains(localID) {
+            mapping[localID] = "speaker:" + AudioStableID.make([job.window.sourceID.key,job.window.configurationKey,job.window.id,localID])
         }
         return mapping
     }

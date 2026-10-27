@@ -40,6 +40,7 @@
   flashAssets.seed(records);
   const places=window.createDaybookPlaces({$,esc,icon,openSheet,getDay:()=>state.day,getRecords:()=>records,isEnabled:()=>sources.places.enabled});
   places.seed(records);
+  const recordingSessions=window.seedDaybookRecordManagement(records);
   const lifeMoments=window.createDaybookLifeMoments({esc,icon,openSheet,toast,getRecords:()=>records,refresh:renderDay,showTimeline:()=>{
     state.day=TODAY;state.filter='life';state.query='';$('searchInput').value='';
     closeSheet();renderDay();showView('today');
@@ -68,7 +69,7 @@
   const state = {day:TODAY,view:'today',filter:'all',query:'',plans:new Set(),dismissed:new Set(),recordingAt:null};
   const recordMerge=window.createDaybookRecordMerge();
   const mergeSelection=new Set();
-  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings,hardware,myVoice,speakerContacts;
+  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings,hardware,myVoice,speakerContacts,recordManagement;
   const dayRecords = () => records.filter(r=>r.day===state.day).sort((a,b)=>b.start-a.start);
   const audioRecord = r => r.kind==='voice'||r.kind==='thought';
   function formatDuration(seconds) {const n=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;return `${Math.floor(n/3600)}小时${Math.floor(n/60)%60}分${n%60}秒`;}
@@ -132,7 +133,7 @@
     const titleMarkup=title?esc(title):'<span data-recording-kind>待生成标题</span>';
     const glyph=audioRecord(r)?'AudioLines':r.kind==='image'?'Images':r.kind==='sleep'?'Moon':r.kind==='journal'?'NotebookPen':'Footprints';
     const thumbnails=r.kind==='image'?`<span class="moment-photos">${r.images.slice(0,3).map(p=>`<img src="${esc(p.url)}" alt="" loading="lazy">`).join('')}${r.images.length>3?`<span>+${r.images.length-3}</span>`:''}</span>`:'';
-    markup=`<button class="moment" data-kind="${r.kind}" data-record="${esc(r.id)}"><span class="moment-time">${r.time}</span><span class="moment-main"><span class="moment-title"><span>${r.kind==='voice'?'<span data-recording-kind>长录音·</span>':''}${titleMarkup}</span>${icon('ChevronRight')}</span><span class="moment-description">${esc(r.preview)}</span>${thumbnails}<span class="moment-meta">${recordSources.line(r,glyph)}<span>${esc(audioRecord(r)?formatDuration(r.duration):r.tags[0])}</span>${r.kind==='thought'?'<span>闪念</span>':''}</span>${flashAssets.badge(r)}${places.line(r)}</span></button>`;
+    markup=`<button class="moment" data-kind="${r.kind}" data-record="${esc(r.id)}"><span class="moment-time">${r.time}</span><span class="moment-main"><span class="moment-title"><span>${r.kind==='voice'?(r.segment?'<span data-recording-kind>内容片段 · </span>':'<span data-recording-kind>长录音·</span>'):''}${titleMarkup}</span>${icon('ChevronRight')}</span><span class="moment-description">${esc(r.preview)}</span>${thumbnails}<span class="moment-meta">${recordSources.line(r,glyph)}<span>${esc(audioRecord(r)?formatDuration(r.duration):r.tags[0])}</span>${r.kind==='thought'?'<span>闪念</span>':''}</span>${flashAssets.badge(r)}${places.line(r)}</span></button>`;
     }
     if(!swipeable)return markup;
     const selected=mergeSelection.has(r.id);
@@ -180,6 +181,7 @@
     renderMetrics();renderRhythm();renderHomeRecap();renderRecordLists();renderInsights();renderSources();flashAssets.render();
   }
   function showView(name,{focusSearch=false}={}) {
+    if(name==='insights')name='ai'; // Deferred: no Insight navigation in this prototype release.
     if(name!=='today'&&mergeSelection.size){mergeSelection.clear();renderRecordLists();}
     if(name==='actions'||name==='insights')flashAssets.render();
     if(name==='today'&&(state.query||state.filter==='recap')){state.query='';state.filter='all';$('searchInput').value='';renderRecordLists();}
@@ -200,12 +202,20 @@
     const bottom=Math.max(0,Math.min(window.innerHeight-r.bottom,window.innerHeight-maxHeight-8));
     Object.assign($('sheet').style,{position:'fixed',left:`${left}px`,right:'auto',bottom:`${bottom}px`,width:`${width}px`,maxHeight:`${maxHeight}px`});
   }
-  function openSheet(title,body) {
+  function openSheet(title,body,{record}={}) {
     stopPlayback();$('sheetTitle').textContent=title;$('sheetBody').innerHTML=body;
+    recordManagement?.setRecord(record);
     if(!$('sheet').open){sheetOpener=document.activeElement;$('sheet').showModal();}
     positionSheet();$('sheet').scrollTop=0;$('closeSheet').focus();
   }
   function closeSheet(){stopPlayback();$('sheet').close();}
+  function openAboutFAQ() {
+    const source=document.querySelector('#questions .site-faq');
+    if(!source){toast('常见问题暂不可用。');return;}
+    const faq=source.cloneNode(true);
+    faq.querySelectorAll('a').forEach(link=>link.remove());
+    openSheet('常见问题',faq.outerHTML);
+  }
   function openCalendar() {
     openSheet('回看某一天',`<div class="calendar-heading"><strong>2026年10月</strong><span>今天是 19 日</span></div><div class="calendar-week">${['一','二','三','四','五','六','日'].map(d=>`<span>${d}</span>`).join('')}</div><div class="calendar-days">${'<span></span>'.repeat(3)}${Array.from({length:31},(_,i)=>{
       const d=i+1;return `<button data-day="${d}" ${d>TODAY?'disabled':''} class="${state.day===d?'current ':''}${records.some(r=>r.day===d)?'has-data':''}" aria-label="10月${d}日${records.some(r=>r.day===d)?'，有记录':''}" ${state.day===d?'aria-current="date"':''}>${d}</button>`;
@@ -233,7 +243,7 @@
     if(lifeMoments.open(r))return;
     if(r.kind==='image'){photos.openRecord(r);return;}
     const wave=Array.from({length:46},(_,i)=>`<span style="height:${4+Math.round(Math.abs(Math.sin(i*1.17)*Math.cos(i*.41))*32)}px"></span>`).join('');
-    openSheet(r.title,`<div class="detail-meta">${humanDate(r.day)} ${r.time} · ${esc(r.source)}${audioRecord(r)?' · '+formatDuration(r.duration):''}</div>${recordSources.detail(r)}${places.detail(r)}${audioRecord(r)?`<div class="audio-player" aria-label="录音播放进度演示"><div class="audio-wave" aria-hidden="true">${wave}</div><div class="audio-controls"><span id="playerTime">${formatDuration(0)}</span><button class="play-button" id="playButton" aria-label="演示播放进度">${icon('Play')}</button><span>${formatDuration(r.duration)}</span></div><p class="subtle" style="margin:12px 0 0;text-align:center">示例录音，仅演示进度，不播放声音</p></div>`:''}${speakerContacts.overview(r)}<div class="detail-tabs" role="tablist" aria-label="记录内容"><button role="tab" id="recordSummaryTab" data-detail-tab="summary" aria-selected="true" aria-controls="recordContent">总结</button><button role="tab" id="recordTextTab" data-detail-tab="text" aria-selected="false" aria-controls="recordContent">全文</button></div><div id="recordContent" class="detail-content" role="tabpanel" aria-labelledby="recordSummaryTab">${esc(r.summary)}</div>${flashAssets.entry(r)}`);
+    openSheet(r.title,`<div class="detail-meta">${humanDate(r.day)} ${r.time} · ${esc(r.source)}${audioRecord(r)?' · '+formatDuration(r.duration):''}</div>${recordSources.detail(r)}${places.detail(r)}${recordManagement.segmentInfo(r)}${audioRecord(r)?`<div class="audio-player" aria-label="${r.segment?'本段录音播放进度演示':'录音播放进度演示'}"><div class="audio-wave" aria-hidden="true">${wave}</div><div class="audio-controls"><span id="playerTime">${formatDuration(0)}</span><button class="play-button" id="playButton" aria-label="演示播放进度">${icon('Play')}</button><span>${formatDuration(r.duration)}</span></div><p class="subtle" style="margin:12px 0 0;text-align:center">示例录音，仅演示进度，不播放声音</p></div>`:''}${r.transcriptAdjusted?'':speakerContacts.overview(r)}<div class="detail-tabs" role="tablist" aria-label="记录内容"><button role="tab" id="recordSummaryTab" data-detail-tab="summary" aria-selected="true" aria-controls="recordContent">总结</button><button role="tab" id="recordTextTab" data-detail-tab="text" aria-selected="false" aria-controls="recordContent">全文</button></div><div id="recordContent" class="detail-content" role="tabpanel" aria-labelledby="recordSummaryTab">${recordManagement.summaryMarkup(r)}</div>${flashAssets.entry(r)}`,{record:r});
     if(detailTab==='text'){$('recordTextTab').click();$('recordTextTab').scrollIntoView({block:'nearest'});}
   }
   function stopPlayback(){clearInterval(playerTimer);playerTimer=null;}
@@ -271,6 +281,7 @@
   }
   function confirmRecordDelete(id) {
     const record=records.find(item=>item.id===id);if(!record)return;
+    if(audioRecord(record)||record.kind==='image'){recordManagement.confirmDelete(record);return;}
     openSheet('删除这条记录？',`<p class="sheet-intro"><span>“</span><strong>${esc(record.title)}</strong><span>”</span> <span>将从当前原型示例中移除。</span></p><div class="local-banner">${icon('CircleHelp')}<div><strong>仅影响原型演示</strong><p>不会删除 iPhone 上的录音或任何真实数据。</p></div></div><div class="sheet-actions"><button class="secondary-button" data-cancel-delete>取消</button><button class="danger-button" data-confirm-delete="${esc(id)}">删除记录</button></div>`);
   }
   function toggleMergeSelection(id) {
@@ -354,7 +365,8 @@
     if(b.dataset.removePlan){state.plans.delete(b.dataset.removePlan);if($('sheet').open)closeSheet();renderInsights();toast('已撤销这条计划。');return;}
     if(b.dataset.dismissInsight){state.dismissed.add(b.dataset.dismissInsight);closeSheet();renderInsights();ai?.render();toast('已收起这条洞察，谢谢你的反馈。');return;}
     if(b.dataset.prototypeFlow){if(b.dataset.prototypeFlow==='contacts')openRecord('review','text');else ai.createDraft('scope');return;}
-    if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').innerHTML=b.dataset.detailTab==='text'?speakerContacts.transcript(activeRecord):esc(activeRecord.summary);$('recordContent').setAttribute('aria-labelledby',b.id);return;}
+    if(b.dataset.aboutAction==='faq'){openAboutFAQ();return;}
+    if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').innerHTML=b.dataset.detailTab==='text'?(activeRecord.transcriptAdjusted?esc(activeRecord.text):speakerContacts.transcript(activeRecord)):recordManagement.summaryMarkup(activeRecord);$('recordContent').setAttribute('aria-labelledby',b.id);return;}
     if(b.dataset.source){openSource(b.dataset.source);return;}
     if(b.dataset.connectSource){sources[b.dataset.connectSource].enabled=true;renderSources();renderRhythm();closeSheet();toast('示例来源已连接，未读取真实数据。');return;}
     const actions={watchButton:()=>hardware.open(),dateButton:openCalendar,searchButton:()=>showView('library',{focusSearch:true}),settingsButton:()=>showView('data'),allMomentsButton:()=>showView('library'),captureButton:openCapture,closeSheet,captureImagesButton:()=>photos.openCapture(),asrSettingsButton:()=>modelSettings.openASR(),myVoiceSettingsButton:()=>myVoice.open(),aiModelSettingsButton:()=>modelSettings.openAI(),startRecordingButton:startRecording,finishRecording,playButton:togglePlayback,clearDayButton:()=>{mergeSelection.clear();state.day=17;state.filter='all';state.query='';$('searchInput').value='';renderDay();showView('today');}};
@@ -376,7 +388,15 @@
   const sharedUI={$,esc,icon,toast,openSheet,closeSheet};
   speakerContacts=window.createDaybookSpeakerContacts({...sharedUI,getRecord:id=>records.find(record=>record.id===id),returnToRecord:id=>openRecord(id,'text')});
   hardware=window.createDaybookHardware(sharedUI);
-  photos=window.createDaybookPhotos({...sharedUI,placeDetail:places.detail,sourceDetail:recordSources.detail,onSave:record=>{records.push({...record,day:TODAY,start:NOW,end:NOW,time:'16:30',duration:0});closeSheet();resetToToday();toast('图片已留在今天，刷新后清空。');}});
+  photos=window.createDaybookPhotos({...sharedUI,placeDetail:places.detail,sourceDetail:recordSources.detail,summaryMarkup:record=>recordManagement.summaryMarkup(record),onSave:record=>{records.push({...record,day:TODAY,start:NOW,end:NOW,time:'16:30',duration:0});closeSheet();resetToToday();toast('图片已留在今天，刷新后清空。');}});
+  recordManagement=window.createDaybookRecordManagement({...sharedUI,openRecord,getRecords:()=>records,sessions:recordingSessions,removeRecord:removeRecordFromDemo,refresh:change=>{
+    if(change){
+      const removed=new Set(change.before.map(r=>r.id));
+      recaps.forEach(recap=>{if(recap.sourceIds.some(id=>removed.has(id)))recap.sourceIds=[...recap.sourceIds.filter(id=>!removed.has(id)),...change.after.filter(r=>r.day===recap.day).map(r=>r.id)];});
+      mergeSelection.clear();
+    }
+    renderDay();
+  }});
   modelSettings=window.createDaybookModelSettings(sharedUI);
   myVoice=window.createDaybookVoiceProfile(sharedUI);
   ai=window.createDaybookAI({
@@ -389,6 +409,7 @@
   });
   renderDay();
   const preview=new URLSearchParams(window.location.search).get('preview');
+  if(['record-management','segment','record-voice','record-thought','record-image','raw-recordings'].includes(preview))requestAnimationFrame(()=>recordManagement.preview(preview));
   if(preview?.startsWith('moments'))requestAnimationFrame(()=>lifeMoments.preview(preview.split('-')[1]||'ready'));
   if(['assets','flash','flash-waiting','flash-unavailable','flash-empty','actions'].includes(preview))requestAnimationFrame(()=>{
     $('product').scrollIntoView({block:'start'});

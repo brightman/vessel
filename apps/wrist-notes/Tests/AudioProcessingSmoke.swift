@@ -80,6 +80,8 @@ import Foundation
         let repeated = [AudioTranscriptSpan(start: 299, end: 301, text: "again"), AudioTranscriptSpan(start: 310, end: 311, text: "again")]
         try expect(try AudioWindowPlanner.ownedSpans(repeated, window: windows[0]).isEmpty, "half open midpoint")
         try expect(try AudioWindowPlanner.ownedSpans(repeated, window: windows[1]).count == 2, "equal words survive by time")
+        let transcript = [AudioTranscriptSpan(start: 1, end: 2, text: "first"), AudioTranscriptSpan(start: 3, end: 4, text: "second")]
+        try expect(AudioTranscriptPresentation.fullText(transcript) == "first\nsecond", "full transcript preserves every span in time order")
         rejects { _ = try source([first, first]) }
         rejects { _ = try range(.infinity, 1) }
         rejects { _ = try AudioSourceRange(range: RecordingSourceRange(chunkID: UUID(), url: root, startFrame: 2, endFrame: 1, sampleRate: 16000), contentHash: "hash") }

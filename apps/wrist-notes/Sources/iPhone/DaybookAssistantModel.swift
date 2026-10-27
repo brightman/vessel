@@ -23,6 +23,7 @@ final class DaybookAssistantModel: ObservableObject {
     @Published private(set) var prepared: DaybookRetrieval.Prepared?
     @Published private(set) var preparedTurnID: UUID?
     @Published private(set) var remoteConfirmation: RemoteConfirmation?
+    @Published private(set) var retrievalStatus = "正在查找相关记录…"
     @Published private(set) var isPending = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var statusMessage: String?
@@ -35,8 +36,6 @@ final class DaybookAssistantModel: ObservableObject {
     private var historyReadFailed = false
     private var activeTurnID: UUID?
     private var activeTurnDay: Date?
-    private var continuationDay: Date?
-    private var continuationDays: [Date: Date] = [:]
     private enum PendingMutation {
         case save(Answer, day: Date)
         case reset
@@ -97,7 +96,6 @@ final class DaybookAssistantModel: ObservableObject {
 
     func synchronize(records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, configuration: AIConfiguration, configurationRevision: Int? = nil) {
         let records = recordsForEvidence(records)
-        let dayChanged = latestDate.map { !Calendar.current.isDate($0, inSameDayAs: selectedDate) } ?? true
         let configurationChanged = latestConfiguration.map { $0 != configuration } ?? false
         let revisionChanged = configurationRevision.map { latestConfigurationRevision != nil && latestConfigurationRevision != $0 } ?? false
         let sourcesChanged = (prepared.map { !$0.isCurrent(records: records, allowedKinds: allowedKinds) } ?? false) || (isPending && self.latestRecords != records)
@@ -106,16 +104,15 @@ final class DaybookAssistantModel: ObservableObject {
         latestRecords = records; latestDate = selectedDate; latestAllowedKinds = allowedKinds
         latestConfiguration = configuration
         if let configurationRevision { latestConfigurationRevision = configurationRevision }
-        if dayChanged || configurationChanged || revisionChanged || sourcesChanged,
+        if configurationChanged || revisionChanged || sourcesChanged,
            case .save(let turn, let day) = pendingMutation, turn.completionState == .completed {
             pendingMutation = .save(turn.replacing(text: "回答条件已变化，可重新提问。", state: .cancelled), day: day)
         }
-        if dayChanged || configurationChanged || revisionChanged || sourcesChanged || permissionsChanged {
+        if configurationChanged || revisionChanged || sourcesChanged || permissionsChanged {
             cancel()
             prepared = nil; preparedTurnID = nil; answer = nil; errorMessage = nil
             statusMessage = sourcesChanged ? "资料已更新，历史对话已保留。后续回答会重新核对当前资料。" : nil
         }
-        if dayChanged { continuationDay = continuationDays[Calendar.current.startOfDay(for: selectedDate)] }
         if permissionsChanged && !needsStorageReset { privacyCleanupPending = true; cleanupPermissions() }
         publishTurns()
     }
@@ -126,8 +123,12 @@ final class DaybookAssistantModel: ObservableObject {
         cancel()
         do {
             let selectedDay = Calendar.current.startOfDay(for:selectedDate)
-            let date = DaybookRetrieval.hasExplicitDate(question) ? selectedDate : try continuationDay ?? store.latestEvidenceDay(selectedDay:selectedDay,allowedKinds:allowedKinds) ?? selectedDate
-            let resolved = try DaybookRetrieval().prepare(question:question,records:[],selectedDate:date,allowedKinds:allowedKinds)
+            let history = Array(turns.filter { $0.completionState == .completed }.suffix(3))
+            let retrieval = DaybookRetrieval()
+            let queryNow = Date.now
+            let plan = try retrieval.automaticScope(question, now: queryNow, priorTurns: history)
+            let resolved = try retrieval.prepare(question:question,records:[],selectedDate:selectedDate,now:queryNow,allowedKinds:allowedKinds,priorTurns:history,automatic:true)
+            retrievalStatus = "正在查找相关记录 · \(plan.label)"
             let draft = Answer(id:UUID(),question:question.trimmingCharacters(in:.whitespacesAndNewlines),text:"",generated:false,provider:"",
                 evidence:DaybookEvidenceSnapshot(records:records,dayStart:resolved.dayStart,dayEnd:resolved.dayEnd,allowedKinds:allowedKinds),
                 sources:[],scopeDescription:"",state:.pending,createdAt:.now)
@@ -141,22 +142,31 @@ final class DaybookAssistantModel: ObservableObject {
             let configuration = settings.ai, revision = settings.aiRevision
             task = Task { [weak self] in
                 do {
-                    let loaded = try await scopeLoader(DateInterval(start:resolved.dayStart,end:resolved.dayEnd))
+                    var loaded = try await scopeLoader(DateInterval(start:resolved.dayStart,end:resolved.dayEnd))
                     guard let self, !Task.isCancelled, self.version == token, settings.ai == configuration, settings.aiRevision == revision else { return }
+                    var expanded = false
+                    let candidate = try retrieval.prepare(question:question, records:loaded, selectedDate:selectedDate, now:queryNow, allowedKinds:allowedKinds, priorTurns:history, automatic:true)
+                    if plan.canExpand && candidate.matchedCount == 0 {
+                        expanded = true
+                        let broader = try retrieval.automaticScope(question, now:queryNow, priorTurns:history, expanded:true)
+                        self.retrievalStatus = "近期没有匹配，正在查找更早记录…"
+                        loaded = try await scopeLoader(DateInterval(start:broader.start,end:broader.end))
+                        guard !Task.isCancelled, self.version == token, settings.ai == configuration, settings.aiRevision == revision else { return }
+                    }
                     self.loadedScopeRecords = loaded; self.isPending = false; self.task = nil
                     // Reuse the already durable question; source synchronization must not cancel it.
                     self.activeTurnID = nil; self.activeTurnDay = nil
-                    self.askLoaded(question,records:self.recordsForEvidence(records),selectedDate:selectedDate,allowedKinds:allowedKinds,settings:settings,existingDraft:draft)
+                    self.askLoaded(question,records:self.recordsForEvidence(records),selectedDate:selectedDate,allowedKinds:allowedKinds,settings:settings,existingDraft:draft,expanded:expanded,queryNow:queryNow)
                 } catch {
                     guard let self, self.version == token, !Task.isCancelled else { return }
                     self.isPending = false; self.task = nil
-                    self.fail(NSError(domain:"ContentScope",code:1,userInfo:[NSLocalizedDescriptionKey:"无法完整读取所查询日期的录音片段，请解锁后重试。"]))
+                    self.fail(NSError(domain:"ContentScope",code:1,userInfo:[NSLocalizedDescriptionKey:"无法完整读取本次查找范围的资料，请解锁后重试。"]))
                 }
             }
         } catch { errorMessage = error.localizedDescription }
     }
 
-    private func askLoaded(_ question: String, records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, settings: AppSettings, existingDraft: Answer? = nil) {
+    private func askLoaded(_ question: String, records: [DayRecord], selectedDate: Date, allowedKinds: Set<DayRecord.Kind>, settings: AppSettings, existingDraft: Answer? = nil, expanded: Bool = false, queryNow: Date = .now) {
         synchronize(records: records, selectedDate: selectedDate, allowedKinds: allowedKinds, configuration: settings.ai, configurationRevision: settings.aiRevision)
         guard storageError == nil else { statusMessage = "请先重试保存或读取本机对话，再发送新问题。"; return }
         cancel(); prepared = nil; preparedTurnID = nil; answer = nil; errorMessage = nil; statusMessage = nil
@@ -164,7 +174,7 @@ final class DaybookAssistantModel: ObservableObject {
         guard !question.isEmpty, question.count <= 300 else { errorMessage = question.isEmpty ? "请输入问题。" : "请把问题缩短到 300 字以内。"; return }
         let day = Calendar.current.startOfDay(for: selectedDate)
         let end = Calendar.current.date(byAdding: .day, value: 1, to: day)!
-        let history = turns.filter { $0.completionState == .completed }
+        let history = Array(turns.filter { $0.completionState == .completed }.suffix(3))
         let draft = existingDraft ?? Answer(id: UUID(), question: question, text: "", generated: false, provider: "",
             evidence: DaybookEvidenceSnapshot(records: records, dayStart: day, dayEnd: end, allowedKinds: allowedKinds),
             sources: [], scopeDescription: "", state: .pending, createdAt: .now)
@@ -176,19 +186,15 @@ final class DaybookAssistantModel: ObservableObject {
             return
         }
         do {
-            var date = selectedDate
-            if !DaybookRetrieval.hasExplicitDate(question) {
-                date = try continuationDay ?? store.latestEvidenceDay(selectedDay: day, allowedKinds: allowedKinds) ?? selectedDate
-            }
-            // A newly explicit day starts a new evidence scope; old answers never supply facts for it.
-            let initial = try DaybookRetrieval().prepare(question: question, records: records, selectedDate: date, allowedKinds: allowedKinds)
-            let history = history.suffix(3).filter { Calendar.current.isDate($0.evidence.dayStart, inSameDayAs: initial.dayStart) }
-            let evidence = history.isEmpty ? initial : try DaybookRetrieval().prepare(question: question, records: records,
-                selectedDate: date, allowedKinds: allowedKinds, priorTurns: history)
+            let date = selectedDate
+            let retrieval = DaybookRetrieval()
+            let plan = try retrieval.automaticScope(question, now:queryNow, priorTurns:history)
+            let initial = try retrieval.prepare(question:question,records:records,selectedDate:date,now:queryNow,allowedKinds:allowedKinds,priorTurns:history,automatic:true,expanded:expanded)
+            let shouldExpand = expanded || (scopeLoader == nil && plan.canExpand && initial.matchedCount == 0)
+            let evidence = shouldExpand && !expanded ? try retrieval.prepare(question:question,records:records,selectedDate:date,now:queryNow,allowedKinds:allowedKinds,priorTurns:history,automatic:true,expanded:true) : initial
+            retrievalStatus = "正在查找相关记录 · \(evidence.dateLabel)"
             prepared = evidence
             preparedTurnID = draft.id
-            continuationDay = evidence.dayStart
-            continuationDays[day] = evidence.dayStart
             if let semanticSearch, evidence.statistics.totalCount > 0,
                !DaybookRetrieval.isAggregateQuestion(question), !evidence.context.isEmpty {
                 let token = UUID(); version = token; isPending = true
@@ -202,7 +208,7 @@ final class DaybookAssistantModel: ObservableObject {
                     self.isPending = false; self.task = nil
                     do {
                         let enriched = try DaybookRetrieval().prepare(question: question, records: self.latestRecords,
-                            selectedDate: date, allowedKinds: self.latestAllowedKinds, priorTurns: Array(history), semantic: matches)
+                            selectedDate: date, now:queryNow, allowedKinds: self.latestAllowedKinds, priorTurns: Array(history), semantic: matches, automatic:true, expanded:shouldExpand)
                         self.present(enriched, configuration: configuration, revision: configurationRevision, settings: settings)
                     } catch { self.fail(error) }
                 }
@@ -216,7 +222,7 @@ final class DaybookAssistantModel: ObservableObject {
             complete(evidence, text: direct, generated: false, provider: "本地检索与统计")
         } else if configuration.isRemote {
             let endpoint = URLComponents(string: configuration.baseURL)
-            let destination = configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
+            let destination = configuration.mode == .nearbyMac ? configuration.destinationDescription : configuration.mode == .chatgpt ? "ChatGPT · \(configuration.chatGPTModel) · OpenAI" : "\(configuration.apiProtocol.rawValue) · \(configuration.model) · \(endpoint?.scheme ?? "https")://\(endpoint?.host ?? "已配置的模型服务")\(endpoint?.port.map { ":\($0)" } ?? "")\(endpoint?.path ?? "")/\(configuration.apiProtocol.endpointPath)"
             let confirmation = RemoteConfirmation(question: evidence.question, context: evidence.context,
                 sourceCount: evidence.sources.count, destination: destination, prepared: evidence, configuration: configuration, configurationRevision: revision)
             if settings.requiresRemoteAIConfirmation { remoteConfirmation = confirmation }
@@ -238,6 +244,12 @@ final class DaybookAssistantModel: ObservableObject {
         guard confirmation.configuration == settings.ai, confirmation.configurationRevision == settings.aiRevision,
               confirmation.prepared.isCurrent(records: latestRecords, allowedKinds: latestAllowedKinds) else { cancel(); return }
         do {
+            if confirmation.configuration.mode == .nearbyMac {
+                _ = try confirmation.configuration.validated(apiKey: "")
+                guard settings.authorizeRemoteAISend(confirmationIsCurrent: confirmed ? true : nil, rememberChoice: doNotAskAgain) else { cancel(); return }
+                start(confirmation.prepared, configuration: confirmation.configuration, apiKey: nil)
+                return
+            }
             if confirmation.configuration.mode == .chatgpt {
                 guard settings.chatGPT.isReady, settings.chatGPT.selectedID == confirmation.configuration.chatGPTAccountID else {
                     throw AIServiceError.invalidConfiguration("ChatGPT 当前不可用，请在 AI 模型设置中重新连接或管理用量。")
@@ -356,7 +368,6 @@ final class DaybookAssistantModel: ObservableObject {
             case .reset:
                 try store.reset()
                 savedTurns = []; historyCursor = nil; hasMoreHistory = false
-                continuationDay = nil; continuationDays = [:]
                 needsStorageReset = false; historyReadFailed = false; privacyCleanupPending = false
                 answer = nil
             }
@@ -416,7 +427,7 @@ final class DaybookAssistantModel: ObservableObject {
                 guard evidence.isCurrent(records: self.latestRecords, allowedKinds: self.latestAllowedKinds),
                       self.latestConfiguration == configuration else { self.cancel(); return }
                 self.complete(evidence, text: result, generated: true,
-                    provider: configuration.mode == .local ? "Apple 本地模型" : configuration.label)
+                    provider: configuration.mode == .local ? "Apple Intelligence" : configuration.label)
                 self.isPending = false; self.task = nil
             } catch {
                 guard let self, self.version == token else { return }

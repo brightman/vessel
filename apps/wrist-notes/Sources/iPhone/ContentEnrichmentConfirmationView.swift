@@ -18,10 +18,10 @@ struct ContentEnrichmentConfirmationView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("将这份录音的转写和地点信息发送给所选 AI？").font(.headline)
+                    Text(request.scope.segmentID == nil ? "将这份录音的转写和地点信息发送给所选 AI？" : "仅将所选片段的转写和相关时间、地点信息发送给所选 AI？").font(.headline)
                     Text(request.configuration.label)
-                    Text(request.configuration.mode == .chatgpt ? "OpenAI · ChatGPT" : request.configuration.baseURL).font(.caption).textSelection(.enabled)
-                    Text("AI 会分批阅读下方转写、采样地点和时间，并使用中间摘要整理主题、标题与总结。原始音频保留在本机。").font(.subheadline)
+                    Text(request.configuration.destinationDescription).font(.caption).textSelection(.enabled)
+                    Text(request.scope.segmentID == nil ? "AI 会分批阅读下方转写、采样地点和时间，并使用中间摘要整理主题、标题与总结。原始音频保留在本机。" : request.scope.field == nil ? "AI 会读取所选片段全文以及相关时间、地点信息，一次生成标题与摘要。原始音频保留在本机。" : request.scope.field == .title ? "本次只生成所选片段标题；AI 会读取下方片段全文及时间、地点上下文。原始音频保留在本机。" : "本次只生成所选片段摘要；AI 会读取下方片段全文及时间、地点上下文。原始音频保留在本机。").font(.subheadline)
                     Text("本次确认仅适用于当前这份数据和所选模型；新增转写、地点或更换模型后会重新确认。").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("时间与地点") {
@@ -46,11 +46,11 @@ struct ContentEnrichmentConfirmationView: View {
                 if loading { ProgressView() }
                 if let error { Text(error).foregroundStyle(.orange) }
                 Section {
-                    RemoteAISendControls(buttonTitle:"确认并整理录音",onConfirm:onConfirm).disabled(loading || error != nil)
+                    RemoteAISendControls(buttonTitle:request.scope.segmentID == nil ? "确认并整理录音" : request.scope.field == nil ? "确认并生成标题与摘要" : request.scope.field == .title ? "确认并生成标题" : "确认并生成摘要",onConfirm:onConfirm).disabled(loading || error != nil)
                     Button("取消",role:.cancel,action:onCancel)
                 }
             }
-            .navigationTitle("整理录音 · 发送确认")
+            .navigationTitle(request.scope.segmentID == nil ? "整理录音 · 发送确认" : "生成片段内容 · 发送确认")
             .toolbar { ToolbarItem(placement:.cancellationAction) { Button("取消",action:onCancel) } }
             .task(id:"\(transcriptPage):\(locationPage)") { await load() }
         }

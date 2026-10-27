@@ -1,5 +1,40 @@
 import Foundation
 
+enum AppleTranscriptionEngine: String, Codable, Sendable {
+    case speechTranscriber
+    case dictationTranscriber
+
+    var displayName: String {
+        switch self {
+        case .speechTranscriber: "Apple SpeechTranscriber"
+        case .dictationTranscriber: "Apple DictationTranscriber"
+        }
+    }
+}
+
+enum AppleTranscriptionEnginePolicy {
+    static func preferred(speechAvailable: Bool, speechLocaleSupported: Bool,
+                          dictationLocaleSupported: Bool) -> AppleTranscriptionEngine? {
+        if speechAvailable && speechLocaleSupported { return .speechTranscriber }
+        if dictationLocaleSupported { return .dictationTranscriber }
+        return nil
+    }
+
+    static func run<Value: Sendable>(preferred: AppleTranscriptionEngine, fallback: AppleTranscriptionEngine?,
+                                     shouldFallback: (Error) -> Bool,
+                                     operation: (AppleTranscriptionEngine) async throws -> Value) async throws
+        -> (engine: AppleTranscriptionEngine, value: Value) {
+        do {
+            return (preferred, try await operation(preferred))
+        } catch {
+            guard let fallback, !Task.isCancelled, !(error is CancellationError), shouldFallback(error) else {
+                throw error
+            }
+            return (fallback, try await operation(fallback))
+        }
+    }
+}
+
 struct SpeechLanguage: Identifiable, Equatable, Sendable {
     let id: String
     let title: String
@@ -23,7 +58,7 @@ struct TranscriptionConfiguration: Codable, Equatable, Sendable {
         engine == .apple ? "\(Self.appleLanguageName(appleLocale))语言包" : "Whisper \(whisperSize.title) 多语言模型"
     }
     var label: String {
-        engine == .apple ? "iPhone端上转写 · \(Self.appleLanguageName(appleLocale))" : "Whisper \(whisperSize.title) · \(Self.whisperLanguageName(whisperLanguage))"
+        engine == .apple ? "\(AppleTranscriptionEngine.speechTranscriber.displayName) 优先 · \(AppleTranscriptionEngine.dictationTranscriber.displayName) 回退 · \(Self.appleLanguageName(appleLocale))" : "Whisper \(whisperSize.title) · \(Self.whisperLanguageName(whisperLanguage))"
     }
     static func appleLanguageName(_ code: String) -> String {
         Locale(identifier: "zh-Hans").localizedString(forIdentifier: code) ?? code
@@ -34,6 +69,12 @@ struct TranscriptionConfiguration: Codable, Equatable, Sendable {
     // Original Tiny / Base / Small multilingual tokenizer. The later yue token is not in these models.
     static let whisperLanguageCodes = "zh en de es ru ko fr ja pt tr pl ca nl ar sv it id hi fi vi he uk el ms cs ro da hu ta no th ur hr bg lt la mi ml cy sk te fa lv bn sr az sl kn et mk br eu is hy ne mn bs kk sq sw gl mr pa si km sn yo so af oc ka be tg sd gu am yi lo uz fo ht ps tk nn mt sa lb my bo tl mg as tt haw ln ha ba jw su".split(separator: " ").map(String.init)
     var validWhisperLanguage: Bool { whisperLanguage == "auto" || Self.whisperLanguageCodes.contains(whisperLanguage) }
+}
+
+enum WhisperTranscriptValidity {
+    static func containsSpeechCharacters(_ text: String) -> Bool {
+        text.unicodeScalars.contains { CharacterSet.alphanumerics.contains($0) }
+    }
 }
 
 struct SpeechDownloadProgress: Equatable, Sendable {

@@ -7,11 +7,13 @@ struct ContentEnrichmentScope: Equatable, Sendable {
     let sourceID: AudioSourceID
     let fingerprint: String
     let title: String
+    var segmentID: UUID? = nil
+    var field: ContentEnrichmentField? = nil
 }
 
 enum ContentEnrichmentAuthorization {
     static let pageSize = 100
-    static func scope(database db: DaybookDatabase, sourceID: AudioSourceID) throws -> ContentEnrichmentScope? {
+    static func scope(database db: DaybookDatabase, sourceID: AudioSourceID, segmentID: UUID? = nil, field: ContentEnrichmentField? = nil) throws -> ContentEnrichmentScope? {
         try db.transaction {
             guard try db.query("SELECT source_key FROM audio_source_tombstones WHERE source_key=?",[.text(sourceID.key)]).isEmpty else { return nil }
             if sourceID.kind == .session {
@@ -21,9 +23,16 @@ enum ContentEnrichmentAuthorization {
             }
             let processing=AudioProcessingRepository(database:db)
             guard let source=try processing.currentSource(sourceID) else { return nil }
+            if let segmentID {
+                guard let segment=try ContentSegmentRepository(database:db).segment(id:segmentID),
+                      segment.sourceID == sourceID, segment.isFinal, segment.hasText else { return nil }
+            } else if field != nil { return nil }
             let progress=try processing.progress(sourceID:sourceID)
             var digest=SHA256()
             digest.update(data:Data([source.contentIdentity,progress.configurationKey ?? "",String(progress.revision)].joined(separator:"|").utf8))
+            if let segmentID,let segment=try ContentSegmentRepository(database:db).segment(id:segmentID) {
+                digest.update(data:Data([segment.id.uuidString,String(segment.revision),segment.provenance.contentSignature,field?.rawValue ?? "title+summary"].joined(separator:"|").utf8))
+            }
             for row in try db.query("SELECT result_hash FROM audio_processing_jobs WHERE source_key=? AND active=1 ORDER BY id",[.text(sourceID.key)]) {
                 digest.update(data:Data((row["result_hash"]?.string ?? "pending").utf8))
             }
@@ -38,19 +47,26 @@ enum ContentEnrichmentAuthorization {
                     offset += rows.count; if rows.count < pageSize { break }
                 }
             }
-            return .init(sourceID:sourceID,fingerprint:digest.finalize().map { String(format:"%02x",$0) }.joined(),title:source.title)
+            return .init(sourceID:sourceID,fingerprint:digest.finalize().map { String(format:"%02x",$0) }.joined(),title:source.title,segmentID:segmentID,field:field)
         }
     }
     static func transcriptPage(database db: DaybookDatabase, scope expected: ContentEnrichmentScope, offset: Int) throws -> [AudioTranscriptSpan] {
         try db.transaction {
-            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID) == expected else { throw ContentSegmentError.staleRevision }
+            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field) == expected else { throw ContentSegmentError.staleRevision }
+            if let segmentID=expected.segmentID {
+                return try ContentSegmentRepository(database:db).spans(segmentID:segmentID,limit:pageSize,offset:offset)
+            }
             return try AudioProcessingRepository(database:db).spans(sourceID:expected.sourceID,limit:pageSize,offset:offset)
         }
     }
     static func contextPage(database db: DaybookDatabase, scope expected: ContentEnrichmentScope, offset: Int) throws -> String {
         try db.transaction {
-            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID) == expected,
+            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field) == expected,
                   let source=try AudioProcessingRepository(database:db).currentSource(expected.sourceID) else { throw ContentSegmentError.staleRevision }
+            if let segmentID=expected.segmentID {
+                guard let context=try ContentSegmentRepository(database:db).enrichmentContextForAuthorization(segmentID:segmentID) else { throw ContentSegmentError.staleRevision }
+                return context
+            }
             let date=ISO8601DateFormatter()
             var lines = offset == 0 ? ["录音开始：\(date.string(from:source.capturedAt))", "地点是稀疏采样，不能证明完整路线。"] : []
             if offset == 0, let point=source.location { lines.append(describe(point,device:source.origin?.device ?? "录音设备",date:date)) }

@@ -7,18 +7,19 @@
   <title>WiseLife · 轻松记录，每天更懂自己</title>
   <meta name="description" content="用 Apple Watch 轻松记录，让 AI 每日回顾，并在有帮助时提出建议。WiseLife App 不提供云端服务，日常记录保存在 iPhone 本机。首发优惠 US$9.99（原价 US$19.99），截至 2026 年 12 月 31 日。">
   <link rel="stylesheet" href="daybook.css?v=record-merge-1">
-  <link rel="stylesheet" href="daybook-ai.css">
+  <link rel="stylesheet" href="daybook-ai.css?v=auto-retrieval-20261023">
   <link rel="stylesheet" href="daybook-speaker-contacts.css">
   <link rel="stylesheet" href="daybook-apple-reminders.css">
   <link rel="stylesheet" href="daybook-capture-settings.css?v=settings-font-12px">
   <link rel="stylesheet" href="daybook-voice-profile.css">
   <link rel="stylesheet" href="daybook-theme.css?v=recap-insight">
+  <link rel="stylesheet" href="daybook-record-management.css?v=20261024">
   <link rel="stylesheet" href="daybook-hardware.css">
   <link rel="stylesheet" href="daybook-places.css">
   <link rel="stylesheet" href="daybook-life-moments.css">
   <link rel="stylesheet" href="daybook-chatgpt.css">
   <link rel="stylesheet" href="daybook-flash-assets.css?v=insight-action-1">
-  <link rel="stylesheet" href="wiselife-site.css">
+  <link rel="stylesheet" href="wiselife-site.css?v=companion-first-image-20261023">
   <link rel="stylesheet" href="wiselife-story.css">
 </head>
 <body class="wiselife-site">
@@ -31,6 +32,7 @@
       <a class="wordmark" href="#welcome" aria-label="WiseLife 首页"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg></span>WiseLife</a>
       <nav class="site-nav" aria-label="官网导航">
         <a href="#product" aria-current="location">产品体验</a>
+        <a id="macNav" href="#mac">Mac 伴侣</a>
         <a href="#hardware">随身硬件</a>
         <a href="#ownership">数据与 AI</a>
       </nav>
@@ -127,7 +129,7 @@
               <p class="rhythm-caption" id="rhythmCaption">每一段，都是生活留下的线索。</p>
               <div id="dayPlaces" aria-label="当天地点"></div>
             </section>
-            <div id="homeAI" aria-label="AI 的适时建议"></div>
+            <div id="homeAI" aria-label="提醒"></div>
             <section id="homeRecap" class="home-recap" aria-label="每日回顾"></section>
             <section class="moments-section" aria-labelledby="momentsTitle">
               <div class="section-title"><h3 id="momentsTitle">今天的片段</h3><button class="text-button" id="allMomentsButton">查看全部 <svg class="icon"><use href="#i-ArrowUpRight"></use></svg></button></div>
@@ -141,8 +143,8 @@
               <div class="ai-identity"><span class="ai-mark"><svg class="icon"><use href="#i-MessageCircle"></use></svg></span><div><h2>WiseLife AI</h2><p>懂你的记录，也听你说。</p></div></div>
               <button class="icon-button" data-ai-action="preferences" aria-label="AI 偏好与提醒设置"><svg class="icon"><use href="#i-Settings2"></use></svg></button>
             </div>
-            <div class="ai-context-row"><button id="aiContext" data-ai-action="date"></button><button class="text-button" data-ai-action="reminders"><svg class="icon"><use href="#i-Bell"></use></svg>提醒 <span id="aiReminderCount">0</span></button></div>
-            <div class="ai-welcome" id="aiWelcome"><div class="eyebrow">从你的生活里，找到答案</div><h3>今天，有什么<br>想一起理一理？</h3><p>回顾一段对话，串起几个想法，<br>或给接下来的一天留一点提醒。</p></div>
+            <div class="ai-context-row"><span id="aiContext">按问题查找相关记录</span><button class="text-button" data-ai-action="reminders"><svg class="icon"><use href="#i-Bell"></use></svg>提醒 <span id="aiReminderCount">0</span></button></div>
+            <div class="ai-welcome" id="aiWelcome"><div class="eyebrow">从你的生活里，找到答案</div><h3>今天，有什么<br>想一起理一理？</h3><p>直接说你想知道什么。<br>我会从你允许的记录里寻找线索。</p></div>
             <div id="aiProactive"></div>
             <div id="aiPrompts" class="ai-prompts" aria-label="可以这样问"></div>
             <div id="aiConversation" class="ai-conversation" role="log" aria-label="AI 对话" aria-live="polite" aria-relevant="additions text"></div>
@@ -181,11 +183,24 @@
             </div>
             <div class="section-title"><h3>连接硬件</h3></div>
             <div id="hardwareList" class="device-list"></div>
+            <div class="section-title"><h3>数据管理</h3></div>
+            <div class="model-settings-list"><button class="capture-option" data-rm-action="raw"><svg class="icon"><use href="#i-AudioLines"></use></svg><div><strong>原始录音</strong><p>按录制批次查看原始文件</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button></div>
             <div class="section-title"><h3>数据来源</h3></div>
             <div class="local-banner"><svg class="icon"><use href="#i-ShieldCheck"></use></svg><div><strong>从本机开始</strong><p>原型使用示例数据，不读取真实账户或设备。</p></div></div>
             <div id="sourceList" class="source-list"></div>
             <p class="source-footnote">暂停来源后，已有记录仍保留。这里的开关只演示连接状态；录音始终由你主动开始。</p>
             <button class="plain-row" id="clearDayButton"><span><svg class="icon"><use href="#i-CalendarDays"></use></svg>看看没有记录的一天</span><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+            <div class="section-title"><h3>关于</h3></div>
+            <div class="model-settings-list about-menu" aria-label="关于 WiseLife">
+              <button class="capture-option" data-about-action="faq"><svg class="icon"><use href="#i-CircleHelp"></use></svg><div><strong>常见问题</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
+              <a class="capture-option" href="privacy/index.html"><svg class="icon"><use href="#i-ShieldCheck"></use></svg><div><strong>隐私条款</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
+              <a class="capture-option" href="terms/index.html"><svg class="icon"><use href="#i-BookOpen"></use></svg><div><strong>服务条款</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
+              <a class="capture-option" href="mailto:hello@wiselife.cloud"><svg class="icon"><use href="#i-MessageCircle"></use></svg><div><strong>联系我们</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
+            </div>
+            <dl class="about-release-info" aria-label="版本信息">
+              <div><dt>版本号</dt><dd>1.0.1 <span>（6）</span></dd></div>
+              <div><dt>发布时间</dt><dd><time datetime="2026-10-26">2026-10-26</time><span class="release-example">示例</span></dd></div>
+            </dl>
           </section>
         </div>
         <div id="aiComposerDock" class="ai-composer-dock" hidden>
@@ -202,19 +217,20 @@
         <nav class="bottom-nav fa-nav" aria-label="主导航">
           <button data-view="today" class="nav-item active" aria-current="page"><svg class="icon"><use href="#i-Sun"></use></svg><span>一天</span></button>
           <button data-view="ai" class="nav-item"><svg class="icon"><use href="#i-MessageCircle"></use></svg><span>AI</span></button>
-          <button data-view="insights" class="nav-item"><svg class="icon"><use href="#i-Lightbulb"></use></svg><span>洞察</span></button>
+          <button data-view="insights" class="nav-item" hidden><svg class="icon"><use href="#i-Lightbulb"></use></svg><span>洞察</span></button>
           <button data-view="actions" class="nav-item"><svg class="icon"><use href="#i-CheckCheck"></use></svg><span>行动</span></button>
           <button id="captureButton" class="capture-button" aria-label="记录此刻"><svg class="icon"><use href="#i-Plus"></use></svg><span>记此刻</span></button>
         </nav>
         <div class="home-indicator" aria-hidden="true"></div>
         <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
         <dialog id="sheet" class="sheet" aria-labelledby="sheetTitle">
-          <div class="sheet-handle" aria-hidden="true"></div><div class="sheet-header"><h2 id="sheetTitle"></h2><button id="closeSheet" class="icon-button" aria-label="关闭"><svg class="icon"><use href="#i-X"></use></svg></button></div>
+          <div class="sheet-handle" aria-hidden="true"></div><div class="sheet-header"><h2 id="sheetTitle"></h2><div class="rm-header-actions"><div class="rm-menu-wrap"><button id="recordMoreButton" class="icon-button rm-more" aria-label="管理记录" aria-haspopup="menu" aria-expanded="false" aria-controls="recordManagementMenu" hidden><span aria-hidden="true">…</span></button><div id="recordManagementMenu" class="rm-menu" role="menu" aria-label="管理记录" hidden></div></div><button id="closeSheet" class="icon-button" aria-label="关闭"><svg class="icon"><use href="#i-X"></use></svg></button></div></div>
           <div id="sheetBody" class="sheet-body"></div>
         </dialog>
       </div>
     </div>
     <aside class="design-index" aria-label="设计说明">
+      <div class="rm-design-entry" aria-label="详情管理原型入口"><p>详情页 · 管理入口</p><button data-rm-preview="segment"><svg class="icon"><use href="#i-AudioLines"></use></svg>查看内容片段</button><div class="rm-design-states"><button data-rm-preview="record-voice">普通语音</button><button data-rm-preview="record-thought">闪念 · 无总结</button><button data-rm-preview="record-image">图片记录</button><button data-rm-preview="raw-recordings">原始录音</button></div></div>
       <div class="lm-design-entry" aria-label="生活片段原型入口"><p>今天的片段 · 新设计</p><button data-lm-preview="ready"><svg class="icon"><use href="#i-Sun"></use></svg>查看生活片段</button><div class="lm-design-states"><button data-lm-preview="steps">昨日步数</button><button data-lm-preview="sleep">起床与睡眠</button><button data-lm-preview="move">城市变化</button><button data-lm-preview="pending">等待同步</button><button data-lm-preview="basic">无睡眠分期</button><button data-lm-preview="unresolved">地点待解析</button></div></div>
       <div class="index-item"><span>01</span><h2>留住生活</h2><p>用 24 小时视角，<br>串起零散的声音与经历。</p></div>
       <div class="index-item"><span>02</span><h2>随时问问 AI</h2><p>从自己的记录里找答案，<br>每条线索都能回到出处。</p></div>
@@ -222,6 +238,32 @@
       <p class="index-caption">PERSONAL DAY COMPANION</p>
     </aside>
   </div>
+  </section>
+  <section id="mac" class="site-screen companion-screen" aria-labelledby="macTitle">
+    <div class="site-container companion-layout">
+      <div class="companion-copy">
+        <p class="site-eyebrow companion-eyebrow">即将推出 · WiseLife Mac 伴侣</p>
+        <h2 id="macTitle">Watch、iPhone、Mac，组成你的私人 AI。</h2>
+        <p class="companion-lead">手表捕捉灵感，iPhone 整理记录，WiseLife Companion 在 Mac 上运行本地模型，帮你回顾、总结并继续思考。</p>
+        <p class="companion-privacy">计划由 iPhone 与附近的 Mac 直接协作，不经过 WiseLife 云服务；记录和模型由你掌控。</p>
+        <div class="companion-model">
+          <span class="companion-model-label">计划支持的单机模型</span>
+          <strong>Muse Glimmer 30B</strong>
+          <small>单机候选模型；实际兼容性取决于 Mac 配置、量化版本及后续实测。</small>
+        </div>
+        <div class="companion-actions">
+          <a class="site-button" href="mailto:hello@wiselife.cloud?subject=WiseLife%20Companion">联系了解进展<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a>
+          <span class="companion-status">开发中</span>
+        </div>
+        <p class="companion-disclaimer">WiseLife Companion 正在开发中，最低配置与运行速度尚未验证。</p>
+      </div>
+      <figure class="companion-visual">
+        <div class="companion-visual-stage">
+          <img class="companion-devices-image" src="assets/wiselife/mac-companion-teaser-first.jpg" alt="Apple Watch、iPhone 与银色 Mac mini 风格电脑通过蓝色闭环连接组成个人 AI 的概念图" width="1672" height="941" loading="lazy" decoding="async">
+        </div>
+        <figcaption>Watch、iPhone 与 Mac mini 的连接为产品概念示意图。</figcaption>
+      </figure>
+    </div>
   </section>
   <section id="hardware" class="site-screen hardware-screen" aria-labelledby="hardwareTitle">
     <div class="site-container">
@@ -305,23 +347,24 @@
   </main>
   <footer class="site-footer"><a class="wordmark" href="#welcome">WiseLife</a><div class="footer-links"><a href="#questions">常见问题</a><a href="#ownership">数据与 AI</a><a href="privacy/">隐私政策</a><a href="terms/">服务条款</a><a href="mailto:hello@wiselife.cloud">联系我们</a><a href="https://unsplash.com/photos/pathway-between-green-trees-during-daytime-aZRU_SAUnmA" target="_blank" rel="noopener noreferrer">摄影：Ilse / Unsplash</a></div><p>把值得记住的，留给自己。</p></footer>
   <script src="wiselife-site-locales.js"></script>
-  <script src="wiselife-story-locales.js?v=recap-insight-2"></script>
+  <script src="wiselife-story-locales.js?v=companion-first-image-20261023"></script>
   <script src="daybook-speaker-contacts.js"></script>
   <script src="daybook-apple-reminders.js"></script>
-  <script src="daybook-ai.js?v=people-reminders"></script>
+  <script src="daybook-ai.js?v=auto-retrieval-20261023"></script>
   <script src="daybook-model-catalog.js"></script>
   <script src="daybook-chatgpt.js"></script>
   <script src="daybook-model-settings.js"></script>
   <script src="daybook-voice-profile.js"></script>
-  <script src="daybook-photos.js?v=places-timeline"></script>
+  <script src="daybook-photos.js?v=record-management-20261024"></script>
   <script src="daybook-hardware.js"></script>
   <script src="daybook-places.js"></script>
   <script src="daybook-record-sources.js"></script>
   <script src="daybook-life-moments.js"></script>
   <script src="daybook-flash-assets.js?v=insight-action-1"></script>
-  <script src="daybook-record-merge.js?v=record-merge-1"></script>
-  <script src="daybook.js?v=record-merge-1"></script>
-  <script src="daybook-locales.js?v=record-merge-1"></script>
+  <script src="daybook-record-merge.js?v=record-management-20261024"></script>
+  <script src="daybook-record-management.js?v=20261024"></script>
+  <script src="daybook.js?v=record-management-20261024"></script>
+  <script src="daybook-locales.js?v=record-management-20261024"></script>
   <script src="wiselife-site.js"></script>
   <script src="wiselife-story.js"></script>
 </body>

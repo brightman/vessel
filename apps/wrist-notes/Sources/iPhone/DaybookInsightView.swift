@@ -58,7 +58,7 @@ struct DaybookInsightView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("将这些文字摘录发送给所选 AI，生成洞察？").font(.system(size: 22, weight: .medium))
                     Text(request.configuration.label).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
-                    Text(request.configuration.mode == .chatgpt ? "OpenAI · ChatGPT" : request.configuration.baseURL)
+                    Text(request.configuration.destinationDescription)
                         .font(.system(size: 11)).textSelection(.enabled)
                     Text("仅发送下方日期、统计和允许来源的文字摘录；原始录音、图片和声音档案保留在本机。")
                         .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)
