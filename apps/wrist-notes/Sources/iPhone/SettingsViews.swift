@@ -63,6 +63,7 @@ struct SettingsView: View {
                 }
                 .settingsCard()
             }
+            AppPasscodeSettingsSection()
             SettingsSection("关于") {
                 NavigationLink(value: SettingsRoute.about) {
                     SettingsRow(symbol: "info.circle", title: "关于", subtitle: "常见问题与法律信息")
@@ -287,7 +288,7 @@ struct SettingsSection<Content: View>: View {
     }
 }
 
-private struct SettingsRow: View {
+struct SettingsRow: View {
     let symbol: String
     let title: String
     let subtitle: String

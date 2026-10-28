@@ -688,6 +688,7 @@ struct DaybookView: View {
                 Button { present(.aiSettings) } label: { DaybookOptionRow(icon: "MessageCircle", title: "AI 模型", subtitle: settings.ai.label) }
                 Button { present(.preferences) } label: { DaybookOptionRow(icon: "Bell", title: "AI 偏好与提醒", subtitle: "主动建议、免打扰和数据范围") }
             }.overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+            AppPasscodeSettingsSection().padding(.top, 24)
             Text("硬件").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 16)
             hardwareRows
             Text("数据来源").font(.system(size: 17, weight: .semibold)).padding(.top, 24).padding(.bottom, 16)

@@ -42,6 +42,7 @@ final class WatchRecordingSessionStore {
     private var receipts: Set<UUID> = []
     private var ends: [UUID: RecordingSessionEnd] = [:]
     private var locations: [UUID: RecordingLocationSample] = [:]
+    private var deletedSessions: Set<UUID> = []
     var locationSamples: [RecordingLocationSample] { queue.sync { locations.values.sorted { ($0.sessionOffset, $0.id.uuidString) < ($1.sessionOffset, $1.id.uuidString) } } }
     private var problems: [String] = []
     var chunks: [RecordingChunkDescriptor] { queue.sync { stored.values.sorted { ($0.sessionStartedAt, $0.ordinal) < ($1.sessionStartedAt, $1.ordinal) } } }
@@ -56,6 +57,7 @@ final class WatchRecordingSessionStore {
     func seal(_ chunk: RecordingChunkDescriptor, file: URL) throws { try queue.sync { try sealLocked(chunk, file: file) } }
 
     private func sealLocked(_ chunk: RecordingChunkDescriptor, file: URL) throws {
+        guard !deletedSessions.contains(chunk.sessionID) else { throw RecordingTransportError.invalidStorage }
         _ = try RecordingAudioFile.validate(chunk, at: file)
         guard stored[chunk.id].map({ $0 == chunk }) ?? true,
               !stored.values.contains(where: { $0.sessionID == chunk.sessionID && $0.ordinal == chunk.ordinal && $0.id != chunk.id }) else { throw RecordingAudioFile.ValidationError.descriptorMismatch }
@@ -90,6 +92,7 @@ final class WatchRecordingSessionStore {
 
     func saveLocationSample(_ sample: RecordingLocationSample) throws {
         try queue.sync {
+            guard !deletedSessions.contains(sample.sessionID) else { throw RecordingTransportError.invalidStorage }
             try sample.validate()
             if let old = locations[sample.id] {
                 guard old == sample else { throw RecordingTransportError.conflict }
@@ -108,6 +111,7 @@ final class WatchRecordingSessionStore {
         }
     }
     private func finishLocked(_ end: RecordingSessionEnd) throws {
+        guard !deletedSessions.contains(end.sessionID) else { throw RecordingTransportError.invalidStorage }
         try end.validate()
         let folder = root.appendingPathComponent(end.sessionID.uuidString)
         try RecordingAudioFile.requireSafePath(folder)
@@ -129,12 +133,34 @@ final class WatchRecordingSessionStore {
         try queue.sync {
             try RecordingAudioFile.requireSafePath(root)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            let tombstones = root.appendingPathComponent("deleted-sessions.json")
+            deletedSessions = FileManager.default.fileExists(atPath: tombstones.path)
+                ? Set(try read([UUID].self, at: tombstones)) : []
             stored = [:]; receipts = []; ends = [:]; locations = [:]; problems = []
             for folder in try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) {
                 guard let sessionID = UUID(uuidString: folder.lastPathComponent) else { continue }
+                guard !deletedSessions.contains(sessionID) else { continue }
                 do { try recoverSession(folder, sessionID: sessionID) }
                 catch { problems.append("\(sessionID): \(error)") }
             }
+        }
+    }
+
+    /// A durable tombstone prevents late GPS/capture callbacks from recreating a deleted recording.
+    func deleteSession(_ id: UUID) throws {
+        try queue.sync {
+            guard ends[id] != nil else { throw RecordingTransportError.invalidStorage }
+            var next = deletedSessions
+            next.insert(id)
+            try write(Array(next).sorted { $0.uuidString < $1.uuidString },
+                      to: root.appendingPathComponent("deleted-sessions.json"))
+            deletedSessions = next
+            stored = stored.filter { $0.value.sessionID != id }
+            ends.removeValue(forKey: id)
+            locations = locations.filter { $0.value.sessionID != id }
+            let folder = root.appendingPathComponent(id.uuidString)
+            try RecordingAudioFile.requireSafePath(folder)
+            try? FileManager.default.removeItem(at: folder)
         }
     }
 

@@ -200,6 +200,19 @@ import AVFAudio
         let linkedFolder = root.appendingPathComponent("linked-folder")
         try FileManager.default.createSymbolicLink(at: linkedFolder, withDestinationURL: external)
         do { try RecordingAudioFile.requireSafePath(linkedFolder.appendingPathComponent("a.m4a")); fatalError("linked parents must fail") } catch {}
+        try restarted.deleteSession(descriptor.sessionID)
+        precondition(!restarted.chunks.contains { $0.sessionID == descriptor.sessionID })
+        do { try restarted.seal(descriptor, file: audio); fatalError("deleted session recreated by late capture") } catch {}
+        do { try restarted.finish(.init(sessionID: descriptor.sessionID, finalOrdinal: 0,
+            endedAt: .now, interrupted: false, revision: 0)); fatalError("deleted session recreated by late end") } catch {}
+        do { try restarted.saveLocationSample(.init(sessionID: descriptor.sessionID, sessionOffset: 0,
+            requestedAt: .now, location: CaptureLocation(latitude: 1.3, longitude: 103.8, source: .watchRecording)!,
+            sourceDevice: "fixture")); fatalError("deleted session recreated by late GPS") } catch {}
+        let afterDeletion = WatchRecordingSessionStore(root: restarted.root)
+        try afterDeletion.recover()
+        precondition(!afterDeletion.chunks.contains { $0.sessionID == descriptor.sessionID } &&
+            !afterDeletion.sessionEnds.contains { $0.sessionID == descriptor.sessionID }, "deleted recording returned after restart")
+        do { try afterDeletion.seal(descriptor, file: audio); fatalError("deletion tombstone lost after restart") } catch {}
         print("Watch session store smoke passed")
     }
 }

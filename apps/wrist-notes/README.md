@@ -80,19 +80,27 @@ git clone --branch dev-300 --single-branch git@git.100credit.cn:ai2c/app/flutter
 1. 在本目录运行 `pod install`。仅 Ring 开启时，需要先运行 `sh ../../../br_flutter_plugin_ble/ios/bootstrap_recorder_core.sh` 准备其 SDK。用 Xcode 打开 `WristNotes.xcworkspace`，选择 `WristNotes` scheme。若重新运行 `ruby scripts/generate_project.rb`，之后需再次 `pod install`。
 2. 在 iPhone、Watch 和 `WiseLifeRecordingActivity` 三个 target 的 **Signing & Capabilities** 中选择自己的 Team。若 Bundle Identifier 被占用，一起修改 iPhone ID、Watch ID、实时活动扩展 ID 与 Watch `Info.plist` 中的 `WKCompanionAppBundleIdentifier`；扩展 ID 必须以 iPhone ID 加 `.` 开头。再运行 `ruby scripts/generate_project.rb` 前先同步修改生成脚本；重新生成工程会覆盖 Xcode 中直接改的项目设置。
 3. iPhone 解锁并信任 Mac，开启开发者模式；确认 Apple Watch 已与该 iPhone 配对，在 Xcode 的设备列表中可选。先在 iPhone 上运行 `WristNotes`，再确认手表 App 已安装。Xcode 若无法看到手表，检查配对、同一 Apple ID、蓝牙/Wi-Fi 和设备支持组件。
-4. 首次轻点手表红色按钮授权麦克风。闪念首次授权时，松开后再次按住按钮，触觉反馈后开始说话。
+4. 首次轻点手表首页 Logo 授权麦克风。闪念首次授权时，松开后再次按住 Logo，触觉反馈后开始说话。
 5. iPhone 设置 → 语音转写模型，先选转写引擎和语言，再下载所需资源并保存。已有系统资源直接复用；缺少资源时不会静默下载，也不会回退到云端转写。
 
 此前原型对齐验证使用 iPhone 17 Pro（iOS 26.3）与 Apple Watch SE 3 44mm（watchOS 26.2）模拟器；这不代表实体设备型号已改变。本轮新增能力通过本地测试与 CLI 构建；模拟器界面操作被自动审批拒绝，新增权限、布局和向量质量仍需真机验收。
 
 ## 使用流程
 
-1. 手表轻点红色按钮开始长录音，再轻点结束；按住约 0.45 秒进入闪念，触觉反馈后说话，松开保存，上滑再松开取消。闪念不足 0.3 秒不保存；长录音期间长按不会误停。
-2. 手表列表显示名称、开始时间、时长和“未上传 / 已上传”。“已上传”只在手机确认保存后显示；本地条目与音频仍保留，可左划删除。列表底部提供重试入口。
+1. 手表首页轻点 Logo 开始长录音，再轻点结束；录音时金色光带沿品牌螺旋流动，中心圆点轻微呼吸。按住约 0.45 秒进入闪念，触觉反馈后说话，松开保存，上滑再松开取消。闪念不足 0.3 秒不保存；长录音期间长按不会误停。熄屏、后台和减少动态效果时暂停动画。
+2. 首页向上滑动进入第二页录音列表，显示今日开始的录音总时长、总条数，以及每条记录的开始时间、时长和传输状态。状态区分录音、保存、等待手机、排队、传输、等待确认、已同步和失败；“已同步”只在手机确认保存后显示。左划删除需确认，不能删除正在录制的记录；只移除手表原件，手机已保存的记录保留。列表底部提供重试入口。
 3. iPhone “一天”页按日期展示录音与图片，支持当天搜索、筛选和左划删除；导入音频、转写语言和外观在右上角设置；语音详情可播放录音，并在播放器下方切换“总结 / 全文”。全文可编辑，支持保存、重新转写和生成总结。修改全文会使旧总结失效，修改标题不会。
 4. 音频和笔记分别存于各自 App 沙盒。卸载 App 可能删除本地数据；当前版本没有云备份、跨设备同步或导出功能。
 
 模拟器的 WatchConnectivity 不支持文件传输和后台用户信息传输，因此模拟器构建用可达时的分片消息传送录音，并在 iPhone 保存后回执；真机仍使用 `transferFile` 与 `transferUserInfo`。模拟器验收时需让两端 App 保持运行。
+
+## App 密码
+
+iPhone 首次打开时可设置并确认六位数字 App 密码，也可暂时跳过。之后在“右上角数据与设置 → 隐私与安全”设置或修改密码；修改需要验证当前密码。支持在设置密码时或设置页开启 Face ID（支持 Touch ID 的设备使用 Touch ID），生物识别不可用时可输入 App 密码。生物识别登记发生变化后需用 App 密码重新开启。
+
+开启密码后，App 进入后台会重新锁定；切换应用和系统认证期间有独立不透明窗口遮住页面及弹窗。后台录音和 Watch 接收服务保持运行，手表录音无需输入手机 App 密码。密码以随机盐派生的摘要保存在本机 Keychain，不保存明文；连续输错五次后开始等待，重启不会绕过等待。此功能保护 App 界面访问，不改变现有音频文件的存储格式。
+
+本轮 UI 与密码回归记录见 [verification/watch-passcode/README.md](verification/watch-passcode/README.md)。
 
 ## 转写模型与资源下载
 

@@ -41,6 +41,7 @@ detail.write_text(detail.read_text().replace(
 import AVFAudio
 @main
 struct WristNotesApp: App {
+    @StateObject private var appLock = AppLockModel()
     @StateObject private var model: NotesModel
     static let sampleID = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
     init() {
@@ -89,7 +90,7 @@ struct WristNotesApp: App {
                     }
                 }
             }
-            .environmentObject(model).environmentObject(model.settings)
+            .environmentObject(model).environmentObject(model.settings).environmentObject(appLock)
             .preferredColorScheme(model.settings.appearance.colorScheme)
             .task {
                 if ProcessInfo.processInfo.environment["WN_TEST_BASE_URL"] != nil {

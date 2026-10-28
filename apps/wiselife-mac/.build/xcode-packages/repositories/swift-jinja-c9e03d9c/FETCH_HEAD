@@ -1,0 +1,149 @@
+d0ce45bbbaaef9ae50c79ab07b431dedd5b8116a	not-for-merge	branch 'chore/add-dependabot-github-actions' of https://github.com/huggingface/swift-jinja
+c813a208c3130fa29074da87458d7a9b1f795ce4	not-for-merge	branch 'fix-lint' of https://github.com/huggingface/swift-jinja
+a9ea4e7fb19ad86129895a092a335114245915a7	not-for-merge	branch 'main' of https://github.com/huggingface/swift-jinja
+32e2913f0e530818c3c70833425956bc08939b3a	not-for-merge	branch 'mattt/add-string-format-join' of https://github.com/huggingface/swift-jinja
+e72a520133e2113bbb4bda12ee1b9adb275ecff9	not-for-merge	branch 'mattt/default-boolean-truthiness' of https://github.com/huggingface/swift-jinja
+40c84148cd10ca695b654031e550e053264547bd	not-for-merge	branch 'mattt/do' of https://github.com/huggingface/swift-jinja
+0b432733a1280ba722b8821ba2ebd43bbb8c762e	not-for-merge	branch 'mattt/drop-trailing-newline' of https://github.com/huggingface/swift-jinja
+afc31fec5b7b123a06f62e0943a675929e0d0a26	not-for-merge	branch 'mattt/filter-before-loop-variables' of https://github.com/huggingface/swift-jinja
+cea92c4025a6aea007fdce5fb55d3d81ac79c17d	not-for-merge	branch 'mattt/filter-precedence' of https://github.com/huggingface/swift-jinja
+4f697720ee896deff7956b050ad45a576d08a16e	not-for-merge	branch 'mattt/fix-curly-template-literal' of https://github.com/huggingface/swift-jinja
+3c302323815ced43fb85506d78a4c74ff9753f52	not-for-merge	branch 'mattt/fix-for-iterable-binary-expressions' of https://github.com/huggingface/swift-jinja
+e88bd42d325e8302a9ca45a5d58316632e813152	not-for-merge	branch 'mattt/fix-parser-error-messages' of https://github.com/huggingface/swift-jinja
+b25bdc0fbcf92dc0c8eaa35a144ccd856b9b92b5	not-for-merge	branch 'mattt/fix-slice-padding' of https://github.com/huggingface/swift-jinja
+d534952a8006d275b239896db5adde39333240f6	not-for-merge	branch 'mattt/guard-recursion-and-overflow' of https://github.com/huggingface/swift-jinja
+e78648bc4523b0583bfed6aa1a527500c1455c15	not-for-merge	branch 'mattt/integer-attribute-access' of https://github.com/huggingface/swift-jinja
+c8e6e267105550c859c103c43cee13052ff606de	not-for-merge	branch 'mattt/jinja2-conformance-tests' of https://github.com/huggingface/swift-jinja
+f9a7b12ac75925202b98d7bbaadae041c50d2ca1	not-for-merge	branch 'mattt/make-implementation-internal' of https://github.com/huggingface/swift-jinja
+eeaa86815671e014f1d09ec0a8f0a89a4f576143	not-for-merge	branch 'mattt/objectkey' of https://github.com/huggingface/swift-jinja
+e91eff26d0ea1a3f8df72f488043556cf52abca9	not-for-merge	branch 'mattt/print-python-bool-none' of https://github.com/huggingface/swift-jinja
+b59073c20a19e740d684590d2ee7c918d5671d2e	not-for-merge	branch 'mattt/python-repr-in-containers' of https://github.com/huggingface/swift-jinja
+c89dda120363cb3041ede3f7667f00b4a669fd6e	not-for-merge	branch 'mattt/reject-oversized-integers' of https://github.com/huggingface/swift-jinja
+e16b82a7758a37292da962582aa5f900916b4e70	not-for-merge	branch 'mattt/render-without-mutating-environment' of https://github.com/huggingface/swift-jinja
+524aaed28bc8dcf3de7c053d985d1d882c215fe6	not-for-merge	branch 'mattt/tojson-separators-sort-keys' of https://github.com/huggingface/swift-jinja
+c5ea1b51cde04b6da01bcf1ae7187e8266b73743	not-for-merge	branch 'mattt/unify-loop-iteration' of https://github.com/huggingface/swift-jinja
+0680e53be683713bb14cb9191ddd1d50f1440235	not-for-merge	branch 'mattt/whitespace-control-in-lexer' of https://github.com/huggingface/swift-jinja
+cab11add8a7624e92ae29cb010d4c2c5b8e5abbf	not-for-merge	branch 'security/pin-actions-to-sha' of https://github.com/huggingface/swift-jinja
+2b7928ddbd01a431b58bd4839d5c07d88c00bdba	not-for-merge	branch 'tojson-policies' of https://github.com/huggingface/swift-jinja
+5371bf6cb4caa03020bd4ebad6aaca9583a63045	not-for-merge	'refs/pull/1/head' of https://github.com/huggingface/swift-jinja
+93263e417743a9608a25abb2092fc4326a2bc3b0	not-for-merge	'refs/pull/10/head' of https://github.com/huggingface/swift-jinja
+22220254f3a5a16a1b437d5864779c0bd7c3c701	not-for-merge	'refs/pull/100/head' of https://github.com/huggingface/swift-jinja
+a158f3ec28b951a9383511d1a1374a0743c3e857	not-for-merge	'refs/pull/101/head' of https://github.com/huggingface/swift-jinja
+04e3bb1e9fac0d1b09cd8f10b8e7e3abe9d230f2	not-for-merge	'refs/pull/11/head' of https://github.com/huggingface/swift-jinja
+2a6a0f9e5580a8ff3f6b0fa5f7884e4ce88c519d	not-for-merge	'refs/pull/13/head' of https://github.com/huggingface/swift-jinja
+e57ad15c196570b1a9ea430cc19380df24c5d0de	not-for-merge	'refs/pull/15/head' of https://github.com/huggingface/swift-jinja
+49a01f471c4957b87e1a43145dfe33a3cccec7f4	not-for-merge	'refs/pull/16/head' of https://github.com/huggingface/swift-jinja
+1b3578f497dc81592836508e0b6c17f6574c58e9	not-for-merge	'refs/pull/18/head' of https://github.com/huggingface/swift-jinja
+bc96a95ed14c1658e088ee5f52a22b57bc52a2c2	not-for-merge	'refs/pull/19/head' of https://github.com/huggingface/swift-jinja
+2bb6c4c0907f8ea649ca19546d3c8737bd3aeb33	not-for-merge	'refs/pull/20/head' of https://github.com/huggingface/swift-jinja
+6f56bb6178eccbbe3f31c95a699bcb018689b755	not-for-merge	'refs/pull/22/head' of https://github.com/huggingface/swift-jinja
+444543543c3ce85077c3aced3377b40bada745da	not-for-merge	'refs/pull/23/head' of https://github.com/huggingface/swift-jinja
+8e9c12b3ab597968a0da8970026684a5a74c9e2d	not-for-merge	'refs/pull/24/head' of https://github.com/huggingface/swift-jinja
+ec91606dd1b4925e19a1ff2ac66c157ec0876730	not-for-merge	'refs/pull/26/head' of https://github.com/huggingface/swift-jinja
+fc3170937548736878d363ebbe0123f38252edc4	not-for-merge	'refs/pull/27/head' of https://github.com/huggingface/swift-jinja
+8a1b24e6e68780b290810ba6351083c5f55b999e	not-for-merge	'refs/pull/28/head' of https://github.com/huggingface/swift-jinja
+44147e43ff671971b451edba3fe61f55d7379e4e	not-for-merge	'refs/pull/29/head' of https://github.com/huggingface/swift-jinja
+b253cdde57666e00877228390bf8c62ad87e4d50	not-for-merge	'refs/pull/31/head' of https://github.com/huggingface/swift-jinja
+c73333d956ebbf08b0547e35f937db24ee04dc77	not-for-merge	'refs/pull/32/head' of https://github.com/huggingface/swift-jinja
+f9185852699af5550ec843690daf6e59e889e115	not-for-merge	'refs/pull/33/head' of https://github.com/huggingface/swift-jinja
+a01a236ae8d18022fbe07b1227d110f315e2fd3b	not-for-merge	'refs/pull/35/head' of https://github.com/huggingface/swift-jinja
+9429fb365b35cf1faa87b35e954d113ad55f395b	not-for-merge	'refs/pull/36/head' of https://github.com/huggingface/swift-jinja
+dc2cc51bdc904e295734bf9c87f2f0c2146bb4b2	not-for-merge	'refs/pull/37/head' of https://github.com/huggingface/swift-jinja
+eff579155c2b8f8f567d0c1d329f4c699a09be57	not-for-merge	'refs/pull/38/head' of https://github.com/huggingface/swift-jinja
+02e267312c5cfc374ff44f19884f6cfdb29f4b3f	not-for-merge	'refs/pull/39/head' of https://github.com/huggingface/swift-jinja
+2c91972bcced70c91086975d7c79a4c8418a9352	not-for-merge	'refs/pull/4/head' of https://github.com/huggingface/swift-jinja
+124cc8358db9f13dcc1de9e199662f0c1d9e4991	not-for-merge	'refs/pull/40/head' of https://github.com/huggingface/swift-jinja
+7dc414dbf82ca7cb744f22cc56c91a6909ff491c	not-for-merge	'refs/pull/41/head' of https://github.com/huggingface/swift-jinja
+670c9b076a491f8cc3e68566ec1112604fd8e9ed	not-for-merge	'refs/pull/43/head' of https://github.com/huggingface/swift-jinja
+e623ce731ce623a241f89fb34aefba2cb435ceb8	not-for-merge	'refs/pull/45/head' of https://github.com/huggingface/swift-jinja
+a5de386ca0333e88d1aeb56d4367e5bed721dbe0	not-for-merge	'refs/pull/47/head' of https://github.com/huggingface/swift-jinja
+b43d2b93041321a22e20fc2537f319ce19047e6d	not-for-merge	'refs/pull/48/head' of https://github.com/huggingface/swift-jinja
+ef1ac96c9b893a6d2266258ce1ceba481d2c3774	not-for-merge	'refs/pull/49/head' of https://github.com/huggingface/swift-jinja
+170814079f11c7b1d18fac277e42cbda543ee399	not-for-merge	'refs/pull/5/head' of https://github.com/huggingface/swift-jinja
+0ca178d655881728d6fc535247f4f06b3948784a	not-for-merge	'refs/pull/50/head' of https://github.com/huggingface/swift-jinja
+338110b3762944d37f848c9fb526a000e34d14e6	not-for-merge	'refs/pull/52/head' of https://github.com/huggingface/swift-jinja
+249d5c4b0263b865fde473b643d9ee62001c526c	not-for-merge	'refs/pull/54/head' of https://github.com/huggingface/swift-jinja
+7a4dc9207af7b799bd5c760d82ac4b870127044e	not-for-merge	'refs/pull/55/head' of https://github.com/huggingface/swift-jinja
+e2487b28daf4cdd34db5536737f2fdd55f30d4f0	not-for-merge	'refs/pull/56/head' of https://github.com/huggingface/swift-jinja
+58d21aa5b69fdd9eb7e23ce2c3730f47db8e0c9d	not-for-merge	'refs/pull/57/head' of https://github.com/huggingface/swift-jinja
+3a2e8e217e57e27c062930bac5d6c87975d3477a	not-for-merge	'refs/pull/58/head' of https://github.com/huggingface/swift-jinja
+3c302323815ced43fb85506d78a4c74ff9753f52	not-for-merge	'refs/pull/59/head' of https://github.com/huggingface/swift-jinja
+d0ce45bbbaaef9ae50c79ab07b431dedd5b8116a	not-for-merge	'refs/pull/60/head' of https://github.com/huggingface/swift-jinja
+85b6c8bbfabee24fcdf7662dac4943bfe23eb9e5	not-for-merge	'refs/pull/61/head' of https://github.com/huggingface/swift-jinja
+f3dff8ffde91137e5bba3e4bafb6cbc994820742	not-for-merge	'refs/pull/65/head' of https://github.com/huggingface/swift-jinja
+4f697720ee896deff7956b050ad45a576d08a16e	not-for-merge	'refs/pull/66/head' of https://github.com/huggingface/swift-jinja
+eeaa86815671e014f1d09ec0a8f0a89a4f576143	not-for-merge	'refs/pull/67/head' of https://github.com/huggingface/swift-jinja
+fcb91c13ae8cf5a6adfc0b8b83879f3d6dc76da5	not-for-merge	'refs/pull/68/head' of https://github.com/huggingface/swift-jinja
+a8a32dff28306570aa5e0f3622fb9ee5e7aba52f	not-for-merge	'refs/pull/69/head' of https://github.com/huggingface/swift-jinja
+435fb47ed58975a64557906f6ca372a31e2b6481	not-for-merge	'refs/pull/70/head' of https://github.com/huggingface/swift-jinja
+eb939663a1c05cf2e6088339e9e27900a5a6d57d	not-for-merge	'refs/pull/72/head' of https://github.com/huggingface/swift-jinja
+c813a208c3130fa29074da87458d7a9b1f795ce4	not-for-merge	'refs/pull/73/head' of https://github.com/huggingface/swift-jinja
+2b7928ddbd01a431b58bd4839d5c07d88c00bdba	not-for-merge	'refs/pull/74/head' of https://github.com/huggingface/swift-jinja
+a54c3df94b7bef466ba87d1ef78117acb8a2fce9	not-for-merge	'refs/pull/75/head' of https://github.com/huggingface/swift-jinja
+8ffdfbc2abb26829f091ca49f04e0851aafa1d02	not-for-merge	'refs/pull/76/head' of https://github.com/huggingface/swift-jinja
+f3602408a7ff35f8be9ab8ad41a5ef9180d0723c	not-for-merge	'refs/pull/77/head' of https://github.com/huggingface/swift-jinja
+cab11add8a7624e92ae29cb010d4c2c5b8e5abbf	not-for-merge	'refs/pull/78/head' of https://github.com/huggingface/swift-jinja
+3b08c55cf8ec3cd9ac4c90cfa7fd4d26f4e4aa95	not-for-merge	'refs/pull/79/head' of https://github.com/huggingface/swift-jinja
+30edf9fb7dd15cc3b12098177d701c129d090ba8	not-for-merge	'refs/pull/8/head' of https://github.com/huggingface/swift-jinja
+150d484d818902a69c4786f9eacbf80c108acf28	not-for-merge	'refs/pull/80/head' of https://github.com/huggingface/swift-jinja
+e78648bc4523b0583bfed6aa1a527500c1455c15	not-for-merge	'refs/pull/81/head' of https://github.com/huggingface/swift-jinja
+e88bd42d325e8302a9ca45a5d58316632e813152	not-for-merge	'refs/pull/82/head' of https://github.com/huggingface/swift-jinja
+c89dda120363cb3041ede3f7667f00b4a669fd6e	not-for-merge	'refs/pull/83/head' of https://github.com/huggingface/swift-jinja
+e72a520133e2113bbb4bda12ee1b9adb275ecff9	not-for-merge	'refs/pull/84/head' of https://github.com/huggingface/swift-jinja
+524aaed28bc8dcf3de7c053d985d1d882c215fe6	not-for-merge	'refs/pull/85/head' of https://github.com/huggingface/swift-jinja
+b59073c20a19e740d684590d2ee7c918d5671d2e	not-for-merge	'refs/pull/86/head' of https://github.com/huggingface/swift-jinja
+e91eff26d0ea1a3f8df72f488043556cf52abca9	not-for-merge	'refs/pull/87/head' of https://github.com/huggingface/swift-jinja
+c5ea1b51cde04b6da01bcf1ae7187e8266b73743	not-for-merge	'refs/pull/88/head' of https://github.com/huggingface/swift-jinja
+32e2913f0e530818c3c70833425956bc08939b3a	not-for-merge	'refs/pull/89/head' of https://github.com/huggingface/swift-jinja
+342e10574f16b517eea5fcae165794b037947597	not-for-merge	'refs/pull/9/head' of https://github.com/huggingface/swift-jinja
+0b432733a1280ba722b8821ba2ebd43bbb8c762e	not-for-merge	'refs/pull/90/head' of https://github.com/huggingface/swift-jinja
+d534952a8006d275b239896db5adde39333240f6	not-for-merge	'refs/pull/91/head' of https://github.com/huggingface/swift-jinja
+afc31fec5b7b123a06f62e0943a675929e0d0a26	not-for-merge	'refs/pull/92/head' of https://github.com/huggingface/swift-jinja
+0680e53be683713bb14cb9191ddd1d50f1440235	not-for-merge	'refs/pull/93/head' of https://github.com/huggingface/swift-jinja
+482f39ea43894f08fca5496994a56b4b24413a45	not-for-merge	'refs/pull/94/head' of https://github.com/huggingface/swift-jinja
+c8e6e267105550c859c103c43cee13052ff606de	not-for-merge	'refs/pull/95/head' of https://github.com/huggingface/swift-jinja
+c2bfd4dd7ee87866fe616c6c71b625376e45ffe2	not-for-merge	'refs/pull/95/merge' of https://github.com/huggingface/swift-jinja
+cea92c4025a6aea007fdce5fb55d3d81ac79c17d	not-for-merge	'refs/pull/96/head' of https://github.com/huggingface/swift-jinja
+647d0c953c06b0ed924f6624e476bac92ce536ed	not-for-merge	'refs/pull/96/merge' of https://github.com/huggingface/swift-jinja
+f9a7b12ac75925202b98d7bbaadae041c50d2ca1	not-for-merge	'refs/pull/97/head' of https://github.com/huggingface/swift-jinja
+804ce3b705c71698e589dcbdd9494f843371f476	not-for-merge	'refs/pull/97/merge' of https://github.com/huggingface/swift-jinja
+e16b82a7758a37292da962582aa5f900916b4e70	not-for-merge	'refs/pull/98/head' of https://github.com/huggingface/swift-jinja
+a084797f9c86d3632f481ee2bac9ed840e139714	not-for-merge	'refs/pull/98/merge' of https://github.com/huggingface/swift-jinja
+b25bdc0fbcf92dc0c8eaa35a144ccd856b9b92b5	not-for-merge	'refs/pull/99/head' of https://github.com/huggingface/swift-jinja
+5b0703d19a8901b76948753e5c5e3ca77043d33f	not-for-merge	tag '1.0.0' of https://github.com/huggingface/swift-jinja
+4a6eb1a94ef54cf6a57c6325a13d73295626dd8c	not-for-merge	tag '1.0.1' of https://github.com/huggingface/swift-jinja
+4ffa95ce02e013c992287e19e3bbd620b6cc233a	not-for-merge	tag '1.0.4' of https://github.com/huggingface/swift-jinja
+b435eb62b0d3d5f34167ec70a128355486981712	not-for-merge	tag '1.0.5' of https://github.com/huggingface/swift-jinja
+6dbe4c449469fb586d0f7339f900f0dd4d78b167	not-for-merge	tag '1.0.6' of https://github.com/huggingface/swift-jinja
+9c0bbbc7f553932661fc791d2c5664311af09583	not-for-merge	tag '1.1.0' of https://github.com/huggingface/swift-jinja
+bbddb92fc51ae420b87300298370fd1dfc308f73	not-for-merge	tag '1.1.1' of https://github.com/huggingface/swift-jinja
+31c4dd39bcdc07eaa42a384bdc88ea599022b800	not-for-merge	tag '1.1.2' of https://github.com/huggingface/swift-jinja
+8879db488805122463b6521486d4c0a557fb56dc	not-for-merge	tag '1.2.0' of https://github.com/huggingface/swift-jinja
+fc1233dea1142897d474bda2f1f9a6c3fe7acab6	not-for-merge	tag '1.2.1' of https://github.com/huggingface/swift-jinja
+e5fc2c9e04c4f6807e524292763e43be8c35a84c	not-for-merge	tag '1.2.2' of https://github.com/huggingface/swift-jinja
+7ee6d561f474423ad28095c67f413b65b4eccf70	not-for-merge	tag '1.2.3' of https://github.com/huggingface/swift-jinja
+bb238dd96fbe4c18014f3107c00edd6edb15428e	not-for-merge	tag '1.2.4' of https://github.com/huggingface/swift-jinja
+5c0a87846dfd36ca6621795ad2f09fdaab82b739	not-for-merge	tag '1.3.0' of https://github.com/huggingface/swift-jinja
+1e6f84d6fca8ee93217b5594ce2025cbb0209c3a	not-for-merge	tag '2.0.0' of https://github.com/huggingface/swift-jinja
+b8679dfe3dead5779203c5980d2d21660ba39e75	not-for-merge	tag '2.0.1' of https://github.com/huggingface/swift-jinja
+62b91283572c80a9d79fe77e2fa344cfd9233cfa	not-for-merge	tag '2.0.2' of https://github.com/huggingface/swift-jinja
+c1ef5963ba4a97a589b9c9583ff4ee3352a86d23	not-for-merge	tag '2.1.0' of https://github.com/huggingface/swift-jinja
+38b7beeec5d968accd19a8a70c1882cc89979d1c	not-for-merge	tag '2.1.1' of https://github.com/huggingface/swift-jinja
+1c5ffed60231c2aea3f2f37c0e4137501b335cb3	not-for-merge	tag '2.1.2' of https://github.com/huggingface/swift-jinja
+06a511d5adab5a812852ff972e65702a24b8ce30	not-for-merge	tag '2.2.0' of https://github.com/huggingface/swift-jinja
+ba2364165002abe8f4f3992d74a7b547c635638e	not-for-merge	tag '2.2.1' of https://github.com/huggingface/swift-jinja
+2fbb15a11c51874888b18c1174b0c4e60f11858d	not-for-merge	tag '2.2.2' of https://github.com/huggingface/swift-jinja
+2df5669276ef62ee51ce56d11db0771c673113ce	not-for-merge	tag '2.3.0' of https://github.com/huggingface/swift-jinja
+d81197f35f41445bc10e94600795e68c6f5e94b0	not-for-merge	tag '2.3.1' of https://github.com/huggingface/swift-jinja
+f731f03bf746481d4fda07f817c3774390c4d5b9	not-for-merge	tag '2.3.2' of https://github.com/huggingface/swift-jinja
+2039e9760ba1694f9962ccd2c616403983d46895	not-for-merge	tag '2.3.3' of https://github.com/huggingface/swift-jinja
+70a74b4619ea8ef18114a673da7d85d26d73c537	not-for-merge	tag '2.3.4' of https://github.com/huggingface/swift-jinja
+0aeefadec459ce8e11a333769950fb86183aca43	not-for-merge	tag '2.3.5' of https://github.com/huggingface/swift-jinja
+0b67ecb79139f6addef8699eff3622808aa6c7dc	not-for-merge	tag '2.3.6' of https://github.com/huggingface/swift-jinja
+7103f805a3a98a374e1c1b7fea969ab13aab2e8d	not-for-merge	tag '2.4.0' of https://github.com/huggingface/swift-jinja
+9cde95abb5a01c6428137a5f9b50a2b994b53c25	not-for-merge	tag '2.4.1' of https://github.com/huggingface/swift-jinja
+7d0b8880ef8e567dd4e0089f8b99fb354129017c	not-for-merge	tag '2.4.2' of https://github.com/huggingface/swift-jinja
+1151a145acc2ebc0f05d53fce2c6245c0c84e9dc	not-for-merge	tag '2.4.3' of https://github.com/huggingface/swift-jinja
+12ea4955e380dae6b0cd98299effe48c7fe584fc	not-for-merge	tag '2.5.0' of https://github.com/huggingface/swift-jinja
+4588064a20f3fc093c95f2f7d3359999bf30cae5	not-for-merge	tag '2.5.1' of https://github.com/huggingface/swift-jinja
+1e4d0dc69f7ec1277131fb3853808229c5991825	not-for-merge	tag '2.5.2' of https://github.com/huggingface/swift-jinja

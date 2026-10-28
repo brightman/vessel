@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>在你开启后，使用 Face ID 解锁 WiseLife 中的个人记录；也可以输入 App 六位密码。</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>WiseLifeChatGPTPublicClientEnabled</key>

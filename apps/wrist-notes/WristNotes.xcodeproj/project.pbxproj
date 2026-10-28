@@ -21,6 +21,7 @@
 		08A69D91607DF787BDA6ECBF /* WhisperModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */; };
 		0A2F9AB5693EA6BFA07FD7C9 /* StartWiseLifeRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1853FFE8C5C0D3935A284BAF /* StartWiseLifeRecordingIntent.swift */; };
 		0D10E1FD86A085DE04209D2D /* DaybookDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC3AFCC7FAE2B92CB90CBCE /* DaybookDatabase.swift */; };
+		0D732C47D158A7DF267E4C19 /* AppPasscodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F52A0B6A77E1293E1E224DD /* AppPasscodeViews.swift */; };
 		0E7699E578D3DB5F22A84808 /* ActionItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA1288203F293FDBA37CD902 /* ActionItem.swift */; };
 		0F248D5428D4B97F37B4F92C /* DaybookRecapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E20769AB7A4E8CF652E945C /* DaybookRecapService.swift */; };
 		1034CA3C4059CE7CC02D119D /* ContentEnrichmentConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B3075B62EF2036E0430F47 /* ContentEnrichmentConfirmationView.swift */; };
@@ -89,6 +90,7 @@
 		5E1B52E525C4B8BF473FA4DC /* ChatGPTAccountModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF96BBFF9C07C9D7238394D2 /* ChatGPTAccountModel.swift */; };
 		5E87DD6675C654EE4E6D15C6 /* ContentEnrichmentAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4405E3133CDDDEF2BF9B1445 /* ContentEnrichmentAuthorization.swift */; };
 		5ED967D55AF397F76097605B /* SQLiteVector-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = F8BCA29BCBE7459718941612 /* SQLiteVector-NOTICES.txt */; };
+		60F9D2E146365361F020C632 /* AppLockModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E0F4FBFF96AC01C964F9643 /* AppLockModel.swift */; };
 		62B25D6CC8F36F991396147F /* WatchRecordingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB766A19524BA63C81CACFE /* WatchRecordingWidget.swift */; };
 		63B9884440DF0F06DB5461D5 /* AudioProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCCF2476DE5D9C9FA340DDB /* AudioProcessing.swift */; };
 		648A706E2ED11D793544F54B /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B128CB57A0F166A935F1D1 /* NotesListView.swift */; };
@@ -104,6 +106,7 @@
 		6DECA1D9F4EC7319D95BD138 /* StopWiseLifeRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44CBA5888781DE7E68CAF9B3 /* StopWiseLifeRecordingIntent.swift */; };
 		71C3746F9B19035C6C7BBB8C /* RecordingAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37858EE0C328F109A2325CCD /* RecordingAudioFile.swift */; };
 		731FBFF4252AE77123072280 /* PhoneRecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF66DECA17FD0F6AE053B121 /* PhoneRecordingSession.swift */; };
+		7647C6FB3FDC1D753D95B240 /* AppPasscodeVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = E334843E1F961694917828AE /* AppPasscodeVault.swift */; };
 		76F2E402266719391935F529 /* AppleCaptureAddressResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1EC0867DBE34FD5068A05F /* AppleCaptureAddressResolver.swift */; };
 		770D97A2D15E9E9AA4F56DD2 /* WatchRecordingLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20346C78522ABF905DCB3D98 /* WatchRecordingLauncher.swift */; };
 		7BA49D727A8987FE2F6A00EE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 080E9A2FC12C5C761058BB30 /* Foundation.framework */; };
@@ -123,6 +126,7 @@
 		8864BFC888B1FC8AECA07158 /* VoiceEmbeddingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8596FEE7153E354EB92EA25 /* VoiceEmbeddingEngine.swift */; };
 		8B191A99964BA219E07CC8FC /* ChatGPTIDToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59C9509563A9A6889D34A8AB /* ChatGPTIDToken.swift */; };
 		8C09623B6DBA69E048AFA1CA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87E7DDBAF306B6365A15B62A /* Foundation.framework */; };
+		8D5F04F4DB4DB8C1B58908DD /* WatchRecordingLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA92601C7437CFDA66FDD1E /* WatchRecordingLibrary.swift */; };
 		8D646B284E045F5FAEC105C5 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */; };
 		8DE591EBCE83408470F919DE /* DaybookAssistantModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A27EF497F43520D58FD8551 /* DaybookAssistantModel.swift */; };
 		8ECA1518140B08E6FEEE3E97 /* WatchRecordingSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129A062DFE10B20039357205 /* WatchRecordingSessionStore.swift */; };
@@ -132,10 +136,12 @@
 		9181D9E53EDA7635116D7142 /* StartWiseLifeRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1853FFE8C5C0D3935A284BAF /* StartWiseLifeRecordingIntent.swift */; };
 		9189C32B159AA2353AA01C21 /* ChatGPTSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8AE81BE980E7FF25F41376 /* ChatGPTSummarizer.swift */; };
 		91AA90C38A0F302C0BBB2355 /* SpeakerContactViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABD9EA2747493CB4A283F74 /* SpeakerContactViews.swift */; };
+		9212B228917B0FC3FC2915B3 /* AppLockWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90286A075C03F6C0390CD21 /* AppLockWindow.swift */; };
 		9285FF2A29166E3B29E17F6F /* DaybookSemanticIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CB62DFC46855A6CD3A8221 /* DaybookSemanticIndex.swift */; };
 		93B478B95683AE74E9B50454 /* OnDeviceSpeechActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122EE805F5977D202191C5FC /* OnDeviceSpeechActivity.swift */; };
 		946C1804E598634787352D5F /* CaptureMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706653431E1F8551633B4EF1 /* CaptureMetadata.swift */; };
 		954912A93E70315CED270581 /* VoiceIdentityModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ED09187C8B30D17B177917E /* VoiceIdentityModelStore.swift */; };
+		963FECCDC5D093F105E83AC3 /* WiseLifeMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231E511ED61E3B1044133EC0 /* WiseLifeMark.swift */; };
 		96BBE26DCCAE0D2B1389FB19 /* NoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524D904D38BCE2095808028B /* NoteDetailView.swift */; };
 		96C6AC4F0B12F6506AD566CC /* NotesDiarizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEAB38E48AD1197372503C7 /* NotesDiarizationTests.swift */; };
 		98D704B01C92D7FF1815AC6C /* QuickRecordingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DFE46B3F29956BEF1E6E6 /* QuickRecordingSettingsView.swift */; };
@@ -188,6 +194,7 @@
 		C4DCFF78794DEA80DC538BA2 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F047A82D103508BD4B3E6C38 /* RecordingSession.swift */; };
 		C6E9B6170A048BDA9B5BB1A8 /* SpeakerTranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EBC667664F6DDD5E39D1B51 /* SpeakerTranscriptView.swift */; };
 		C829893D7851F2C4ED340889 /* ChatGPTAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C587E9E480972437E7C8D27 /* ChatGPTAccountStore.swift */; };
+		C88138077E85783047F9054D /* WiseLifeMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231E511ED61E3B1044133EC0 /* WiseLifeMark.swift */; };
 		C8D338CD47B6DEFD4D9A2DB2 /* LifeMomentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E576861C250390EC6BFB3D43 /* LifeMomentViews.swift */; };
 		CA5023DEAB0E4451E8BBA5B2 /* ChatGPTBrowserAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A792FA01CC41DE8215A967 /* ChatGPTBrowserAuthorization.swift */; };
 		CB076498CDD37167EFF9416B /* LocationMovementBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1AC397C208B3D2A7CF8B71 /* LocationMovementBuilder.swift */; };
@@ -341,13 +348,16 @@
 		1DFB106527F7622B9EEBB495 /* NotesStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesStyle.swift; sourceTree = "<group>"; };
 		20346C78522ABF905DCB3D98 /* WatchRecordingLauncher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecordingLauncher.swift; sourceTree = "<group>"; };
 		20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WristNotesWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		231E511ED61E3B1044133EC0 /* WiseLifeMark.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WiseLifeMark.swift; sourceTree = "<group>"; };
 		23BC435EC7787D5129E0461E /* PhoneRecordingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecordingView.swift; sourceTree = "<group>"; };
 		24EEC346AE67BD4BA422B666 /* distance-avx2.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-avx2.c"; path = "src/distance-avx2.c"; sourceTree = "<group>"; };
 		27C19C41829C22601A422B43 /* Localizable.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		27E26E18F85A0360819674FB /* PhoneRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecorder.swift; sourceTree = "<group>"; };
 		280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = archive.macbinary; name = "sdk-opus-16k-mono.bin"; path = "Fixtures/sdk-opus-16k-mono.bin"; sourceTree = "<group>"; };
 		29D10EA2963814A65831FA57 /* RingIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingIntegrationTests.swift; sourceTree = "<group>"; };
+		2AA92601C7437CFDA66FDD1E /* WatchRecordingLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecordingLibrary.swift; sourceTree = "<group>"; };
 		2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
+		2E0F4FBFF96AC01C964F9643 /* AppLockModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLockModel.swift; sourceTree = "<group>"; };
 		2EB5C543DBDF09E7A2FA0157 /* distance-rvv.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-rvv.c"; path = "src/distance-rvv.c"; sourceTree = "<group>"; };
 		3006EF03126C31E8A3640F11 /* AudioWindowPlanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioWindowPlanner.swift; sourceTree = "<group>"; };
 		30CDD98F9D9C9A789608CFE9 /* VoiceIdentityModels-NOTICES.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "VoiceIdentityModels-NOTICES.txt"; sourceTree = "<group>"; };
@@ -419,6 +429,7 @@
 		7C065BB5FFDDBF3929DF6190 /* DaybookReminderViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookReminderViews.swift; sourceTree = "<group>"; };
 		7C7CD3F88FF60BDB724647EF /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		7F4CC99F2DF619201EADC16B /* InfoPlist.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		7F52A0B6A77E1293E1E224DD /* AppPasscodeViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppPasscodeViews.swift; sourceTree = "<group>"; };
 		8262BF0DF5D4D5BFD6BF594B /* distance-avx512.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-avx512.c"; path = "src/distance-avx512.c"; sourceTree = "<group>"; };
 		83DB29EE3811EA7095D94BCE /* LiveTranscriptionResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveTranscriptionResources.swift; sourceTree = "<group>"; };
 		85070FCFC1375D60B6CE77ED /* PhotoDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
@@ -495,6 +506,7 @@
 		D6C3F00B101056FDEEA4523A /* SpeakerModels-NOTICES.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "SpeakerModels-NOTICES.txt"; sourceTree = "<group>"; };
 		D77059477454544AC6F9DBAE /* VoiceEnrollmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceEnrollmentTests.swift; sourceTree = "<group>"; };
 		D7EE40A9E0C58159711DCE89 /* AppleSpeechReservationCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechReservationCoordinator.swift; sourceTree = "<group>"; };
+		D90286A075C03F6C0390CD21 /* AppLockWindow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLockWindow.swift; sourceTree = "<group>"; };
 		D961095C1006B82BA473C2E3 /* DaybookInsightView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookInsightView.swift; sourceTree = "<group>"; };
 		DA04F1B36E876F15A9E60CDB /* ActionViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActionViews.swift; sourceTree = "<group>"; };
 		DAB766A19524BA63C81CACFE /* WatchRecordingWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecordingWidget.swift; sourceTree = "<group>"; };
@@ -509,6 +521,7 @@
 		DFB7132783F0855539E97FEA /* CaptureLocationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureLocationService.swift; sourceTree = "<group>"; };
 		E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NearbyMacSettingsView.swift; sourceTree = "<group>"; };
 		E2AD2884A594200E2C7EC32B /* WiseLifeWatchRecordingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WiseLifeWatchRecordingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E334843E1F961694917828AE /* AppPasscodeVault.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppPasscodeVault.swift; sourceTree = "<group>"; };
 		E3EB2CC88406D78A5F8C5652 /* ContentSegmentRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentSegmentRepository.swift; sourceTree = "<group>"; };
 		E4695CFDC1ADC22EA3ED2AD4 /* DaybookPlaces.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookPlaces.swift; sourceTree = "<group>"; };
 		E576861C250390EC6BFB3D43 /* LifeMomentViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LifeMomentViews.swift; sourceTree = "<group>"; };
@@ -761,6 +774,10 @@
 				E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */,
 				EAF7A0883DE81D706D708903 /* NearbyMacScanner.swift */,
 				79DDBEAA0A1B816672E4294B /* AppReleaseInfo.swift */,
+				E334843E1F961694917828AE /* AppPasscodeVault.swift */,
+				2E0F4FBFF96AC01C964F9643 /* AppLockModel.swift */,
+				D90286A075C03F6C0390CD21 /* AppLockWindow.swift */,
+				7F52A0B6A77E1293E1E224DD /* AppPasscodeViews.swift */,
 			);
 			path = iPhone;
 			sourceTree = "<group>";
@@ -857,6 +874,7 @@
 				AE064EC0AFF9E00D5065E6C2 /* SegmentedAudioCapture.swift */,
 				129A062DFE10B20039357205 /* WatchRecordingSessionStore.swift */,
 				BA543174D9294E419F884B21 /* WatchChunkTransferQueue.swift */,
+				2AA92601C7437CFDA66FDD1E /* WatchRecordingLibrary.swift */,
 			);
 			path = Watch;
 			sourceTree = "<group>";
@@ -927,6 +945,7 @@
 				93DC07D25BA3070018EF2549 /* RecordingFramePartition.swift */,
 				37858EE0C328F109A2325CCD /* RecordingAudioFile.swift */,
 				F199BC4149FC3A1882E9CE22 /* RecordingChunkTransport.swift */,
+				231E511ED61E3B1044133EC0 /* WiseLifeMark.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -1366,6 +1385,11 @@
 				F2BED047DA75FAE2590ECC3B /* NearbyMacSettingsView.swift in Sources */,
 				F77374A327B29654007F9FDA /* NearbyMacScanner.swift in Sources */,
 				7DB240151602A08183B79AB3 /* AppReleaseInfo.swift in Sources */,
+				7647C6FB3FDC1D753D95B240 /* AppPasscodeVault.swift in Sources */,
+				60F9D2E146365361F020C632 /* AppLockModel.swift in Sources */,
+				9212B228917B0FC3FC2915B3 /* AppLockWindow.swift in Sources */,
+				0D732C47D158A7DF267E4C19 /* AppPasscodeViews.swift in Sources */,
+				C88138077E85783047F9054D /* WiseLifeMark.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1402,6 +1426,8 @@
 				8ECA1518140B08E6FEEE3E97 /* WatchRecordingSessionStore.swift in Sources */,
 				A2F426974C1DB4FC27D3BED3 /* RecordingChunkTransport.swift in Sources */,
 				410F3ACCCFFEF7E1FCA44E3B /* WatchChunkTransferQueue.swift in Sources */,
+				8D5F04F4DB4DB8C1B58908DD /* WatchRecordingLibrary.swift in Sources */,
+				963FECCDC5D093F105E83AC3 /* WiseLifeMark.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1466,7 +1492,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/WatchRecordingWidget/Info.plist;
@@ -1568,7 +1594,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/WatchRecordingWidget/Info.plist;
@@ -1589,7 +1615,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Watch/Info.plist;
@@ -1609,7 +1635,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/RecordingActivity/Info.plist;
@@ -1724,7 +1750,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"$(inherited)",
@@ -1770,7 +1796,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Watch/Info.plist;
@@ -1791,7 +1817,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/RecordingActivity/Info.plist;
@@ -1818,7 +1844,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"$(inherited)",

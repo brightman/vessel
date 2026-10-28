@@ -32,8 +32,8 @@ sources = project.main_group.new_group('Sources', 'Sources')
 shared = sources.new_group('Shared', 'Shared')
 phone = sources.new_group('iPhone', 'iPhone')
 watch = sources.new_group('Watch', 'Watch')
-shared_files = %w[VoiceNote.swift WatchSyncSnapshot.swift RecordingFormat.swift CaptureMetadata.swift CaptureLocationService.swift RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift].map { |name| shared.new_file(name) }
-phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
+shared_files = %w[WiseLifeMark.swift VoiceNote.swift WatchSyncSnapshot.swift RecordingFormat.swift CaptureMetadata.swift CaptureLocationService.swift RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift].map { |name| shared.new_file(name) }
+phone_files = %w[WristNotesApp.swift AppPasscodeVault.swift AppLockModel.swift AppLockWindow.swift AppPasscodeViews.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
                  NoteRepository.swift AudioProcessing.swift AudioProcessingCoordinator.swift AudioProcessingModel.swift AudioAdaptiveInference.swift AudioWindowPlanner.swift AudioProcessingRepository.swift ContentSegmentation.swift ContentSegmentationV2.swift ContentSegmentRepository.swift ContentEnrichmentService.swift ConfiguredContentTextModel.swift ContentEnrichmentAuthorization.swift ContentEnrichmentConfirmationView.swift ContentSegmentPresentation.swift ContentSegmentModel.swift ContentSegmentDetailView.swift RecordingSessionRepository.swift RecordingChunkReceiver.swift
                  RecordingSessionModel.swift RecordingSessionDetailView.swift RecordingRangePlayback.swift RecordingSessionPresentation.swift
                  PhoneConnectivity.swift OnDeviceTranscriber.swift
@@ -47,7 +47,7 @@ phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift No
                  AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift LocalAudioInferenceGate.swift BoundedAudioReader.swift OnDeviceSpeechActivity.swift AudioSpeakerMapping.swift SpeakerTranscript.swift SpeakerModelStore.swift SpeakerTranscriptView.swift SpeakerContactViews.swift
                  VoiceIdentity.swift VoiceEmbeddingEngine.swift VoiceIdentityModelStore.swift VoiceSpeechSelection.swift MyVoiceProfileModel.swift MyVoiceEnrollmentView.swift
                  DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
-watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift SegmentedAudioCapture.swift WatchRecordingSessionStore.swift WatchChunkTransferQueue.swift
+watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecordingLibrary.swift WatchRecorder.swift SegmentedAudioCapture.swift WatchRecordingSessionStore.swift WatchChunkTransferQueue.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
 phone_target = project.new_target(:application, 'WristNotes', :ios, '26.0')
@@ -64,7 +64,7 @@ phone_target.build_configurations.each do |configuration|
   settings['PRODUCT_NAME'] = 'WiseNote'
   version = existing_app_versions.fetch(configuration.name, {})
   settings['MARKETING_VERSION'] = version.fetch('MARKETING_VERSION', '1.0.1')
-  settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '6')
+  settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '7')
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
   settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'

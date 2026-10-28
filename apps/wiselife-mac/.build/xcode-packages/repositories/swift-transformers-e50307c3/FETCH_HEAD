@@ -1,0 +1,389 @@
+e6701a8c56aaabecde25f08c7e4783e8272d2123	not-for-merge	branch 'bpe-tokenizers' of https://github.com/huggingface/swift-transformers
+9675c997f72121e20aa8b0479056458c135b89ba	not-for-merge	branch 'chore/bump-sf' of https://github.com/huggingface/swift-transformers
+49fd5e84118b15147636e4d755396c73f0c11237	not-for-merge	branch 'chore/git-revs' of https://github.com/huggingface/swift-transformers
+8721eca71a9592c02b12576777e43b44d7099b92	not-for-merge	branch 'chore/test-percent-encoding' of https://github.com/huggingface/swift-transformers
+144c7c05c9a7840c4bc4e07938819bb92230f01f	not-for-merge	branch 'chore/update-message' of https://github.com/huggingface/swift-transformers
+dbfd03b74473759adcc31560a96a485e6a96bdd7	not-for-merge	branch 'feature/format-workflow' of https://github.com/huggingface/swift-transformers
+45cb0cf4c18604779a044e685ed6bc26f210c02a	not-for-merge	branch 'feature/swift-format' of https://github.com/huggingface/swift-transformers
+968933f3fc6bc39049a9c920d266b4d228036179	not-for-merge	branch 'feature/xetify' of https://github.com/huggingface/swift-transformers
+59678e3fb06b4c4245aefb969b3f42d4143be1ae	not-for-merge	branch 'fix/210' of https://github.com/huggingface/swift-transformers
+7199b17ac041e4243f6dd278a65b11dad672a97b	not-for-merge	branch 'hub-tokenizers-templates' of https://github.com/huggingface/swift-transformers
+8cc6e9a4ebb10b471c6e0460ff0d309dba062624	not-for-merge	branch 'llama-legacy-fixes' of https://github.com/huggingface/swift-transformers
+e37cacea74498bba66002bb83ecafee3e4ab8884	not-for-merge	branch 'main' of https://github.com/huggingface/swift-transformers
+8cf7f7a3c4d25d79bd13cf75a8a3ae8b9a227746	not-for-merge	branch 'mattt/background-hardening' of https://github.com/huggingface/swift-transformers
+f41150f327f717368a8416496e8701b8909adbb2	not-for-merge	branch 'mattt/cache-step' of https://github.com/huggingface/swift-transformers
+1bb7c3f1f87ec97417fdcc3627a5c0d9f6a32c92	not-for-merge	branch 'mattt/conditional-imports' of https://github.com/huggingface/swift-transformers
+acb05973f9f218090e9bc31cfb635c5c9668da17	not-for-merge	branch 'mattt/finish-swift-testing-migration' of https://github.com/huggingface/swift-transformers
+78d31731fc9e4034716085038135e2e680a02613	not-for-merge	branch 'mattt/fix-network-monitor-race' of https://github.com/huggingface/swift-transformers
+3db8d2d561cadfb51dad89b74481c83960bdd92c	not-for-merge	branch 'mattt/force-offline-mode-in-tests' of https://github.com/huggingface/swift-transformers
+c280582ebd197f459e8287510a28d599a5b7bad6	not-for-merge	branch 'mattt/hubclient' of https://github.com/huggingface/swift-transformers
+95692c941a8edb91d99dc95f89aa3df842abb4f6	not-for-merge	branch 'mattt/offset-mapping' of https://github.com/huggingface/swift-transformers
+73416eb191bc159197bb2cc29863df6b5e659f31	not-for-merge	branch 'mattt/remove-xctestplan' of https://github.com/huggingface/swift-transformers
+8ca4acb5b8a8c86930ec8017afb7c7c28ac66a1b	not-for-merge	branch 'mattt/reorganize-tests' of https://github.com/huggingface/swift-transformers
+06c4110524614a5b2aa44a7b053fbbc52eff96b4	not-for-merge	branch 'mattt/resources' of https://github.com/huggingface/swift-transformers
+238086be99d1b9713db743886abd1ae579b7a1b0	not-for-merge	branch 'mattt/update-readme-badge' of https://github.com/huggingface/swift-transformers
+a081b84101d837e7cab0c4e44e784b5714998177	not-for-merge	branch 'mattt/vscode-formatting' of https://github.com/huggingface/swift-transformers
+2b5db77f6019b4379c5f1c0a4b6bbe16c21b3b5c	not-for-merge	branch 'mattt/yyjson-optimization' of https://github.com/huggingface/swift-transformers
+2b72a75af19b384fd8a1bfb49bacf0a4cb3229e3	not-for-merge	branch 'preview' of https://github.com/huggingface/swift-transformers
+3bb95edbcd3fb62e5b0f75d88235f99c1bdd66b9	not-for-merge	branch 'response-parser' of https://github.com/huggingface/swift-transformers
+601dd65241b04327645a25d7aec4d07742880e97	not-for-merge	branch 'xlm-roberta-tokenizer' of https://github.com/huggingface/swift-transformers
+cbde4aaeb9154c6811c9301e95ac73752d06dcfa	not-for-merge	'refs/pull/1/head' of https://github.com/huggingface/swift-transformers
+5716e4c77603217b7e6c60ed4215eb9fe2f713d2	not-for-merge	'refs/pull/101/head' of https://github.com/huggingface/swift-transformers
+c7bb728d218adc4a2d76157a697aca38ea609fb4	not-for-merge	'refs/pull/104/head' of https://github.com/huggingface/swift-transformers
+a1bdb4c31a5f8675896a6f0b54784a101d029481	not-for-merge	'refs/pull/106/head' of https://github.com/huggingface/swift-transformers
+5778901ac3f14271dedbdf78d0425ff8cc5c81e4	not-for-merge	'refs/pull/108/head' of https://github.com/huggingface/swift-transformers
+ed91923545535702ff3edb4edfce9785ed0e42b1	not-for-merge	'refs/pull/11/head' of https://github.com/huggingface/swift-transformers
+c1e8414e7b657dce733ee780989afa10282ade56	not-for-merge	'refs/pull/111/head' of https://github.com/huggingface/swift-transformers
+5d487933fbc845799fb0a85e4b54d49fc177abb4	not-for-merge	'refs/pull/113/head' of https://github.com/huggingface/swift-transformers
+58885672bae5c892ede9c59e79c7228d2a2394f7	not-for-merge	'refs/pull/114/head' of https://github.com/huggingface/swift-transformers
+6de22003198fef340eb8a78ff8f8039c6ac7ca6f	not-for-merge	'refs/pull/115/head' of https://github.com/huggingface/swift-transformers
+290cc0a6744d10f18710984e22d4aa58c1ce49fc	not-for-merge	'refs/pull/117/head' of https://github.com/huggingface/swift-transformers
+5018d8b1f44d4a3084e36aa42c909445f0a1916e	not-for-merge	'refs/pull/119/head' of https://github.com/huggingface/swift-transformers
+3b6df6613477bdec92ec5d38ff17ce0364cefedb	not-for-merge	'refs/pull/121/head' of https://github.com/huggingface/swift-transformers
+1bc0d1df5e68c66c8402a509e9a65028c321ce43	not-for-merge	'refs/pull/124/head' of https://github.com/huggingface/swift-transformers
+32b2bdb3381d2c75e6e94d2d71b928c7ee855fb5	not-for-merge	'refs/pull/125/head' of https://github.com/huggingface/swift-transformers
+6c698affb6758ecf9c57a47b702d6d3b0ccd6d30	not-for-merge	'refs/pull/128/head' of https://github.com/huggingface/swift-transformers
+5f9e6b953c2b74f7f4f82025b1e8a8d808d196e2	not-for-merge	'refs/pull/129/head' of https://github.com/huggingface/swift-transformers
+362a8a164a3030718dd28e1669a09595904efae4	not-for-merge	'refs/pull/130/head' of https://github.com/huggingface/swift-transformers
+4905573221db78c3c5e1a1b7662fcbac8b820906	not-for-merge	'refs/pull/131/head' of https://github.com/huggingface/swift-transformers
+9b6d273aa479f3f92113ccdcf39d6ad88d2bed3c	not-for-merge	'refs/pull/132/head' of https://github.com/huggingface/swift-transformers
+1007b925b75f8ed3d0b92b44e8d97fb561e0a895	not-for-merge	'refs/pull/133/head' of https://github.com/huggingface/swift-transformers
+c0355ddaba33e8f7f4f77d7ede9b631470105137	not-for-merge	'refs/pull/134/head' of https://github.com/huggingface/swift-transformers
+4a17ec651798c0bee88e62de771cbc762537a144	not-for-merge	'refs/pull/135/head' of https://github.com/huggingface/swift-transformers
+65054febf590d952bd5fce5404f407c5a980bb71	not-for-merge	'refs/pull/137/head' of https://github.com/huggingface/swift-transformers
+4000b85fc0ea3764cdfe244055709971f960815d	not-for-merge	'refs/pull/138/head' of https://github.com/huggingface/swift-transformers
+10fc2a5f340d3a6b8dd8c89a21c016480b56aa85	not-for-merge	'refs/pull/139/head' of https://github.com/huggingface/swift-transformers
+8c7fc5e5024e0f977e47010f0a719d90439c9378	not-for-merge	'refs/pull/14/head' of https://github.com/huggingface/swift-transformers
+840d5e330943e62df0d9495bce0ec8ca034f7d25	not-for-merge	'refs/pull/142/head' of https://github.com/huggingface/swift-transformers
+d4e42b9932f4db23110ff8ddf1fa03c1be3acf59	not-for-merge	'refs/pull/144/head' of https://github.com/huggingface/swift-transformers
+cc0ef0538025ab99f585dbf1a4d956b4cbab26be	not-for-merge	'refs/pull/146/head' of https://github.com/huggingface/swift-transformers
+a70fd3368ac8d84e454cd74a511d86f2ecaf2dd8	not-for-merge	'refs/pull/147/head' of https://github.com/huggingface/swift-transformers
+ed4d10813f89146b8fc3f56e79908e7bf2d81f1c	not-for-merge	'refs/pull/148/head' of https://github.com/huggingface/swift-transformers
+6414600f8bcfd5f9fe65a9b756abf1fd19985553	not-for-merge	'refs/pull/149/head' of https://github.com/huggingface/swift-transformers
+c86247020246559ddca9c1a8ed8a1fe5edb2ad7c	not-for-merge	'refs/pull/150/head' of https://github.com/huggingface/swift-transformers
+cca036c84b385e186fffdeb5890f32c0b3b5a0b6	not-for-merge	'refs/pull/151/head' of https://github.com/huggingface/swift-transformers
+63b91ee6a75dc878ed2517671c0d62629dfe9fe4	not-for-merge	'refs/pull/152/head' of https://github.com/huggingface/swift-transformers
+d8d69bf721671d51a99eeef6fcc9b362e350d3e0	not-for-merge	'refs/pull/153/head' of https://github.com/huggingface/swift-transformers
+9d47066484a09d8b1d364da803e5d320fb0f06fd	not-for-merge	'refs/pull/154/head' of https://github.com/huggingface/swift-transformers
+72907687d88717258b6f0860d12f8705dfbad721	not-for-merge	'refs/pull/155/head' of https://github.com/huggingface/swift-transformers
+6f31446e3eb17998bdfad40d128627a666a74ca8	not-for-merge	'refs/pull/157/head' of https://github.com/huggingface/swift-transformers
+e404f264567c1cf8cda0162896ba8b098593491d	not-for-merge	'refs/pull/158/head' of https://github.com/huggingface/swift-transformers
+91acea505e73ca1f833d2117bf910323d3548550	not-for-merge	'refs/pull/159/head' of https://github.com/huggingface/swift-transformers
+0999244ba94ae4d5af4192462214327b10146c1e	not-for-merge	'refs/pull/160/head' of https://github.com/huggingface/swift-transformers
+a762a4e0e773d8cd0753000ced2886834ad4e8aa	not-for-merge	'refs/pull/163/head' of https://github.com/huggingface/swift-transformers
+508412a7d2565b4b8de4ec5a832d0974ed81639e	not-for-merge	'refs/pull/164/head' of https://github.com/huggingface/swift-transformers
+1b64c9245e433487ed78d8c6d14177878496079f	not-for-merge	'refs/pull/166/head' of https://github.com/huggingface/swift-transformers
+7199b17ac041e4243f6dd278a65b11dad672a97b	not-for-merge	'refs/pull/168/head' of https://github.com/huggingface/swift-transformers
+8081d677add0fb1d5ea1ce817db9052017ede849	not-for-merge	'refs/pull/169/head' of https://github.com/huggingface/swift-transformers
+a854c1e5f57025033261b369f93e01822667abae	not-for-merge	'refs/pull/170/head' of https://github.com/huggingface/swift-transformers
+9e70ff8787803ab331d9116b1992d91436850be1	not-for-merge	'refs/pull/171/head' of https://github.com/huggingface/swift-transformers
+494a2d8dbf783f5f415d20705edb330000bf905a	not-for-merge	'refs/pull/173/head' of https://github.com/huggingface/swift-transformers
+cd1f503d5b72c0ae2014d34096cfa1a8d0996050	not-for-merge	'refs/pull/174/head' of https://github.com/huggingface/swift-transformers
+a808140864d3b40bc644cd5f996c68c7e1e5c3d6	not-for-merge	'refs/pull/175/head' of https://github.com/huggingface/swift-transformers
+717b9d381c8ee245e73b85c54fad4c25bf14b297	not-for-merge	'refs/pull/177/head' of https://github.com/huggingface/swift-transformers
+b227ce63b0b67c023b5179a1496dfa5e649a11e1	not-for-merge	'refs/pull/179/head' of https://github.com/huggingface/swift-transformers
+a2c8615a84edb223a023591be194373705c58861	not-for-merge	'refs/pull/181/head' of https://github.com/huggingface/swift-transformers
+fcbb09e4323d26516367865a1d8250bd3f8dd651	not-for-merge	'refs/pull/183/head' of https://github.com/huggingface/swift-transformers
+4bebf9e1c0d4e5732092070d193b08e7faaab195	not-for-merge	'refs/pull/184/head' of https://github.com/huggingface/swift-transformers
+b0d498115d5038b0eee6a386f7e77a61c0b4b2c7	not-for-merge	'refs/pull/186/head' of https://github.com/huggingface/swift-transformers
+4b6ebd4355bad12716d1f721cf2db7d022f0d6d1	not-for-merge	'refs/pull/187/head' of https://github.com/huggingface/swift-transformers
+841ab588d3276c898e5107c5bf9e1adcc87727cb	not-for-merge	'refs/pull/188/head' of https://github.com/huggingface/swift-transformers
+ec919635c8e6ec61ce87dea8720fe085a1820198	not-for-merge	'refs/pull/189/head' of https://github.com/huggingface/swift-transformers
+4743f582dfc3287813ba161cd523508996f406e5	not-for-merge	'refs/pull/191/head' of https://github.com/huggingface/swift-transformers
+8de7f498fddfcdd8218fdad7a58ff2d7d1562709	not-for-merge	'refs/pull/192/head' of https://github.com/huggingface/swift-transformers
+cc6fc04e2cb2da3e34bb0ca18e7e1cc020c83933	not-for-merge	'refs/pull/193/head' of https://github.com/huggingface/swift-transformers
+49fd5e84118b15147636e4d755396c73f0c11237	not-for-merge	'refs/pull/194/head' of https://github.com/huggingface/swift-transformers
+dbfd03b74473759adcc31560a96a485e6a96bdd7	not-for-merge	'refs/pull/195/head' of https://github.com/huggingface/swift-transformers
+0208c1e48e1990db6c93ad7d16038c0537ddf1dc	not-for-merge	'refs/pull/196/head' of https://github.com/huggingface/swift-transformers
+ccb411cdc13b052e9f0fff73787345037ec0e985	not-for-merge	'refs/pull/198/head' of https://github.com/huggingface/swift-transformers
+1dade09ac0447f85039c27087f1e17650dc9b248	not-for-merge	'refs/pull/199/head' of https://github.com/huggingface/swift-transformers
+8f9e9741fe3f5f3bde834147a89bd15f8b4f7366	not-for-merge	'refs/pull/2/head' of https://github.com/huggingface/swift-transformers
+63ee0d8ca6a584cfc9cfb7d35be11a253a304244	not-for-merge	'refs/pull/20/head' of https://github.com/huggingface/swift-transformers
+79d19829ee80bb9a4158bb141c9c6daf0e9ade95	not-for-merge	'refs/pull/200/head' of https://github.com/huggingface/swift-transformers
+fb6f4458aa9f58d7ff4f37e74d645b90fb80b04e	not-for-merge	'refs/pull/201/head' of https://github.com/huggingface/swift-transformers
+3bd030521cd083e38bb42a2bb1327203c6bb34f1	not-for-merge	'refs/pull/202/head' of https://github.com/huggingface/swift-transformers
+905b3639135c70547f949806bd2c2d30ef403e51	not-for-merge	'refs/pull/203/head' of https://github.com/huggingface/swift-transformers
+ae7ef78ef79db72ae22a30eff63f674d3b895c9a	not-for-merge	'refs/pull/205/head' of https://github.com/huggingface/swift-transformers
+88af9d905a2977886b21d1b58049ec50827c2209	not-for-merge	'refs/pull/206/head' of https://github.com/huggingface/swift-transformers
+cce039aa6c663d623a02ec50b37c6cbd31f21d2d	not-for-merge	'refs/pull/207/head' of https://github.com/huggingface/swift-transformers
+50c73c41c535ee02add412a82edd26abd5933ded	not-for-merge	'refs/pull/208/head' of https://github.com/huggingface/swift-transformers
+aa05049ffd7712d1d33c95f44d697104eaf70556	not-for-merge	'refs/pull/209/head' of https://github.com/huggingface/swift-transformers
+e683d4bb57913c998f64a332052a5aa1a4fd6586	not-for-merge	'refs/pull/21/head' of https://github.com/huggingface/swift-transformers
+59678e3fb06b4c4245aefb969b3f42d4143be1ae	not-for-merge	'refs/pull/211/head' of https://github.com/huggingface/swift-transformers
+1f7c65706657fce3fe09ba6b8336b161ff436261	not-for-merge	'refs/pull/212/head' of https://github.com/huggingface/swift-transformers
+91b4e7d5e766e307546a74e9649b61041c9d1626	not-for-merge	'refs/pull/213/head' of https://github.com/huggingface/swift-transformers
+230e344829b2b98a3589ab441b630b32a46ac812	not-for-merge	'refs/pull/214/head' of https://github.com/huggingface/swift-transformers
+355f381b809e99329a295744d2cd267b6fb646ae	not-for-merge	'refs/pull/215/head' of https://github.com/huggingface/swift-transformers
+a081b84101d837e7cab0c4e44e784b5714998177	not-for-merge	'refs/pull/216/head' of https://github.com/huggingface/swift-transformers
+ba1355b0c0b9956515b1a34cfd212269a33878a7	not-for-merge	'refs/pull/218/head' of https://github.com/huggingface/swift-transformers
+144c7c05c9a7840c4bc4e07938819bb92230f01f	not-for-merge	'refs/pull/219/head' of https://github.com/huggingface/swift-transformers
+fe7ae5e731c70f209dfdf45d10e4cfad9f3b0db1	not-for-merge	'refs/pull/221/head' of https://github.com/huggingface/swift-transformers
+9675c997f72121e20aa8b0479056458c135b89ba	not-for-merge	'refs/pull/223/head' of https://github.com/huggingface/swift-transformers
+c87e0148dc973c28ae5783dcd5d00eaf6b05feed	not-for-merge	'refs/pull/224/head' of https://github.com/huggingface/swift-transformers
+630eef0ef560839a382367c9348c730efcbae625	not-for-merge	'refs/pull/225/head' of https://github.com/huggingface/swift-transformers
+0aa7c8cd3c4c5517fe3a4126747d2165c93b02fe	not-for-merge	'refs/pull/226/head' of https://github.com/huggingface/swift-transformers
+4b137fb335c47caaa5db61ef45e42044b1d74d72	not-for-merge	'refs/pull/227/head' of https://github.com/huggingface/swift-transformers
+473b9fd8d88ddf46fcee097e10f1e17bd7698ed8	not-for-merge	'refs/pull/228/head' of https://github.com/huggingface/swift-transformers
+731076c29a2dd718a16078e2b9c8e8a52c943ec7	not-for-merge	'refs/pull/229/head' of https://github.com/huggingface/swift-transformers
+4b185f9f03be3bf6bab7fc1827fcb00392f52bb3	not-for-merge	'refs/pull/23/head' of https://github.com/huggingface/swift-transformers
+05e983d6025b331e0ab0f5eb66a6b001618638ad	not-for-merge	'refs/pull/230/head' of https://github.com/huggingface/swift-transformers
+8d79cdedeb44ab0fcff65846979757bcb21da1c7	not-for-merge	'refs/pull/231/head' of https://github.com/huggingface/swift-transformers
+8ca4acb5b8a8c86930ec8017afb7c7c28ac66a1b	not-for-merge	'refs/pull/232/head' of https://github.com/huggingface/swift-transformers
+601dd65241b04327645a25d7aec4d07742880e97	not-for-merge	'refs/pull/233/head' of https://github.com/huggingface/swift-transformers
+8cc6e9a4ebb10b471c6e0460ff0d309dba062624	not-for-merge	'refs/pull/234/head' of https://github.com/huggingface/swift-transformers
+952ad8a7aee0ebb074f916a71dae6ea1d304ba9e	not-for-merge	'refs/pull/235/head' of https://github.com/huggingface/swift-transformers
+9d3fbd94bbd78ef37e2e3d47fccaef9374c2dd06	not-for-merge	'refs/pull/236/head' of https://github.com/huggingface/swift-transformers
+2dc138d4a9a5f84dbb1d0ecd6bd4ef2a8e4e866f	not-for-merge	'refs/pull/239/head' of https://github.com/huggingface/swift-transformers
+4a609d4251da522ac919e9c05d54b5004c43b16b	not-for-merge	'refs/pull/240/head' of https://github.com/huggingface/swift-transformers
+8721eca71a9592c02b12576777e43b44d7099b92	not-for-merge	'refs/pull/241/head' of https://github.com/huggingface/swift-transformers
+fbe4de03253e169fcad7b5a782aaf4e3878a3096	not-for-merge	'refs/pull/242/head' of https://github.com/huggingface/swift-transformers
+8c8d90b107b862a8cc5d22d06052906609ed933e	not-for-merge	'refs/pull/243/head' of https://github.com/huggingface/swift-transformers
+d77f66f1af72a242a72edd6cb03eb93e47f80901	not-for-merge	'refs/pull/244/head' of https://github.com/huggingface/swift-transformers
+73416eb191bc159197bb2cc29863df6b5e659f31	not-for-merge	'refs/pull/245/head' of https://github.com/huggingface/swift-transformers
+06c4110524614a5b2aa44a7b053fbbc52eff96b4	not-for-merge	'refs/pull/246/head' of https://github.com/huggingface/swift-transformers
+1bb7c3f1f87ec97417fdcc3627a5c0d9f6a32c92	not-for-merge	'refs/pull/247/head' of https://github.com/huggingface/swift-transformers
+66c4a66e280943b3275635988e5c9bef4796417c	not-for-merge	'refs/pull/248/head' of https://github.com/huggingface/swift-transformers
+2947f93b3fdda9352fcdb0463661b12b9454058f	not-for-merge	'refs/pull/249/head' of https://github.com/huggingface/swift-transformers
+2e1f1ec2da6763cc7045dcbe9218c729a5caeffa	not-for-merge	'refs/pull/25/head' of https://github.com/huggingface/swift-transformers
+f4a35f683e659ff34de1b0099d5ce0af6af09fb4	not-for-merge	'refs/pull/250/head' of https://github.com/huggingface/swift-transformers
+50c1367e032aa4bc93d8bb67aa7984fe3ab7d1e6	not-for-merge	'refs/pull/252/head' of https://github.com/huggingface/swift-transformers
+986a72df6b2d2dda94e9b78d83a1c6117d748bd0	not-for-merge	'refs/pull/253/head' of https://github.com/huggingface/swift-transformers
+3dd261c9c3c0a8802a9d7d6f82278edb23aaf247	not-for-merge	'refs/pull/254/head' of https://github.com/huggingface/swift-transformers
+723d5239f89ecfb293c79e696d3d91b3d251a39d	not-for-merge	'refs/pull/255/head' of https://github.com/huggingface/swift-transformers
+7f7ea6d94a17bfc3862b3b58ff8fce0b5c602eac	not-for-merge	'refs/pull/256/head' of https://github.com/huggingface/swift-transformers
+29afbf2edebb131cd94100584d96816a1706e6ae	not-for-merge	'refs/pull/257/head' of https://github.com/huggingface/swift-transformers
+591271945cbe726b8e466fc49baf627215fb40e5	not-for-merge	'refs/pull/258/head' of https://github.com/huggingface/swift-transformers
+78d31731fc9e4034716085038135e2e680a02613	not-for-merge	'refs/pull/259/head' of https://github.com/huggingface/swift-transformers
+3db8d2d561cadfb51dad89b74481c83960bdd92c	not-for-merge	'refs/pull/260/head' of https://github.com/huggingface/swift-transformers
+10024f4035b988a668eb8ec4f914182082b6334c	not-for-merge	'refs/pull/261/head' of https://github.com/huggingface/swift-transformers
+45869c9d4b8c655f79981446fbe09b145020fa9c	not-for-merge	'refs/pull/262/head' of https://github.com/huggingface/swift-transformers
+5a2e074bb1c198a173a541c3070985161f9e8537	not-for-merge	'refs/pull/263/head' of https://github.com/huggingface/swift-transformers
+5a00a6c5e1509be96df59475ee2f6c722efc52a6	not-for-merge	'refs/pull/264/head' of https://github.com/huggingface/swift-transformers
+7fc2c32ee34947e57e40b7e2e8482d9352c1b318	not-for-merge	'refs/pull/265/head' of https://github.com/huggingface/swift-transformers
+f9502462cf22eb6bada651c6536fca2ada7675c0	not-for-merge	'refs/pull/266/head' of https://github.com/huggingface/swift-transformers
+c076ce2678f97024acf46ce1e799f29f2ba61259	not-for-merge	'refs/pull/267/head' of https://github.com/huggingface/swift-transformers
+c8053526838553064b72410f5e9fd713c3b79bed	not-for-merge	'refs/pull/268/head' of https://github.com/huggingface/swift-transformers
+ce11e8ca4bfd6f9d9490353b56b2f50e837ce90c	not-for-merge	'refs/pull/269/head' of https://github.com/huggingface/swift-transformers
+9cae4ae57baf251cda201043b99892165de3468a	not-for-merge	'refs/pull/27/head' of https://github.com/huggingface/swift-transformers
+b632d868f52730f58e5d06a533ee7a7c581cdb27	not-for-merge	'refs/pull/270/head' of https://github.com/huggingface/swift-transformers
+827526131c8fb2abaa1f94e796757dbf6caf79f0	not-for-merge	'refs/pull/272/head' of https://github.com/huggingface/swift-transformers
+501f192ea2c8389e5c4b1088eb0cb0ce9d7e9cab	not-for-merge	'refs/pull/273/head' of https://github.com/huggingface/swift-transformers
+f38cb84526353fdcbcefa7a26349ab919deb5411	not-for-merge	'refs/pull/274/head' of https://github.com/huggingface/swift-transformers
+03c01e2527c9e92d0c5abe7745e4ff0b7b628402	not-for-merge	'refs/pull/276/head' of https://github.com/huggingface/swift-transformers
+f417cb1ecf9f9c0bbf0d4613b619a2d2198089db	not-for-merge	'refs/pull/277/head' of https://github.com/huggingface/swift-transformers
+db497623eecdebc930e72eb23556cd8bc8901f53	not-for-merge	'refs/pull/278/head' of https://github.com/huggingface/swift-transformers
+4e990d28defebdd2d54be75aa28dc4ab95ceeafb	not-for-merge	'refs/pull/279/head' of https://github.com/huggingface/swift-transformers
+09bdcf34e02bc9cc9e503d865161d33eaf30a77e	not-for-merge	'refs/pull/28/head' of https://github.com/huggingface/swift-transformers
+ea3b228ba5f2e53a54e2121092d49e1b6711b063	not-for-merge	'refs/pull/281/head' of https://github.com/huggingface/swift-transformers
+f0f4e831750818358070a323cff088832ae7f3b1	not-for-merge	'refs/pull/282/head' of https://github.com/huggingface/swift-transformers
+f9c859446522d542ea4be4cab2663aee293828fe	not-for-merge	'refs/pull/283/head' of https://github.com/huggingface/swift-transformers
+639bd6033a7935bf6a4d419d9a874d7df9510456	not-for-merge	'refs/pull/285/head' of https://github.com/huggingface/swift-transformers
+c365e888851b9463ef1f41caa66c656451941d36	not-for-merge	'refs/pull/286/head' of https://github.com/huggingface/swift-transformers
+7edf3acb98d8e6a5b0d44c9afb8360c74f24eb43	not-for-merge	'refs/pull/287/head' of https://github.com/huggingface/swift-transformers
+6683d58375cb965e8945f61e4aac819cdcda6540	not-for-merge	'refs/pull/288/head' of https://github.com/huggingface/swift-transformers
+2a4f54f7a7d26244b109141aef4db6054e96b445	not-for-merge	'refs/pull/289/head' of https://github.com/huggingface/swift-transformers
+7e5d77adf4ba833b9d601cfbf611a553868e2da3	not-for-merge	'refs/pull/29/head' of https://github.com/huggingface/swift-transformers
+f796af9b962629a77b28d02d17149a0be42273c6	not-for-merge	'refs/pull/291/head' of https://github.com/huggingface/swift-transformers
+ca0e33357076c5c4ba736f0c00e64904b5279cc1	not-for-merge	'refs/pull/292/head' of https://github.com/huggingface/swift-transformers
+cee9245e219e9a4d72cb43a05277639f299d77d5	not-for-merge	'refs/pull/293/head' of https://github.com/huggingface/swift-transformers
+96333f198599eabc532f7cfc29c4eb1647266e26	not-for-merge	'refs/pull/295/head' of https://github.com/huggingface/swift-transformers
+fb97100157dd269abb85506fa7a224af2c7b3d18	not-for-merge	'refs/pull/296/head' of https://github.com/huggingface/swift-transformers
+c280582ebd197f459e8287510a28d599a5b7bad6	not-for-merge	'refs/pull/297/head' of https://github.com/huggingface/swift-transformers
+523ef2c4558fe248ef520be580571f1515224a9b	not-for-merge	'refs/pull/298/head' of https://github.com/huggingface/swift-transformers
+d8875a232db48036a53e86ec0e5058f6fc2a86cb	not-for-merge	'refs/pull/299/head' of https://github.com/huggingface/swift-transformers
+419a97ae768351a87658785bdae5c84d38a2e087	not-for-merge	'refs/pull/3/head' of https://github.com/huggingface/swift-transformers
+3571b953e5488efd390224fa19bfd7d3d0cd3bf5	not-for-merge	'refs/pull/300/head' of https://github.com/huggingface/swift-transformers
+f38f5a3bdc4e2f48cf78cff44c317f2c1dedf01b	not-for-merge	'refs/pull/302/head' of https://github.com/huggingface/swift-transformers
+4ed3e6731f14f0df9ee1f750b9e3c3b5acd63679	not-for-merge	'refs/pull/303/head' of https://github.com/huggingface/swift-transformers
+9899a076e19bd1d7e8d8f16880ebc31652bd8aa4	not-for-merge	'refs/pull/304/head' of https://github.com/huggingface/swift-transformers
+afb9923139f7ab30da50e9d6a117e2e9f2c7c035	not-for-merge	'refs/pull/305/head' of https://github.com/huggingface/swift-transformers
+095e2aaee3915ab35d690f79e3e8b2f4f58ac28a	not-for-merge	'refs/pull/308/head' of https://github.com/huggingface/swift-transformers
+8deb9ba542a620f231f9f5d03c604a9837acaf5e	not-for-merge	'refs/pull/309/head' of https://github.com/huggingface/swift-transformers
+5f4e2622ba8c41a7cfd48e7dfb4f32b13e530d06	not-for-merge	'refs/pull/311/head' of https://github.com/huggingface/swift-transformers
+1d8e04c5a92ca39ee164df977cf28015156e0ec0	not-for-merge	'refs/pull/312/head' of https://github.com/huggingface/swift-transformers
+88d38cfaf7a0740900c20b045b66aff22cc327e6	not-for-merge	'refs/pull/314/head' of https://github.com/huggingface/swift-transformers
+5fc64c184d477d8f2f3f91cdb89d746a78549cfc	not-for-merge	'refs/pull/315/head' of https://github.com/huggingface/swift-transformers
+e3a9de7b3851c942653efc84394ba3880e9e7f6f	not-for-merge	'refs/pull/316/head' of https://github.com/huggingface/swift-transformers
+4ad765de19f340e979102a5e9e9a296680fe3e77	not-for-merge	'refs/pull/317/head' of https://github.com/huggingface/swift-transformers
+041bc13c59e9e19dd39808331d4a3a28820e52f6	not-for-merge	'refs/pull/319/head' of https://github.com/huggingface/swift-transformers
+8071e556f658af8be1f56104fb48be51df436880	not-for-merge	'refs/pull/32/head' of https://github.com/huggingface/swift-transformers
+78d7b09f81fd5fefc10c8bb93367c0462a38abf4	not-for-merge	'refs/pull/320/head' of https://github.com/huggingface/swift-transformers
+71d0ae4c3e64fcae5e14ab50bf23da85eabeec85	not-for-merge	'refs/pull/321/head' of https://github.com/huggingface/swift-transformers
+b2bff3b284459965028de6e2226c19f62f71ded2	not-for-merge	'refs/pull/323/head' of https://github.com/huggingface/swift-transformers
+7e847ede2405cc2db5d8d5142edb840f09322619	not-for-merge	'refs/pull/324/head' of https://github.com/huggingface/swift-transformers
+8cf7f7a3c4d25d79bd13cf75a8a3ae8b9a227746	not-for-merge	'refs/pull/325/head' of https://github.com/huggingface/swift-transformers
+58f657b4c08e9d9bc61e27a087b844cb3b583ff9	not-for-merge	'refs/pull/326/head' of https://github.com/huggingface/swift-transformers
+acb05973f9f218090e9bc31cfb635c5c9668da17	not-for-merge	'refs/pull/327/head' of https://github.com/huggingface/swift-transformers
+db3790c04cef076c1f97b4ce1453adaf03029a2f	not-for-merge	'refs/pull/327/merge' of https://github.com/huggingface/swift-transformers
+63e0d322f8215f2ec1f67e9d5e7e5a1415810c72	not-for-merge	'refs/pull/328/head' of https://github.com/huggingface/swift-transformers
+afc3ee1b62cbdf9706d7a0b858bfddfa323b2b99	not-for-merge	'refs/pull/33/head' of https://github.com/huggingface/swift-transformers
+c602308f54e415894ba9bb59faf207d64f842988	not-for-merge	'refs/pull/331/head' of https://github.com/huggingface/swift-transformers
+de00de08d9bb361496cdc53b68cd58e58d29a0cc	not-for-merge	'refs/pull/331/merge' of https://github.com/huggingface/swift-transformers
+f41150f327f717368a8416496e8701b8909adbb2	not-for-merge	'refs/pull/332/head' of https://github.com/huggingface/swift-transformers
+95692c941a8edb91d99dc95f89aa3df842abb4f6	not-for-merge	'refs/pull/333/head' of https://github.com/huggingface/swift-transformers
+24b782ca9e76dfb94a4fa736165b07c939d25341	not-for-merge	'refs/pull/333/merge' of https://github.com/huggingface/swift-transformers
+3fab35df12f939b5df838ebf3e3f14bfdf5fdeef	not-for-merge	'refs/pull/334/head' of https://github.com/huggingface/swift-transformers
+65c5e6b9d72c3af4bf816cc8fdc36dc5f08b8915	not-for-merge	'refs/pull/336/head' of https://github.com/huggingface/swift-transformers
+5c3f0c1ad072013987425e70635c48a40c6c01fb	not-for-merge	'refs/pull/337/head' of https://github.com/huggingface/swift-transformers
+3107eec811a8afb042e511d2faed2166deca39e4	not-for-merge	'refs/pull/338/head' of https://github.com/huggingface/swift-transformers
+a06c8ad605e45a1124a978ad68119e9314d1e14e	not-for-merge	'refs/pull/340/head' of https://github.com/huggingface/swift-transformers
+68c1748ac54dcaa390bbd3b2da60491cc5f986ce	not-for-merge	'refs/pull/342/head' of https://github.com/huggingface/swift-transformers
+6361465627dde641f27e6ed052c4ffb8ba8d61b8	not-for-merge	'refs/pull/343/head' of https://github.com/huggingface/swift-transformers
+4230a7b3524a865aa686e40111ccd1138defb13b	not-for-merge	'refs/pull/344/head' of https://github.com/huggingface/swift-transformers
+381050d6e01bba1de9ce6a52b7280e98ee1cf773	not-for-merge	'refs/pull/344/merge' of https://github.com/huggingface/swift-transformers
+cc0fdb0df5b82e39a0891cfa42e591d10d84dcfe	not-for-merge	'refs/pull/345/head' of https://github.com/huggingface/swift-transformers
+8b57888e806a290d936e72082b598c68929cfc5d	not-for-merge	'refs/pull/346/head' of https://github.com/huggingface/swift-transformers
+b8285651b7e5d2644374ecf5b30ae344128a83d2	not-for-merge	'refs/pull/347/head' of https://github.com/huggingface/swift-transformers
+8348e756e0a87aa06979405100ba9559db139ef2	not-for-merge	'refs/pull/348/head' of https://github.com/huggingface/swift-transformers
+95b07520b42b1c5cc77e17636e5b2079d7f1d922	not-for-merge	'refs/pull/349/head' of https://github.com/huggingface/swift-transformers
+7eaabeb7a9eddec75a0fdf69cf2b1903e13c7675	not-for-merge	'refs/pull/351/head' of https://github.com/huggingface/swift-transformers
+1d925f316d3bf5537641242406c20896b55e70a9	not-for-merge	'refs/pull/353/head' of https://github.com/huggingface/swift-transformers
+11352dc4667371d3dc6d614a14e047d007e11bf0	not-for-merge	'refs/pull/354/head' of https://github.com/huggingface/swift-transformers
+64bf97c6dfc9741a0c63875f16472e75d5a56f1e	not-for-merge	'refs/pull/355/head' of https://github.com/huggingface/swift-transformers
+a5868d67d2133c9335398fddd38528a62199293d	not-for-merge	'refs/pull/356/head' of https://github.com/huggingface/swift-transformers
+3afc5a9cbdb674c3a0cd2d814f70e1b2d4fcebe0	not-for-merge	'refs/pull/357/head' of https://github.com/huggingface/swift-transformers
+a5c229982636a70299b82cff20f920c35b4a2780	not-for-merge	'refs/pull/358/head' of https://github.com/huggingface/swift-transformers
+880c77b3bd4c6f7eefc557f282dcf897c4675445	not-for-merge	'refs/pull/358/merge' of https://github.com/huggingface/swift-transformers
+ce92477cfa200dc7275fa35bbdec8d0ad554c2f6	not-for-merge	'refs/pull/359/head' of https://github.com/huggingface/swift-transformers
+466be7452735c859ad1d2d3e5299835e54eddad4	not-for-merge	'refs/pull/359/merge' of https://github.com/huggingface/swift-transformers
+ce847085784bacd8c3c15180c976b17c8ce73e31	not-for-merge	'refs/pull/360/head' of https://github.com/huggingface/swift-transformers
+6e168347bf06aa9b7210e8d221aa00cb894e248b	not-for-merge	'refs/pull/360/merge' of https://github.com/huggingface/swift-transformers
+9e239b49e8b8d5ce0d2af5c4bbb065c0cae16836	not-for-merge	'refs/pull/361/head' of https://github.com/huggingface/swift-transformers
+3bb95edbcd3fb62e5b0f75d88235f99c1bdd66b9	not-for-merge	'refs/pull/362/head' of https://github.com/huggingface/swift-transformers
+523e54f1c59f3572df560f859d700aa322929be1	not-for-merge	'refs/pull/362/merge' of https://github.com/huggingface/swift-transformers
+1e35f2c30208fbcc3e63dcbd8c2f172fb5deb77f	not-for-merge	'refs/pull/363/head' of https://github.com/huggingface/swift-transformers
+9291f8319cb228bc9abae5538341724cf87e7208	not-for-merge	'refs/pull/367/head' of https://github.com/huggingface/swift-transformers
+3c10945f588d7738ab91b06b8c9ef8e95d75d81c	not-for-merge	'refs/pull/367/merge' of https://github.com/huggingface/swift-transformers
+331142f9308c1d7fdc56154a6e17ed7abdbb06d2	not-for-merge	'refs/pull/368/head' of https://github.com/huggingface/swift-transformers
+089cb3f02a1718b2943c7e7c4553876cd51a75d1	not-for-merge	'refs/pull/369/head' of https://github.com/huggingface/swift-transformers
+c5dbc2afb90ea5798d86384ef851752e59ae9784	not-for-merge	'refs/pull/369/merge' of https://github.com/huggingface/swift-transformers
+b71f78b4feafc21fca8a053739e099166058c6d3	not-for-merge	'refs/pull/370/head' of https://github.com/huggingface/swift-transformers
+62592dd29b333b715b73b75c4bdc89f0683203e3	not-for-merge	'refs/pull/370/merge' of https://github.com/huggingface/swift-transformers
+4c6bf4dba0c154031541332ae6205e69235e523e	not-for-merge	'refs/pull/371/head' of https://github.com/huggingface/swift-transformers
+4ebf588aeb9bcd8beca39b12ba142940385bd3cb	not-for-merge	'refs/pull/371/merge' of https://github.com/huggingface/swift-transformers
+11c66269505b7434231b255eaf7ac0dd994781ed	not-for-merge	'refs/pull/372/head' of https://github.com/huggingface/swift-transformers
+3d22fc8be990a4252ff778bc128cea227e06a703	not-for-merge	'refs/pull/372/merge' of https://github.com/huggingface/swift-transformers
+ab80b2545545a6a5389d2e006016daf47ec8dbbf	not-for-merge	'refs/pull/373/head' of https://github.com/huggingface/swift-transformers
+2ec778a40af9a6ddd73998e300a0e5c5716527b1	not-for-merge	'refs/pull/374/head' of https://github.com/huggingface/swift-transformers
+0ff8dce44ef0dbf68e82486612b7561e3eac5f97	not-for-merge	'refs/pull/375/head' of https://github.com/huggingface/swift-transformers
+f719b42db8ae6016d6c41895a60269d88b550f63	not-for-merge	'refs/pull/376/head' of https://github.com/huggingface/swift-transformers
+b2ebc16b842d190d22096d6368a01926b7e97f52	not-for-merge	'refs/pull/378/head' of https://github.com/huggingface/swift-transformers
+3be5ab4371a162211ef9b88ee3b873c8dae6d91a	not-for-merge	'refs/pull/379/head' of https://github.com/huggingface/swift-transformers
+0eb50981ede00f8127b4eb35fad642e4b7099489	not-for-merge	'refs/pull/379/merge' of https://github.com/huggingface/swift-transformers
+3cceec95cad61d6997e57743f0bc1e9ff901a74b	not-for-merge	'refs/pull/38/head' of https://github.com/huggingface/swift-transformers
+5f7de6e4594cb6f579728c684365ca6297f89342	not-for-merge	'refs/pull/380/head' of https://github.com/huggingface/swift-transformers
+e9d5a94235b7e930cc8c7f15ebb7d601b1935a3c	not-for-merge	'refs/pull/381/head' of https://github.com/huggingface/swift-transformers
+ce7f7c3b4691b09e2017b85e459781e206c88a50	not-for-merge	'refs/pull/382/head' of https://github.com/huggingface/swift-transformers
+b47b7c7565b882d161d524f0dbe2a3a624501194	not-for-merge	'refs/pull/384/head' of https://github.com/huggingface/swift-transformers
+ca9b8a2df84898ffb3ac2d3715581c8385894aed	not-for-merge	'refs/pull/385/head' of https://github.com/huggingface/swift-transformers
+11ba065323014d07f0dd07dd9c66050ff5dbace9	not-for-merge	'refs/pull/386/head' of https://github.com/huggingface/swift-transformers
+cd22d0e50511e3bba503798dc9fa68a36cdf14fa	not-for-merge	'refs/pull/386/merge' of https://github.com/huggingface/swift-transformers
+b0332c4d9ded8bd750bd142fe3f2956e8edd89d3	not-for-merge	'refs/pull/388/head' of https://github.com/huggingface/swift-transformers
+43835e9d7184aac040626f457bcac39b0d444a01	not-for-merge	'refs/pull/389/head' of https://github.com/huggingface/swift-transformers
+c0e5708dc32e7261a1e02b31403dbfcab1d904c2	not-for-merge	'refs/pull/390/head' of https://github.com/huggingface/swift-transformers
+adc14962554a672230142eb6d4b592336a4d4054	not-for-merge	'refs/pull/391/head' of https://github.com/huggingface/swift-transformers
+ee4e88ece4874d40ae618a92531889914a5f2e9f	not-for-merge	'refs/pull/392/head' of https://github.com/huggingface/swift-transformers
+afcc87b1626790c1751e2c87e0f9b223e91582ea	not-for-merge	'refs/pull/393/head' of https://github.com/huggingface/swift-transformers
+66dbbb19c7efae2f4b76caef211af22ad6191989	not-for-merge	'refs/pull/394/head' of https://github.com/huggingface/swift-transformers
+852bc10af96b89471eee06629dfaa29d4ed38f48	not-for-merge	'refs/pull/395/head' of https://github.com/huggingface/swift-transformers
+dffdb1662dbcc8af99c5dc09741f379f6f6a9950	not-for-merge	'refs/pull/396/head' of https://github.com/huggingface/swift-transformers
+9763912ed269b825e314eef02c6f76eb308ed1c6	not-for-merge	'refs/pull/397/head' of https://github.com/huggingface/swift-transformers
+76688ce96029110e7635f571981d3b07d4eab3bc	not-for-merge	'refs/pull/398/head' of https://github.com/huggingface/swift-transformers
+4651afe9159f98e91d58f18626dcf4459ccd1528	not-for-merge	'refs/pull/40/head' of https://github.com/huggingface/swift-transformers
+f1f2ed71a254253d79c65cc909aa1beafb2e9417	not-for-merge	'refs/pull/400/head' of https://github.com/huggingface/swift-transformers
+39d90a307b34ad1956d94d16909c3bbfbfc2ec1a	not-for-merge	'refs/pull/401/head' of https://github.com/huggingface/swift-transformers
+e7d676b1d57edaaaf5a06c3f1c7d3231df838dde	not-for-merge	'refs/pull/403/head' of https://github.com/huggingface/swift-transformers
+cb67c074137e43bcd2136c5648ce88aaae6cb8eb	not-for-merge	'refs/pull/404/head' of https://github.com/huggingface/swift-transformers
+0e529362b8ef868f01dfc0667f7c362e837d2b42	not-for-merge	'refs/pull/404/merge' of https://github.com/huggingface/swift-transformers
+c74d707dc3c2ec3dc29946696d3523fb25514bb5	not-for-merge	'refs/pull/405/head' of https://github.com/huggingface/swift-transformers
+db921b78510e015fc4b7f13dc7fc8997e5e05d8c	not-for-merge	'refs/pull/406/head' of https://github.com/huggingface/swift-transformers
+9aaaa439d2ed697aa75a9a62d53c15e0fa3714b0	not-for-merge	'refs/pull/407/head' of https://github.com/huggingface/swift-transformers
+6261cc4738b9a0ba7151bc3d9cf9e28aebbf6d3c	not-for-merge	'refs/pull/409/head' of https://github.com/huggingface/swift-transformers
+ae7405b808bc94835c86c7a9bc1023bd6728f8ce	not-for-merge	'refs/pull/409/merge' of https://github.com/huggingface/swift-transformers
+80926360cae87d66b9c14793ae2838231122f5b0	not-for-merge	'refs/pull/41/head' of https://github.com/huggingface/swift-transformers
+445e2ab7ef89fd5e508e55d6a34eba4b1eac9c17	not-for-merge	'refs/pull/410/head' of https://github.com/huggingface/swift-transformers
+ae2e71894f99178601f1deee8c348bd7833b18d7	not-for-merge	'refs/pull/410/merge' of https://github.com/huggingface/swift-transformers
+712fd04a43a95e5de1b815426af1e9469aff6096	not-for-merge	'refs/pull/411/head' of https://github.com/huggingface/swift-transformers
+572ca57f96fbe6405eff29262b494adab988d6df	not-for-merge	'refs/pull/411/merge' of https://github.com/huggingface/swift-transformers
+1e6b4cce144abaa5cd16429515472d94f47383dc	not-for-merge	'refs/pull/413/head' of https://github.com/huggingface/swift-transformers
+0c9dbd1d7546879e4000fcbcc1ae3a576140ca79	not-for-merge	'refs/pull/413/merge' of https://github.com/huggingface/swift-transformers
+863f785e085e2e03f7e09d5d5701cd47f51bb133	not-for-merge	'refs/pull/414/head' of https://github.com/huggingface/swift-transformers
+ce16aef954e0d7158503d30bc2e372a161eee3bf	not-for-merge	'refs/pull/414/merge' of https://github.com/huggingface/swift-transformers
+10a2ade7b1388e654dc82e2db05e69a0c216e052	not-for-merge	'refs/pull/43/head' of https://github.com/huggingface/swift-transformers
+629e9ce48fc523b348f0f2cad81099abfc5f09b3	not-for-merge	'refs/pull/45/head' of https://github.com/huggingface/swift-transformers
+103012c6605f020b09539d459b9ee3fe7b977d24	not-for-merge	'refs/pull/46/head' of https://github.com/huggingface/swift-transformers
+1b86bec105ae3fa29499ef7c213566c03bda843b	not-for-merge	'refs/pull/48/head' of https://github.com/huggingface/swift-transformers
+2a2f4395efba27d3e3dd249e59f27616a225e2c2	not-for-merge	'refs/pull/49/head' of https://github.com/huggingface/swift-transformers
+ecd46e8fa6435516fb8c81dd302cbcf5f9a848b1	not-for-merge	'refs/pull/50/head' of https://github.com/huggingface/swift-transformers
+8882f29d692e291fecdcf574e0343eb5f0c3c6e7	not-for-merge	'refs/pull/52/head' of https://github.com/huggingface/swift-transformers
+e54ca4b1b8ee6b93115360edd9b723cfd8e7b483	not-for-merge	'refs/pull/53/head' of https://github.com/huggingface/swift-transformers
+5cc8ac715d4e5f287d2f4883bac2f0b195b09a4e	not-for-merge	'refs/pull/54/head' of https://github.com/huggingface/swift-transformers
+97718a051582290fe3841f05d51f20f7c990a89b	not-for-merge	'refs/pull/57/head' of https://github.com/huggingface/swift-transformers
+1b591fca25c012ecd6ce0be259d3c92a9a653fb5	not-for-merge	'refs/pull/60/head' of https://github.com/huggingface/swift-transformers
+c3a6d49ddc434bb576d08c86b97cd8161af25261	not-for-merge	'refs/pull/62/head' of https://github.com/huggingface/swift-transformers
+8b4b314cf1392c756565249f4640db6a5981cb0a	not-for-merge	'refs/pull/64/head' of https://github.com/huggingface/swift-transformers
+6565be18500711e45af01d784d8392511d30d625	not-for-merge	'refs/pull/65/head' of https://github.com/huggingface/swift-transformers
+14c215c329b74a77bdde98f1a8b29c59c53fe32a	not-for-merge	'refs/pull/67/head' of https://github.com/huggingface/swift-transformers
+4e1e1f6893a7bead4c7fdcd02b7f1d20f2114e64	not-for-merge	'refs/pull/68/head' of https://github.com/huggingface/swift-transformers
+36b33fb4ee3b09e957d97a7257b2f8c1eb77bfa1	not-for-merge	'refs/pull/69/head' of https://github.com/huggingface/swift-transformers
+69a3efed5b489b6556b71cdd5cec72b6760bace1	not-for-merge	'refs/pull/70/head' of https://github.com/huggingface/swift-transformers
+ef2a8d9d9937c1068b75fe45658375d8ed593027	not-for-merge	'refs/pull/73/head' of https://github.com/huggingface/swift-transformers
+bc6c0c018ccebcb6cb8d2b8b2b2a6ff7698607c0	not-for-merge	'refs/pull/74/head' of https://github.com/huggingface/swift-transformers
+c90527f2df37c8de90ea33d7030ab342a20191be	not-for-merge	'refs/pull/75/head' of https://github.com/huggingface/swift-transformers
+f6b5125948bb9d943ad645a58fdf5c9173fff766	not-for-merge	'refs/pull/77/head' of https://github.com/huggingface/swift-transformers
+ec0b700409802ab15e7b6a83221de378b4efe745	not-for-merge	'refs/pull/80/head' of https://github.com/huggingface/swift-transformers
+800353c1bc1c393f51bfba0d1eba6ce5f636bb65	not-for-merge	'refs/pull/81/head' of https://github.com/huggingface/swift-transformers
+149fdc6e909f63d3dbd22c939866a8f0d8313be0	not-for-merge	'refs/pull/82/head' of https://github.com/huggingface/swift-transformers
+754f47ea1ea0628114c6e11f9b2dccad0ec27fb5	not-for-merge	'refs/pull/83/head' of https://github.com/huggingface/swift-transformers
+1d822fceb6d7971b9bc4ec6b070e61687f4b14b7	not-for-merge	'refs/pull/85/head' of https://github.com/huggingface/swift-transformers
+f8d57e178333ee89f54ac2385a478c5ba1296eb7	not-for-merge	'refs/pull/86/head' of https://github.com/huggingface/swift-transformers
+b4bb3fe3750e723983d2bd9763b80540bb99b1d1	not-for-merge	'refs/pull/87/head' of https://github.com/huggingface/swift-transformers
+89fb5d97e1df347f9f588f62fc538dcad6fdb16c	not-for-merge	'refs/pull/89/head' of https://github.com/huggingface/swift-transformers
+6dc878425f5cf99680d221a98f8230ef5af97676	not-for-merge	'refs/pull/90/head' of https://github.com/huggingface/swift-transformers
+15173b09365c4e4b9aef409ec394e1031856860a	not-for-merge	'refs/pull/91/head' of https://github.com/huggingface/swift-transformers
+c5b0160cb89655ebffed1545a81d9a7041e8610b	not-for-merge	'refs/pull/93/head' of https://github.com/huggingface/swift-transformers
+74f3ed46d6bedbe879944647f807bd175f9ee98b	not-for-merge	'refs/pull/94/head' of https://github.com/huggingface/swift-transformers
+bb61cbb5b87a471b32462545af1e909c2e57dc71	not-for-merge	tag '0.1.0' of https://github.com/huggingface/swift-transformers
+5e4031ee16afd10d208c1aee9b49f4def6ca5264	not-for-merge	tag '0.1.1' of https://github.com/huggingface/swift-transformers
+5d89b5d9ab5a25d4337c42dbc559d391c966c912	not-for-merge	tag '0.1.10' of https://github.com/huggingface/swift-transformers
+104e8ceb1bb714c4aa1619fa20bdfeb537433492	not-for-merge	tag '0.1.11' of https://github.com/huggingface/swift-transformers
+0f2306713d48a75b862026ebb291926793773f52	not-for-merge	tag '0.1.12' of https://github.com/huggingface/swift-transformers
+4d25d20e49d2269aec1556231f8e278db7b2a4f0	not-for-merge	tag '0.1.13' of https://github.com/huggingface/swift-transformers
+d42fdae473c49ea216671da8caae58e102d28709	not-for-merge	tag '0.1.14' of https://github.com/huggingface/swift-transformers
+8a83416cc00ab07a5de9991e6ad817a9b8588d20	not-for-merge	tag '0.1.15' of https://github.com/huggingface/swift-transformers
+ff8174964ba9ea2519ee1c1a09adefdfa22ea6f1	not-for-merge	tag '0.1.16' of https://github.com/huggingface/swift-transformers
+55710ddfb1ae804b4b7ce973be75cf2e41272185	not-for-merge	tag '0.1.17' of https://github.com/huggingface/swift-transformers
+be855fac725dbae27264e47a3eb535cc422a4ba8	not-for-merge	tag '0.1.18' of https://github.com/huggingface/swift-transformers
+a0d81c83253fe6cc8ffc5b677f1c352c740a9321	not-for-merge	tag '0.1.19' of https://github.com/huggingface/swift-transformers
+564442fba36b0b694d730a62d0593e5f54043b55	not-for-merge	tag '0.1.2' of https://github.com/huggingface/swift-transformers
+940a4fac109d7d68817b22382de4894a8ea945c3	not-for-merge	tag '0.1.20' of https://github.com/huggingface/swift-transformers
+daca7920b2b6019c0b5bae7e96e62a410d463a61	not-for-merge	tag '0.1.21' of https://github.com/huggingface/swift-transformers
+e5bf0627bd134cf8ddc407cda403ae84207af959	not-for-merge	tag '0.1.22' of https://github.com/huggingface/swift-transformers
+ed54f3c9589d6cdc6fc2bb810e4809b0735fee01	not-for-merge	tag '0.1.23' of https://github.com/huggingface/swift-transformers
+f000aa7aec0e78acd0211685e4094e1fca84cd8b	not-for-merge	tag '0.1.24' of https://github.com/huggingface/swift-transformers
+24605a8c0cc974bec5b94a6752eb687bae77db31	not-for-merge	tag '0.1.3' of https://github.com/huggingface/swift-transformers
+5105f7238bbb71e66a600408714d52db1c254a7d	not-for-merge	tag '0.1.4' of https://github.com/huggingface/swift-transformers
+3bd02269b7797ade67c15679a575cd5c6f203ce6	not-for-merge	tag '0.1.5' of https://github.com/huggingface/swift-transformers
+4f915610451d29a05948802a140880ff37494dad	not-for-merge	tag '0.1.6' of https://github.com/huggingface/swift-transformers
+74b94211bdc741694ed7e700a1104c72e5ba68fe	not-for-merge	tag '0.1.7' of https://github.com/huggingface/swift-transformers
+fc6543263e4caed9bf6107466d625cfae9357f08	not-for-merge	tag '0.1.8' of https://github.com/huggingface/swift-transformers
+e72d032ed742dcc8b364780ce4e02b25ab7a09b0	not-for-merge	tag '0.1.9' of https://github.com/huggingface/swift-transformers
+a2e184dddb4757bc943e77fbe99ac6786c53f0b2	not-for-merge	tag '1.0.0' of https://github.com/huggingface/swift-transformers
+4870d18b9f7637785891ab3e4c28f3ea489723d7	not-for-merge	tag '1.1.0' of https://github.com/huggingface/swift-transformers
+94610577e4af9bbc267060af1e25e977604dd796	not-for-merge	tag '1.1.1' of https://github.com/huggingface/swift-transformers
+d363e83a77bafe144808a3d01556139fe67cd8bc	not-for-merge	tag '1.1.2' of https://github.com/huggingface/swift-transformers
+18ccbd247eb4bf35a0ea98aab3b95ca255f09376	not-for-merge	tag '1.1.3' of https://github.com/huggingface/swift-transformers
+296c0e901c6b37164af82c57bbdcc0d69190f5ce	not-for-merge	tag '1.1.4' of https://github.com/huggingface/swift-transformers
+deea50c380b07535c81f838d10e1efcc8f9019bb	not-for-merge	tag '1.1.5' of https://github.com/huggingface/swift-transformers
+573e5c9036c2f136b3a8a071da8e8907322403d0	not-for-merge	tag '1.1.6' of https://github.com/huggingface/swift-transformers
+3aecdf18e62303fb5a5543f8e87502b13474573f	not-for-merge	tag '1.1.7' of https://github.com/huggingface/swift-transformers
+f3d5cbfa653dd248ae8c92313453d5fdcfdf049e	not-for-merge	tag '1.1.8' of https://github.com/huggingface/swift-transformers
+150169bfba0889c229a2ce7494cf8949f18e6906	not-for-merge	tag '1.1.9' of https://github.com/huggingface/swift-transformers
+eed7264ac5e4ec5dfa6165c6e5c5577364344fe4	not-for-merge	tag '1.2.0' of https://github.com/huggingface/swift-transformers
+58c4bc11963a140358d791f678a60a2745a23146	not-for-merge	tag '1.2.1' of https://github.com/huggingface/swift-transformers
+b38443e44d93eca770f2eb68e2a4d0fa100f9aa2	not-for-merge	tag '1.3.0' of https://github.com/huggingface/swift-transformers
+3f85b5c7e889c57465aea4e5842376a8abada344	not-for-merge	tag '1.3.1' of https://github.com/huggingface/swift-transformers
+349a7ce54ccb8ebe4bc10c2022e9806f01adb7c6	not-for-merge	tag '1.3.2' of https://github.com/huggingface/swift-transformers
+2fa33e1f5e7131a7fc64c28e6d161dcec0d24820	not-for-merge	tag '1.3.3' of https://github.com/huggingface/swift-transformers
+c21fdcde390313a6d98d8e33a346f2c3486c3ab0	not-for-merge	tag '1.3.4' of https://github.com/huggingface/swift-transformers
+48473106a93b2d8dfb114b82f0628ebbb71734e7	not-for-merge	tag '1.3.5' of https://github.com/huggingface/swift-transformers
