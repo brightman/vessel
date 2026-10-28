@@ -15,6 +15,7 @@ enum DaybookPlaces {
             text: note.transcript, summary: note.summary, duration: note.duration)
         record.captureDevice = note.origin?.device ?? "设备未知"
         record.location = note.location
+        record.recordingGroupID = note.recordingGroupID
         return record
     }
     static func photo(_ moment: PhotoMoment) -> DayRecord {

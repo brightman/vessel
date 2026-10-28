@@ -2,6 +2,25 @@ import Foundation
 
 /// Pure conversion; lightweight persisted provenance remains independent of processing types.
 enum ContentSegmentPresentation {
+    struct FieldGenerationCounts: Equatable {
+        let eligible: Int
+        let complete: Int
+    }
+
+    /// Mirrors generateMissingFields: low-information classifications do not get
+    /// display fields; unclassified short recordings remain eligible.
+    static func fieldGenerationCounts(_ segments: [ContentSegment]) -> FieldGenerationCounts {
+        let eligible = segments.filter {
+            $0.isFinal && $0.hasText &&
+                ($0.editorial == nil || $0.editorial?.classification == ContentSegmentClassification.meaningful.rawValue)
+        }
+        let complete = eligible.filter {
+            !$0.title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty &&
+                !$0.summary.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
+        }.count
+        return .init(eligible:eligible.count,complete:complete)
+    }
+
     /// Raw long audio is a library asset, not a timeline event. Empty/no-speech
     /// segments remain in storage for provenance and playback but are not events.
     /// Direct recordings up to 30 minutes need final ASR/VAD and readable text, but

@@ -2,6 +2,35 @@ import AVFAudio
 import Foundation
 import Darwin
 
+/// Durable local capture checkpoint for an hourly recording file.
+struct RecordingCaptureContext: Codable {
+    let sessionID: UUID
+    let startedAt: Date
+    let timeZoneIdentifier: String
+    let origin: RecordingOrigin
+    var location: CaptureLocation?
+}
+
+struct RecordingCaptureIntent: Codable {
+    let id: UUID
+    var context: RecordingCaptureContext
+    let ordinal: Int
+    let sessionStartOffset: Double
+    var effectiveFrames: Int64
+
+    var capturedAt: Date { context.startedAt.addingTimeInterval(sessionStartOffset) }
+    var partialFilename: String {
+        RecordingChunkFileIdentity.partialFilename(groupID: context.sessionID, ordinal: ordinal, capturedAt: capturedAt)
+    }
+    func descriptor(info: RecordingAudioFileInfo, frames: Int64? = nil) -> RecordingChunkDescriptor {
+        .init(id: id, sessionID: context.sessionID, ordinal: ordinal, sessionStartedAt: context.startedAt,
+              capturedAt: capturedAt, timeZoneIdentifier: context.timeZoneIdentifier,
+              sessionStartOffset: sessionStartOffset, frameCount: frames ?? effectiveFrames,
+              sampleRate: RecordingSessionFileLimits.captureSampleRate, byteCount: info.byteCount,
+              sha256: info.sha256, origin: context.origin, location: context.location)
+    }
+}
+
 enum RecordingStorageCapacity {
     // Best-effort safety margins, never an OS reservation or an ENOSPC guarantee.
     static let warningBytes: Int64 = 32 * 1024 * 1024
@@ -36,8 +65,10 @@ final class RecordingChunkWriter {
     private var stopped = false
     private(set) var effectiveFrames: Int64 = 0
     private let scratch: AVAudioPCMBuffer
-    static let sampleRate = RecordingChunkProtocol.captureSampleRate
-    static let framesPerChunk = RecordingChunkProtocol.maximumChunkFrames
+    static let sampleRate = RecordingSessionFileLimits.captureSampleRate
+    // Long recordings are ordinary one-hour files. Audio capture stays active while
+    // the AAC writer rotates, so the boundary does not restart the microphone engine.
+    static let framesPerChunk = Int64(60 * 60) * Int64(sampleRate)
 
     init(sessionID: UUID, root: URL, startedAt: Date = .now,
          origin: RecordingOrigin = .init(device: "Watch", deviceID: "synthetic", fileName: "continuous-capture", recordingTimeIsEstimated: false),
@@ -53,10 +84,6 @@ final class RecordingChunkWriter {
         guard initialCapacity > RecordingStorageCapacity.stopBytes else { throw SegmentedAudioCapture.Failure.lowStorage }
         if initialCapacity <= RecordingStorageCapacity.warningBytes { warnedAboutStorage = true; onStorageWarning() }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let contextURL = root.appendingPathComponent("capture-context.json")
-        try RecordingAudioFile.requireSafePath(contextURL)
-        guard !FileManager.default.fileExists(atPath: contextURL.path) else { throw Failure.invalidBuffer }
-        try JSONEncoder().encode(context).write(to: contextURL, options: .atomic)
         scratch = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: Self.sampleRate, channels: 1)!, frameCapacity: 8192)!
     }
 
@@ -75,16 +102,21 @@ final class RecordingChunkWriter {
         let slices = try RecordingFramePartition.split(inputStartFrame: effectiveFrames, frameCount: Int64(pcm.frameLength), framesPerChunk: Self.framesPerChunk)
         for slice in slices {
             if file == nil {
+                guard slice.ordinal <= RecordingSessionFileLimits.maximumOrdinal else { throw Failure.invalidBuffer }
                 ordinal = slice.ordinal
-                intent = .init(id: UUID(), context: context, ordinal: ordinal, sessionStartOffset: Double(effectiveFrames) / Self.sampleRate, effectiveFrames: 0)
+                intent = .init(id: RecordingChunkFileIdentity.stableID(groupID: sessionID, ordinal: ordinal), context: context, ordinal: ordinal, sessionStartOffset: Double(effectiveFrames) / Self.sampleRate, effectiveFrames: 0)
                 checkpointFrames = 0
                 let url = root.appendingPathComponent(intent!.partialFilename)
                 try RecordingAudioFile.requireSafePath(url)
                 guard !FileManager.default.fileExists(atPath: url.path) else { throw Failure.invalidBuffer }
                 partial = url
                 try checkpoint()
-                file = try AVAudioFile(forWriting: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: Self.sampleRate, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000])
-                partial = url
+                file = try AVAudioFile(forWriting: url, settings: [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: Self.sampleRate,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderBitRateKey: 32_000
+                ])
             }
             scratch.frameLength = AVAudioFrameCount(slice.frameCount)
             scratch.floatChannelData![0].update(from: channel.advanced(by: Int(slice.inputOffset)), count: Int(slice.frameCount))
@@ -103,34 +135,42 @@ final class RecordingChunkWriter {
 
     func updateLocation(_ location: CaptureLocation) throws {
         context.location = location
-        let contextURL = root.appendingPathComponent("capture-context.json")
-        try RecordingAudioFile.requireSafePath(contextURL)
-        try JSONEncoder().encode(context).write(to: contextURL, options: .atomic)
         if intent != nil { intent?.context = context; try checkpoint() }
     }
 
     private func checkpoint() throws {
         guard let partial, intent != nil else { return }
         intent?.effectiveFrames = chunkFrames
-        let journal = partial.appendingPathExtension("capture.json")
+        let journal = partial.appendingPathExtension("capture.plist")
         try RecordingAudioFile.requireSafePath(journal)
-        try JSONEncoder().encode(intent!).write(to: journal, options: .atomic)
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        try encoder.encode(intent!).write(to: journal, options: .atomic)
         checkpointFrames = chunkFrames
     }
 
     private func seal() throws {
         guard let url = partial, chunkFrames > 0 else { return }
-        file = nil // Close AAC and its packet table before inspecting bytes.
+        file = nil // Close AAC and its packet table before embedding metadata or inspecting bytes.
+        try RecordingChunkFileMetadata.embed(groupID: intent!.context.sessionID, ordinal: intent!.ordinal,
+                                              capturedAt: intent!.capturedAt, audioURL: url)
         let info = try RecordingAudioFile.inspect(url)
         try checkpoint()
         let descriptor = intent!.descriptor(info: info)
         _ = try RecordingAudioFile.validate(descriptor, at: url)
         try onSeal(descriptor, url)
-        // Delete the temporary only after the caller durably sealed its descriptor.
-        try FileManager.default.removeItem(at: url)
-        try FileManager.default.removeItem(at: url.appendingPathExtension("capture.json"))
+        // The seal callback may move the M4A into its durable destination.
+        // Delete the source only if the callback left it in place.
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        let journal = url.appendingPathExtension("capture.plist")
+        if FileManager.default.fileExists(atPath: journal.path) {
+            try FileManager.default.removeItem(at: journal)
+        }
         partial = nil; intent = nil; chunkFrames = 0
     }
+
 }
 
 /// Bounded preallocated handoff. The tap never waits, allocates a buffer, opens a

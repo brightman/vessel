@@ -16,7 +16,7 @@ struct TranscriptionSettingsView: View {
         }) {
             VStack(spacing: 0) {
                 ModelChoice(title: "iPhone端上转写", badge: "推荐 · 本机",
-                    description: "iPhone系统语音模型，无需API Key，支持单语言转写，按需下载系统语言包",
+                    description: "优先使用 SpeechTranscriber，设备或语言不支持时回退 DictationTranscriber；均在本机运行",
                     selected: editor.configuration.engine == .apple) { editor.configuration.engine = .apple }
                 ModelChoice(title: "Whisper", badge: "本机",
                     description: "下载多语言模型后离线转写，可指定语言或自动检测，无需逐语言下载。",
@@ -36,7 +36,7 @@ struct TranscriptionSettingsView: View {
                             DaybookSettingsMenuLabel(text: editor.languages.first(where: { $0.id == editor.configuration.appleLocale })?.title ?? "请选择语言")
                         }.disabled(editor.languages.isEmpty).accessibilityLabel("转写语言")
                     }
-                    SettingsFootnote(text: "一次选择一种语言。系统已有语言资源可以复用，缺少时按需下载。")
+                    SettingsFootnote(text: "一次选择一种语言。SpeechTranscriber 优先，DictationTranscriber 备用；系统会复用已有资源并按需下载缺少的语言资源。")
                         .padding(.top, -5)
                 } else {
                     DaybookSettingsField("模型大小") {
@@ -68,7 +68,7 @@ struct TranscriptionSettingsView: View {
             resourceStatus.padding(.vertical, 20)
             SettingsFootnote(text: "转写、说话人和我的声音资源会一并下载，已有资源直接复用。声音登记后可在本机匹配我的发言。请保持页面打开，关闭或切换资源会取消下载，已完成的部分会保留。")
             SettingsFootnote(text: editor.configuration.engine == .apple
-                ? "语言包由系统管理；说话人与声纹模型来自 Argmax / FluidInference 公共仓库。音频留在本机。"
+                ? "Speech 与 Dictation 语言资源由 iOS 管理；说话人与声纹模型来自 Argmax / FluidInference 公共仓库。音频留在本机。"
                 : "模型来自 Hugging Face 上的 Argmax / OpenAI / FluidInference 公共仓库。下载后在本机处理，录音不会上传。")
                 .padding(.top, 10)
             Link("说话人模型：Argmax / pyannote · CC BY 4.0", destination: URL(string: "https://huggingface.co/argmaxinc/speakerkit-coreml")!)

@@ -158,16 +158,19 @@ struct RecordingSessionDetailView: View {
                     Label("确认并继续 AI 整理", systemImage: "lock.open")
                 }.buttonStyle(DaybookSecondaryButtonStyle())
             }
+            if let error = audioProcessing.reprocessingErrors[sourceID] {
+                Text(error).font(.system(size: 11)).foregroundStyle(DaybookStyle.red)
+            }
             Button {
                 enrichmentError = nil
                 audioProcessing.reprocess(sourceID)
             } label: {
-                Label("重新处理", systemImage: "arrow.clockwise")
+                Label(audioProcessing.reprocessingSources.contains(sourceID) ? "正在加入处理队列…" : "重新处理", systemImage: "arrow.clockwise")
                     .font(.system(size: 11, weight: .semibold))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(DaybookPrimaryButtonStyle(wide: true))
-            .disabled((detail?.ranges.isEmpty ?? true) || audioProcessing.statuses[sourceID]?.progress.states[.running, default: 0] ?? 0 > 0)
+            .disabled(audioProcessing.reprocessingSources.contains(sourceID) || (detail?.ranges.isEmpty ?? true) || audioProcessing.statuses[sourceID]?.progress.states[.running, default: 0] ?? 0 > 0)
         }
         .padding(15)
         .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 16))
@@ -311,13 +314,32 @@ struct RecordingSessionDetailView: View {
         return "历史模型未记录 · 当前 \(settings.transcriptionLabel)"
     }
 
+    private var topicStageDisposition:ContentSegmentationV2.LongRecordingTopicPolicy.StageDisposition {
+        guard let session=detail?.session ?? sessions.session(sessionID),session.recordedDuration > 0 else { return .waitingForSourceCompletion }
+        return ContentSegmentationV2.LongRecordingTopicPolicy.stageDisposition(
+            duration:session.recordedDuration,sourceComplete:session.syncComplete)
+    }
+
+    private func vadStep(progress:AudioStageProgress?,total:Int,live:Bool,pending:Bool) -> RecordingProcessingStep {
+        switch topicStageDisposition {
+        case .skippedWholeRecording:
+            let hadHistoricalResult=(progress?.success ?? 0)+(progress?.failed ?? 0)+(progress?.missingResource ?? 0)>0
+            return .init(id:"vad",title:"语音活动检测",detail:hadHistoricalResult ? "旧批次已运行；重新处理时跳过" : "短录音跳过 VAD",state:.skipped)
+        case .waitingForSourceCompletion:
+            return .init(id:"vad",title:"语音活动检测",detail:"完整同步后按总时长决定是否运行",state:.waiting)
+        case .processTopics:
+            if let progress { return stageStep("vad",title:"语音活动检测",progress:progress,total:total,live:live,pending:pending) }
+            return .init(id:"vad",title:"语音活动检测",detail:"等待处理",state:.waiting)
+        }
+    }
+
     private var processingSteps: [RecordingProcessingStep] {
         guard let status = processingStatus else {
             return [
                 .init(id: "asr", title: "语音转写", detail: "等待本机处理状态", state: .waiting),
-                .init(id: "vad", title: "语音活动检测", detail: "等待处理", state: .waiting),
+                vadStep(progress:nil,total:0,live:false,pending:false),
                 .init(id: "speaker", title: "说话人分析", detail: "等待处理", state: .waiting),
-                .init(id: "topics", title: "主题拆分与分类", detail: "等待处理", state: .waiting),
+                .init(id: "topics", title: "主题拆分与分类", detail: topicStageDisposition == .skippedWholeRecording ? "短录音保留为整段；跳过主题拆分与 AI 分类" : "等待处理", state: topicStageDisposition == .skippedWholeRecording ? .skipped : .waiting),
                 .init(id: "fields", title: "标题与摘要", detail: "等待处理", state: .waiting)
             ]
         }
@@ -326,18 +348,23 @@ struct RecordingSessionDetailView: View {
         let pending = status.progress.states[.pending, default: 0] > 0
         let asr = stageStep("asr", title: "语音转写", progress: status.asr, total: windowCount, live: live, pending: pending,
             successDetail: transcriptSpans.isEmpty ? "\(status.asr.success) 个窗口完成 · 未识别到文字" : "\(status.asr.success) 个窗口完成 · 全文可查看")
-        let vad = stageStep("vad", title: "语音活动检测", progress: status.vad, total: windowCount, live: live, pending: pending)
+        let vad = vadStep(progress:status.vad,total:windowCount,live:live,pending:pending)
         let speaker = stageStep("speaker", title: "说话人分析", progress: status.speaker, total: windowCount, live: live, pending: pending, optional: true)
         let current = currentSegments
         let finalized = current.filter(\.isFinal)
         let enrichment = enrichmentStatus
         let totalWindows = status.progress.states.values.reduce(0, +)
-        let audioFinished = totalWindows > 0 &&
-            status.progress.states[.completed, default: 0] == totalWindows &&
-            status.asr.success == totalWindows && status.vad.success == totalWindows
+        let stagesCovered = status.asr.success == totalWindows &&
+            (topicStageDisposition == .skippedWholeRecording || status.vad.success == totalWindows)
+        let audioFinished = totalWindows > 0 && status.progress.states[.completed, default: 0] == totalWindows && stagesCovered
         let topicState: RecordingProcessingStep.State
         let topicDetail: String
-        if enrichment == .failed || enrichment == .unavailable {
+        if topicStageDisposition == .skippedWholeRecording {
+            topicState = .skipped
+            topicDetail = current.contains(where: { $0.editorial != nil }) ? "保留历史分类结果；新规则跳过主题拆分与 AI 分类" : "短录音保留为整段；跳过主题拆分与 AI 分类"
+        } else if topicStageDisposition == .waitingForSourceCompletion {
+            topicState = .waiting; topicDetail = "完整同步后按总时长决定是否拆分主题"
+        } else if enrichment == .failed || enrichment == .unavailable {
             topicState = .failure; topicDetail = enrichment == .unavailable ? "所选整理模型暂不可用" : "主题整理失败，可重新处理"
         } else if enrichment == .running {
             topicState = .running; topicDetail = "正在整理主题与分类"
@@ -355,24 +382,24 @@ struct RecordingSessionDetailView: View {
         }
         let topics = RecordingProcessingStep(id: "topics", title: "主题拆分与分类", detail: topicDetail, state: topicState)
 
-        let withFields = finalized.filter {
-            !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                !$0.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }.count
+        let fieldCounts = ContentSegmentPresentation.fieldGenerationCounts(finalized)
+        let eligibleFields = fieldCounts.eligible
+        let withFields = fieldCounts.complete
         let fieldState: RecordingProcessingStep.State
         let fieldDetail: String
         if enrichment == .failed || enrichment == .unavailable {
             fieldState = .failure; fieldDetail = "标题或摘要整理失败，可重新处理"
         } else if enrichment == .running, let progress = audioProcessing.enrichmentProgress[sourceID], progress.stage == .title || progress.stage == .summary {
             fieldState = .running; fieldDetail = progress.stage == .title ? "正在生成片段标题" : "正在生成片段摘要"
-        } else if !finalized.isEmpty && withFields == finalized.count {
-            fieldState = .success; fieldDetail = "\(withFields) 个片段已有标题和摘要"
+        } else if eligibleFields > 0 && withFields == eligibleFields {
+            fieldState = .success; fieldDetail = "\(withFields) 个可生成片段已有标题和摘要"
         } else if enrichment == .complete && audioFinished {
-            fieldState = .skipped; fieldDetail = finalized.isEmpty ? "等待片段定稿" : "部分片段没有生成标题或摘要"
+            fieldState = .skipped
+            fieldDetail = eligibleFields == 0 ? "没有需要生成标题与摘要的内容片段" : "部分内容片段没有标题或摘要"
         } else if enrichment == .awaitingConsent {
             fieldState = .waiting; fieldDetail = "等待确认后继续"
         } else {
-            fieldState = .waiting; fieldDetail = finalized.isEmpty ? "主题定稿后生成" : "\(withFields) / \(finalized.count) 个片段已有标题和摘要"
+            fieldState = .waiting; fieldDetail = eligibleFields == 0 ? "主题定稿后生成" : "\(withFields) / \(eligibleFields) 个可生成片段已有标题和摘要"
         }
         let fields = RecordingProcessingStep(id: "fields", title: "标题与摘要", detail: fieldDetail, state: fieldState)
         return [asr, vad, speaker, topics, fields]

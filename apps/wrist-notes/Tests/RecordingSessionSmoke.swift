@@ -69,9 +69,9 @@ struct RecordingSessionSmoke {
     static func protocolValidation() throws {
         let valid = descriptor()
         try valid.validate()
-        precondition(valid.audioFilename == "22222222-2222-2222-2222-222222222222_0000.m4a")
-        // Ten-minute descriptors coexist with unchanged old five-minute bytes.
-        let modern = descriptor(frames: 9_600_000)
+        precondition(valid.audioFilename == "22222222-2222-2222-2222-222222222222_0000_20010101T000141Z.m4a")
+        // One independently playable file covers at most one hour.
+        let modern = descriptor(frames: 57_600_000)
         try modern.validate()
         let modernData = try JSONEncoder().encode(modern)
         let modernDecoded = try JSONDecoder().decode(RecordingChunkDescriptor.self, from: modernData)
@@ -82,7 +82,7 @@ struct RecordingSessionSmoke {
         for bad in [descriptor(ordinal: -1), descriptor(ordinal: 100_001), descriptor(started: .init(timeIntervalSinceReferenceDate: .infinity)),
                     descriptor(captured: .init(timeIntervalSinceReferenceDate: .nan)), descriptor(zone: "bogus/zone"),
                     descriptor(offset: -1), descriptor(offset: .infinity), descriptor(frames: 0), descriptor(frames: -1),
-                    descriptor(frames: 9_600_001), descriptor(rate: 0), descriptor(rate: -.infinity), descriptor(rate: .nan),
+                    descriptor(frames: 57_600_001), descriptor(rate: 0), descriptor(rate: -.infinity), descriptor(rate: .nan),
                     descriptor(bytes: 0), descriptor(hash: String(repeating: "z", count: 64)), descriptor(hash: "ab")] {
             mustThrow { try bad.validate() }
         }
@@ -97,16 +97,6 @@ struct RecordingSessionSmoke {
         object["path"] = "/tmp/sender-controlled.m4a"
         let withPath = try JSONDecoder().decode(RecordingChunkDescriptor.self, from: JSONSerialization.data(withJSONObject: object))
         precondition(withPath.audioFilename == valid.audioFilename)
-        let receipt = RecordingChunkReceipt(sessionID: valid.sessionID, chunkID: valid.id, ordinal: 0, sha256: valid.sha256)
-        try receipt.validate()
-        let decodedReceipt = try JSONDecoder().decode(RecordingChunkReceipt.self, from: JSONEncoder().encode(receipt))
-        precondition(decodedReceipt == receipt)
-        mustThrow { try RecordingChunkReceipt(sessionID: valid.sessionID, chunkID: valid.id, ordinal: -1, sha256: valid.sha256).validate() }
-        mustThrow { try RecordingChunkReceipt(sessionID: valid.sessionID, chunkID: valid.id, ordinal: 0, sha256: "bad").validate() }
-        mustThrow { try RecordingChunkReceipt(sessionID: valid.sessionID, chunkID: valid.id, ordinal: 100_001, sha256: valid.sha256).validate() }
-        var invalidReceipt = try JSONSerialization.jsonObject(with: JSONEncoder().encode(receipt)) as! [String: Any]
-        invalidReceipt["sha256"] = "bad"
-        mustThrow { _ = try JSONDecoder().decode(RecordingChunkReceipt.self, from: JSONSerialization.data(withJSONObject: invalidReceipt)) }
         let end = RecordingSessionEnd(sessionID: valid.sessionID, finalOrdinal: nil, endedAt: valid.capturedAt, interrupted: false, revision: 0)
         try end.validate()
         let decodedEnd = try JSONDecoder().decode(RecordingSessionEnd.self, from: JSONEncoder().encode(end))
@@ -114,7 +104,13 @@ struct RecordingSessionSmoke {
         var invalidEnd = try JSONSerialization.jsonObject(with: JSONEncoder().encode(end)) as! [String: Any]
         invalidEnd["revision"] = -1
         mustThrow { _ = try JSONDecoder().decode(RecordingSessionEnd.self, from: JSONSerialization.data(withJSONObject: invalidEnd)) }
-        try descriptor(ordinal: 100_000).validate()
+        try descriptor(ordinal: 9_999).validate()
+        let legacy = descriptor(ordinal: 100_000)
+        try legacy.validate()
+        precondition(legacy.audioFilename == "22222222-2222-2222-2222-222222222222_100000.m4a")
+        let legacyRoundTrip = try JSONDecoder().decode(RecordingChunkDescriptor.self, from: JSONEncoder().encode(legacy))
+        precondition(legacyRoundTrip == legacy)
+        try RecordingSessionEnd(sessionID: valid.sessionID, finalOrdinal: 100_000, endedAt: valid.capturedAt, interrupted: false, revision: 0).validate()
         mustThrow { try RecordingSessionEnd(sessionID: valid.sessionID, finalOrdinal: 100_001, endedAt: valid.capturedAt, interrupted: false, revision: 0).validate() }
         mustThrow { try RecordingSessionEnd(sessionID: valid.sessionID, finalOrdinal: -1, endedAt: valid.capturedAt, interrupted: false, revision: 0).validate() }
         mustThrow { try RecordingSessionEnd(sessionID: valid.sessionID, finalOrdinal: 0, endedAt: valid.capturedAt, interrupted: false, revision: -1).validate() }

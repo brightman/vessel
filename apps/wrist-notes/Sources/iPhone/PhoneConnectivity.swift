@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import os
 import WatchConnectivity
@@ -9,44 +10,36 @@ struct IncomingRecording: Codable {
     let duration: TimeInterval
     var location: CaptureLocation? = nil
     var pairingID: String? = nil
-}
-
-private struct SimulatorIncomingRecording {
-    let metadata: IncomingRecording
-    let chunkCount: Int
-    var assembler = SimulatorAudioChunkAssembler()
+    var recordingGroupID: UUID? = nil
+    var recordingGroupOrdinal: Int? = nil
+    var recordingGroupOffset: TimeInterval? = nil
+    var recordingOrigin: RecordingOrigin? = nil
 }
 
 final class PhoneConnectivity: NSObject, WCSessionDelegate {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "cloud.karama.wisenote", category: "WatchConnectivity")
     private let inbox: URL
     private let syncDatabaseURL: URL
+    private let diagnosticsURL: URL
+    private let diagnosticsLock = NSLock()
+    private var diagnosticEvents: [PhoneTransferDiagnosticEvent] = []
+    private let statusSnapshotLock = NSLock()
+    private var latestStatus = PhoneWatchStatus()
+    private var hasStatusSnapshot = false
     private let sendAcknowledgement: ((UUID) -> Bool)?
-    private let transportLock = NSRecursiveLock()
-    private var chunkSystemPairingID: String?
-    private var chunkReceiver: RecordingChunkReceiver!
-    private var receiptRetryTimer: Timer?
     private var locationObservation: NSObjectProtocol?
-    private var simulatorTransfers: [UUID: SimulatorIncomingRecording] = [:]
-#if targetEnvironment(simulator)
-    private var simulatorChunkAssembler = SimulatorChunkedFileAssembler()
-#endif
     private let failureLock = NSLock()
     private let contextLock = NSLock()
     private var localSaveFailures: [String: Set<UUID>] = [:]
     var onReceive: ((IncomingRecording, URL) -> Void)?
     var onStatusChange: ((PhoneWatchStatus) -> Void)?
 
-    /// The same aggregate used in the visible status; exposed internally for
-    /// lifecycle verification without relying on a simulator's installed Watch.
-    var recordingSaveFailed: Bool {
-        guard let binding = chunkReceiver?.currentBinding else { return false }
-        return chunkReceiver.saveFailed(for: binding.counterpart)
-    }
-
     func refreshStatus() {
         guard WCSession.isSupported() else {
-            onStatusChange?(PhoneWatchStatus(isSupported: false))
+            var status = PhoneWatchStatus(isSupported: false)
+            status.diagnosticEvents = diagnosticSnapshot()
+            statusSnapshotLock.withLock { latestStatus = status; hasStatusSnapshot = true }
+            onStatusChange?(status)
             return
         }
         let session = WCSession.default
@@ -56,6 +49,7 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             isPaired: isPaired, isInstalled: isPaired && session.isWatchAppInstalled,
             isActivated: isActivated, isReachable: isPaired && session.isReachable
         )
+        status.diagnosticEvents = diagnosticSnapshot()
         if status.isInstalled, let pairingID = activePairingID {
             status.phoneSaveFailed = failureLock.withLock { !(localSaveFailures[pairingID] ?? []).isEmpty }
             let snapshot = WatchSyncSnapshot.decode(session.receivedApplicationContext)
@@ -69,31 +63,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                 }
                 let summary = try store.read(pairingID: pairingID)
                 status.pendingCount = summary.pendingCount
-                if let binding = currentChunkBinding {
-                    if let snapshot = WatchSessionSyncSnapshot.decode(session.receivedApplicationContext, binding: binding) {
-                        try store.apply(snapshot, counterpartID: binding.counterpart.key)
-                    }
-                    let sessions = try store.readSessions(counterpartID: binding.counterpart.key)
-                    if let count = sessions.pendingCount { status.pendingCount = (status.pendingCount ?? 0) + count }
-                    status.recordingTransfers = sessions.sessionTransfers.map { transfer in
-                        PhoneWatchStatus.TransferRow(
-                            sessionID: transfer.sessionID,
-                            receivedChunkCount: transfer.receivedChunkCount,
-                            totalChunkCount: transfer.totalChunkCount,
-                            phase: transfer.phase,
-                            transferringChunkOrdinal: transfer.transferringChunkOrdinal,
-                            currentChunkFraction: transfer.currentChunkFraction,
-                            reportedAt: transfer.reportedAt,
-                            isComplete: transfer.isComplete
-                        )
-                    }
-                    status.lastSyncedAt = [summary.lastSyncedAt, sessions.lastSyncedAt].compactMap { $0 }.max()
-                    status.reportedAt = [summary.reportedAt, sessions.reportedAt].compactMap { $0 }.max()
-                } else {
-                    status.lastSyncedAt = summary.lastSyncedAt
-                    status.reportedAt = summary.reportedAt
-                }
-                status.phoneSaveFailed = status.phoneSaveFailed || recordingSaveFailed
+                status.lastSyncedAt = summary.lastSyncedAt
+                status.reportedAt = summary.reportedAt
                 status.transferFailureCount = summary.transferFailureCount
                 status.missingFileCount = summary.missingFileCount
             } catch {
@@ -101,57 +72,25 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                 logger.error("Watch sync status storage temporarily unavailable: \(error.localizedDescription, privacy: .public)")
             }
         }
+        statusSnapshotLock.withLock { latestStatus = status; hasStatusSnapshot = true }
         onStatusChange?(status)
     }
 
-    init(inbox: URL, sendAcknowledgement: ((UUID) -> Bool)? = nil, recordingReceiver suppliedRecordingReceiver: RecordingChunkReceiver? = nil) throws {
+    init(inbox: URL, sendAcknowledgement: ((UUID) -> Bool)? = nil) throws {
         self.inbox = inbox
         self.syncDatabaseURL = DaybookDatabase.metadataURL(forRoot: inbox.deletingLastPathComponent())
+        self.diagnosticsURL = syncDatabaseURL.deletingLastPathComponent().appendingPathComponent("watch-transfer-diagnostics.json")
         self.sendAcknowledgement = sendAcknowledgement
         super.init()
-        let sessionRoot = inbox.deletingLastPathComponent().appendingPathComponent("RecordingSessions", isDirectory: true)
-        let metadataURL = syncDatabaseURL
-        chunkReceiver = try suppliedRecordingReceiver ?? RecordingChunkReceiver(root: inbox.appendingPathComponent("RecordingV2", isDirectory: true), openRepository: {
-            try RecordingSessionRepository(root: sessionRoot, database: DaybookDatabase(url: metadataURL))
-        }, send: { [weak self] acknowledgement in
-            guard let self else { throw RecordingTransportError.unavailable }
-            try self.transportLock.withLock {
-                guard self.currentChunkBinding == acknowledgement.binding else { throw RecordingTransportError.unavailable }
-                let message = try acknowledgement.message()
-                let session = WCSession.default
-                let queueDurably = {
-                    guard !session.outstandingUserInfoTransfers.contains(where: { transfer in
-                        message.allSatisfy { key, value in (transfer.userInfo[key] as? Data) == (value as? Data) }
-                    }) else { return }
-                    session.transferUserInfo(message)
-                }
-                RecordingReachableMessageDelivery.submit(isReachable: session.isReachable, sendImmediately: { completion in
-                    session.sendMessage(message, replyHandler: { reply in
-                        completion(reply["accepted"] as? Bool == true)
-                    }, errorHandler: { _ in completion(false) })
-                }, queue: queueDurably)
-            }
-        }, retainUntilDelivery: true, committed: { [weak self] acknowledgement in
-            guard let self else { throw RecordingTransportError.unavailable }
-            let store = try self.syncStore()
-            switch acknowledgement {
-            case .chunk(let value): try store.recordSaved(value.payload, counterpartID: value.binding.counterpart.key)
-            case .location: break // Location receipts do not claim audio coverage.
-            case .end(let value): try store.recordEnd(value.payload, counterpartID: value.binding.counterpart.key)
-            }
-        })
-        chunkReceiver.onFailure = { [weak self] error in
-            guard let self else { return }
-            self.logger.error("V2 import retained for retry: \(error.localizedDescription, privacy: .public)")
+        if let data = try? Data(contentsOf: diagnosticsURL),
+           let stored = try? JSONDecoder().decode([PhoneTransferDiagnosticEvent].self, from: data) {
+            diagnosticEvents = Array(stored.prefix(20))
         }
-        chunkReceiver.onStatusChange = { [weak self] in
-            DispatchQueue.main.async { [weak self] in self?.refreshStatus() }
-        }
-        receiptRetryTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.resumeRecordingInbox() }
         locationObservation = NotificationCenter.default.addObserver(forName: CaptureLocationSettings.changed, object: nil, queue: .main) { [weak self] _ in self?.syncLocationPreference() }
         // Reception activation must survive protected storage being temporarily unavailable.
         do { try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true) }
         catch { logger.error("Inbox temporarily unavailable: \(error.localizedDescription, privacy: .public)") }
+        recordDiagnostic("iPhone 接收服务启动", "WatchConnectivity 初始化中")
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             logger.notice("Phone session activating")
@@ -162,88 +101,49 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     }
 
     deinit {
-        receiptRetryTimer?.invalidate()
         if let locationObservation { NotificationCenter.default.removeObserver(locationObservation) }
     }
 
-    /// Independent of legacy NoteRepository and its MainActor transcription path.
-    func resumeRecordingInbox() { chunkReceiver?.wake() }
+    private func diagnosticSnapshot() -> [PhoneTransferDiagnosticEvent] {
+        diagnosticsLock.withLock { diagnosticEvents }
+    }
 
-    private var currentChunkBinding: RecordingTransferBinding? {
-        transportLock.withLock {
-            guard let pairing = activePairingID, pairing == chunkSystemPairingID else {
-                chunkReceiver?.setBinding(nil); chunkSystemPairingID = nil; return nil
+    func recordImportStarted(_ id: UUID) {
+        recordDiagnostic("iPhone 开始导入录音", "录音文件已到达本机", recordingID: id)
+    }
+
+    func recordImportSucceeded(_ id: UUID) {
+        recordDiagnostic("iPhone 本地保存成功", "等待 Watch 确认回执", recordingID: id)
+    }
+
+    func recordImportFailed(_ id: UUID, error: Error) {
+        recordDiagnostic("iPhone 本地保存失败", RecordingTransportDiagnostics.errorDescription(error), recordingID: id)
+    }
+
+    private func recordDiagnostic(_ title: String, _ detail: String = "", recordingID: UUID? = nil) {
+        diagnosticsLock.withLock {
+            diagnosticEvents.insert(PhoneTransferDiagnosticEvent(title: title, detail: detail, recordingKey: recordingID.map(RecordingTransportDiagnostics.shortID)), at: 0)
+            if diagnosticEvents.count > 20 { diagnosticEvents = Array(diagnosticEvents.prefix(20)) }
+            do {
+                try JSONEncoder().encode(diagnosticEvents).write(to: diagnosticsURL, options: .atomic)
+                #if os(iOS)
+                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: diagnosticsURL.path)
+                #endif
+            } catch {
+                logger.error("Could not persist transfer diagnostics error=\(RecordingTransportDiagnostics.errorCode(error), privacy: .public)")
             }
-            return chunkReceiver?.currentBinding
         }
-    }
-    private func offerChunkProtocol() {
-        guard activePairingID != nil else { return }
-        do {
-            try contextLock.withLock {
-                var context = WCSession.default.applicationContext
-                context[RecordingChunkWire.offerKey] = UUID().uuidString
-                try WCSession.default.updateApplicationContext(context)
+        let events = diagnosticSnapshot()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let status = self.statusSnapshotLock.withLock { () -> PhoneWatchStatus? in
+                guard self.hasStatusSnapshot else { return nil }
+                self.latestStatus.diagnosticEvents = events
+                return self.latestStatus
             }
-        } catch { logger.error("V2 capability offer deferred") }
-    }
-    private func handleChunkMessage(_ message: [String: Any], reply: (([String: Any]) -> Void)? = nil) {
-        do {
-            if message[RecordingChunkProtocol.capabilityKey] != nil {
-                let hello = try RecordingChunkWire.decode(RecordingCapabilityHello.self, key: RecordingChunkProtocol.capabilityKey, from: message)
-                let response = try transportLock.withLock { () throws -> RecordingCapabilityReply in
-                    guard let pairing = activePairingID else { throw RecordingTransportError.unavailable }
-                    let previousBinding = chunkReceiver.currentBinding
-                    let response = try chunkReceiver.negotiate(hello, systemPairingID: pairing)
-                    guard activePairingID == pairing else { chunkReceiver.setBinding(nil); throw RecordingTransportError.unavailable }
-                    chunkSystemPairingID = pairing
-#if targetEnvironment(simulator)
-                    if previousBinding != response.binding {
-                        // Part sets are only in memory and are bound to the old envelope.
-                        // On a fresh handshake, discard them so retries with the same
-                        // transfer IDs can use the new binding instead of conflicting.
-                        simulatorChunkAssembler.reset()
-                    }
-#endif
-                    return response
-                }
-                let payload: [String: Any] = [RecordingChunkProtocol.capabilityKey: try JSONEncoder().encode(response)]
-                if let reply { reply(payload) } else { WCSession.default.transferUserInfo(payload) }
-                resumeRecordingInbox()
-            } else if message[RecordingChunkWire.locationKey] != nil {
-                guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
-                try chunkReceiver.stage(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingLocationSample>.self, key: RecordingChunkWire.locationKey, from: message))
-                resumeRecordingInbox(); reply?(["accepted": true])
-            } else if message[RecordingChunkProtocol.endKey] != nil {
-                guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
-                try chunkReceiver.stage(RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSessionEnd>.self, key: RecordingChunkProtocol.endKey, from: message))
-                resumeRecordingInbox(); reply?(["accepted": true])
-            } else { throw RecordingTransportError.invalidEnvelope }
-        } catch {
-            reply?(["accepted": false])
-            logger.error("V2 message rejected or retained for retry: \(error.localizedDescription, privacy: .public)")
+            if let status { self.onStatusChange?(status) }
+            else if self.onStatusChange != nil { self.refreshStatus() }
         }
-    }
-
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        if RecordingChunkWire.owns(userInfo) { handleChunkMessage(userInfo) }
-    }
-
-
-    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
-        let info = userInfoTransfer.userInfo
-        do {
-            if info[RecordingChunkProtocol.receiptKey] != nil {
-                let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSavedChunk>.self, key: RecordingChunkProtocol.receiptKey, from: info)
-                chunkReceiver.deliveryFinished(.chunk(value), succeeded: error == nil)
-            } else if info[RecordingChunkWire.locationReceiptKey] != nil {
-                let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingLocationSample>.self, key: RecordingChunkWire.locationReceiptKey, from: info)
-                chunkReceiver.deliveryFinished(.location(value), succeeded: error == nil)
-            } else if info[RecordingChunkWire.endReceiptKey] != nil {
-                let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingSessionEnd>.self, key: RecordingChunkWire.endReceiptKey, from: info)
-                chunkReceiver.deliveryFinished(.end(value), succeeded: error == nil)
-            }
-        } catch { logger.error("V2 delivery completion could not be decoded") }
     }
 
     private func syncLocationPreference() {
@@ -282,6 +182,7 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
     func reportSaveFailure(_ id: UUID, pairingID: String? = nil) {
         guard let owner = pairingID ?? activePairingID else { return }
         failureLock.withLock { _ = localSaveFailures[owner, default: []].insert(id) }
+        recordDiagnostic("iPhone 保存未完成", "本机保存状态待重试", recordingID: id)
         refreshStatus()
     }
 
@@ -314,6 +215,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
                     session.applicationContext, lastHandledID: handledID
                 )
                 try session.updateApplicationContext(context)
+                let requestID = WatchSyncRetryRequest.decode(context)?.id
+                logger.notice("Watch retry request submitted id=\(requestID.map(RecordingTransportDiagnostics.shortID) ?? "unknown", privacy: .public) reachable=\(session.isReachable, privacy: .public)")
             }
             refreshStatus()
         } catch {
@@ -337,148 +240,27 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             guard owner == activePairingID else { return }
         }
         if let sendAcknowledgement {
-            guard sendAcknowledgement(id) else { return }
+            guard sendAcknowledgement(id) else {
+                recordDiagnostic("保存回执提交失败", "回执通道未接受", recordingID: id)
+                return
+            }
+            recordDiagnostic("iPhone 保存回执已提交", "", recordingID: id)
         } else {
             let session = WCSession.default
             guard session.activationState == .activated else {
                 logger.error("Cannot acknowledge recording \(id.uuidString, privacy: .public): phone session is not activated")
+                recordDiagnostic("保存完成，回执未提交", "WatchConnectivity 未激活", recordingID: id)
                 return
             }
-#if targetEnvironment(simulator)
-            guard session.isReachable else {
-                logger.error("Cannot acknowledge simulator recording \(id.uuidString, privacy: .public): Watch app is not reachable")
-                return
-            }
-            session.sendMessage(["ack": id.uuidString], replyHandler: nil) { error in
-                self.logger.error("Failed to send simulator save acknowledgement: \(error.localizedDescription, privacy: .public)")
-            }
-#else
             WCSession.default.transferUserInfo(["ack": id.uuidString])
-#endif
+            recordDiagnostic("iPhone 保存回执已排队", "WatchConnectivity 后台消息", recordingID: id)
         }
         logger.notice("Queued save acknowledgement for recording \(id.uuidString, privacy: .public)")
         let sidecar = inbox.appendingPathComponent("\(id.uuidString).json")
         try? FileManager.default.removeItem(at: sidecar)
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-#if targetEnvironment(simulator)
-        if message["type"] as? String == SimulatorChunkedFileTransfer.messageType {
-            receiveSimulatorChunkPart(message, replyHandler: replyHandler)
-            return
-        }
-#endif
-        if RecordingChunkWire.owns(message) { handleChunkMessage(message, reply: replyHandler); return }
-#if targetEnvironment(simulator)
-        guard message["type"] as? String == "simulator-audio-chunk" else {
-            replyHandler(["accepted": false])
-            return
-        }
-        guard let rawID = message["id"] as? String,
-              let id = UUID(uuidString: rawID),
-              let rawKind = message["kind"] as? String,
-              let kind = RecordingKind(rawValue: rawKind),
-              let capturedAt = message["capturedAt"] as? Date,
-              let duration = message["duration"] as? Double,
-              let index = message["chunkIndex"] as? Int,
-              let count = message["chunkCount"] as? Int,
-              let chunk = message["audioChunk"] as? Data,
-              count > 0, count <= 4_096,
-              index >= 0, index < count,
-              chunk.count <= SimulatorAudioChunks.maximumChunkSize else {
-            logger.error("Rejected malformed simulator audio chunk")
-            replyHandler(["accepted": false])
-            return
-        }
-
-        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration, location: CaptureLocation.decodeTransfer(message["captureLocation"]), pairingID: activePairingID)
-        var transfer: SimulatorIncomingRecording
-        if index == 0 {
-            transfer = SimulatorIncomingRecording(metadata: metadata, chunkCount: count)
-        } else if let existing = simulatorTransfers[id],
-                  existing.chunkCount == count,
-                  existing.metadata.kind == kind,
-                  existing.metadata.capturedAt == capturedAt,
-                  existing.metadata.duration == duration {
-            transfer = existing
-        } else {
-            logger.error("Rejected out-of-order simulator audio chunk")
-            replyHandler(["accepted": false])
-            return
-        }
-
-        do {
-            let completedAudio = try transfer.assembler.append(chunk, at: index, total: count)
-            if let completedAudio {
-                try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
-                simulatorTransfers.removeValue(forKey: id)
-                let audio = inbox.appendingPathComponent("\(id.uuidString).m4a")
-                let sidecar = inbox.appendingPathComponent("\(id.uuidString).json")
-                try completedAudio.write(to: audio, options: .atomic)
-                try JSONEncoder().encode(metadata).write(to: sidecar, options: .atomic)
-                logger.notice("Assembled simulator recording \(id.uuidString, privacy: .public); bytes: \(completedAudio.count, privacy: .public)")
-                onReceive?(metadata, audio)
-            } else {
-                simulatorTransfers[id] = transfer
-            }
-            replyHandler(["accepted": true])
-        } catch {
-            simulatorTransfers.removeValue(forKey: id)
-            logger.error("Failed to assemble simulator recording: \(error.localizedDescription, privacy: .public)")
-            reportSaveFailure(id, pairingID: metadata.pairingID)
-            replyHandler(["accepted": false])
-        }
-#else
-        replyHandler(["accepted": false])
-#endif
-    }
-
-#if targetEnvironment(simulator)
-    private func receiveSimulatorChunkPart(_ message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        do {
-            let part = try SimulatorChunkedFileTransfer.Part(message: message)
-            let completed = try transportLock.withLock { try simulatorChunkAssembler.append(part) }
-            guard let completed else { replyHandler(["accepted": true]); return }
-            guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
-            let envelope = try JSONDecoder().decode(
-                RecordingWireEnvelope<RecordingChunkDescriptor>.self, from: completed.envelope
-            )
-            let directory = inbox.appendingPathComponent("RecordingV2", isDirectory: true)
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let temporaryFile = directory.appendingPathComponent(".sim-\(part.transferID.uuidString).m4a")
-            try completed.audio.write(to: temporaryFile, options: .atomic)
-            do {
-                try chunkReceiver.stage(envelope, temporaryFile: temporaryFile)
-                resumeRecordingInbox()
-            } catch {
-                try? FileManager.default.removeItem(at: temporaryFile)
-                throw error
-            }
-            logger.notice("Assembled simulator V2 recording chunk \(envelope.payload.id.uuidString, privacy: .public); bytes: \(completed.audio.count, privacy: .public)")
-            replyHandler(["accepted": true])
-        } catch {
-            if let rawID = message["transferID"] as? String, let id = UUID(uuidString: rawID) {
-                transportLock.withLock { simulatorChunkAssembler.discard(id) }
-            }
-            logger.error("Rejected simulator V2 file part: \(error.localizedDescription, privacy: .public)")
-            replyHandler(["accepted": false])
-        }
-    }
-#endif
-
     func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        logger.notice("Received Watch file callback")
-        if RecordingChunkWire.owns(file.metadata ?? [:]) {
-            do {
-                guard currentChunkBinding != nil else { throw RecordingTransportError.unavailable }
-                let value = try RecordingChunkWire.decode(RecordingWireEnvelope<RecordingChunkDescriptor>.self, key: RecordingChunkProtocol.chunkKey, from: file.metadata ?? [:])
-                try chunkReceiver.stage(value, temporaryFile: file.fileURL)
-                resumeRecordingInbox()
-            } catch {
-                logger.error("V2 file not acknowledged; Watch original retained: \(error.localizedDescription, privacy: .public)")
-            }
-            return
-        }
         guard let rawID = file.metadata?["id"] as? String,
               let id = UUID(uuidString: rawID),
               let rawKind = file.metadata?["kind"] as? String,
@@ -488,21 +270,52 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             logger.error("Rejected Watch file: transfer metadata is invalid")
             return
         }
-        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration, location: CaptureLocation.decodeTransfer(file.metadata?["captureLocation"]), pairingID: activePairingID)
+        let metadata = IncomingRecording(id: id, kind: kind, capturedAt: capturedAt, duration: duration,
+            location: CaptureLocation.decodeTransfer(file.metadata?["captureLocation"]), pairingID: activePairingID,
+            recordingGroupID: (file.metadata?["recordingGroupID"] as? String).flatMap(UUID.init(uuidString:)),
+            recordingGroupOrdinal: file.metadata?["recordingGroupOrdinal"] as? Int,
+            recordingGroupOffset: file.metadata?["recordingGroupOffset"] as? Double,
+            recordingOrigin: (file.metadata?["recordingOrigin"] as? Data).flatMap { try? JSONDecoder().decode(RecordingOrigin.self, from: $0) })
+        persistReceivedRecording(metadata, temporaryFileURL: file.fileURL)
+    }
+
+    private func persistReceivedRecording(_ metadata: IncomingRecording, temporaryFileURL: URL) {
+        let id = metadata.id
+        let capturedAt = metadata.capturedAt
+        let duration = metadata.duration
+        let hasGroupFields = metadata.recordingGroupID != nil || metadata.recordingGroupOrdinal != nil || metadata.recordingGroupOffset != nil
+        if hasGroupFields {
+            guard let groupID = metadata.recordingGroupID, let ordinal = metadata.recordingGroupOrdinal,
+                  let offset = metadata.recordingGroupOffset, (0...RecordingSessionFileLimits.maximumOrdinal).contains(ordinal), offset.isFinite, offset >= 0,
+                  abs(offset - Double(ordinal) * RecordingSessionFileLimits.fileDuration) < 0.001,
+                  id == RecordingChunkFileIdentity.stableID(groupID: groupID, ordinal: ordinal),
+                  RecordingChunkFileMetadata.matches(groupID: groupID, ordinal: ordinal,
+                                                     capturedAt: capturedAt, audioURL: temporaryFileURL) else {
+                logger.error("Rejected grouped Watch file: identity or embedded M4A metadata mismatch")
+                recordDiagnostic("录音文件校验失败", "录音组信息或 M4A 开始时间不匹配", recordingID: id)
+                reportSaveFailure(id, pairingID: metadata.pairingID)
+                return
+            }
+        }
+        let fileBytes = (try? temporaryFileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? -1
+        logger.notice("Ordinary Watch recording file received id=\(RecordingTransportDiagnostics.shortID(id), privacy: .public) bytes=\(fileBytes, privacy: .public) duration=\(duration, privacy: .public)")
+        let groupLabel = metadata.recordingGroupOrdinal.map { " · 录音组第 \($0 + 1) 个文件" } ?? ""
+        recordDiagnostic("iPhone 收到录音文件", "\(fileBytes) B · \(Int(duration)) 秒\(groupLabel)", recordingID: id)
         let audio = inbox.appendingPathComponent("\(id.uuidString).m4a")
         let sidecar = inbox.appendingPathComponent("\(id.uuidString).json")
         do {
             try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
             if !FileManager.default.fileExists(atPath: audio.path) {
-                // Watch Connectivity removes its temporary file when this callback returns.
-                try FileManager.default.moveItem(at: file.fileURL, to: audio)
+                try FileManager.default.moveItem(at: temporaryFileURL, to: audio)
             }
             try JSONEncoder().encode(metadata).write(to: sidecar, options: .atomic)
             logger.notice("Stored received recording \(id.uuidString, privacy: .public); receiver installed: \(self.onReceive != nil, privacy: .public)")
+            recordDiagnostic("录音已暂存，准备导入", "录音文件和信息已写入本机收件箱", recordingID: id)
             onReceive?(metadata, audio)
         } catch {
             // The watch retains its own copy until an acknowledgement arrives.
             logger.error("Failed to persist received Watch file: \(error.localizedDescription, privacy: .public)")
+            recordDiagnostic("录音文件保存失败", RecordingTransportDiagnostics.errorDescription(error), recordingID: id)
             reportSaveFailure(id, pairingID: metadata.pairingID)
         }
     }
@@ -512,13 +325,32 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
         let isPaired = isActivated && session.isPaired
         let isInstalled = isPaired && session.isWatchAppInstalled
         let isReachable = isPaired && session.isReachable
-        logger.notice("Phone session activation completed with state \(state.rawValue, privacy: .public), paired: \(isPaired, privacy: .public), Watch app installed: \(isInstalled, privacy: .public), reachable: \(isReachable, privacy: .public), error: \(error != nil, privacy: .public)")
+        logger.notice("Phone session activation completed state=\(state.rawValue, privacy: .public) paired=\(isPaired, privacy: .public) installed=\(isInstalled, privacy: .public) reachable=\(isReachable, privacy: .public) error=\(error.map(RecordingTransportDiagnostics.errorCode) ?? "none", privacy: .public)")
+        recordDiagnostic("WatchConnectivity 激活\(error == nil ? "完成" : "失败")", "配对 \(isPaired ? "是" : "否") · App \(isInstalled ? "已安装" : "未安装") · 可达 \(isReachable ? "是" : "否")\(error.map { " · \(RecordingTransportDiagnostics.errorDescription($0))" } ?? "")")
         refreshStatus()
-        if state == .activated { syncLocationPreference(); offerChunkProtocol(); drainInbox(); resumeRecordingInbox() }
+        if state == .activated { syncLocationPreference(); drainInbox() }
     }
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) { refreshStatus() }
-    func sessionReachabilityDidChange(_ session: WCSession) { refreshStatus(); syncLocationPreference(); resumeRecordingInbox() }
-    func sessionWatchStateDidChange(_ session: WCSession) { _ = currentChunkBinding; refreshStatus(); offerChunkProtocol() }
-    func sessionDidBecomeInactive(_ session: WCSession) { chunkReceiver.setBinding(nil); refreshStatus() }
-    func sessionDidDeactivate(_ session: WCSession) { chunkReceiver.setBinding(nil); refreshStatus(); session.activate() }
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        let hasLegacySnapshot = applicationContext[WatchSyncSnapshot.contextKey] != nil
+        let hasRetryRequest = applicationContext[WatchSyncRetryRequest.contextKey] != nil
+        recordDiagnostic("收到 Watch 状态快照", "同步状态 \(hasLegacySnapshot ? "有" : "无") · 重试请求 \(hasRetryRequest ? "有" : "无")")
+        refreshStatus()
+    }
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        logger.notice("Phone reachability changed activation=\(session.activationState.rawValue, privacy: .public) paired=\(session.isPaired, privacy: .public) installed=\(session.isWatchAppInstalled, privacy: .public) reachable=\(session.isReachable, privacy: .public) outstandingFiles=\(session.outstandingFileTransfers.count, privacy: .public) hasContentPending=\(session.hasContentPending, privacy: .public)")
+        recordDiagnostic("Watch 连接状态变化", "已配对 \(session.isPaired ? "是" : "否") · App \(session.isWatchAppInstalled ? "已安装" : "未安装") · 可达 \(session.isReachable ? "是" : "否") · 文件队列 \(session.outstandingFileTransfers.count)")
+        refreshStatus(); syncLocationPreference()
+    }
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        recordDiagnostic("Watch 配对状态变化", "已配对 \(session.isPaired ? "是" : "否") · App \(session.isWatchAppInstalled ? "已安装" : "未安装") · 可达 \(session.isReachable ? "是" : "否")")
+        refreshStatus()
+    }
+    func sessionDidBecomeInactive(_ session: WCSession) {
+        recordDiagnostic("WatchConnectivity 暂停", "iPhone 正在切换配对手表")
+        refreshStatus()
+    }
+    func sessionDidDeactivate(_ session: WCSession) {
+        recordDiagnostic("WatchConnectivity 重新激活", "配对手表切换完成")
+        refreshStatus(); session.activate()
+    }
 }

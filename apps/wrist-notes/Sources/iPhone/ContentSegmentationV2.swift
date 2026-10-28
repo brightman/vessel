@@ -9,12 +9,22 @@ enum ContentSegmentationV2 {
         enum Action: Equatable, Sendable {
             case waitForSourceCompletion, keepWholeRecording, splitTopics
         }
+        enum StageDisposition: Equatable, Sendable {
+            case waitingForSourceCompletion, skippedWholeRecording, processTopics
+        }
         static let wholeRecordingMaximumDuration: TimeInterval = 30 * 60
         static func action(duration: TimeInterval, sourceComplete: Bool) -> Action {
-            guard duration.isFinite, duration >= 0 else { return .waitForSourceCompletion }
+            guard duration.isFinite, duration > 0 else { return .waitForSourceCompletion }
             if duration > wholeRecordingMaximumDuration { return .splitTopics }
             guard sourceComplete else { return .waitForSourceCompletion }
             return .keepWholeRecording
+        }
+        static func stageDisposition(duration: TimeInterval, sourceComplete: Bool) -> StageDisposition {
+            switch action(duration:duration,sourceComplete:sourceComplete) {
+            case .waitForSourceCompletion: .waitingForSourceCompletion
+            case .keepWholeRecording: .skippedWholeRecording
+            case .splitTopics: .processTopics
+            }
         }
     }
     struct Interval: Codable, Equatable { var start: Double; var end: Double }

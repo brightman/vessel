@@ -154,23 +154,44 @@ struct NotesListView: View {
                     VStack(alignment: .leading, spacing: 9) {
                         Text(model.watchStatus.title).font(.headline)
                         Text(model.watchStatus.message).font(.subheadline).foregroundStyle(Color.secondary)
-                        ForEach(model.watchStatus.recordingTransfers) { transfer in
-                            VStack(alignment: .leading, spacing: 5) {
-                                HStack(spacing: 7) {
-                                    Circle()
-                                        .fill(transfer.isComplete ? NotesStyle.green : NotesStyle.red)
-                                        .frame(width: 6, height: 6)
-                                    Text(transfer.stageLabel).font(.caption.weight(.semibold))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("iPhone 实时可达：\(model.watchStatus.isReachable ? "是" : "否")")
+                            Text("Watch 报告待确认：\(model.watchStatus.pendingCount.map { String($0) } ?? "暂无") 个文件 · \(model.watchStatus.reportedAt?.formatted(date: .omitted, time: .shortened) ?? "尚无状态快照")")
+                            Text("iPhone 最近保存：\(model.watchStatus.lastSyncedAt?.formatted(date: .omitted, time: .shortened) ?? "暂无")")
+                        }
+                        .font(.caption2).foregroundStyle(Color.secondary)
+                        Divider().padding(.vertical, 2)
+                        HStack {
+                            Text("iPhone 最近传输事件").font(.caption.weight(.semibold))
+                            Spacer()
+                            Text("最多 20 条").font(.caption2).foregroundStyle(Color.secondary)
+                        }
+                        if model.watchStatus.diagnosticEvents.isEmpty {
+                            Text("暂无传输事件。连接或同步后会显示在这里。")
+                                .font(.caption).foregroundStyle(Color.secondary)
+                        } else {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(model.watchStatus.diagnosticEvents) { event in
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                                Text(event.title).font(.caption.weight(.medium)).lineLimit(2)
+                                                Spacer(minLength: 4)
+                                                Text(event.date, format: .dateTime.hour().minute())
+                                                    .font(.caption2).foregroundStyle(Color.secondary)
+                                            }
+                                            if !event.detail.isEmpty {
+                                                Text(event.detail).font(.caption2).foregroundStyle(Color.secondary).lineLimit(3)
+                                            }
+                                            if let key = event.recordingKey {
+                                                Text("录音 ID · \(key)").font(.system(.caption2, design: .monospaced)).foregroundStyle(.blue)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
                                 }
-                                Text(transfer.segmentLabel).font(.caption)
-                                if let fraction = transfer.currentChunkFraction.flatMap(WatchSessionSyncSnapshot.validProgressFraction),
-                                   let label = transfer.currentChunkLabel {
-                                    Text(label).font(.caption2).foregroundStyle(Color.secondary)
-                                    ProgressView(value: fraction).tint(NotesStyle.green)
-                                }
-                                Text(transfer.reportedAtLabel).font(.caption2).foregroundStyle(Color.secondary)
                             }
-                            .padding(.vertical, 4)
+                            .frame(maxHeight: 170)
                         }
                         ForEach(model.watchStatus.issueMessages, id: \.self) { issue in
                             Text(issue).font(.caption).foregroundStyle(.orange)

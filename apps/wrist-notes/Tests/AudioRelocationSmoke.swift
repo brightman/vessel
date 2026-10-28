@@ -15,9 +15,9 @@ import CryptoKit
                 try AudioSourceRange(range:.init(chunkID:range.chunkID,url:URL(fileURLWithPath:directory).appendingPathComponent(range.url.lastPathComponent),startFrame:range.startFrame,endFrame:range.endFrame,sampleRate:range.sampleRate,sessionStartOffset:range.sessionStartOffset,discontinuityBefore:range.discontinuityBefore),contentHash:hash ?? range.contentHash)
             },complete:source.complete)
     }
-    static func source() throws -> AudioSourceSnapshot {
+    static func source(duration: Int64 = 900) throws -> AudioSourceSnapshot {
         try .init(id:.init(kind:.session,id:UUID()),capturedAt:Date(timeIntervalSinceReferenceDate:0),title:"Fixture",ranges:[
-            .init(range:.init(chunkID:UUID(),url:URL(fileURLWithPath:"/old-container/audio.aac"),startFrame:0,endFrame:14_400_000,sampleRate:16000),contentHash:String(repeating:"a",count:64))
+            .init(range:.init(chunkID:UUID(),url:URL(fileURLWithPath:"/old-container/audio.aac"),startFrame:0,endFrame:duration * 16_000,sampleRate:16000),contentHash:String(repeating:"a",count:64))
         ],complete:true)
     }
     static func legacyWindows(_ source: AudioSourceSnapshot) throws -> [AudioProcessingWindow] {
@@ -70,10 +70,11 @@ import CryptoKit
         try check(original.fingerprint == moved.fingerprint,"relocation must not change source fingerprint")
         try check(AudioWindowPlanner.plan(source:original,configurationKey:"v1").map(\.id) == AudioWindowPlanner.plan(source:moved,configurationKey:"v1").map(\.id),"relocation must not change processing identity")
         try historyRecovery(original,moved:moved,url:root.appendingPathComponent("history.sqlite3"))
-        try contentPreservation(original,moved:moved,url:root.appendingPathComponent("content.sqlite3"))
-        try legacyTopicRecovery(original,moved:moved,url:root.appendingPathComponent("topics.sqlite3"))
+        let long = try source(duration: 2100), longMoved = try relocated(long, to: "/new-container")
+        try contentPreservation(long,moved:longMoved,url:root.appendingPathComponent("content.sqlite3"))
+        try legacyTopicRecovery(long,moved:longMoved,url:root.appendingPathComponent("topics.sqlite3"))
         try runningLeaseRelocation(original,moved:moved,url:root.appendingPathComponent("leases.sqlite3"))
-        try interruptedHistoricalRetry(original,moved:moved,url:root.appendingPathComponent("interrupted.sqlite3"))
+        try interruptedHistoricalRetry(long,moved:longMoved,url:root.appendingPathComponent("interrupted.sqlite3"))
         print("Audio relocation: stable identity, exact historical reuse, cancellation, leases, config/hash isolation, manual playback, topic/enrichment checkpoints and undo passed")
     }
     static func historyRecovery(_ original: AudioSourceSnapshot, moved: AudioSourceSnapshot, url: URL) throws {
@@ -122,7 +123,7 @@ import CryptoKit
     }
     static func interruptedHistoricalRetry(_ original: AudioSourceSnapshot, moved: AudioSourceSnapshot, url: URL) throws {
         let db = try DaybookDatabase(url:url), p = AudioProcessingRepository(database:db)
-        _ = try seedLegacy(original,db:db,incompleteFirst:true)
+        _ = try seedLegacy(original,db:db,completed:100,incompleteFirst:true)
         try p.retryIncompleteStages(sourceID:original.id,resourceOnly:true)
         let abandoned = try p.claimNext()!
         try db.execute("UPDATE audio_processing_jobs SET active=0,lease=NULL,state=CASE WHEN state='running' THEN 'cancelled' ELSE state END")
@@ -135,11 +136,11 @@ import CryptoKit
         try check(fresh.window.id == abandoned.window.id && p.stages(for:fresh) == [.vad],"historical retry retains ASR and requests only missing VAD")
         rejects { try p.commit(job:abandoned,result:result(abandoned.window)) }
         try p.commit(job:fresh,delta:.init(result:result(fresh.window),speakerSpanUpdates:[]))
-        try check(p.spans(sourceID:original.id).count == 3 && p.results(sourceID:original.id).allSatisfy { $0.asr == .success && $0.vad == .success },"stage-only retry completes without duplicating retained ASR")
+        try check(p.spans(sourceID:original.id).count == (try legacyWindows(original).count) && p.results(sourceID:original.id).allSatisfy { $0.asr == .success && $0.vad == .success },"stage-only retry completes without duplicating retained ASR")
     }
     static func contentPreservation(_ original: AudioSourceSnapshot, moved: AudioSourceSnapshot, url: URL) throws {
         let db = try DaybookDatabase(url:url), p = AudioProcessingRepository(database:db), c = ContentSegmentRepository(database:db)
-        _ = try seedLegacy(original,db:db)
+        _ = try seedLegacy(original,db:db,completed:100)
         try c.reconcile(sourceID:original.id)
         var segment = try c.segments(sourceID:original.id)[0]
         // Convert the segment to the pre-fix content identity without any new optional fields.
@@ -184,7 +185,7 @@ import CryptoKit
     }
     static func legacyTopicRecovery(_ original: AudioSourceSnapshot, moved: AudioSourceSnapshot, url: URL) throws {
         let db = try DaybookDatabase(url:url), p = AudioProcessingRepository(database:db), c = ContentSegmentRepository(database:db)
-        _ = try seedLegacy(original,db:db)
+        _ = try seedLegacy(original,db:db,completed:100)
         try c.reconcile(sourceID:original.id)
         let signature = try legacySnapshotSignature(original,db:db)
         try db.execute("UPDATE content_segment_sources SET signature=?",[.text(signature)])

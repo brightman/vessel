@@ -114,6 +114,10 @@ struct DaybookVoiceDetailView: View {
 
     private var sourceID: AudioSourceID { .init(kind:.legacyNote,id:id) }
     private var isLongRecording: Bool { model.note(id).map { $0.kind == .long || $0.duration > 300 } ?? false }
+    private var topicStageDisposition:ContentSegmentationV2.LongRecordingTopicPolicy.StageDisposition {
+        guard let note=model.note(id),note.duration > 0 else { return .waitingForSourceCompletion }
+        return ContentSegmentationV2.LongRecordingTopicPolicy.stageDisposition(duration:note.duration,sourceComplete:true)
+    }
 
     var body: some View {
         DaybookSheetLayout(title: isLongRecording ? "完整录音" : model.note(id)?.displayTitle ?? "语音记录", onClose: { dismiss() }) {
@@ -271,12 +275,16 @@ struct DaybookVoiceDetailView: View {
                     }
                 }
             }
+            if let error = audioProcessing.reprocessingErrors[sourceID] {
+                Text(error).font(.system(size: 11)).foregroundStyle(DaybookStyle.red)
+            }
             Button {
                 audioProcessing.reprocess(sourceID)
             } label: {
-                Label("重新处理",systemImage:"arrow.clockwise")
+                Label(audioProcessing.reprocessingSources.contains(sourceID) ? "正在加入处理队列…" : "重新处理", systemImage:"arrow.clockwise")
                     .font(.system(size:11,weight:.semibold)).frame(maxWidth:.infinity)
             }.buttonStyle(DaybookPrimaryButtonStyle(wide:true))
+                .disabled(audioProcessing.reprocessingSources.contains(sourceID))
         }.daybookRecordingCard(padding:15)
     }
 
@@ -316,9 +324,9 @@ struct DaybookVoiceDetailView: View {
             }
             return [
                 .init(id:"asr",title:"语音转写",detail:legacyTranscriptionDetail,state:asrState),
-                .init(id:"vad",title:"语音活动检测",detail:"等待处理状态",state:.waiting),
+                legacyVADStep(progress:nil,total:0,live:false,pending:false),
                 .init(id:"speaker",title:"说话人分析",detail:legacySpeakerDetail,state:legacySpeakerState),
-                .init(id:"topics",title:"主题拆分与分类",detail:"等待主题分析",state:.waiting),
+                .init(id:"topics",title:"主题拆分与分类",detail:topicStageDisposition == .skippedWholeRecording ? "短录音保留为整段；跳过主题拆分与 AI 分类" : "等待主题分析",state:topicStageDisposition == .skippedWholeRecording ? .skipped : .waiting),
                 .init(id:"fields",title:"标题与摘要",detail:"主题定稿后生成",state:.waiting)
             ]
         }
@@ -327,13 +335,17 @@ struct DaybookVoiceDetailView: View {
         let pending=status.progress.states[.pending,default:0]>0
         let asr=legacyStageStep("asr",title:"语音转写",progress:status.asr,total:total,live:live,pending:pending,
             successDetail:noteTranscriptAvailable ? "\(status.asr.success) 个窗口完成 · 全文可查看" : "\(status.asr.success) 个窗口完成 · 未识别到文字")
-        let vad=legacyStageStep("vad",title:"语音活动检测",progress:status.vad,total:total,live:live,pending:pending)
+        let vad=legacyVADStep(progress:status.vad,total:total,live:live,pending:pending)
         let speaker=legacyStageStep("speaker",title:"说话人分析",progress:status.speaker,total:total,live:live,pending:pending,optional:true)
         let current=segmentModel.library.filter { $0.sourceID == sourceID && $0.sourceRevision == status.progress.revision }
         let finalized=current.filter(\.isFinal)
         let enrichment=audioProcessing.enrichmentStatuses[sourceID]
         let topics:RecordingProcessingStep
-        switch enrichment {
+        if topicStageDisposition == .skippedWholeRecording {
+            topics = .init(id:"topics",title:"主题拆分与分类",detail:current.contains(where:{$0.editorial != nil}) ? "保留历史分类结果；新规则跳过主题拆分与 AI 分类" : "短录音保留为整段；跳过主题拆分与 AI 分类",state:.skipped)
+        } else if topicStageDisposition == .waitingForSourceCompletion {
+            topics = .init(id:"topics",title:"主题拆分与分类",detail:"录音完整后按总时长决定是否拆分主题",state:.waiting)
+        } else { switch enrichment {
         case .failed,.unavailable:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:enrichment == .unavailable ? "所选整理模型暂不可用" : "主题整理失败，可重新处理",state:.failure)
         case .running:
@@ -348,23 +360,42 @@ struct DaybookVoiceDetailView: View {
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"\(finalized.count) / \(current.count) 个片段已定稿",state:.waiting)
         default:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:live || pending ? "等待语音处理完成" : "等待主题分析",state:live || pending ? .running : .waiting)
-        }
-        let titled=finalized.filter { !$0.title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && !$0.summary.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }.count
+        } }
+        let fieldCounts=ContentSegmentPresentation.fieldGenerationCounts(finalized)
+        let eligibleFields=fieldCounts.eligible, titled=fieldCounts.complete
         let fields:RecordingProcessingStep
         if enrichment == .failed || enrichment == .unavailable {
             fields = .init(id:"fields",title:"标题与摘要",detail:"标题或摘要整理失败，可重新处理",state:.failure)
         } else if enrichment == .running,let progress=audioProcessing.enrichmentProgress[sourceID],progress.stage == .title || progress.stage == .summary {
             fields = .init(id:"fields",title:"标题与摘要",detail:progress.stage == .title ? "正在生成片段标题" : "正在生成片段摘要",state:.running)
-        } else if !finalized.isEmpty && titled == finalized.count {
-            fields = .init(id:"fields",title:"标题与摘要",detail:"\(titled) 个片段已有标题和摘要",state:.success)
-        } else if enrichment == .complete && total > 0 && status.asr.success == total && status.vad.success == total {
-            fields = .init(id:"fields",title:"标题与摘要",detail:finalized.isEmpty ? "等待片段定稿" : "部分片段没有生成标题或摘要",state:.skipped)
+        } else if eligibleFields > 0 && titled == eligibleFields {
+            fields = .init(id:"fields",title:"标题与摘要",detail:"\(titled) 个可生成片段已有标题和摘要",state:.success)
+        } else if enrichment == .complete && legacyAudioFinished(status:status,total:total) {
+            fields = .init(id:"fields",title:"标题与摘要",detail:eligibleFields == 0 ? "没有需要生成标题与摘要的内容片段" : "部分内容片段没有标题或摘要",state:.skipped)
         } else if enrichment == .awaitingConsent {
             fields = .init(id:"fields",title:"标题与摘要",detail:"等待确认后继续",state:.waiting)
         } else {
-            fields = .init(id:"fields",title:"标题与摘要",detail:finalized.isEmpty ? "主题定稿后生成" : "\(titled) / \(finalized.count) 个片段已有标题和摘要",state:.waiting)
+            fields = .init(id:"fields",title:"标题与摘要",detail:eligibleFields == 0 ? "主题定稿后生成" : "\(titled) / \(eligibleFields) 个可生成片段已有标题和摘要",state:.waiting)
         }
         return [asr,vad,speaker,topics,fields]
+    }
+
+    private func legacyVADStep(progress:AudioStageProgress?,total:Int,live:Bool,pending:Bool) -> RecordingProcessingStep {
+        switch topicStageDisposition {
+        case .skippedWholeRecording:
+            let hadHistoricalResult=(progress?.success ?? 0)+(progress?.failed ?? 0)+(progress?.missingResource ?? 0)>0
+            return .init(id:"vad",title:"语音活动检测",detail:hadHistoricalResult ? "旧批次已运行；重新处理时跳过" : "短录音跳过 VAD",state:.skipped)
+        case .waitingForSourceCompletion:
+            return .init(id:"vad",title:"语音活动检测",detail:"完整同步后按总时长决定是否运行",state:.waiting)
+        case .processTopics:
+            if let progress { return legacyStageStep("vad",title:"语音活动检测",progress:progress,total:total,live:live,pending:pending) }
+            return .init(id:"vad",title:"语音活动检测",detail:"等待处理状态",state:.waiting)
+        }
+    }
+
+    private func legacyAudioFinished(status:AudioProcessingStatus,total:Int) -> Bool {
+        total > 0 && status.progress.states[.completed,default:0] == total && status.asr.success == total &&
+            (topicStageDisposition == .skippedWholeRecording || status.vad.success == total)
     }
 
     private func legacyStageStep(_ id:String,title:String,progress:AudioStageProgress,total:Int,live:Bool,pending:Bool,optional:Bool=false,successDetail:String?=nil) -> RecordingProcessingStep {
@@ -409,6 +440,12 @@ struct DaybookVoiceDetailView: View {
     }
 
     private var legacyASRModelDescription: String {
+        if let actual = model.note(id)?.transcriptionEngineName, !actual.isEmpty {
+            return "本条实际使用 · \(actual)"
+        }
+        if let engines = audioProcessing.statuses[sourceID]?.asrEngineNames, !engines.isEmpty {
+            return "本条实际使用 · \(engines.joined(separator: " / "))"
+        }
         guard let key=audioProcessing.statuses[sourceID]?.progress.configurationKey else {
             return "当前设置 · \(settings.transcriptionLabel)"
         }

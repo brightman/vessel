@@ -107,11 +107,11 @@ actor ModelFixture {
         check(topicGateSegments.allSatisfy { $0.editorial?.classification == "meaningful" },"production enrichment persists classification for finalized transcript segments")
         if let target=topicGateSegments.first(where:\.hasText) {
             try await topicGate.setFields(target.id,title:"旧标题",summary:"独立摘要应保留")
-            check(await topicGateService.generateField(sourceID:topicGate.source.id,segmentID:target.id,field:.title) == .complete,"manual title generation completes for a final text segment")
+            check(await topicGateService.generateFields(sourceID:topicGate.source.id,segmentID:target.id,field:.title) == .complete,"manual title generation completes for a final text segment")
             let afterTitle=try await topicGate.content.segment(id:target.id)!
             check(afterTitle.title == "本地标题" && afterTitle.summary == "独立摘要应保留","title generation changes only title")
             check(afterTitle.isFinal && afterTitle.editorial?.classification == "meaningful","field generation retains finality and classification")
-            check(await topicGateService.generateField(sourceID:topicGate.source.id,segmentID:target.id,field:.summary) == .complete,"manual summary generation completes for a final text segment")
+            check(await topicGateService.generateFields(sourceID:topicGate.source.id,segmentID:target.id,field:.summary) == .complete,"manual summary generation completes for a final text segment")
             let afterSummary=try await topicGate.content.segment(id:target.id)!
             check(afterSummary.title == "本地标题" && afterSummary.summary != "独立摘要应保留","summary generation changes only summary")
         }
@@ -307,7 +307,7 @@ actor ModelFixture {
         check(pagedDecisions == 1 && pagedSegments.allSatisfy(\.isFinal),"uncertain is persisted as a terminal keep-boundary decision")
         let empty = try fixture("empty",large:true), emptyModel = ModelFixture(empty:true)
         let emptyService = ContentEnrichmentService(modelKey:"v1",model:{ try await emptyModel.respond($0) },store:{ try await empty.command($0) })
-        check(await emptyService.enrich(sourceID:empty.source.id) == .complete,"empty replies terminate")
+        check(await emptyService.enrich(sourceID:empty.source.id) == .failed,"empty title or summary replies surface a failure")
         check(await emptyModel.calls < 100,"hierarchy strictly reduces even with empty replies")
         let unavailable = try fixture("unavailable"), attempts = ModelFixture()
         let unavailableService = ContentEnrichmentService(modelKey:"missing",model:{ request in

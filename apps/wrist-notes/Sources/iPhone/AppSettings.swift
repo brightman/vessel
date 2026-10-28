@@ -21,6 +21,9 @@ final class AppSettings: ObservableObject {
     @Published var appearance: AppAppearance {
         didSet { defaults.set(appearance.rawValue, forKey: "appearance") }
     }
+    @Published var requiresFaceID: Bool {
+        didSet { defaults.set(requiresFaceID, forKey: "requiresFaceID") }
+    }
     @Published var requiresRemoteAIConfirmation: Bool {
         didSet { defaults.set(requiresRemoteAIConfirmation, forKey: "requiresRemoteAIConfirmation") }
     }
@@ -49,6 +52,7 @@ final class AppSettings: ObservableObject {
         self.chatGPT = chatGPT ?? .shared
         interfaceLanguage = AppLanguage(rawValue: defaults.string(forKey: "interfaceLanguage") ?? "") ?? .chinese
         appearance = AppAppearance(rawValue: defaults.string(forKey: "appearance") ?? "") ?? .system
+        requiresFaceID = defaults.bool(forKey: "requiresFaceID")
         requiresRemoteAIConfirmation = defaults.object(forKey: "requiresRemoteAIConfirmation") as? Bool ?? true
         localeIdentifier = defaults.string(forKey: "transcriptionLocale") ?? "zh-CN"
         transcription = defaults.data(forKey: "transcriptionConfiguration")
@@ -80,7 +84,9 @@ final class AppSettings: ObservableObject {
         let locale = Locale(identifier: interfaceLanguage.rawValue)
         if transcription.engine == .apple {
             let language = locale.localizedString(forIdentifier: transcription.appleLocale) ?? transcription.appleLocale
-            return interfaceLanguage == .japanese ? "iPhone内で文字起こし · \(language)" : "On-device transcription · \(language)"
+            return interfaceLanguage == .japanese
+                ? "SpeechTranscriber 優先 · DictationTranscriber フォールバック · \(language)"
+                : "SpeechTranscriber first · DictationTranscriber fallback · \(language)"
         }
         let language = transcription.whisperLanguage == "auto" ? (interfaceLanguage == .japanese ? "自動検出" : "Auto detect")
             : (locale.localizedString(forLanguageCode: transcription.whisperLanguage) ?? transcription.whisperLanguage)

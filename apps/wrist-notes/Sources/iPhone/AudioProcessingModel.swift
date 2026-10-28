@@ -25,7 +25,10 @@ struct ContentEnrichmentConfirmation: Identifiable {
     @Published private(set) var statuses: [AudioSourceID:AudioProcessingStatus] = [:]
     @Published private(set) var revision = 0
     @Published private(set) var storageUnavailable = false
+    @Published private(set) var reprocessingSources = Set<AudioSourceID>()
+    @Published private(set) var reprocessingErrors: [AudioSourceID: String] = [:]
     var onLegacyTranscript: ((UUID,TranscriptionOutput,UUID?) -> Bool)?
+    var onGroupedTranscripts: ((UUID,[UUID:TranscriptionOutput]) -> Bool)?
     private let root: URL
     private let settings: AppSettings
     private var observations: [AnyCancellable] = []
@@ -57,7 +60,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
         self.root = root ?? FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent("VoiceNotes",isDirectory:true)
         self.settings = settings
         discovery = AudioSourceDiscovery(root:self.root)
-        for name in [Self.sourceDidChange,RecordingChunkReceiver.didChange] {
+        for name in [Self.sourceDidChange,Notification.Name.recordingSourcesDidChange] {
             observations.append(NotificationCenter.default.publisher(for:name).sink { [weak self] notification in
                 let deleted = notification.userInfo?["deletedSessionID"] as? UUID
                 let located = notification.userInfo?["locationUpdated"] as? Bool == true ? notification.userInfo?["sessionID"] as? UUID : nil
@@ -129,7 +132,17 @@ struct ContentEnrichmentConfirmation: Identifiable {
 #endif
     }
     func retry(_ sourceID: AudioSourceID) { Task { await coordinator.retry(sourceID); await synchronizeStorageState() } }
-    func reprocess(_ sourceID: AudioSourceID) { Task { await coordinator.reprocess(sourceID); await synchronizeStorageState() } }
+    func reprocess(_ sourceID: AudioSourceID) {
+        guard reprocessingSources.insert(sourceID).inserted else { return }
+        reprocessingErrors.removeValue(forKey: sourceID)
+        Task {
+            defer { reprocessingSources.remove(sourceID) }
+            if case let .failure(error) = await coordinator.reprocess(sourceID) {
+                reprocessingErrors[sourceID] = error.localizedDescription
+            }
+            await synchronizeStorageState()
+        }
+    }
     func cancel(_ sourceID: AudioSourceID) { Task { await coordinator.cancel(sourceID) } }
     func delete(_ sourceID: AudioSourceID) {
         pendingEnrichment.remove(sourceID)
@@ -235,12 +248,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                     duration:duration,sourceComplete:source.complete)
             }) else { return .stale }
             guard topicAction != .waitForSourceCompletion else { return .idle }
-            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
             let modelKey=ConfiguredContentTextModel.configurationKey(configuration)
-            let budget=router.summaryBudget(context:"")
-            let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
-            let modelIdentity=modelKey+"|"+(configuration.model)
-            let topicSplitting=topicAction == .splitTopics
             let fields=ContentEnrichmentService(modelKey:modelKey,model:{ try await router.respond($0) },store:{ [weak self] command in
                 try Task.checkCancellation()
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
@@ -254,6 +262,13 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
                 return result
             }
+            // Short recordings intentionally have no Content V2 input: they skip
+            // topic splitting and classification, but still need title and summary.
+            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
+            let budget=router.summaryBudget(context:"")
+            let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
+            let modelIdentity=modelKey+"|"+(configuration.model)
+            let topicSplitting=topicAction == .splitTopics
             let alreadyPublished=try await worker.withRepository {
                 try ContentSegmentRepository(database:$0.derivedDatabase).hasPublishedContentV2(sourceID:id,input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
             }
@@ -411,7 +426,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
             if !automatic { reprocess(id) }
             return true
         }
-        if expectedLegacyRevisions[note.id] == nil { expectedLegacyRevisions[note.id] = .some(note.transcriptRevision) }
+        if note.recordingGroupID == nil, expectedLegacyRevisions[note.id] == nil { expectedLegacyRevisions[note.id] = .some(note.transcriptRevision) }
         if automatic { refresh() } else { retry(id) }
         return true
     }
@@ -453,6 +468,27 @@ struct ContentEnrichmentConfirmation: Identifiable {
         if change.committed {
             NotificationCenter.default.post(name:Self.didCommit,object:nil,userInfo:["sourceID":id,"revision":change.status.progress.revision,"configurationKey":change.status.progress.configurationKey ?? ""])
         }
+        // Grouped Watch recordings use one ASR/topic source while originals remain
+        // individually addressable. Project the completed timed transcript back to files.
+        if id.kind == .legacyNote,
+           let key = change.status.progress.configurationKey, !key.contains("~r:"),
+           change.status.asr.success == change.status.progress.states.values.reduce(0,+),
+           change.status.asr.success > 0,
+           let source = try? await coordinator.withRepository({ try $0.currentSource(id) }),
+           let groupID = source.recordingGroupID,
+           let output = try? await coordinator.completedTranscript(id,configurationKey:key) {
+            let projectionVersion = "\(key)~r:\(change.status.progress.revision)"
+            guard projectedVersions[id.id] != projectionVersion else { return }
+            var projected: [UUID:TranscriptionOutput] = [:]
+            for range in source.ranges {
+                let values = output.segments.filter { midpoint($0) >= range.sessionStartOffset && midpoint($0) < range.end }
+                    .map { TranscriptSegment(start:max(0,$0.start-range.sessionStartOffset),end:max(0,$0.end-range.sessionStartOffset),text:$0.text,speakerID:$0.speakerID) }
+                projected[range.chunkID] = .init(text:values.map(\.text).joined(),segments:values,engineName:output.engineName)
+            }
+            if statuses[id]?.progress.configurationKey == key, !deletedSources.contains(id),
+               onGroupedTranscripts?(groupID,projected) == true { projectedVersions[id.id] = projectionVersion }
+            return
+        }
         // Registration/recovery wakes also reconcile already committed initial transcripts.
         guard id.kind == .legacyNote, let expected = expectedLegacyRevisions[id.id],
               let key = change.status.progress.configurationKey, !key.contains("~r:"),
@@ -466,87 +502,5 @@ struct ContentEnrichmentConfirmation: Identifiable {
             projectedVersions[id.id] = key
         }
     }
-}
-
-/// Confined to the coordinator actor. Cache entries are tied to immutable file metadata and validated again after hashing.
-private final class AudioSourceDiscovery {
-    let root: URL
-    private var db: DaybookDatabase?
-    private var processing: AudioProcessingRepository?
-    private var sessions: RecordingSessionRepository?
-    private struct CachedFile { let stamp: String; let descriptor: String?; let info: RecordingAudioFileInfo }
-    private var files: [URL:CachedFile] = [:]
-    private(set) var unavailableSources: [AudioSourceID] = []
-    init(root: URL) { self.root = root }
-    func open() throws -> AudioProcessingRepository {
-        // A delayed callback may never recreate a deleted/missing root or database.
-        guard FileManager.default.fileExists(atPath:root.path), FileManager.default.fileExists(atPath:DaybookDatabase.metadataURL(forRoot:root).path) else { throw AudioProcessingError.deletedSource }
-        if let processing { return processing }
-        let db = try DaybookDatabase(url:DaybookDatabase.metadataURL(forRoot:root))
-        self.db = db
-        let processing = AudioProcessingRepository(database:db)
-        self.processing = processing
-        return processing
-    }
-    private func stamp(_ url: URL) throws -> String {
-        try RecordingAudioFile.requireSafePath(url)
-        let attributes = try FileManager.default.attributesOfItem(atPath:url.path)
-        guard attributes[.type] as? FileAttributeType == .typeRegular else { throw AudioProcessingError.invalidInput }
-        let identity = [.systemNumber,.systemFileNumber,.size].map { String(describing:attributes[$0]) }.joined(separator:"|")
-        let times = [.modificationDate,.creationDate].map { key in
-            (attributes[key] as? Date).map { String($0.timeIntervalSinceReferenceDate.bitPattern) } ?? "missing"
-        }.joined(separator:"|")
-        return identity + "|" + times
-    }
-    private func inspect(_ url: URL, descriptor: RecordingChunkDescriptor? = nil) throws -> RecordingAudioFileInfo {
-        let before = try stamp(url), key = descriptor.map(AudioStableID.make)
-        if let cached = files[url], cached.stamp == before, cached.descriptor == key { return cached.info }
-        let info = try descriptor.map { try RecordingAudioFile.validate($0,at:url) } ?? RecordingAudioFile.inspect(url)
-        guard try stamp(url) == before else { throw AudioProcessingError.invalidInput }
-        files[url] = CachedFile(stamp:before,descriptor:key,info:info)
-        return info
-    }
-    func sources(explicit: [AudioSourceID]) throws -> [AudioSourceSnapshot] {
-        let processing = try open()
-        guard let db else { throw AudioProcessingError.invalidInput }
-        let known = Set(try processing.sources().map(\.id)), requested = Set(explicit)
-        var result: [AudioSourceSnapshot] = []
-        unavailableSources = []
-        // Only persisted note rows are read. Do not reopen NoteRepository/recover orphaned files from a queue callback.
-        for row in try db.query("SELECT payload FROM voice_notes ORDER BY id") {
-            let note = try DaybookDatabase.decode(VoiceNote.self,row["payload"])
-            let id = AudioSourceID(kind:.legacyNote,id:note.id)
-            let forced = requested.contains(id) || known.contains(id)
-            guard forced || (note.kind == .long && note.transcriptionState != .ready && note.transcript.isEmpty) else { continue }
-            do {
-                let url = root.appendingPathComponent("Audio",isDirectory:true).appendingPathComponent(note.audioFilename)
-                let info = try inspect(url)
-                if !forced && !AudioLegacyRouting.requiresDurableProcessing(kind:note.kind,duration:note.duration,measuredDuration:Double(info.frameCount)/info.sampleRate) { continue }
-                let range = try AudioSourceRange(range:.init(chunkID:note.id,url:url,startFrame:0,endFrame:info.frameCount,sampleRate:info.sampleRate),contentHash:info.sha256)
-                result.append(try .init(id:id,capturedAt:note.capturedAt,title:note.title,origin:note.origin.map(AudioSourceOrigin.init),location:note.location,ranges:[range],complete:true))
-            } catch { unavailableSources.append(id) }
-        }
-        let repository: RecordingSessionRepository
-        if let sessions { repository = sessions }
-        else {
-            repository = try RecordingSessionRepository(root:root.appendingPathComponent("RecordingSessions",isDirectory:true),database:db)
-            sessions = repository
-        }
-        var offset = 0
-        while true {
-            let page = try repository.sessions(limit:200,offset:offset)
-            for session in page {
-                do {
-                    let chunks = try repository.chunks(sessionID:session.id), hashes = Dictionary(uniqueKeysWithValues:chunks.map { ($0.id,$0.sha256) })
-                    let ranges = try repository.sourceRanges(sessionID:session.id,validateFile:{ [self] chunk,url in _ = try inspect(url,descriptor:chunk) }).map { range in
-                        try AudioSourceRange(range:range,contentHash:hashes[range.chunkID] ?? "")
-                    }
-                    result.append(try .init(id:.init(kind:.session,id:session.id),capturedAt:session.startedAt ?? Date(timeIntervalSinceReferenceDate:0),title:"完整录音",origin:session.origin.map(AudioSourceOrigin.init),location:session.location,ranges:ranges,complete:session.syncComplete))
-                } catch { unavailableSources.append(.init(kind:.session,id:session.id)) }
-            }
-            offset += page.count
-            if page.count < 200 { break }
-        }
-        return result
-    }
+    private func midpoint(_ segment: TranscriptSegment) -> Double { (segment.start + segment.end) / 2 }
 }

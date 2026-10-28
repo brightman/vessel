@@ -7,19 +7,13 @@ struct WatchContentView: View {
     @State private var interaction = RecordingButtonInteraction()
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
+    @State private var isTransferDiagnosticsPresented = false
+    @State private var recordingAwaitingDeleteConfirmation: PendingRecording?
+    @State private var isUnsyncedDeleteConfirmationPresented = false
     private let red = Color(red: 0.96, green: 0.17, blue: 0.21)
 
     private var recordings: [PendingRecording] {
         recorder.pending.sorted { $0.capturedAt > $1.capturedAt }
-    }
-
-    private var sessionIDs: [UUID] {
-        let ids = Set(recorder.sessionChunks.map(\.sessionID) + recorder.sessionEnds.map(\.sessionID) + recorder.sessionSyncStates.map(\.id) + [recorder.activeRecordingSessionID].compactMap { $0 })
-        return ids.sorted { left, right in
-            let a = recorder.sessionChunks.first { $0.sessionID == left }?.sessionStartedAt ?? .distantPast
-            let b = recorder.sessionChunks.first { $0.sessionID == right }?.sessionStartedAt ?? .distantPast
-            return a == b ? left.uuidString < right.uuidString : a > b
-        }
     }
 
     var body: some View {
@@ -30,7 +24,7 @@ struct WatchContentView: View {
                 Text("录音")
                     .font(.system(size: 14, weight: .bold))
                 Spacer(minLength: 8)
-                Text("\(recordings.count + sessionIDs.count) 条")
+                Text("\(recordings.count) 条")
                     .font(.system(size: 10, weight: .medium).monospacedDigit())
                     .foregroundStyle(.secondary)
             }
@@ -38,12 +32,7 @@ struct WatchContentView: View {
             .padding(.bottom, 3)
 
             List {
-                ForEach(sessionIDs, id: \.self) { id in
-                    sessionRow(id)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 9, bottom: 0, trailing: 9))
-                        .listRowBackground(Color.clear)
-                }
-                if recordings.isEmpty && sessionIDs.isEmpty {
+                if recordings.isEmpty {
                     Text("还没有录音")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
@@ -56,7 +45,14 @@ struct WatchContentView: View {
                         .listRowInsets(EdgeInsets(top: 0, leading: 9, bottom: 0, trailing: 9))
                         .listRowBackground(Color.clear)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("删除", role: .destructive) { recorder.delete(item.id) }
+                            Button("删除 Watch", role: .destructive) {
+                                if item.uploaded {
+                                    recorder.delete(item.id)
+                                } else {
+                                    recordingAwaitingDeleteConfirmation = item
+                                    isUnsyncedDeleteConfirmationPresented = true
+                                }
+                            }
                         }
                 }
                 if recorder.pendingCount > 0 {
@@ -90,6 +86,19 @@ struct WatchContentView: View {
         .onDisappear { interruptPress() }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { interruptPress() }
+        }
+        .sheet(isPresented: $isTransferDiagnosticsPresented) {
+            WatchTransferDiagnosticsView(recorder: recorder)
+        }
+        .confirmationDialog("录音尚未同步", isPresented: $isUnsyncedDeleteConfirmationPresented,
+                            titleVisibility: .visible) {
+            Button("删除 Watch 副本", role: .destructive) {
+                if let item = recordingAwaitingDeleteConfirmation { recorder.delete(item.id) }
+                recordingAwaitingDeleteConfirmation = nil
+            }
+            Button("取消", role: .cancel) { recordingAwaitingDeleteConfirmation = nil }
+        } message: {
+            Text("尚未收到 iPhone 确认。删除会移除 Watch 本地录音并取消仍在 Watch 队列中的传输；若 iPhone 已收到文件，iPhone 上的副本会保留。")
         }
     }
 
@@ -133,6 +142,15 @@ struct WatchContentView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(syncSummary)
+
+            Button {
+                isTransferDiagnosticsPresented = true
+            } label: {
+                Label("传输诊断", systemImage: "waveform.path.ecg")
+                    .font(.system(size: 8, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 2)
@@ -153,54 +171,6 @@ struct WatchContentView: View {
         return .gray
     }
 
-    private func sessionRow(_ id: UUID) -> some View {
-        let chunks = recorder.sessionChunks.filter { $0.sessionID == id }.sorted { $0.ordinal < $1.ordinal }
-        let state = recorder.sessionSyncStates.first { $0.id == id }
-        let end = recorder.sessionEnds.first { $0.sessionID == id }
-        let progress = RecordingSessionSyncPresentation(sessionID: id, activeSessionID: recorder.activeRecordingSessionID,
-            savedChunkCount: state?.savedChunkCount ?? 0, sealedChunkCount: chunks.count,
-            hasEnd: end != nil, syncComplete: state?.isComplete == true)
-        let status = sessionSyncLabel(progress.phase)
-        let duration = chunks.reduce(0) { $0 + $1.duration }
-        let start = chunks.first?.sessionStartedAt
-        return VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 5) {
-                Text("长录音")
-                    .font(.system(size: 12, weight: .semibold))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                syncBadge(status, color: sessionSyncColor(progress.phase))
-            }
-            HStack(spacing: 3) {
-                Text(start.map(RecordingFormat.date) ?? "录音时间待同步")
-                Spacer(minLength: 2)
-                Text(RecordingFormat.duration(duration)).monospacedDigit()
-            }
-            .font(.system(size: 9))
-            .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 8)
-        .overlay(alignment: .top) { Rectangle().fill(Color(white: 0.14)).frame(height: 0.5) }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func sessionSyncLabel(_ phase: RecordingSessionSyncPresentation.Phase) -> String {
-        switch phase {
-        case .recording: "录音中"
-        case .awaitingEnd: "待同步"
-        case .syncing: "同步中"
-        case .complete: "已同步"
-        }
-    }
-
-    private func sessionSyncColor(_ phase: RecordingSessionSyncPresentation.Phase) -> Color {
-        switch phase {
-        case .recording: red
-        case .awaitingEnd, .syncing: .orange
-        case .complete: .green
-        }
-    }
-
     private func recordingRow(_ item: PendingRecording) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 5) {
@@ -208,7 +178,7 @@ struct WatchContentView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                syncBadge(item.uploaded ? "已同步" : "待同步", color: item.uploaded ? .green : .orange)
+                syncBadge(recorder.transferStatus(for: item), color: item.uploaded ? .green : item.transferFailed ? .red : item.awaitingPhoneSaveConfirmation ? .blue : .orange)
             }
             HStack(spacing: 3) {
                 Text(RecordingFormat.date(item.capturedAt))
@@ -289,6 +259,92 @@ struct WatchContentView: View {
             try? await Task.sleep(for: .seconds(1.7))
             guard !Task.isCancelled else { return }
             notice = nil
+        }
+    }
+}
+
+private struct WatchTransferDiagnosticsView: View {
+    @ObservedObject var recorder: WatchRecorder
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("当前状态") {
+                    statusRow("WatchConnectivity", recorder.diagnosticConnectionState)
+                    statusRow("iPhone App", recorder.diagnosticCompanionInstalled ? "已安装" : "未检测到")
+                    statusRow("手机可达", recorder.diagnosticPhoneReachable ? "是" : "否")
+                    statusRow("尚未收到保存回执", "\(recorder.pendingCount) 个文件")
+                    statusRow("最近保存确认", recorder.diagnosticLastSyncAt?.formatted(date: .omitted, time: .shortened) ?? "暂无")
+                    Text("系统队列只表示调度状态；收到 iPhone 保存回执后才算同步完成。")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("系统文件队列") {
+                    TimelineView(.periodic(from: .now, by: 5)) { _ in
+                        let transfer = recorder.diagnosticFileTransferStatus
+                        VStack(alignment: .leading, spacing: 3) {
+                            statusRow("系统正在传输", "\(transfer.transferringCount) 个文件")
+                            statusRow("等待系统调度", "\(transfer.queuedCount) 个文件")
+                        }
+                    }
+                }
+
+                Section("最近事件 · 最多 20 条") {
+                    if recorder.diagnosticEvents.isEmpty {
+                        Text("暂无传输事件")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(recorder.diagnosticEvents) { event in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(event.title)
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .lineLimit(2)
+                                    Spacer(minLength: 3)
+                                    Text(event.date.formatted(date: .omitted, time: .shortened))
+                                        .font(.system(size: 8, weight: .medium).monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize()
+                                }
+                                if !event.detail.isEmpty {
+                                    Text(event.detail)
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                if let key = event.recordingKey {
+                                    Text("录音 ID · \(key)")
+                                        .font(.system(size: 7, design: .monospaced))
+                                        .foregroundStyle(.blue.opacity(0.9))
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("传输诊断")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { dismiss() }
+                        .font(.system(size: 10))
+                }
+            }
+        }
+    }
+
+    private func statusRow(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 9))
+            Spacer(minLength: 3)
+            Text(value)
+                .font(.system(size: 9, weight: .medium).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
         }
     }
 }

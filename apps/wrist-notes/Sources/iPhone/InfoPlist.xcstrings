@@ -61,6 +61,30 @@
         }
       }
     },
+    "NSFaceIDUsageDescription" : {
+      "comment" : "Privacy - Face ID Usage Description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID is used only to unlock WiseLife when you reopen the app. Face data is handled by iOS and is never accessed or stored by WiseLife."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID は、アプリを再び開いたときに WiseLife のロックを解除するためだけに使用します。顔のデータは iOS が処理し、WiseLife が取得・保存することはありません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID 仅用于你重新打开 WiseLife 时验证身份。面部数据由 iOS 处理，WiseLife 不会读取或保存。"
+          }
+        }
+      }
+    },
     "NSHealthShareUsageDescription" : {
       "comment" : "Privacy - Health Share Usage Description",
       "extractionState" : "extracted_with_value",

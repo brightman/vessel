@@ -55,7 +55,7 @@ struct TranscriptionConfiguration: Codable, Equatable, Sendable {
     var whisperLanguage = "auto"
     var resourceID: String { engine == .apple ? "apple:\(appleLocale)" : "whisper:\(whisperSize.rawValue)" }
     var resourceName: String {
-        engine == .apple ? "\(Self.appleLanguageName(appleLocale))语言包" : "Whisper \(whisperSize.title) 多语言模型"
+        engine == .apple ? "Apple \(Self.appleLanguageName(appleLocale))语音资源" : "Whisper \(whisperSize.title) 多语言模型"
     }
     var label: String {
         engine == .apple ? "\(AppleTranscriptionEngine.speechTranscriber.displayName) 优先 · \(AppleTranscriptionEngine.dictationTranscriber.displayName) 回退 · \(Self.appleLanguageName(appleLocale))" : "Whisper \(whisperSize.title) · \(Self.whisperLanguageName(whisperLanguage))"
@@ -91,18 +91,14 @@ enum TranscriptionResourceError: LocalizedError {
     case missing, downloadFailed, invalidFiles, unsupported, reservationLimit, emptyTranscript
     case http(Int)
     static var appleUnavailableMessage: String {
-        #if targetEnvironment(simulator)
-        "当前模拟器无法使用 Apple 端上转写。请在 iPhone 真机测试，或到设置 → 语音转写模型选择 Whisper。"
-        #else
-        "这台设备暂不支持 Apple 端上转写，可到设置 → 语音转写模型选择 Whisper。"
-        #endif
+        "这台设备暂不支持所选语言的 Apple 端上转写，可到设置 → 语音转写模型选择 Whisper。"
     }
     var errorDescription: String? {
         switch self {
-        case .missing: "请先到设置 → 语音转文本，下载所选模型的语言资源。"
+        case .missing: "请先到设置 → 语音转文本，下载所选模型或语言的离线资源。"
         case .downloadFailed: "下载失败，请检查网络和可用存储空间后重试。"
         case .invalidFiles: "模型文件不完整或校验失败，请重新下载。"
-        case .unsupported: "此设备暂不支持所选系统转写语言，可尝试 Whisper。"
+        case .unsupported: "当前设备或模型不支持所选转写语言，请检查语言设置或更换模型。"
         case .reservationLimit: "系统语言资源预留已达上限，暂时无法下载此语言。请稍后重试或使用 Whisper。"
         case .emptyTranscript: "未识别到有效语音，请检查录音和转写语言。"
         case .http(let code): "模型下载服务返回 HTTP \(code)，请稍后重试。"

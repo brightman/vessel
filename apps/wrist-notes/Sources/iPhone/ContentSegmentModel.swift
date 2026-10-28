@@ -111,7 +111,7 @@ struct ContentSegmentDetail: Sendable {
         self.processing = processing
         super.init()
         onDeletion = { [weak self] in self?.refresh() }
-        for name in [AudioProcessingModel.contentDidChange,RecordingChunkReceiver.didChange] {
+        for name in [AudioProcessingModel.contentDidChange,Notification.Name.recordingSourcesDidChange] {
             observations.append(NotificationCenter.default.publisher(for:name).sink { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self else { return }; self.epoch += 1; self.revision += 1; self.refresh()
@@ -207,7 +207,8 @@ struct ContentSegmentDetail: Sendable {
     func replacingAudio(_ parents: [DayRecord], kind: AudioSourceKind) -> [DayRecord] {
         let derived = records.filter { $0.contentProvenance?.sourceKind == kind.rawValue }
         let ids = Set(derived.compactMap { $0.contentProvenance?.sourceID })
-        return parents.filter { !ids.contains($0.recordingSessionID ?? $0.id) } + derived
+        let groupedSourceIDs = Set(parents.filter { ids.contains($0.id) }.compactMap(\.recordingGroupID))
+        return parents.filter { !ids.contains($0.recordingSessionID ?? $0.id) && !($0.recordingGroupID.map(groupedSourceIDs.contains) ?? false) } + derived
     }
     func sourcePage(_ source: AudioSourceID, limit: Int, offset: Int) async throws -> [ContentSegment] {
         let values = try await processing.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).segments(sourceID:source,limit:min(100,limit),offset:offset) }

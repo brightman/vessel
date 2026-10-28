@@ -55,11 +55,13 @@ enum AudioAdaptiveInference {
             return .failed
         }
         let asr = combined(\.asr), vad = combined(\.vad), speaker = combined(\.speaker)
+        let engineNames = Set(outcomes.filter { $0.asr == .success }.compactMap(\.asrEngineName)).sorted()
+        let asrEngineName = engineNames.isEmpty ? nil : engineNames.joined(separator: " / ")
         // A failed inner analysis cannot claim full outer-stage success or coverage.
         if speaker != .success { spans = spans.map { var copy = $0; copy.speakerID = nil; return copy }; updates = [] }
         return .init(result:.init(spans:asr == .success ? spans : [],
             activities:vad == .success ? activities : (vad == .notRequested ? [] : [.init(start:window.coreStart,end:window.coreEnd,kind:.uncertain)]),
-            asr:asr,vad:vad,speaker:speaker,
+            asr:asr,asrEngineName:asrEngineName,vad:vad,speaker:speaker,
             asrCoverage:asr == .success ? outcomes.flatMap(\.asrCoverage) : [],
             vadCoverage:vad == .success ? outcomes.flatMap(\.vadCoverage) : [],
             speakerFeatures:speaker == .success ? evidence.keys.sorted().compactMap { evidence[$0] } : []),

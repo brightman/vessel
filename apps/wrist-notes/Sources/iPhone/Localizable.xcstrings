@@ -924,6 +924,51 @@
     "ASR 模型" : {
 
     },
+    "Authenticate to view your records." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticate to view your records."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録を見るには認証してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后查看你的记录。"
+          }
+        }
+      }
+    },
+    "Authentication was not completed. Try again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication was not completed. Try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証が完了しませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "身份验证未完成，请重试。"
+          }
+        }
+      }
+    },
     "ChatGPT 安全存储需要恢复" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1240,6 +1285,29 @@
         }
       }
     },
+    "Enable Face ID for WiseLife" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Face ID for WiseLife"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WiseLife の Face ID を有効にする"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为 WiseLife 开启 Face ID"
+          }
+        }
+      }
+    },
     "English" : {
 
     },
@@ -1268,6 +1336,60 @@
           }
         }
       }
+    },
+    "Face ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID"
+          }
+        }
+      }
+    },
+    "Face ID is unavailable. Set up Face ID in iPhone Settings and try again." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID is unavailable. Set up Face ID in iPhone Settings and try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID を利用できません。iPhone の設定で Face ID を設定してから、もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID 暂不可用。请先在 iPhone 设置中完成 Face ID 设置，再重试。"
+          }
+        }
+      }
+    },
+    "iPhone 最近传输事件" : {
+
+    },
+    "iPhone 最近保存：%@" : {
+
+    },
+    "iPhone 实时可达：%@" : {
+
     },
     "iPhone 已完整保存" : {
       "extractionState" : "stale",
@@ -1413,6 +1535,51 @@
         }
       }
     },
+    "Unlock WiseLife" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock WiseLife"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WiseLife のロックを解除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁 WiseLife"
+          }
+        }
+      }
+    },
+    "Unlock with Face ID" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock with Face ID"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID でロックを解除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Face ID 解锁"
+          }
+        }
+      }
+    },
     "WATCH · IPHONE" : {
 
     },
@@ -1435,6 +1602,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watch 不可用"
+          }
+        }
+      }
+    },
+    "Watch 报告待确认：%@ 个文件 · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Watch 报告待确认：%1$@ 个文件 · %2$@"
           }
         }
       }
@@ -1502,6 +1679,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "WiseLife AI"
+          }
+        }
+      }
+    },
+    "WiseLife is protected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WiseLife is protected"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WiseLife は保護されています"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WiseLife 已隐藏内容"
           }
         }
       }
@@ -3765,6 +3964,9 @@
         }
       }
     },
+    "最多 20 条" : {
+
+    },
     "最近同步" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5119,6 +5321,9 @@
           }
         }
       }
+    },
+    "只读查看本机暂存文件；此页面不会修改或删除收件项，也不会播放音频。" : {
+
     },
     "只读步数与睡眠，不写入健康。数据变化或回到前台时，更新今天、昨天和所选日期；其他历史日期在查看时刷新。后台更新由系统调度，步数最多每小时通知一次，不保证固定间隔。锁屏期间若无法读取，解锁后补刷。健康不披露读取授权状态，无数据也可能表示未允许读取。步数按自然日累计，睡眠按自然日切分并合并重叠区间。权限可在系统的健康设置中管理。" : {
       "extractionState" : "manual",
@@ -6825,6 +7030,9 @@
         }
       }
     },
+    "尚未收到 iPhone 确认。删除会移除 Watch 本地录音并取消仍在 Watch 队列中的传输；若 iPhone 已收到文件，iPhone 上的副本会保留。" : {
+
+    },
     "尚未连接" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7902,6 +8110,28 @@
         }
       }
     },
+    "开启后，只在重新打开 App 时验证；从后台返回不会再次验证。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticate only when reopening the app; returning from the background will not ask again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを再び開くときだけ認証します。バックグラウンドから戻る際は再認証しません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启后，只在重新打开 App 时验证；从后台返回不会再次验证。"
+          }
+        }
+      }
+    },
     "开始 WiseLife 录音；已在录音时，停止并自动保存到本机。适合绑定操作按钮。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8412,6 +8642,9 @@
           }
         }
       }
+    },
+    "录音 ID · %@" : {
+
     },
     "录音、图片与转写保存在此 iPhone。由你决定 AI 可以使用哪些记录。" : {
       "localizations" : {
@@ -8956,6 +9189,9 @@
         }
       }
     },
+    "待导入的 Watch 录音" : {
+
+    },
     "快捷录音" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9157,6 +9393,9 @@
 
     },
     "所有录音" : {
+
+    },
+    "所有待处理录音" : {
 
     },
     "所选 AI 模型暂不可用" : {
@@ -10703,6 +10942,15 @@
         }
       }
     },
+    "暂无传输事件" : {
+
+    },
+    "暂无传输事件。手表连接或同步后会显示在这里。" : {
+
+    },
+    "暂无传输事件。连接或同步后会显示在这里。" : {
+
+    },
     "暂无可显示片段，完整录音仍可回听。" : {
       "localizations" : {
         "en" : {
@@ -11587,6 +11835,9 @@
         }
       }
     },
+    "本机收件箱" : {
+
+    },
     "本机模型资源未就绪，请在语音转写模型设置中检查。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12088,6 +12339,9 @@
           }
         }
       }
+    },
+    "查看待处理录音文件与配套信息" : {
+
     },
     "查看隐私政策与数据使用说明" : {
       "extractionState" : "stale",
@@ -15218,6 +15472,9 @@
           }
         }
       }
+    },
+    "系统队列只表示调度状态；收到 iPhone 保存回执后才算同步完成。" : {
+
     },
     "绑定操作按钮" : {
       "extractionState" : "stale",
@@ -18907,6 +19164,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "问问自己的记录…"
+          }
+        }
+      }
+    },
+    "隐私与安全" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy & security"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーとセキュリティ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私与安全"
           }
         }
       }

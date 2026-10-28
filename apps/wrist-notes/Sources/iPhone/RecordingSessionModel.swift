@@ -55,7 +55,7 @@ struct RecordingSessionDetail {
             try RecordingSessionRepository(root: directory.appendingPathComponent("RecordingSessions", isDirectory: true),
                 database: DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: directory)))
         })
-        observation = NotificationCenter.default.publisher(for: RecordingChunkReceiver.didChange)
+        observation = NotificationCenter.default.publisher(for: Notification.Name.recordingSourcesDidChange)
             .sink { [weak self] _ in Task { @MainActor [weak self] in self?.refresh() } }
     }
 
@@ -109,7 +109,7 @@ struct RecordingSessionDetail {
                     self.calendarDates = RecordingSessionPresentation.occupiedDates(result.2, within: month, calendar: calendar)
                     self.cleanupIDs = result.3; self.errorMessage = nil; self.revision += 1
                 } catch {
-                    if self.requestRevision == token { self.errorMessage = "无法读取完整录音，请解锁后重试。" }
+                    if self.requestRevision == token { self.errorMessage = "无法读取完整录音：\(error.localizedDescription)" }
                 }
             }
             self.loading = false; self.task = nil
@@ -143,7 +143,7 @@ struct RecordingSessionDetail {
             try await worker.perform { try $0.deleteSession(id) }
             sessions.removeAll { $0.id == id }; daySessions.removeAll { $0.id == id }
             revision += 1; refresh()
-            NotificationCenter.default.post(name:RecordingChunkReceiver.didChange,object:nil,userInfo:["deletedSessionID":id])
+            NotificationCenter.default.post(name:Notification.Name.recordingSourcesDidChange,object:nil,userInfo:["deletedSessionID":id])
             return true
         } catch { errorMessage = "删除未完成，请解锁后重试。"; return false }
     }

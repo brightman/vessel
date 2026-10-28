@@ -14,6 +14,7 @@ final class NotesModel: ObservableObject {
     @Published private(set) var titleErrors: [UUID: String] = [:]
     let settings: AppSettings
     let voiceProfile: MyVoiceProfileModel
+    let recordingInboxRoot: URL
     /// Installed by WiseLifeRuntime synchronously before startup recovery Tasks run.
     var durableTranscription: ((VoiceNote, Bool) async -> Bool)?
     var durableAudioDeleted: ((UUID) -> Void)?
@@ -72,6 +73,7 @@ final class NotesModel: ObservableObject {
         self.settings = settings ?? AppSettings()
         let directory = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("VoiceNotes", isDirectory: true)
+        recordingInboxRoot = directory.appendingPathComponent("Inbox", isDirectory: true)
         self.openRepository = openRepository ?? { try suppliedRepository ?? NoteRepository(root: directory) }
         self.openConnectivity = connectWatch ? { try suppliedConnectivity ?? PhoneConnectivity(inbox: directory.appendingPathComponent("Inbox", isDirectory: true)) } : nil
         let transcriber = LocalTranscriptionService.shared
@@ -107,7 +109,6 @@ final class NotesModel: ObservableObject {
             } catch { errorMessage = "无法打开录音接收：\(error.localizedDescription)" }
         }
         connectivity?.refreshStatus()
-        connectivity?.resumeRecordingInbox()
         do {
             let opened = try openRepository()
             repository = opened
@@ -127,6 +128,7 @@ final class NotesModel: ObservableObject {
     private func resumePendingProcessing() {
         // Decide from durable states, while preserving visible failure overlays until a write succeeds.
         for note in repository?.notes ?? [] {
+            if note.recordingGroupID != nil { continue }
             let needsTranscription = note.transcriptionState == .pending || note.transcriptionState == .running
             let needsDiarization = note.transcriptionState == .ready && note.diarizationState == .running
             let needsSummary = note.usesLocalThoughtAI && note.transcriptionState == .ready &&
@@ -389,6 +391,16 @@ final class NotesModel: ObservableObject {
         return committed && applied
     }
 
+    @discardableResult
+    func applyGroupedTranscriptions(_ groupID: UUID, outputs: [UUID:TranscriptionOutput]) -> Bool {
+        var changed = false
+        for (id, output) in outputs {
+            guard let note = note(id), note.recordingGroupID == groupID else { continue }
+            changed = applyDurableTranscription(id,output:output,expectedRevision:note.transcriptRevision) || changed
+        }
+        return changed
+    }
+
     func identifySpeakers(_ id: UUID) async {
         guard !activeTranscriptions.contains(id), let file = audioURL(id),
               note(id)?.transcriptionState != .running else { return }
@@ -515,24 +527,30 @@ final class NotesModel: ObservableObject {
 
     private func receive(_ metadata: IncomingRecording, audio: URL) {
         guard let repository else {
+            connectivity?.recordImportFailed(metadata.id, error: RecordingTransportError.unavailable)
             connectivity?.reportSaveFailure(metadata.id, pairingID: metadata.pairingID)
             return
         }
+        connectivity?.recordImportStarted(metadata.id)
         do {
             _ = try repository.importRecording(
                 id: metadata.id, from: audio, kind: metadata.kind,
                 capturedAt: metadata.capturedAt, duration: metadata.duration,
-                origin: RecordingOrigin(device: "Apple Watch", deviceID: "", fileName: audio.lastPathComponent, recordingTimeIsEstimated: false), location: metadata.location
+                origin: metadata.recordingOrigin ?? RecordingOrigin(device: "Apple Watch", deviceID: "", fileName: audio.lastPathComponent, recordingTimeIsEstimated: false),
+                location: metadata.location, recordingGroupID: metadata.recordingGroupID,
+                recordingGroupOrdinal: metadata.recordingGroupOrdinal, recordingGroupOffset: metadata.recordingGroupOffset
             )
             // A duplicate transfer leaves its inbox copy untouched; the durable copy is already indexed.
             if FileManager.default.fileExists(atPath: audio.path) {
                 try? FileManager.default.removeItem(at: audio)
             }
             refresh()
+            connectivity?.recordImportSucceeded(metadata.id)
             connectivity?.acknowledge(metadata.id, pairingID: metadata.pairingID)
             resumePendingProcessing()
         } catch {
             errorMessage = "录音接收失败：\(error.localizedDescription)"
+            connectivity?.recordImportFailed(metadata.id, error: error)
             connectivity?.reportSaveFailure(metadata.id, pairingID: metadata.pairingID)
         }
     }

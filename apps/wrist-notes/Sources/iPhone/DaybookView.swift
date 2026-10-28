@@ -11,7 +11,7 @@ private struct DaybookReminderDraft: Hashable {
     let initialDate: Date?
 }
 private enum DaybookSheet: Hashable, Identifiable {
-    case actionProposal, capture, photo, date, places, hardware, watch, transcription, myVoice, quickRecording, aiSettings, preferences, reminders, about
+    case actionProposal, capture, photo, date, places, hardware, watch, watchInbox, transcription, myVoice, quickRecording, aiSettings, preferences, reminders, about
 #if WISELIFE_EUREKA_RING
     case ring
 #endif
@@ -30,6 +30,7 @@ struct DaybookView: View {
     @EnvironmentObject private var sessions: RecordingSessionModel
     @EnvironmentObject private var model: NotesModel
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var appLock: FaceIDLockCoordinator
     @EnvironmentObject private var audioProcessing: AudioProcessingModel
 #if WISELIFE_EUREKA_RING
     @EnvironmentObject private var ring: EurekaRingModel
@@ -403,9 +404,6 @@ struct DaybookView: View {
                     VStack(alignment: .leading) { Text("录音时间待同步"); Text(LocalizedStringKey(RecordingSessionPresentation.status(session))).font(.caption) }
                 }
             }
-            ForEach(content.library.filter { segment in !content.records.contains { $0.id == segment.id } }) { segment in
-                Button { openRecord(segment.id) } label: { Label(segment.title.isEmpty ? "录音片段" : segment.title,systemImage:"waveform") }
-            }
             if let error = content.errorMessage { Text(LocalizedStringKey(error)).foregroundStyle(.orange); Button("重试") { content.refresh() } }
             if content.hasMore { Button("载入更早的片段") { content.loadMore() }.disabled(content.refreshing) }
             if sessions.hasMore { Button("载入更早的录音") { sessions.loadMore() }.disabled(sessions.loading) }
@@ -683,6 +681,25 @@ struct DaybookView: View {
                     ForEach(AppLanguage.allCases) { language in Text(language.title).tag(language) }
                 }.labelsHidden().font(.system(size: 11))
             }.padding(.vertical, 16).padding(.bottom, 20).overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 1) }
+            Text("隐私与安全").font(.system(size: 17, weight: .semibold)).padding(.bottom, 10)
+            HStack(spacing: 10) {
+                Image(systemName: "faceid").font(.system(size: 19)).foregroundStyle(DaybookStyle.accent)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Face ID").font(.system(size: 12, weight: .medium))
+                    Text("开启后，只在重新打开 App 时验证；从后台返回不会再次验证。")
+                        .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                if appLock.isAuthenticating { ProgressView().controlSize(.small) }
+                Toggle("Face ID", isOn: Binding(
+                    get: { settings.requiresFaceID },
+                    set: { enabled in Task { await appLock.setEnabled(enabled) } }
+                )).labelsHidden().tint(DaybookStyle.accent).disabled(appLock.isAuthenticating)
+            }.padding(.vertical, 14).overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 1) }
+            if let errorMessage = appLock.errorMessage {
+                Text(LocalizedStringKey(errorMessage)).font(.system(size: 10)).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true).padding(.vertical, 9)
+            }
+            Spacer().frame(height: 18)
             HStack { Text("语音与 AI").font(.system(size: 17, weight: .semibold)); Spacer(); Text("优先在本机处理").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary) }.padding(.bottom, 16)
             VStack(spacing: 0) {
                 Button { present(.quickRecording) } label: { DaybookOptionRow(icon: "Mic", title: "快捷录音", subtitle: "操作按钮、实时活动与自动保存") }
@@ -824,6 +841,7 @@ struct DaybookView: View {
                 }
             }
         case .watch: watchSheet
+        case .watchInbox: RecordingInboxBrowserView(root: model.recordingInboxRoot, onClose: { sheet = nil })
         case .hardware:
 #if WISELIFE_EUREKA_RING
             DaybookHardwareView(watch: model.watchStatus, openWatch: { present(.watch) }, openRing: { present(.ring) }, onClose: { sheet = nil })
@@ -883,13 +901,69 @@ struct DaybookView: View {
                     DaybookStyle.line.frame(height: 1)
                     watchFact("手表 App", value: !model.watchStatus.isSupported ? "不可用" : !model.watchStatus.isActivated ? "检查中" : model.watchStatus.isInstalled ? "已安装" : "未安装")
                     DaybookStyle.line.frame(height: 1)
-                    watchFact("待同步录音", value: model.watchStatus.pendingLabel)
+                    watchFact("手机实时可达", value: model.watchStatus.isReachable ? "是" : "否（不代表后台文件队列停止）")
                     DaybookStyle.line.frame(height: 1)
-                    watchFact("最近同步", value: model.watchStatus.lastSyncLabel)
+                    watchFact("Watch 待确认", value: "\(model.watchStatus.pendingLabel) · \(model.watchStatus.reportedAt?.formatted(date: .omitted, time: .shortened) ?? "暂无状态快照")")
+                    DaybookStyle.line.frame(height: 1)
+                    watchFact("iPhone 最近保存", value: model.watchStatus.lastSyncLabel)
                     DaybookStyle.line.frame(height: 1)
                     HStack { Text("采集方式"); Spacer(); Text("轻点录音 · 按住闪念") }.padding(.vertical, 14)
                 }.font(.system(size: 11)).padding(.horizontal, 16).padding(.vertical, 4).background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 17)).overlay(RoundedRectangle(cornerRadius: 17).stroke(DaybookStyle.line)).padding(.vertical, 22)
                 watchSyncActions
+                Button { present(.watchInbox) } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "tray.full").font(.system(size: 16)).foregroundStyle(DaybookStyle.accent)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("本机收件箱").font(.system(size: 12, weight: .medium))
+                            Text("查看待处理录音文件与配套信息").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                        }
+                        Spacer()
+                        DaybookIcon("ChevronRight", size: 13).foregroundStyle(DaybookStyle.secondary)
+                    }
+                    .padding(13)
+                    .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(DaybookStyle.line))
+                }
+                .padding(.top, 14)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("iPhone 最近传输事件").font(.system(size: 12, weight: .semibold))
+                        Spacer()
+                        Text("最多 20 条").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                    }
+                    if model.watchStatus.diagnosticEvents.isEmpty {
+                        Text("暂无传输事件。手表连接或同步后会显示在这里。")
+                            .font(.system(size: 11)).lineSpacing(5).foregroundStyle(DaybookStyle.secondary)
+                    } else {
+                        ForEach(model.watchStatus.diagnosticEvents) { event in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(event.title).font(.system(size: 11, weight: .medium)).lineLimit(2)
+                                    Spacer(minLength: 4)
+                                    Text(event.date, format: .dateTime.hour().minute())
+                                        .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                                }
+                                if !event.detail.isEmpty {
+                                    Text(event.detail).font(.system(size: 10)).lineSpacing(4)
+                                        .foregroundStyle(DaybookStyle.secondary).textSelection(.enabled)
+                                }
+                                if let key = event.recordingKey {
+                                    Text("录音 ID · \(key)").font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(DaybookStyle.accent).textSelection(.enabled)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 5)
+                            if event.id != model.watchStatus.diagnosticEvents.last?.id {
+                                DaybookStyle.line.frame(height: 1)
+                            }
+                        }
+                    }
+                }
+                .padding(14)
+                .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 17))
+                .overlay(RoundedRectangle(cornerRadius: 17).stroke(DaybookStyle.line))
+                .padding(.top, 18)
                 Text("Apple Watch 的配对与取消配对请在 iPhone 的 Watch App 中管理。")
                     .font(.system(size: 11)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary).padding(.top, 16)
             }
@@ -1078,4 +1152,137 @@ struct DaybookView: View {
         }
     }
     private func clearErrors() { sessions.errorMessage = nil; model.errorMessage = nil; photos.errorMessage = nil; recorder.errorMessage = nil; recording.clearError(); reminders.errorMessage = nil; life.errorMessage = nil }
+}
+
+private struct RecordingInboxEntry: Identifiable {
+    let id: UUID
+    let audioURL: URL?
+    let metadataURL: URL?
+    let byteCount: Int64?
+    let modifiedAt: Date?
+    let metadata: IncomingRecording?
+}
+
+/// Read-only inspection of the local WatchConnectivity staging area.
+private struct RecordingInboxBrowserView: View {
+    let root: URL
+    let onClose: () -> Void
+    @State private var entries: [RecordingInboxEntry] = []
+    @State private var selectedEntry: RecordingInboxEntry?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        DaybookSheetLayout(title: selectedEntry.map { "待处理录音 · \($0.id.uuidString.prefix(8))" } ?? "本机收件箱", onClose: onClose) {
+            VStack(alignment: .leading, spacing: 13) {
+                if let selectedEntry {
+                    Button {
+                        self.selectedEntry = nil
+                        errorMessage = nil
+                        refreshEntries()
+                    } label: {
+                        HStack(spacing: 6) { DaybookIcon("ChevronLeft", size: 13); Text("所有待处理录音") }
+                            .font(.system(size: 11, weight: .medium)).foregroundStyle(DaybookStyle.accent)
+                    }
+                    let shortID = String(selectedEntry.id.uuidString.prefix(8))
+                    Text("录音 ID · \(shortID)").font(.system(size: 10, design: .monospaced)).foregroundStyle(DaybookStyle.secondary).textSelection(.enabled)
+                    inboxFileRow("音频文件", name: selectedEntry.audioURL == nil ? "缺失" : "\(shortID).m4a", bytes: selectedEntry.byteCount)
+                    inboxFileRow("录音信息", name: selectedEntry.metadataURL == nil ? "缺失" : "\(shortID).json", bytes: selectedEntry.metadataURL.flatMap(Self.fileSize))
+                    if let metadata = selectedEntry.metadata {
+                        DaybookStyle.line.frame(height: 1)
+                        inboxFact("录音类型", value: metadata.kind == .long ? "长录音" : "闪念")
+                        inboxFact("录音时间", value: metadata.capturedAt.formatted(date: .abbreviated, time: .shortened))
+                        inboxFact("时长", value: RecordingFormat.duration(metadata.duration))
+                        if let ordinal = metadata.recordingGroupOrdinal {
+                            inboxFact("录音组文件序号", value: "第 \(ordinal + 1) 个")
+                        }
+                    } else {
+                        DaybookQuietInfo(text: "录音信息文件缺失或无法解析。")
+                    }
+                } else {
+                    HStack {
+                        Text("待导入的 Watch 录音").font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+                        Spacer()
+                        Button("刷新") { refreshEntries() }.font(.system(size: 11, weight: .medium)).foregroundStyle(DaybookStyle.accent)
+                    }
+                    if entries.isEmpty && errorMessage == nil {
+                        DaybookQuietInfo(text: "收件箱为空。收到但尚未完成本机保存的录音会显示在这里。")
+                    }
+                    ForEach(entries) { entry in
+                        Button { selectedEntry = entry } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "waveform").font(.system(size: 15)).foregroundStyle(DaybookStyle.accent)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(entry.metadata.map { $0.kind == .long ? "长录音" : "闪念" } ?? "待处理录音")
+                                        .font(.system(size: 11, weight: .medium))
+                                    Text(entry.metadata?.capturedAt.formatted(date: .abbreviated, time: .shortened) ?? String(entry.id.uuidString.prefix(8)))
+                                        .font(.system(size: 9)).foregroundStyle(DaybookStyle.secondary)
+                                }
+                                Spacer()
+                                Text(entry.byteCount.map(Self.byteLabel) ?? "音频缺失")
+                                    .font(.system(size: 9, design: .monospaced)).foregroundStyle(DaybookStyle.secondary)
+                            }
+                            .padding(12)
+                            .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(DaybookStyle.line))
+                        }
+                    }
+                }
+                if let errorMessage {
+                    Text(errorMessage).font(.system(size: 10)).foregroundStyle(.orange).textSelection(.enabled)
+                }
+                Text("只读查看本机暂存文件；此页面不会修改或删除收件项，也不会播放音频。")
+                    .font(.system(size: 9)).lineSpacing(4).foregroundStyle(DaybookStyle.secondary).padding(.top, 5)
+            }
+            .onAppear(perform: refreshEntries)
+        }
+    }
+
+    private func refreshEntries() {
+        do {
+            guard FileManager.default.fileExists(atPath: root.path) else { entries = []; errorMessage = nil; return }
+            let urls = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .contentModificationDateKey, .fileSizeKey], options: [.skipsHiddenFiles])
+            let files = urls.filter { url in
+                guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+                      values.isDirectory != true, values.isSymbolicLink != true else { return false }
+                return ["m4a", "json"].contains(url.pathExtension.lowercased())
+            }
+            let grouped = Dictionary(grouping: files) { $0.deletingPathExtension().lastPathComponent }
+            entries = grouped.compactMap { key, group in
+                guard let id = UUID(uuidString: key) else { return nil }
+                let audio = group.first { $0.pathExtension.lowercased() == "m4a" }
+                let info = group.first { $0.pathExtension.lowercased() == "json" }
+                let metadata = info.flatMap { try? JSONDecoder().decode(IncomingRecording.self, from: Data(contentsOf: $0)) }
+                let size = audio.flatMap(Self.fileSize)
+                let modified = group.compactMap { try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }.max()
+                return RecordingInboxEntry(id: id, audioURL: audio, metadataURL: info, byteCount: size, modifiedAt: modified, metadata: metadata)
+            }.sorted { ($0.modifiedAt ?? .distantPast) > ($1.modifiedAt ?? .distantPast) }
+            errorMessage = nil
+        } catch { errorMessage = "无法读取收件目录：\(error.localizedDescription)" }
+    }
+
+    private func inboxFileRow(_ title: String, name: String, bytes: Int64?) -> some View {
+        HStack(spacing: 8) {
+            Text(title).font(.system(size: 10, weight: .medium))
+            Spacer(minLength: 3)
+            Text(name).font(.system(size: 9, design: .monospaced)).lineLimit(1)
+            Text(bytes.map(Self.byteLabel) ?? "—").font(.system(size: 9, design: .monospaced)).foregroundStyle(DaybookStyle.secondary)
+        }
+        .padding(.vertical, 7)
+    }
+
+    private func inboxFact(_ title: String, value: String) -> some View {
+        HStack {
+            Text(title).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
+            Spacer()
+            Text(value).font(.system(size: 10, weight: .medium))
+        }
+    }
+
+    private static func fileSize(_ url: URL) -> Int64? {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
+    }
+
+    private static func byteLabel(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
 }

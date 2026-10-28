@@ -61,8 +61,10 @@ final class DaybookDatabase: @unchecked Sendable {
                 try Self.excludeFromBackup(url.deletingLastPathComponent())
             }
         }
-        // The directory protects SQLite sidecars from their creation, including WAL/SHM files.
-        if !inMemory { try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.deletingLastPathComponent().path) }
+        // WatchConnectivity may launch the app after the phone has been locked.
+        // Keep the database unavailable before the first unlock after reboot, but
+        // allow background receipt to use it after the user has unlocked once.
+        if !inMemory { try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: url.deletingLastPathComponent().path) }
         #endif
         let status = sqlite3_open_v2(inMemory ? ":memory:" : url.path, &handle, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil)
         guard status == SQLITE_OK else { let error = failure(status); sqlite3_close(handle); handle = nil; throw error }
@@ -76,7 +78,7 @@ final class DaybookDatabase: @unchecked Sendable {
             #if os(iOS)
             for suffix in ["", "-wal", "-shm", "-journal"] where !inMemory && FileManager.default.fileExists(atPath: url.path + suffix) {
                 try Self.excludeFromBackup(URL(fileURLWithPath: url.path + suffix))
-                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path + suffix)
+                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: url.path + suffix)
             }
             #endif
         } catch { sqlite3_close(handle); handle = nil; throw error }
@@ -254,8 +256,6 @@ final class DaybookDatabase: @unchecked Sendable {
                 "CREATE TABLE IF NOT EXISTS recording_chunks (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES recording_sessions(id) ON DELETE CASCADE, ordinal INTEGER NOT NULL CHECK(ordinal BETWEEN 0 AND 100000), filename TEXT NOT NULL UNIQUE, captured_at REAL NOT NULL, session_start_offset REAL NOT NULL CHECK(session_start_offset >= 0), frame_count INTEGER NOT NULL CHECK(frame_count > 0), sample_rate REAL NOT NULL CHECK(sample_rate > 0), byte_count INTEGER NOT NULL CHECK(byte_count > 0), sha256 TEXT NOT NULL CHECK(length(sha256)=64), payload BLOB NOT NULL, UNIQUE(session_id,ordinal))",
                 "CREATE INDEX IF NOT EXISTS recording_chunks_date ON recording_chunks(captured_at,session_id)",
                 "CREATE TABLE IF NOT EXISTS recording_gaps (session_id TEXT NOT NULL REFERENCES recording_sessions(id) ON DELETE CASCADE, gap_key TEXT NOT NULL, kind TEXT NOT NULL, first_ordinal INTEGER, last_ordinal INTEGER, start_offset REAL, end_offset REAL, PRIMARY KEY(session_id,gap_key))",
-                "CREATE TABLE IF NOT EXISTS recording_receipts (pairing_id TEXT NOT NULL, chunk_id TEXT NOT NULL REFERENCES recording_chunks(id) ON DELETE CASCADE, session_id TEXT NOT NULL, ordinal INTEGER NOT NULL, sha256 TEXT NOT NULL, saved_at REAL NOT NULL, PRIMARY KEY(pairing_id,chunk_id))",
-                "CREATE TABLE IF NOT EXISTS recording_end_receipts (pairing_id TEXT NOT NULL, session_id TEXT NOT NULL REFERENCES recording_sessions(id) ON DELETE CASCADE, revision INTEGER NOT NULL, payload BLOB NOT NULL, saved_at REAL NOT NULL, PRIMARY KEY(pairing_id,session_id))",
                 "CREATE TABLE IF NOT EXISTS recording_session_tombstones (session_id TEXT PRIMARY KEY, deleted_at REAL NOT NULL)",
                 "CREATE TABLE IF NOT EXISTS recording_file_cleanup (filename TEXT PRIMARY KEY, session_id TEXT NOT NULL, deleted_at REAL NOT NULL)",
                 "PRAGMA user_version = 5"

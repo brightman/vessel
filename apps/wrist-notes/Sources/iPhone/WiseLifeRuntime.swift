@@ -24,7 +24,7 @@ private final class PhoneNativeRecordingCommitter {
         queue.async {
             do {
                 try self.currentRepository().storeLocalChunk(self.descriptor(chunk,draft:draft),from:url)
-                NotificationCenter.default.post(name:RecordingChunkReceiver.didChange,object:nil,userInfo:["localSessionID":draft.id])
+                NotificationCenter.default.post(name:Notification.Name.recordingSourcesDidChange,object:nil,userInfo:["localSessionID":draft.id])
             } catch {
                 // The source and its manifest remain in Application Support; final save retries it.
             }
@@ -42,7 +42,7 @@ private final class PhoneNativeRecordingCommitter {
             }
             try repo.applyEnd(.init(sessionID:draft.id,finalOrdinal:draft.chunks.last?.ordinal,endedAt:.now,interrupted:false,revision:0))
         }
-        NotificationCenter.default.post(name:RecordingChunkReceiver.didChange,object:nil,userInfo:["localSessionID":draft.id])
+        NotificationCenter.default.post(name:Notification.Name.recordingSourcesDidChange,object:nil,userInfo:["localSessionID":draft.id])
     }
 }
 
@@ -97,6 +97,9 @@ final class WiseLifeRuntime {
         notes.durableAudioDeleted = { [weak processing] id in processing?.delete(.init(kind:.legacyNote,id:id)) }
         processing.onLegacyTranscript = { [weak notes] id,output,revision in
             notes?.applyDurableTranscription(id,output:output,expectedRevision:revision) ?? false
+        }
+        processing.onGroupedTranscripts = { [weak notes] groupID,outputs in
+            notes?.applyGroupedTranscriptions(groupID,outputs:outputs) ?? false
         }
         foregroundObservation = NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in Task { @MainActor [weak self] in self?.foreground() } }

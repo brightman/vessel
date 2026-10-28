@@ -158,65 +158,6 @@ import XCTest
         XCTAssertEqual(transcribed.count, 2, "repeated lifecycle retries do not restart completed processing")
     }
 
-    func testV2ConnectivityStatusRecoversEmptyUnlockAndIsolatesCounterpart() throws {
-        enum Locked: Error { case storage }
-        let root = try temporary()
-        let repository = try RecordingSessionRepository(root: root.appendingPathComponent("Audio"),
-            database: DaybookDatabase(url: root.appendingPathComponent("db.sqlite3")))
-        var locked = true
-        let receiver = try RecordingChunkReceiver(root: root.appendingPathComponent("V2"), openRepository: {
-            if locked { throw Locked.storage }; return repository
-        }, send: { _ in })
-        let binding = RecordingTransferBinding(counterpart: .init(phoneID: UUID(), pairingID: UUID()), watchID: UUID(), nonce: UUID())
-        receiver.setBinding(binding)
-        let connectivity = try PhoneConnectivity(inbox: root.appendingPathComponent("Inbox"), recordingReceiver: receiver)
-        XCTAssertThrowsError(try receiver.drain())
-        XCTAssertTrue(connectivity.recordingSaveFailed, "real connectivity reads aggregate failed storage open")
-        locked = false; try receiver.drain()
-        XCTAssertFalse(connectivity.recordingSaveFailed, "empty successful unlock clears connectivity status")
-        locked = true; XCTAssertThrowsError(try receiver.drain())
-        let replacement = RecordingTransferBinding(counterpart: .init(phoneID: UUID(), pairingID: UUID()), watchID: binding.watchID, nonce: UUID())
-        receiver.setBinding(replacement)
-        XCTAssertFalse(connectivity.recordingSaveFailed, "old counterpart failure cannot leak into replacement status")
-    }
-
-    func testV2WorkerImportsWhileLegacyRepositoryCannotOpen() async throws {
-        let root = try temporary(), inbox = root.appendingPathComponent("Inbox")
-        let source = root.appendingPathComponent("closed.m4a")
-        do {
-            let writer = try AVAudioFile(forWriting: source, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1])
-            let buffer = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!, frameCapacity: 1600)!
-            buffer.frameLength = 1600
-            for i in 0..<1600 { buffer.floatChannelData![0][i] = 0.1 }
-            try writer.write(from: buffer)
-        }
-        let info = try RecordingAudioFile.inspect(source)
-        let chunk = RecordingChunkDescriptor(id: UUID(), sessionID: UUID(), ordinal: 0,
-            sessionStartedAt: .now, capturedAt: .now, timeZoneIdentifier: "UTC", sessionStartOffset: 0,
-            frameCount: 1600, sampleRate: 16000, byteCount: info.byteCount, sha256: info.sha256,
-            origin: .init(device: "Watch", deviceID: "", fileName: "closed.m4a", recordingTimeIsEstimated: false), location: nil)
-        let databaseURL = DaybookDatabase.metadataURL(forRoot: root)
-        let mediaRoot = root.appendingPathComponent("RecordingSessions")
-        let saved = expectation(description: "durable V2 ACK while V1 is unavailable")
-        let receiver = try RecordingChunkReceiver(root: inbox.appendingPathComponent("RecordingV2"), openRepository: {
-            try RecordingSessionRepository(root: mediaRoot, database: DaybookDatabase(url: databaseURL))
-        }, send: { _ in saved.fulfill() })
-        let binding = RecordingTransferBinding(counterpart: .init(phoneID: UUID(), pairingID: UUID()), watchID: UUID(), nonce: UUID())
-        receiver.setBinding(binding)
-        try receiver.stage(.init(binding: binding, payload: chunk), temporaryFile: source)
-        let connectivity = try PhoneConnectivity(inbox: inbox, recordingReceiver: receiver)
-        var transcriptionCount = 0
-        let model = NotesModel(settings: AppSettings(), transcribeWithSegments: { _, _ in
-            transcriptionCount += 1; return .init(text: "must not run for V2")
-        }, voiceProfile: MyVoiceProfileModel(), root: root, openRepository: { throw URLError(.cannotOpenFile) }, connectivity: connectivity)
-        await fulfillment(of: [saved], timeout: 5)
-        XCTAssertTrue(model.notes.isEmpty)
-        XCTAssertEqual(transcriptionCount, 0)
-        let repository = try RecordingSessionRepository(root: mediaRoot, database: DaybookDatabase(url: databaseURL))
-        XCTAssertEqual(try repository.chunks(sessionID: chunk.sessionID).count, 1)
-        XCTAssertNotNil(try repository.receiptSavedAt(chunkID: chunk.id, pairingID: binding.counterpart.key))
-    }
-
     func testDaybookDatabaseAndItsFolderAreExcludedFromDeviceBackup() throws {
         let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let root = applicationSupport.appendingPathComponent("WristNotes", isDirectory: true)

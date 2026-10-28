@@ -85,6 +85,7 @@ struct AudioSourceOrigin: Codable, Equatable, Sendable {
 
 struct AudioSourceSnapshot: Codable, Equatable, Sendable {
     let id: AudioSourceID
+    var recordingGroupID: UUID? = nil
     let capturedAt: Date
     let title: String
     let origin: AudioSourceOrigin?
@@ -94,14 +95,14 @@ struct AudioSourceSnapshot: Codable, Equatable, Sendable {
     var fingerprint: String { AudioStableID.make(ranges.map(\.contentIdentity)) }
     var contentIdentity: String {
         struct Identity: Encodable {
-            let id: AudioSourceID; let capturedAt: Date; let title: String
+            let id: AudioSourceID; let recordingGroupID: UUID?; let capturedAt: Date; let title: String
             let origin: AudioSourceOrigin?; let location: CaptureLocation?
             let ranges: [AudioSourceRange.ContentIdentity]; let complete: Bool
         }
-        return AudioStableID.make(Identity(id:id,capturedAt:capturedAt,title:title,origin:origin,location:location,ranges:ranges.map(\.contentIdentity),complete:complete))
+        return AudioStableID.make(Identity(id:id,recordingGroupID:recordingGroupID,capturedAt:capturedAt,title:title,origin:origin,location:location,ranges:ranges.map(\.contentIdentity),complete:complete))
     }
-    init(id: AudioSourceID, capturedAt: Date, title: String, origin: AudioSourceOrigin? = nil, location: CaptureLocation? = nil, ranges: [AudioSourceRange], complete: Bool) throws {
-        self.id = id; self.capturedAt = capturedAt; self.title = title; self.origin = origin; self.location = location
+    init(id: AudioSourceID, recordingGroupID: UUID? = nil, capturedAt: Date, title: String, origin: AudioSourceOrigin? = nil, location: CaptureLocation? = nil, ranges: [AudioSourceRange], complete: Bool) throws {
+        self.id = id; self.recordingGroupID = recordingGroupID; self.capturedAt = capturedAt; self.title = title; self.origin = origin; self.location = location
         self.ranges = ranges; self.complete = complete
         try validate()
     }
@@ -177,6 +178,7 @@ struct AudioWindowResult: Codable, Equatable, Sendable {
     let spans: [AudioTranscriptSpan]
     let activities: [AudioActivityInterval]
     let asr: AudioAnalysisOutcome
+    var asrEngineName: String? = nil
     let vad: AudioAnalysisOutcome
     let speaker: AudioAnalysisOutcome
     let asrCoverage: [AudioTimeRange]
@@ -206,6 +208,23 @@ struct AudioInferenceStages: OptionSet, Sendable {
     static let all: Self = [.asr,.vad,.speaker]
 }
 
+/// Short completed recordings are kept as one source item. VAD is only needed when
+/// a recording crosses the topic-splitting threshold; unknown duration stays conservative.
+enum AudioInferenceStagePolicy {
+    static let topicSplittingThreshold: TimeInterval = 30 * 60
+
+    static func requiresVAD(sourceDuration: TimeInterval?) -> Bool {
+        guard let sourceDuration, sourceDuration.isFinite, sourceDuration > 0 else { return true }
+        return sourceDuration > topicSplittingThreshold
+    }
+
+    static func initialStages(sourceDuration: TimeInterval?) -> AudioInferenceStages {
+        var stages: AudioInferenceStages = [.asr,.speaker]
+        if requiresVAD(sourceDuration:sourceDuration) { stages.insert(.vad) }
+        return stages
+    }
+}
+
 /// A stage-selective retry has a persistable stage result and separate speaker label edits.
 /// The worker revision-guards and merges these edits into its previously successful ASR rows.
 struct AudioInferenceDelta: Sendable {
@@ -214,16 +233,15 @@ struct AudioInferenceDelta: Sendable {
 }
 
 
-/// Flash thoughts stay in the direct note pipeline; regular recordings use durable ASR/VAD processing.
+/// Known-short flash thoughts stay in the direct note pipeline; long or unknown recordings use durable processing.
 enum AudioLegacyRouting {
     static func requiresDurableProcessing(kind: RecordingKind, duration: Double, measuredDuration: Double? = nil) -> Bool {
-        // Flash thoughts always use the direct note pipeline. Regular recordings keep
-        // durable ASR/VAD processing at every duration; topic splitting is gated later.
-        if kind == .thought { return false }
         if kind == .long { return true }
-        if duration.isFinite, duration > 0 { return duration > 30 * 60 }
-        guard let measuredDuration, measuredDuration.isFinite, measuredDuration > 0 else { return true }
-        return measuredDuration > 30 * 60
+        // Legacy flash notes longer than ten minutes use the durable pipeline even
+        // though their topic segmentation is still governed by the 30-minute policy.
+        let measured = duration.isFinite && duration > 0 ? duration : measuredDuration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        if kind == .thought { return measured.map { $0 > 600 } ?? true }
+        return measured.map { $0 > AudioInferenceStagePolicy.topicSplittingThreshold } ?? true
     }
 }
 

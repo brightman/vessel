@@ -22,10 +22,6 @@ import Combine
     func rebuildContent(_ id: AudioSourceID) { }
     func release() { continuation?.resume(); continuation = nil }
 }
-enum RecordingChunkReceiver {
-    static let didChange = Notification.Name("WiseLife.RecordingSessionsDidChange")
-}
-
 @main struct ContentSegmentRefreshSmoke {
     @MainActor static func wait(_ condition: () -> Bool) async throws {
         let deadline = Date().addingTimeInterval(5)

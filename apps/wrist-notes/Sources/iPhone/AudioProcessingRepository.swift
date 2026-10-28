@@ -10,6 +10,8 @@ final class AudioProcessingRepository {
     func register(source: AudioSourceSnapshot, configurationKey: String, windows: [AudioProcessingWindow]) throws {
         let planned = try AudioWindowPlanner.plan(source: source, configurationKey: configurationKey)
         guard windows == planned else { throw AudioProcessingError.invalidInput }
+        let sourceDuration = source.ranges.reduce(0) { $0 + $1.duration }
+        let sourceNeedsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:sourceDuration)
         try db.transaction {
             guard try !isDeleted(source.id) else { throw AudioProcessingError.deletedSource }
             let parent = source.id.kind == .session ? "recording_sessions" : "voice_notes"
@@ -73,6 +75,17 @@ final class AudioProcessingRepository {
                     try db.execute("UPDATE audio_processing_jobs SET active=1,window=?,lease=NULL,state=CASE WHEN state='completed' THEN state WHEN ?=1 THEN 'cancelled' WHEN state IN ('running','cancelled') THEN 'pending' ELSE state END WHERE id=?",[try DaybookDatabase.json(window),.integer(cancelled ? 1 : 0),.text(window.id)])
                 } else {
                     try db.execute("UPDATE audio_processing_jobs SET active=1 WHERE id=?", [.text(window.id)])
+                }
+                // A recording may cross 30 minutes while earlier windows were being
+                // transcribed. Requeue those completed ASR-only windows for VAD so
+                // the now-long recording can use the normal topic pipeline.
+                if sourceNeedsVAD, !cancelled, let previousJob,
+                   previousJob["result"] != nil, previousJob["result"] != .null,
+                   previousJob["state"]?.string != "running" {
+                    let result = try DaybookDatabase.decode(AudioWindowResult.self,previousJob["result"])
+                    if result.vad == .notRequested {
+                        try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=? AND active=1",[.text(window.id)])
+                    }
                 }
             }
         }
@@ -139,7 +152,8 @@ final class AudioProcessingRepository {
                 try db.execute("INSERT INTO audio_activity_intervals(job_id,position,start,end,kind) VALUES (?,?,?,?,?)", [.text(window.id), .integer(Int64(index)), .real(start), .real(end), .text(activity.kind.rawValue)])
             }
             // Per-window metadata stays bounded. Transcript/activity rows are never a growing JSON document.
-            let metadata = AudioWindowResult(spans: [], activities: [], asr: result.asr, vad: result.vad, speaker: result.speaker, asrCoverage: result.asrCoverage, vadCoverage: result.vadCoverage, speakerFeatures: result.speakerFeatures)
+            let metadata = AudioWindowResult(spans: [], activities: [], asr: result.asr, asrEngineName: result.asrEngineName,
+                vad: result.vad, speaker: result.speaker, asrCoverage: result.asrCoverage, vadCoverage: result.vadCoverage, speakerFeatures: result.speakerFeatures)
             try db.execute("UPDATE audio_processing_jobs SET state='completed',result=?,result_hash=?,message=NULL WHERE id=?", [try DaybookDatabase.json(metadata), .text(hash), .text(window.id)])
             try db.execute("DELETE FROM audio_processing_stage_requests WHERE job_id=?",[.text(window.id)])
             try bump(window.sourceID)
@@ -149,21 +163,28 @@ final class AudioProcessingRepository {
     /// Stage retries never replace a previously successful stage. Retained snapshots remain readable.
     func stages(for job: AudioProcessingJob) throws -> AudioInferenceStages {
         let row = try valid(job)
-        guard row["result"] != .null, row["result"] != nil else { return .all }
+        let sourceDuration=try effectiveDuration(job.window.sourceID)
+        let needsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:sourceDuration)
+        guard row["result"] != .null, row["result"] != nil else {
+            return AudioInferenceStagePolicy.initialStages(sourceDuration:sourceDuration)
+        }
         let old = try DaybookDatabase.decode(AudioWindowResult.self, row["result"])
         var stages: AudioInferenceStages = []
         if old.asr != .success && old.asr != .notRequested { stages.insert(.asr) }
-        if old.vad != .success && old.vad != .notRequested { stages.insert(.vad) }
+        if needsVAD && old.vad != .success { stages.insert(.vad) }
         if old.speaker != .success && old.speaker != .notRequested { stages.insert(.speaker) }
         if let requested = try db.query("SELECT stages FROM audio_processing_stage_requests WHERE job_id=?",[.text(job.window.id)]).first {
             stages.formUnion(AudioInferenceStages(rawValue:try requested.requiredInt("stages")))
         }
+        if !needsVAD { stages.remove(.vad) }
         return stages
     }
 
     func retryIncompleteStages(sourceID: AudioSourceID, resourceOnly: Bool = false) throws {
         try db.transaction {
             guard let source = try sourceRow(sourceID), try !isDeleted(sourceID) else { throw AudioProcessingError.deletedSource }
+            let snapshot = try DaybookDatabase.decode(AudioSourceSnapshot.self,source["descriptor"])
+            let needsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:snapshot.ranges.reduce(0) { $0 + $1.duration })
             // Resource availability never overrides explicit user cancellation.
             if resourceOnly && source["cancelled"]?.double == 1 { return }
             if !resourceOnly { try retry(sourceID: sourceID) }
@@ -174,9 +195,9 @@ final class AudioProcessingRepository {
                 if row["result"] != nil && row["result"] != .null {
                     let result = try DaybookDatabase.decode(AudioWindowResult.self, row["result"])
                     // A revoked running lease is resumable independently of the older snapshot.
-                    incomplete = incomplete || [result.asr,result.vad,result.speaker].contains { resourceOnly ? $0 == .missingResource : [.missingResource,.failed,.cancelled].contains($0) }
+                    let relevantOutcomes = needsVAD ? [result.asr,result.vad,result.speaker] : [result.asr,result.speaker]
+                    incomplete = incomplete || relevantOutcomes.contains { resourceOnly ? $0 == .missingResource : [.missingResource,.failed,.cancelled].contains($0) }
                     if !resourceOnly && result.speaker == .notRequested {
-                        let snapshot = try DaybookDatabase.decode(AudioSourceSnapshot.self,source["descriptor"])
                         if snapshot.complete && AudioSpeakerMapping.permitsAnalysis(sourceDuration:snapshot.ranges.last?.end) {
                             try db.execute("INSERT OR REPLACE INTO audio_processing_stage_requests(job_id,stages) VALUES (?,?)",[.text(try row.requiredString("id")),.integer(Int64(AudioInferenceStages.speaker.rawValue))])
                             incomplete = true
@@ -226,6 +247,7 @@ final class AudioProcessingRepository {
             }
             let merged = AudioWindowResult(spans:spans,activities:activities,
                 asr:old?.asr == .success ? .success : fresh.asr,
+                asrEngineName:old?.asr == .success ? old?.asrEngineName : fresh.asrEngineName,
                 vad:vadOutcome,
                 speaker:old?.speaker == .success ? .success : fresh.speaker,
                 asrCoverage:old?.asr == .success ? old!.asrCoverage : fresh.asrCoverage,
@@ -367,6 +389,12 @@ final class AudioProcessingRepository {
 
     private func sourceRow(_ sourceID: AudioSourceID) throws -> DaybookDatabase.Row? {
         try db.query("SELECT * FROM audio_processing_sources WHERE source_key=?", [.text(sourceID.key)]).first
+    }
+    private func effectiveDuration(_ sourceID:AudioSourceID) throws -> TimeInterval? {
+        guard let row=try sourceRow(sourceID),let data=row["descriptor"] else { return nil }
+        let source=try DaybookDatabase.decode(AudioSourceSnapshot.self,data)
+        let duration=source.ranges.reduce(0) { $0 + $1.duration }
+        return duration.isFinite && duration > 0 ? duration : nil
     }
     private func isDeleted(_ sourceID: AudioSourceID) throws -> Bool {
         if try !db.query("SELECT source_key FROM audio_source_tombstones WHERE source_key=?", [.text(sourceID.key)]).isEmpty { return true }

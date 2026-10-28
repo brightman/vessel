@@ -235,6 +235,7 @@ struct TranscriptSegment: Codable, Equatable, Identifiable, Sendable {
 struct TranscriptionOutput: Equatable, Sendable {
     var text: String
     var segments: [TranscriptSegment] = []
+    var engineName: String? = nil
 }
 
 /// Frozen when opening the sheet, independently of later observed note updates.
@@ -307,9 +308,14 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var diarizationState: ProcessingState?
     var diarizationMessage: String?
     var transcriptRevision: UUID?
+    var transcriptionEngineName: String? = nil
     var titleSource: RecordingTitleSource?
     var titleRevision: UUID?
     var titleManuallyEdited: Bool?
+    /// Watch hourly files stay separate in storage and are analyzed as one virtual source.
+    var recordingGroupID: UUID? = nil
+    var recordingGroupOrdinal: Int? = nil
+    var recordingGroupOffset: TimeInterval? = nil
 
     private var hasDefaultRecordingTitle: Bool {
         let content = RecordingTitleText.withoutPrefix(title)
@@ -377,6 +383,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
             titleRevision = nil
         }
         self.title = revisedTitle
+        if self.transcript != transcript { transcriptionEngineName = nil }
         guard self.transcript != transcript else { return }
         self.transcript = transcript
         transcriptRevision = UUID()
@@ -397,6 +404,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
 
     mutating func applyTranscription(_ output: TranscriptionOutput) {
         applyEdit(title: title, transcript: output.text)
+        transcriptionEngineName = output.engineName
         transcriptRevision = UUID()
         transcriptSegments = output.segments.isEmpty ? nil : output.segments
         speakerNames = nil

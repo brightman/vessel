@@ -15,8 +15,9 @@ swiftc -module-cache-path "$output/cache" Sources/Shared/CaptureMetadata.swift S
 "$output/audio-merge"
 sh scripts/test_audio_duration.sh
 sh scripts/test_recording_sessions.sh
-sh scripts/test_streaming_recording.sh
 sh scripts/test_audio_processing.sh
+sh scripts/test_audio_source_discovery.sh
+sh scripts/test_audio_processing_coordinator.sh
 sh scripts/test_content_refresh.sh
 sh scripts/test_audio_relocation.sh
 sh scripts/test_recording_titles.sh
@@ -42,11 +43,13 @@ swiftc -module-cache-path "$output/cache" Sources/iPhone/VoiceIdentity.swift Tes
 "$output/voice-profile"
 sh scripts/test_voice_profile_recovery.sh
 
-swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/AISettingsModel.swift Sources/iPhone/KeychainSecretStore.swift Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/Shared/RecordingSession.swift Sources/Shared/RecordingChunkProtocol.swift Sources/Shared/RecordingAudioFile.swift Sources/Shared/RecordingChunkTransport.swift Sources/Shared/WatchSyncSnapshot.swift Sources/iPhone/PhoneWatchStatus.swift Tests/AISettingsSmoke.swift -o "$output/settings"
+swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/AISettingsModel.swift Sources/iPhone/KeychainSecretStore.swift Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/Shared/RecordingSession.swift Sources/Shared/RecordingSessionFiles.swift Sources/Shared/RecordingAudioFile.swift Sources/Shared/RecordingDiagnostics.swift Sources/Shared/WatchSyncSnapshot.swift Sources/iPhone/PhoneWatchStatus.swift Tests/AISettingsSmoke.swift -o "$output/settings"
 "$output/settings"
 
 swiftc $chatgpt_sources -module-cache-path "$output/cache" Sources/iPhone/AIConfiguration.swift Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionSettingsModel.swift Tests/TranscriptionSettingsSmoke.swift -o "$output/transcription"
 "$output/transcription"
+sh scripts/test_apple_asr_policy.sh
+sh scripts/test_asr_provenance.sh
 
 swiftc -module-cache-path "$output/cache" Sources/iPhone/TranscriptionConfiguration.swift Sources/iPhone/AppleSpeechReservationCoordinator.swift Tests/AppleSpeechReservationsSmoke.swift -o "$output/reservations"
 "$output/reservations"

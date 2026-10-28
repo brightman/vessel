@@ -29,18 +29,20 @@ actor LocalTranscriptionService {
     private func transcribeLegacy(fileURL: URL, configuration: TranscriptionConfiguration) async throws -> TranscriptionOutput {
         let windows = try legacyWindows(fileURL:fileURL,configurationKey:configuration.resourceID)
         var pieces: [TranscriptSegment] = []
+        var engineNames = Set<String>()
         for window in windows {
             try Task.checkCancellation()
             let audio = try reader.materialize(window)
             defer { audio.cleanup() }
             let output = try await transcribeBounded(audio:audio,configuration:configuration)
+            if let engineName = output.engineName { engineNames.insert(engineName) }
             pieces += try mappedSpans(output.segments,audio:audio,window:window).map {
                 .init(start:$0.start,end:$0.end,text:$0.text,speakerID:$0.speakerID)
             }
         }
         let text = pieces.map(\.text).joined().trimmingCharacters(in:.whitespacesAndNewlines)
         guard !text.isEmpty else { throw TranscriptionResourceError.emptyTranscript }
-        return .init(text:text,segments:pieces)
+        return .init(text:text,segments:pieces,engineName:engineNames.sorted().joined(separator:" / "))
     }
 
     /// Only a protected <=304-second materialization may reach either native engine.
@@ -71,7 +73,7 @@ actor LocalTranscriptionService {
                 }
                 let text = pieces.map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines)
                 guard WhisperTranscriptValidity.containsSpeechCharacters(text) else { throw TranscriptionResourceError.emptyTranscript }
-                output = TranscriptionOutput(text:text,segments:pieces)
+                output = TranscriptionOutput(text:text,segments:pieces,engineName:"Whisper \(configuration.whisperSize.title)")
                 await engine.unloadModels()
             } catch {
                 await engine.unloadModels()
@@ -215,9 +217,11 @@ actor LocalTranscriptionService {
         var contextSpans: [AudioTranscriptSpan] = [], speakerSpanUpdates: [AudioTranscriptSpan] = []
         var spans: [AudioTranscriptSpan] = [], activities: [AudioActivityInterval] = [], features: [AudioSpeakerFeature] = []
         var asr: AudioAnalysisOutcome = .notRequested, vad: AudioAnalysisOutcome = .notRequested, speaker: AudioAnalysisOutcome = .notRequested
+        var asrEngineName: String?
         if stages.contains(.asr) {
             do {
                 let output = try await transcribeBounded(audio:audio,configuration:configuration)
+                asrEngineName = output.engineName
                 contextSpans = try mappedSpans(output.segments,audio:audio,window:window,owned:false)
                 spans = try AudioWindowPlanner.ownedSpans(contextSpans,window:window)
                 asr = .success
@@ -261,7 +265,7 @@ actor LocalTranscriptionService {
             } catch { try Task.checkCancellation(); speaker = outcome(error) }
         }
         try Task.checkCancellation()
-        return .init(result:.init(spans:spans,activities:activities,asr:asr,vad:vad,speaker:speaker,
+        return .init(result:.init(spans:spans,activities:activities,asr:asr,asrEngineName:asrEngineName,vad:vad,speaker:speaker,
                      asrCoverage:asr == .success ? coverage : [],vadCoverage:vad == .success ? coverage : [],speakerFeatures:features),speakerSpanUpdates:speakerSpanUpdates)
     }
 

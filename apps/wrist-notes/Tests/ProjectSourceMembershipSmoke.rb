@@ -7,7 +7,7 @@ watch_target = project.targets.find { |target| target.name == 'WristNotesWatch' 
 abort 'WristNotesWatch target is missing' unless watch_target
 
 watch_sources = watch_target.source_build_phase.files_references.map { |reference| File.basename(reference.path) }
-required_sources = %w[RecordingButtonInteraction.swift WatchConnectivityStatus.swift SegmentedAudioCapture.swift WatchRecordingSessionStore.swift WatchChunkTransferQueue.swift]
+required_sources = %w[RecordingButtonInteraction.swift WatchConnectivityStatus.swift SegmentedAudioCapture.swift]
 missing_project_sources = required_sources - watch_sources
 abort "Watch target is missing sources: #{missing_project_sources.join(', ')}" unless missing_project_sources.empty?
 
@@ -57,7 +57,7 @@ abort 'iPhone target source membership is incomplete' unless (required_phone_sou
 abort 'Generator iPhone source list is incomplete' unless required_phone_sources.all? { |source| generator.include?(source) }
 puts 'iPhone project source membership: passed'
 
-session_sources = %w[RecordingSession.swift RecordingChunkProtocol.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingChunkTransport.swift]
+session_sources = %w[RecordingSession.swift RecordingSessionFiles.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingDiagnostics.swift]
 abort 'Recording session sources must belong to iPhone and Watch' unless
   (session_sources - phone_sources).empty? && (session_sources - watch_sources).empty?
 abort 'Generator recording session sources are incomplete' unless session_sources.all? { |source| generator.include?(source) }

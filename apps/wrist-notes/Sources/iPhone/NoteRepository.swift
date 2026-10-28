@@ -35,7 +35,8 @@ final class NoteRepository {
     @discardableResult
     func importRecording(id: UUID, from source: URL, kind: RecordingKind, capturedAt: Date, duration: TimeInterval,
                          origin: RecordingOrigin? = nil, location: CaptureLocation? = nil,
-                         mergedSources: [MergedRecordingSource]? = nil) throws -> VoiceNote {
+                         mergedSources: [MergedRecordingSource]? = nil, recordingGroupID: UUID? = nil,
+                         recordingGroupOrdinal: Int? = nil, recordingGroupOffset: TimeInterval? = nil) throws -> VoiceNote {
         var copied: URL?
         let result: (VoiceNote, [VoiceNote])
         do {
@@ -46,6 +47,9 @@ final class NoteRepository {
                     note.origin = origin
                     note.location = location
                     note.mergedSources = mergedSources
+                    note.recordingGroupID = recordingGroupID
+                    note.recordingGroupOrdinal = recordingGroupOrdinal
+                    note.recordingGroupOffset = recordingGroupOffset
                 }
                 let destination = try validatedURL(for: note)
                 if !files.fileExists(atPath: destination.path) {

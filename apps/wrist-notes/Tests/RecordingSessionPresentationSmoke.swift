@@ -121,14 +121,14 @@ import AVFAudio
             timeZoneIdentifier: TimeZone.current.identifier, sessionStartOffset: 0, frameCount: 16001, sampleRate: 16000,
             byteCount: info.byteCount, sha256: info.sha256,
             origin: .init(device: "Synthetic Watch", deviceID: "fixture", fileName: "generated.m4a", recordingTimeIsEstimated: false), location: nil)
-        _ = try repository.importChunk(chunk, from: audio, pairingID: "synthetic-pair")
+        try repository.storeLocalChunk(chunk, from: audio)
         func sibling(_ ordinal: Int) -> RecordingChunkDescriptor {
             .init(id: UUID(), sessionID: id, ordinal: ordinal, sessionStartedAt: date,
                 capturedAt: date.addingTimeInterval(Double(ordinal) * 2), timeZoneIdentifier: chunk.timeZoneIdentifier,
                 sessionStartOffset: Double(ordinal) * 2, frameCount: chunk.frameCount, sampleRate: chunk.sampleRate,
                 byteCount: chunk.byteCount, sha256: chunk.sha256, origin: chunk.origin, location: nil)
         }
-        _ = try repository.importChunk(sibling(2), from: audio, pairingID: "synthetic-pair")
+        try repository.storeLocalChunk(sibling(2), from: audio)
         let gate = PresentationStorageGate(root: media, databaseURL: databaseURL)
         let model = RecordingSessionModel(root: root, openRepository: { try gate.open() })
         model.refresh(); try await wait(model)
@@ -146,8 +146,8 @@ import AVFAudio
         precondition(detail.gaps.contains { $0.kind == "missingChunks" && $0.firstOrdinal == 1 && $0.lastOrdinal == 1 }, "missing ordinal 1 must be visible")
         let before = model.revision
         try repository.applyEnd(.init(sessionID: id, finalOrdinal: 2, endedAt: date.addingTimeInterval(6), interrupted: false, revision: 0))
-        _ = try repository.importChunk(sibling(1), from: audio, pairingID: "synthetic-pair")
-        NotificationCenter.default.post(name: RecordingChunkReceiver.didChange, object: nil)
+        try repository.storeLocalChunk(sibling(1), from: audio)
+        NotificationCenter.default.post(name: Notification.Name.recordingSourcesDidChange, object: nil)
         for _ in 0..<1000 {
             if model.revision > before { break }
             try await Task.sleep(nanoseconds: 5_000_000)

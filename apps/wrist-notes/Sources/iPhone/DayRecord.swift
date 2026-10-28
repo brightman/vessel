@@ -18,6 +18,7 @@ struct DayRecord: Codable, Equatable, Identifiable, Sendable {
     var location: CaptureLocation? = nil
     var parentRecordID: UUID? = nil
     var recordingSessionID: UUID? = nil
+    var recordingGroupID: UUID? = nil
     var recordingContinuation: Bool? = nil
     var lifeMoment: LifeMomentDetails? = nil
 

@@ -38,8 +38,15 @@ struct RecordingSessionGap: Equatable {
 /// Callers must not wrap these operations in an outer DaybookDatabase.transaction; this repository owns the COMMIT boundary.
 /// V1 notes remain in voice_notes; this repository never converts or rewrites them.
 final class RecordingSessionRepository {
-    enum RepositoryError: Error, Equatable {
-        case conflict, deletedSession, invalidPairing, invalidStorage
+    enum RepositoryError: LocalizedError, Equatable {
+        case conflict, deletedSession, invalidStorage
+        var errorDescription: String? {
+            switch self {
+            case .conflict: "录音信息存在冲突，请重试。"
+            case .deletedSession: "这条录音已被删除。"
+            case .invalidStorage: "录音索引与文件信息不一致，请保留原始音频并重试。"
+            }
+        }
     }
     enum ImportStep: Equatable { case publish, commit, reclaim }
     /// Injectable storage boundary; failures before commit propagate, reclamation is retryable.
@@ -54,7 +61,6 @@ final class RecordingSessionRepository {
     private let lock = NSRecursiveLock()
     private struct Journal: Codable {
         let descriptor: RecordingChunkDescriptor
-        let pairingID: String?
     }
 
     init(root: URL, database: DaybookDatabase) throws {
@@ -66,31 +72,23 @@ final class RecordingSessionRepository {
         try recover()
     }
 
-    /// Caller owns the persistent receiver inbox. Its source is never removed here.
-    /// One private retry copy per chunk/hash survives publication or SQL failure.
-    func importChunk(_ incoming: RecordingChunkDescriptor, from source: URL, pairingID: String) throws -> RecordingChunkReceipt {
-        try persistChunk(incoming, from: source, pairingID: pairingID)
-    }
-
-    /// Local iPhone capture shares immutable chunk/source storage but has no Watch receipt ledger.
+    /// Local iPhone capture stores immutable audio files for bounded inference and playback.
     func storeLocalChunk(_ incoming: RecordingChunkDescriptor, from source: URL) throws {
-        _ = try persistChunk(incoming, from: source, pairingID: nil)
+        try persistChunk(incoming, from: source)
     }
 
-    private func persistChunk(_ incoming: RecordingChunkDescriptor, from source: URL, pairingID: String?) throws -> RecordingChunkReceipt {
+    private func persistChunk(_ incoming: RecordingChunkDescriptor, from source: URL) throws {
         lock.lock(); defer { lock.unlock() }
         try incoming.validate()
-        if let pairingID { try validatePairing(pairingID) }
         let chunk = normalized(incoming)
         try RecordingAudioFile.requireSafePath(source)
         _ = try RecordingAudioFile.validate(chunk, at: source)
-        let receipt = try db.transaction {
+        try db.transaction {
             try requireLive(chunk.sessionID)
             if let existing = try existingChunk(id: chunk.id) {
                 guard existing == chunk else { throw RepositoryError.conflict }
                 _ = try RecordingAudioFile.validate(existing, at: audioURL(existing))
-                if let pairingID { try saveReceipt(chunk, pairingID: pairingID) }
-                return receiptFor(chunk)
+                return
             }
             try checkIdentityAndTimeline(chunk)
             let folder = journalFolder(chunk)
@@ -98,7 +96,7 @@ final class RecordingSessionRepository {
             try files.createDirectory(at: folder, withIntermediateDirectories: true)
             try synchronizeDirectory(importsDirectory)
             #if os(iOS)
-            try files.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: folder.path)
+            try files.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: folder.path)
             #endif
             let manifest = folder.appendingPathComponent("manifest.json")
             let staged = folder.appendingPathComponent("audio.m4a")
@@ -106,7 +104,7 @@ final class RecordingSessionRepository {
                 let prior = try readJournal(manifest)
                 guard normalized(prior.descriptor) == chunk else { throw RepositoryError.conflict }
             }
-            try writeJournal(Journal(descriptor: chunk, pairingID: pairingID), to: manifest)
+            try writeJournal(Journal(descriptor: chunk), to: manifest)
             try RecordingAudioFile.requireSafePath(staged)
             if files.fileExists(atPath: staged.path) {
                 // A truncated interrupted copy is derived; retain the original source and
@@ -116,7 +114,7 @@ final class RecordingSessionRepository {
             if !files.fileExists(atPath: staged.path) { try files.copyItem(at: source, to: staged) }
             _ = try RecordingAudioFile.validate(chunk, at: staged)
             try synchronize(staged)
-            let destination = audioURL(chunk)
+            let destination = try audioURL(chunk)
             try RecordingAudioFile.requireSafePath(destination)
             try importStep?(.publish)
             if files.fileExists(atPath: destination.path) {
@@ -131,24 +129,18 @@ final class RecordingSessionRepository {
             }
             _ = try RecordingAudioFile.validate(chunk, at: destination)
             try establishSession(chunk)
-            try db.execute("INSERT INTO recording_chunks(id,session_id,ordinal,filename,captured_at,session_start_offset,frame_count,sample_rate,byte_count,sha256,payload) VALUES (?,?,?,?,?,?,?,?,?,?,?)", try chunkValues(chunk))
-            if let pairingID { try saveReceipt(chunk, pairingID: pairingID) }
+            try db.execute("INSERT INTO recording_chunks(id,session_id,ordinal,filename,captured_at,session_start_offset,frame_count,sample_rate,byte_count,sha256,payload) VALUES (?,?,?,?,?,?,?,?,?,?,?)", try chunkValues(chunk, filename: destination.lastPathComponent))
             try rebuildGaps(chunk.sessionID)
             guard try existingChunk(id: chunk.id) == chunk else { throw RepositoryError.invalidStorage }
             try importStep?(.commit)
-            return receiptFor(chunk)
         }
-        // This point is reached only after SQLite COMMIT. Cleanup cannot revoke a receipt.
+        // This point is reached only after SQLite COMMIT.
         try? reclaimJournal(chunk)
-        return receipt
     }
 
-    /// Compatibility entry point for local callers without a transport pairing context.
-    func applyEnd(_ end: RecordingSessionEnd) throws { try applyEnd(end, pairingID: "local") }
-
-    func applyEnd(_ end: RecordingSessionEnd, pairingID: String) throws {
+    func applyEnd(_ end: RecordingSessionEnd) throws {
         lock.lock(); defer { lock.unlock() }
-        try end.validate(); try validatePairing(pairingID)
+        try end.validate()
         try db.transaction {
             try requireLive(end.sessionID)
             if let old = try storedEnd(sessionID: end.sessionID) {
@@ -161,13 +153,6 @@ final class RecordingSessionRepository {
             }
             try ensureSession(end.sessionID)
             try db.execute("UPDATE recording_sessions SET ended_at=?, interrupted=?, final_ordinal=?, end_revision=?, end_payload=? WHERE id=?", [.real(end.endedAt.timeIntervalSinceReferenceDate), .integer(end.interrupted ? 1 : 0), end.finalOrdinal.map { .integer(Int64($0)) } ?? .null, .integer(Int64(end.revision)), try DaybookDatabase.json(end), .text(end.sessionID.uuidString)])
-            // A new pairing gets an independent receipt. Retries keep its first save time.
-            if let old = try db.query("SELECT revision,payload FROM recording_end_receipts WHERE pairing_id=? AND session_id=?", [.text(pairingID), .text(end.sessionID.uuidString)]).first,
-               try old.requiredInt("revision") == end.revision {
-                guard try DaybookDatabase.decode(RecordingSessionEnd.self, old["payload"]) == end else { throw RepositoryError.conflict }
-            } else {
-                try db.execute("INSERT INTO recording_end_receipts(pairing_id,session_id,revision,payload,saved_at) VALUES (?,?,?,?,?) ON CONFLICT(pairing_id,session_id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload,saved_at=excluded.saved_at", [.text(pairingID), .text(end.sessionID.uuidString), .integer(Int64(end.revision)), try DaybookDatabase.json(end), .real(Date.now.timeIntervalSinceReferenceDate)])
-            }
             try rebuildGaps(end.sessionID)
         }
     }
@@ -182,29 +167,6 @@ final class RecordingSessionRepository {
               row["end_revision"] == .integer(Int64(end.revision)),
               row["final_ordinal"] == (end.finalOrdinal.map { .integer(Int64($0)) } ?? .null) else { throw RepositoryError.invalidStorage }
         return end
-    }
-
-    func receiptSavedAt(chunkID: UUID, pairingID: String) throws -> Date? {
-        guard let row = try db.query("SELECT saved_at FROM recording_receipts WHERE chunk_id=? AND pairing_id=?", [.text(chunkID.uuidString), .text(pairingID)]).first else { return nil }
-        return Date(timeIntervalSinceReferenceDate: try row.requiredDouble("saved_at"))
-    }
-
-    /// Independently committed observations may arrive before audio or after the end marker.
-    /// Returning successfully proves COMMIT; a tombstone prevents delayed resurrection.
-    func importLocationSample(_ sample: RecordingLocationSample, pairingID: String) throws {
-        lock.lock(); defer { lock.unlock() }
-        try sample.validate(); try validatePairing(pairingID)
-        try db.transaction {
-            try requireLive(sample.sessionID)
-            if let row = try db.query("SELECT payload FROM recording_location_samples WHERE id=?", [.text(sample.id.uuidString)]).first {
-                guard try DaybookDatabase.decode(RecordingLocationSample.self, row["payload"]) == sample else { throw RepositoryError.conflict }
-                return
-            }
-            try ensureSession(sample.sessionID)
-            try db.execute("INSERT INTO recording_location_samples(id,session_id,session_offset,requested_at,payload) VALUES (?,?,?,?,?)", [
-                .text(sample.id.uuidString), .text(sample.sessionID.uuidString), .real(sample.sessionOffset),
-                .real(sample.requestedAt.timeIntervalSinceReferenceDate), try DaybookDatabase.json(sample)])
-        }
     }
 
     func locationSamples(sessionID: UUID) throws -> [RecordingLocationSample] {
@@ -267,7 +229,7 @@ final class RecordingSessionRepository {
             try requireLive(sessionID)
             var previous: RecordingChunkDescriptor?
             return try chunks(sessionID: sessionID).map { chunk in
-                let url = audioURL(chunk)
+                let url = try audioURL(chunk)
                 if let validateFile { try validateFile(chunk,url) }
                 else { _ = try RecordingAudioFile.validate(chunk, at: url) }
                 let missing = chunk.ordinal != (previous.map { $0.ordinal + 1 } ?? 0)
@@ -283,13 +245,13 @@ final class RecordingSessionRepository {
         lock.lock(); defer { lock.unlock() }
         try db.transaction {
             try db.execute("INSERT OR IGNORE INTO recording_session_tombstones(session_id,deleted_at) VALUES (?,?)", [.text(sessionID.uuidString), .real(Date.now.timeIntervalSinceReferenceDate)])
-            var filenames = Set(try chunks(sessionID: sessionID).map(\.audioFilename))
+            var filenames = Set(try chunks(sessionID: sessionID).map { try audioURL($0).lastPathComponent })
             // A published file may precede a rolled-back INSERT. Its retained journal
             // still supplies exact cleanup identity even when no SQL chunk row exists.
             for folder in try files.contentsOfDirectory(at: importsDirectory, includingPropertiesForKeys: nil) {
                 if let journal = try? readJournal(folder.appendingPathComponent("manifest.json")), journal.descriptor.sessionID == sessionID,
                    folder.lastPathComponent == journalFolder(normalized(journal.descriptor)).lastPathComponent {
-                    filenames.insert(journal.descriptor.audioFilename)
+                    filenames.insert(try audioURL(journal.descriptor).lastPathComponent)
                 }
             }
             for filename in filenames {
@@ -298,6 +260,11 @@ final class RecordingSessionRepository {
             try db.execute("DELETE FROM recording_sessions WHERE id=?", [.text(sessionID.uuidString)])
         }
         try? cleanupDeletedFiles()
+    }
+
+    func isDeletedSession(_ sessionID: UUID) throws -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return try isDeleted(sessionID)
     }
 
     func cleanupPending(sessionID: UUID) throws -> Bool {
@@ -329,10 +296,9 @@ final class RecordingSessionRepository {
                     continue
                 }
                 let stage = folder.appendingPathComponent("audio.m4a")
-                let source = (try? RecordingAudioFile.validate(journal.descriptor, at: stage)) != nil ? stage : audioURL(journal.descriptor)
+                let source = (try? RecordingAudioFile.validate(journal.descriptor, at: stage)) != nil ? stage : try audioURL(journal.descriptor)
                 let wasMissing = try existingChunk(id:journal.descriptor.id) == nil
-                if let pairingID=journal.pairingID { _ = try importChunk(journal.descriptor, from: source, pairingID: pairingID) }
-                else { try storeLocalChunk(journal.descriptor,from:source) }
+                try storeLocalChunk(journal.descriptor, from: source)
                 if wasMissing { recoveryChanged = true }
             } catch {
                 // Bounded diagnostics contain only internal folder identifiers, never metadata.
@@ -341,8 +307,7 @@ final class RecordingSessionRepository {
         }
     }
 
-    /// The receiver publishes recovered commits once, including recovery during init.
-    /// Merely opening the repository or retrying receipts is not a content change.
+    /// Publish recovered local recording commits once, including recovery during init.
     func consumeRecoveryChanges() -> Bool {
         lock.lock(); defer { lock.unlock() }
         let changed = recoveryChanged
@@ -403,25 +368,17 @@ final class RecordingSessionRepository {
     private func ensureSession(_ id: UUID) throws {
         try db.execute("INSERT OR IGNORE INTO recording_sessions(id,created_at) VALUES (?,?)", [.text(id.uuidString), .real(Date.now.timeIntervalSinceReferenceDate)])
     }
-    private func saveReceipt(_ chunk: RecordingChunkDescriptor, pairingID: String) throws {
-        if let row = try db.query("SELECT session_id,ordinal,sha256 FROM recording_receipts WHERE pairing_id=? AND chunk_id=?", [.text(pairingID), .text(chunk.id.uuidString)]).first {
-            guard row["session_id"] == .text(chunk.sessionID.uuidString), row["ordinal"] == .integer(Int64(chunk.ordinal)), row["sha256"] == .text(chunk.sha256) else { throw RepositoryError.invalidStorage }
-        } else {
-            try db.execute("INSERT INTO recording_receipts(pairing_id,chunk_id,session_id,ordinal,sha256,saved_at) VALUES (?,?,?,?,?,?)", [.text(pairingID), .text(chunk.id.uuidString), .text(chunk.sessionID.uuidString), .integer(Int64(chunk.ordinal)), .text(chunk.sha256), .real(Date.now.timeIntervalSinceReferenceDate)])
-        }
-    }
-    private func receiptFor(_ chunk: RecordingChunkDescriptor) -> RecordingChunkReceipt {
-        .init(sessionID: chunk.sessionID, chunkID: chunk.id, ordinal: chunk.ordinal, sha256: chunk.sha256)
-    }
     private func existingChunk(id: UUID) throws -> RecordingChunkDescriptor? {
         try db.query("SELECT * FROM recording_chunks WHERE id=?", [.text(id.uuidString)]).first.map(decodeChunk)
     }
-    private func chunkValues(_ chunk: RecordingChunkDescriptor) throws -> [DaybookDatabase.Value] {
-        [.text(chunk.id.uuidString), .text(chunk.sessionID.uuidString), .integer(Int64(chunk.ordinal)), .text(chunk.audioFilename), .real(chunk.capturedAt.timeIntervalSinceReferenceDate), .real(chunk.sessionStartOffset), .integer(chunk.frameCount), .real(chunk.sampleRate), .integer(chunk.byteCount), .text(chunk.sha256), try DaybookDatabase.json(chunk)]
+    private func chunkValues(_ chunk: RecordingChunkDescriptor, filename: String? = nil) throws -> [DaybookDatabase.Value] {
+        [.text(chunk.id.uuidString), .text(chunk.sessionID.uuidString), .integer(Int64(chunk.ordinal)), .text(filename ?? chunk.audioFilename), .real(chunk.capturedAt.timeIntervalSinceReferenceDate), .real(chunk.sessionStartOffset), .integer(chunk.frameCount), .real(chunk.sampleRate), .integer(chunk.byteCount), .text(chunk.sha256), try DaybookDatabase.json(chunk)]
     }
     private func decodeChunk(_ row: DaybookDatabase.Row) throws -> RecordingChunkDescriptor {
         let chunk = try DaybookDatabase.decode(RecordingChunkDescriptor.self, row["payload"])
-        let values = try chunkValues(chunk)
+        let filename = try row.requiredString("filename")
+        guard filename == chunk.audioFilename || filename == chunk.legacyAudioFilename else { throw RepositoryError.invalidStorage }
+        let values = try chunkValues(chunk, filename: filename)
         for (i, column) in ["id", "session_id", "ordinal", "filename", "captured_at", "session_start_offset", "frame_count", "sample_rate", "byte_count", "sha256"].enumerated() {
             guard row[column] == values[i] else { throw RepositoryError.invalidStorage }
         }
@@ -433,23 +390,43 @@ final class RecordingSessionRepository {
     private func optionalInt(_ row: DaybookDatabase.Row, _ name: String) throws -> Int? {
         row[name] == .null ? nil : try row.requiredInt(name)
     }
-    private func validatePairing(_ value: String) throws {
-        guard !value.isEmpty, value.utf8.count <= 1024 else { throw RepositoryError.invalidPairing }
-    }
     private func isDeleted(_ id: UUID) throws -> Bool {
         try !db.query("SELECT session_id FROM recording_session_tombstones WHERE session_id=?", [.text(id.uuidString)]).isEmpty
     }
     private func requireLive(_ id: UUID) throws {
         if try isDeleted(id) { throw RepositoryError.deletedSession }
     }
-    private func audioURL(_ chunk: RecordingChunkDescriptor) -> URL { audioDirectory.appendingPathComponent(chunk.audioFilename) }
+    private func audioURL(_ chunk: RecordingChunkDescriptor) throws -> URL {
+        // Persisted names are identities, not a format to recompute on an app upgrade.
+        // Accept only the two canonical names derived from the validated descriptor.
+        if let row = try db.query("SELECT * FROM recording_chunks WHERE id=?", [.text(chunk.id.uuidString)]).first {
+            guard try decodeChunk(row) == chunk else { throw RepositoryError.invalidStorage }
+            return audioDirectory.appendingPathComponent(try row.requiredString("filename"))
+        }
+        // A pre-upgrade publication may have committed the audio but not its SQL row.
+        let legacy = audioDirectory.appendingPathComponent(chunk.legacyAudioFilename)
+        if files.fileExists(atPath: legacy.path) { return legacy }
+        return audioDirectory.appendingPathComponent(chunk.audioFilename)
+    }
+
+    private func isCanonicalCleanupFilename(_ filename: String, sessionID: UUID) -> Bool {
+        if let identity = RecordingChunkFileIdentity.parse(filename: filename), identity.groupID == sessionID,
+           (0...RecordingSessionFileLimits.maximumOrdinal).contains(identity.ordinal) {
+            return filename == RecordingChunkFileIdentity.filename(groupID: sessionID, ordinal: identity.ordinal, capturedAt: identity.capturedAt)
+        }
+        let prefix = sessionID.uuidString + "_"
+        guard filename.hasPrefix(prefix), filename.hasSuffix(".m4a"),
+              let ordinal = Int(filename.dropFirst(prefix.count).dropLast(4)),
+              (0...RecordingSessionFileLimits.maximumStoredOrdinal).contains(ordinal) else { return false }
+        return filename == "\(prefix)\(String(format: "%04lld", Int64(ordinal))).m4a"
+    }
     private func journalFolder(_ chunk: RecordingChunkDescriptor) -> URL { importsDirectory.appendingPathComponent("\(chunk.id.uuidString)_\(chunk.sha256.lowercased())", isDirectory: true) }
     private func prepareDirectories() throws {
         for folder in [root, audioDirectory, importsDirectory] {
             try RecordingAudioFile.requireSafePath(folder)
             try files.createDirectory(at: folder, withIntermediateDirectories: true)
             #if os(iOS)
-            try files.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: folder.path)
+            try files.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: folder.path)
             #endif
             try synchronizeDirectory(folder)
             try synchronizeDirectory(folder.deletingLastPathComponent())
@@ -482,7 +459,7 @@ final class RecordingSessionRepository {
         defer { try? handle.close() }
         try handle.synchronize()
         #if os(iOS)
-        try files.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
+        try files.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: url.path)
         #endif
     }
     private func reclaimJournal(_ chunk: RecordingChunkDescriptor) throws {
@@ -502,9 +479,10 @@ final class RecordingSessionRepository {
             for row in try db.query("SELECT * FROM recording_file_cleanup") {
                 guard let id = UUID(uuidString: try row.requiredString("session_id")), try isDeleted(id) else { throw RepositoryError.invalidStorage }
                 let filename = try row.requiredString("filename")
-                // Validate both UUID prefix and numeric suffix without trusting a stored path.
-                let prefix = id.uuidString + "_"
-                guard filename.hasPrefix(prefix), filename.hasSuffix(".m4a"), let ordinal = Int(filename.dropFirst(prefix.count).dropLast(4)), (0...RecordingChunkProtocol.maximumOrdinal).contains(ordinal), filename == "\(prefix)\(String(format: "%04d", ordinal)).m4a" else { throw RepositoryError.invalidStorage }
+                // Both historical and current names must prove ownership by this tombstone.
+                guard isCanonicalCleanupFilename(filename, sessionID: id) else {
+                    throw RepositoryError.invalidStorage
+                }
                 let url = audioDirectory.appendingPathComponent(filename)
                 try RecordingAudioFile.requireSafePath(url)
                 if files.fileExists(atPath: url.path) { try files.removeItem(at: url) }

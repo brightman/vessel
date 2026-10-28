@@ -44,12 +44,29 @@ import Foundation
         try check(ContentSegmentation.build(source:source([]),reliableNoSpeech:[],successfulCoverage:[]).state == .pending,"empty input cannot prove no-speech")
         let short = try source([range(0,60)])
         try check(ContentSegmentation.build(source:short,reliableNoSpeech:[.init(start:0,end:60)],successfulCoverage:[.init(start:0,end:60)]).state == .processedNoSpeech,"short ambient recording has explicit no-speech state")
+        try shortRecordingUsesASROnlyCoverage()
         try fractionalBoundaryFixtures()
         try chapterFixtures()
         try persistentFixtures()
         try coverageFixtures()
         try undoCausalityFixtures()
         print("Content intervals: 599/600/601, file/midnight continuity, gaps, padding, partial coverage passed")
+    }
+    static func shortRecordingUsesASROnlyCoverage() throws {
+        let db=try DaybookDatabase(inMemory:true), id=AudioSourceID(kind:.session,id:UUID())
+        let processing=AudioProcessingRepository(database:db), repository=ContentSegmentRepository(database:db)
+        let source=try source([range(0,16)],id:id)
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(id.id.uuidString)])
+        let key="short-asr-only", windows=try AudioWindowPlanner.plan(source:source,configurationKey:key)
+        try processing.register(source:source,configurationKey:key,windows:windows)
+        let job=try processing.claimNext()!
+        try check(try processing.stages(for:job) == [.asr,.speaker],"short recordings request ASR and independent speaker analysis without VAD")
+        try processing.commit(job:job,result:.init(spans:[.init(start:1,end:3,text:"one short thought")],activities:[],asr:.success,vad:.notRequested,speaker:.notRequested,
+            asrCoverage:[.init(start:0,end:16)],vadCoverage:[]))
+        try repository.reconcile(sourceID:id)
+        let segments=try repository.segments(sourceID:id)
+        try check(segments.count==1 && segments[0].isFinal && segments[0].boundaryReady == true,"complete short recording is finalized from ASR coverage alone")
+        try check(segments[0].editorial==nil,"short direct recording does not receive an AI classification")
     }
     static func fractionalBoundaryFixtures() throws {
         let db=try DaybookDatabase(inMemory:true)
@@ -118,11 +135,11 @@ import Foundation
         }
         try r.reconcile(sourceID:blankSource.id)
         let blanks=try r.segments(sourceID:blankSource.id)
-        try check(blanks.count == 3 && !blanks[1].hasText && abs(blanks[1].ranges[0].sessionStartOffset-100) < 0.001 && abs(blanks[1].ranges.last!.end-400) < 0.001,"three-minute ASR-empty coverage with VAD speech is retained low-information separator")
-        try check(blanks[1].displayTitle == "未识别到文字","ASR-empty chapter label does not claim silence")
-        try check(r.state(sourceID:blankSource.id) == .processed,"ASR blank is not reported as acoustic silence")
+        try check(blanks.count == 1 && blanks[0].isFinal && blanks[0].boundaryReady == true && blanks[0].hasText,"three-minute recording remains one ASR-complete item without topic segmentation")
+        try check(blanks[0].editorial == nil,"short whole recording skips AI topic classification")
+        try check(r.state(sourceID:blankSource.id) == .processed,"short whole recording is reconciled from ASR coverage")
         try check(db.query("SELECT text FROM audio_transcript_spans").count == rawCount+3,"raw transcript rows remain unchanged")
-        print("Content chapters: real SQLite6h42m,30m target,40m cap, ASR blank/VAD speech, all raw rows/manual edits retained passed")
+        print("Content chapters: real SQLite6h42m,30m target,40m cap, short whole recordings, all raw rows/manual edits retained passed")
     }
 
     static func persistentFixtures() throws {
@@ -131,7 +148,7 @@ import Foundation
         let db = try DaybookDatabase(url:root.appendingPathComponent("segments.sqlite3"))
         let processing = AudioProcessingRepository(database:db)
         let repository = ContentSegmentRepository(database:db)
-        let s = try source([range(0,300),range(300,900)])
+        let s = try source([range(0,300),range(300,900,gap:"interrupted")])
         try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(s.id.id.uuidString)])
         func register(_ source: AudioSourceSnapshot, key: String = "v1") throws {
             try processing.register(source:source,configurationKey:key,windows:AudioWindowPlanner.plan(source:source,configurationKey:key))
@@ -139,7 +156,7 @@ import Foundation
         try register(s)
         while let job = try processing.claimNext() {
             let a = job.window.coreStart, b = job.window.coreEnd
-            let spans: [AudioTranscriptSpan] = a == 0 ? [.init(start:10,end:20,text:"again"),.init(start:299,end:300.5,text:"again")] : (a == 600 ? [.init(start:880,end:890,text:"again")] : [])
+            let spans: [AudioTranscriptSpan] = a == 0 ? [.init(start:10,end:20,text:"again"),.init(start:299,end:300.5,text:"again")] : [.init(start:880,end:890,text:"again")]
             // Neighbor's noSpeech must yield to a crossing word owned by the first core.
             let acts: [AudioActivityInterval] = a == 0 ? [.init(start:0,end:20,kind:.speech),.init(start:20,end:300,kind:.noSpeech)] : (a == 300 ? [.init(start:300,end:600,kind:.noSpeech)] : [.init(start:600,end:880,kind:.noSpeech),.init(start:880,end:900,kind:.speech)])
             try processing.commit(job:job,result:.init(spans:spans,activities:acts,asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
@@ -149,25 +166,21 @@ import Foundation
         try check(recovery.segments(sourceID:s.id).isEmpty,"fixture has committed inference with no derived snapshot")
         try recovery.reconcile(sourceID:s.id)
         var segments = try repository.segments(sourceID:s.id)
-        try check(segments.first!.ranges.first!.sessionStartOffset == 0 && segments.last!.ranges.last!.end == 900,"crossing text protects hard noSpeech exclusion; ASR blanks remain visible")
+        try check(segments.count == 1 && segments[0].ranges.count == 2 && segments[0].ranges.first!.sessionStartOffset == 0 && segments[0].ranges.last!.end == 900,"short whole recording stays one item across its original source ranges")
         try check(segments.flatMap { try repository.spans(segmentID:$0.id) }.count == 3,"same text at distinct source times retained")
-        rejects { _ = try repository.merge(ids:segments.map(\.id),expectedRevisions:segments.map(\.revision)) }
-        try finalizeTopics(repository,processing:processing,sourceID:s.id)
         let finalSegments=try repository.segments(sourceID:s.id)
-        try check(finalSegments.allSatisfy(\.isFinal),"coverage-ready segments become final only after topic pass finalization")
-        let v2Input=try repository.contentV2Input(sourceID:s.id)
-        try check(v2Input?.spans.count == 3,"production V2 snapshot accepts automatic reconcile history and carries complete ASR rows")
+        try check(finalSegments.allSatisfy(\.isFinal),"short segments finalize from complete ASR coverage without a topic pass")
+        try check(try repository.contentV2Input(sourceID:s.id) == nil,"short recording cannot enter topic/classification model input")
         let checkpoint=Data("validated-stage".utf8)
         try repository.saveContentV2Checkpoint(sourceID:s.id,key:"test-stage",data:checkpoint)
         try check(try repository.contentV2Checkpoint(sourceID:s.id,key:"test-stage") == checkpoint,"V2 stage checkpoints persist with their source foreign key")
-        let original = try repository.merge(ids:finalSegments.map(\.id),expectedRevisions:finalSegments.map(\.revision))
-        try check(original.isFinal && original.boundaryReady == true,"manual adjacent merge retains finality and readiness")
-        rejects { _ = try repository.contentV2Input(sourceID:s.id) }
+        let original = finalSegments[0]
+        try check(original.isFinal && original.boundaryReady == true,"short source is final without a topic pass")
+        try check(try repository.contentV2Input(sourceID:s.id) == nil,"short recording remains outside topic/classification model input after edits")
         try repository.reconcile(sourceID:s.id)
         try check(repository.segment(id:original.id)?.revision == original.revision,"no-op reconciliation retains identity/revision")
-        rejects { _ = try repository.split(id:original.id,at:450,expectedRevision:original.revision) }
         let merged = original
-        try check(merged.ranges.count >= 2,"merge retains physical ranges")
+        try check(merged.ranges.count == 2,"whole recording retains its original physical ranges")
         try repository.delete(id:merged.id,expectedRevision:merged.revision)
         rejects { try repository.applyEnrichment(id:merged.id,expectedRevision:merged.revision,sourceRevision:merged.sourceRevision,title:"late",summary:"late") }
         try repository.undo(sourceID:s.id)
@@ -223,15 +236,7 @@ import Foundation
         try r.reconcile(sourceID:s.id)
         try check(r.segments(sourceID:s.id).contains { $0.hasText } && r.state(sourceID:s.id) == .processed,"ASR-only retry crossing neighbor prevents 600 second silence")
         let automaticPieces=try r.segments(sourceID:s.id)
-        let old=automaticPieces[0]
-        let selectedRange=old.ranges.first!
-        let pieces=try r.split(id:old.id,at:selectedRange.sessionStartOffset+selectedRange.duration/2,expectedRevision:old.revision)
-        try register(s,"v2")
-        try r.reconcile(sourceID:s.id)
-        let reprocessed=try r.segments(sourceID:s.id)
-        try check(Set(reprocessed.map(\.id)).isSuperset(of:Set(pieces.map(\.id))) && pieces.allSatisfy({ piece in reprocessed.contains(where:{ $0.id == piece.id && $0.isManual && !$0.isFinal }) }),"reprocess preserves frozen manual boundaries")
-        try check(db.query("SELECT sequence FROM content_segment_edits WHERE kind='reprocess'").count == 1,"reprocess is auditable")
-        try check(r.segments(sourceID:s.id).allSatisfy { !$0.isFinal },"manual boundaries remain pending until new configuration succeeds")
+        try check(automaticPieces.count == 1 && automaticPieces[0].isFinal,"a short complete source stays as one finalized item")
 
         let silent = try source([range(0,900)])
         try register(silent)
@@ -242,9 +247,9 @@ import Foundation
             try p.commit(job:job,result:.init(spans:[],activities:[.init(start:a,end:b,kind:kind)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
         }
         try r.reconcile(sourceID:silent.id)
-        try check(r.state(sourceID:silent.id) == .processedNoSpeech && p.currentSource(silent.id) != nil,"ambient recording remains accessible")
+        try check(r.state(sourceID:silent.id) == .processed && p.currentSource(silent.id) != nil,"short recording completes without making a VAD silence classification")
         try r.reconcile(sourceID:s.id)
-        try check(r.segments(sourceID:s.id).allSatisfy { !$0.hasText },"ASR empty + VAD speech keeps no-text manual content")
+        try check(r.segments(sourceID:s.id).contains { $0.hasText },"short whole recording retains recognized text without topic segmentation")
 
         let gapped = try source([range(0,100),range(200,300)])
         try register(gapped)
@@ -254,20 +259,18 @@ import Foundation
         }
         try r.reconcile(sourceID:gapped.id)
         let before = try r.segments(sourceID:gapped.id)
-        rejects { _ = try r.merge(ids:before.map(\.id),expectedRevisions:before.map(\.revision)) }
-        try finalizeTopics(r,processing:p,sourceID:gapped.id)
-        let readyGaps=try r.segments(sourceID:gapped.id)
-        let merged = try r.merge(ids:readyGaps.map(\.id),expectedRevisions:readyGaps.map(\.revision))
+        try check(before.count == 1 && before[0].isFinal,"short recording with a real source gap remains one finalized recording item")
+        let merged = before[0]
         // A stray contextual span in the enclosing gap must never be returned in segment detail.
         let jobID = try db.query("SELECT id FROM audio_processing_jobs WHERE source_key=? LIMIT 1",[.text(gapped.id.key)])[0].requiredString("id")
         try db.execute("INSERT INTO audio_transcript_spans(job_id,position,start,end,text) VALUES (?,999,150,151,'gap')",[.text(jobID)])
         try check(r.spans(segmentID:merged.id,limit:1,offset:0)[0].start == 10 && r.spans(segmentID:merged.id,limit:1,offset:1)[0].start == 210 && r.spans(segmentID:merged.id,limit:1,offset:2).isEmpty,"manual gap merge pages actual ranges")
         try check(merged.ranges[0].end == 100 && merged.ranges[1].sessionStartOffset == 200,"visible gap retained")
-        rejects { _ = try r.merge(ids:[merged.id,pieces[0].id],expectedRevisions:[merged.revision,pieces[0].revision]) }
+        rejects { _ = try r.merge(ids:[merged.id,automaticPieces[0].id],expectedRevisions:[merged.revision,automaticPieces[0].revision]) }
 
         let threeDB=try DaybookDatabase(inMemory:true)
         let pThree=AudioProcessingRepository(database:threeDB),rThree=ContentSegmentRepository(database:threeDB)
-        let three=try source([range(0,300),range(300,600,gap:"interrupted"),range(600,900,gap:"interrupted")])
+        let three=try source([range(0,700),range(700,1400,gap:"interrupted"),range(1400,2100,gap:"interrupted")])
         try threeDB.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(three.id.id.uuidString)])
         try pThree.register(source:three,configurationKey:"v1",windows:AudioWindowPlanner.plan(source:three,configurationKey:"v1"))
         while let job=try pThree.claimNext() {

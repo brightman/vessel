@@ -90,7 +90,7 @@ private actor RecordingLocationAddressWorker {
                         guard self.generation == token, address.isCurrent(for: localeIdentifier) else { return }
                         cache[sample.location.coordinateKey] = address
                         if try await self.worker.apply(address, sample: sample) {
-                            NotificationCenter.default.post(name: RecordingChunkReceiver.didChange, object: nil,
+                            NotificationCenter.default.post(name: Notification.Name.recordingSourcesDidChange, object: nil,
                                 userInfo: ["sessionID": sample.sessionID, "locationUpdated": true])
                         }
                     } catch {
