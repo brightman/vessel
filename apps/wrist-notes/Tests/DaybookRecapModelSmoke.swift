@@ -243,6 +243,52 @@ private final class RecapSecrets: SecretStore {
         recovered.generate()
         await wait { !recovered.isGenerating }
         precondition(counting.requests == 2 && recovered.current?.text != nil, "manual request can regenerate after automatic budget is consumed")
+
+        // A day without permitted evidence must explain the disabled button. Opening
+        // today's dated scope must use today's text and preserve remote consent.
+        settings.requiresRemoteAIConfirmation = true
+        let feedbackService = RecapGenerator()
+        let feedback = DaybookRecapModel(store: DaybookRecapStore(database: try DaybookDatabase(inMemory: true)), service: feedbackService)
+        let today = Calendar.current.startOfDay(for: .now)
+        var feedbackRecords = [DayRecord(id: UUID(), capturedAt: today.addingTimeInterval(60), kind: .thought, title: "今日记录", text: "想种植罗勒。")]
+        feedback.scopeLoader = { scope in feedbackRecords.filter { scope.contains($0.capturedAt) } }
+        func syncFeedback(date: Date = today, active: Bool = true, capturing: Bool = false, allowed: Set<DayRecord.Kind> = [.thought]) {
+            feedback.synchronize(day: date, records: feedbackRecords, revisions: [], settings: settings,
+                allowedKinds: allowed, foreground: active, capturing: capturing)
+        }
+        syncFeedback(date: day)
+        await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.generationBlocker == .noRecords && !feedback.canGenerate)
+        precondition(feedback.requestGeneration() == nil && feedback.message == feedback.generationBlocker?.message,
+            "empty-day tap must explain why it cannot generate")
+        precondition(feedbackService.requests.isEmpty, "empty day must not send today's evidence under yesterday's date")
+        syncFeedback()
+        await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.canGenerate && feedback.input?.dayKey == DaybookRecapInput.key(today))
+        let todayRequest = feedback.requestGeneration()
+        precondition(todayRequest != nil && feedbackService.requests.isEmpty, "manual generation must present remote send confirmation first")
+        feedback.generate(confirmation: todayRequest)
+        await wait { feedbackService.waiting.count == 1 }
+        feedbackService.finish(); await wait { !feedback.isGenerating }
+        precondition(feedback.current?.text != nil, "a permitted dated scope with text must generate successfully")
+
+        feedbackRecords[0].text = ""
+        syncFeedback(); await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.generationBlocker == .awaitingText)
+        feedback.generate()
+        precondition(feedback.message == feedback.generationBlocker?.message && feedbackService.requests.count == 1,
+            "pending transcription must explain the block without invoking AI")
+        syncFeedback(capturing: true); await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.generationBlocker == .recording)
+        syncFeedback(active: false)
+        precondition(feedback.generationBlocker == .inactive)
+        syncFeedback(allowed: []); await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.generationBlocker == .noAllowedSources)
+        feedback.scopeLoader = { _ in throw DaybookRecapFailure.storage }
+        feedback.reload(); await wait { !feedback.isLoading && !feedback.isRefreshing }
+        precondition(feedback.generationBlocker == .storage)
+        precondition(feedback.requestGeneration() == nil && feedbackService.requests.count == 1,
+            "unavailable storage must never start inference")
         print("Daily recap coordinator consent, stale output, retry and privacy tests passed")
     }
 }

@@ -20,6 +20,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
     static let sourceDidChange = Notification.Name("WiseLife.AudioSourceDidChange")
     static let resourcesDidChange = Notification.Name("WiseLife.TranscriptionResourcesDidChange")
     @Published private(set) var enrichmentStatuses: [AudioSourceID:ContentEnrichmentStatus] = [:]
+    @Published private(set) var enrichmentSteps: [AudioSourceID:ContentEnrichmentStepStates] = [:]
+    @Published private(set) var enrichmentRetryTasks: [AudioSourceID:ContentEnrichmentTask] = [:]
     @Published private(set) var enrichmentProgress: [AudioSourceID:ContentEnrichmentProgress] = [:]
     @Published private(set) var fieldGenerationStatuses: [UUID:ContentEnrichmentStatus] = [:]
     @Published private(set) var statuses: [AudioSourceID:AudioProcessingStatus] = [:]
@@ -36,6 +38,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
     private var pendingDerivation = Set<AudioSourceID>()
     private var derivationTask: Task<Void,Never>?
     private var pendingEnrichment = Set<AudioSourceID>()
+    private var pendingEnrichmentTasks: [AudioSourceID:ContentEnrichmentTask] = [:]
+    private var enrichmentRunIDs: [AudioSourceID:UUID] = [:]
     private var enrichmentTask: Task<Void,Never>?
     private var enrichmentSuspended = false
     private var enrichmentCapturePaused = false
@@ -133,6 +137,10 @@ struct ContentEnrichmentConfirmation: Identifiable {
     func cancel(_ sourceID: AudioSourceID) { Task { await coordinator.cancel(sourceID) } }
     func delete(_ sourceID: AudioSourceID) {
         pendingEnrichment.remove(sourceID)
+        pendingEnrichmentTasks.removeValue(forKey:sourceID)
+        enrichmentRunIDs.removeValue(forKey:sourceID)
+        enrichmentSteps.removeValue(forKey:sourceID)
+        enrichmentRetryTasks.removeValue(forKey:sourceID)
         enrichmentApprovals.removeValue(forKey:sourceID)
         enrichmentStatuses.removeValue(forKey:sourceID)
         pendingDerivation.remove(sourceID)
@@ -174,13 +182,13 @@ struct ContentEnrichmentConfirmation: Identifiable {
     }
     func rebuildContent(_ sourceID: AudioSourceID) { scheduleDerivation(sourceID) }
     private func retryEnrichmentAvailability() async {
-        for id in statuses.keys where !deletedSources.contains(id) { pendingEnrichment.insert(id) }
+        for id in statuses.keys where !deletedSources.contains(id) { pendingEnrichmentTasks.removeValue(forKey:id); pendingEnrichment.insert(id) }
         startEnrichment()
     }
-    func prepareEnrichment(_ sourceID: AudioSourceID) async throws -> ContentEnrichmentConfirmation? {
+    func prepareEnrichment(_ sourceID: AudioSourceID, task: ContentEnrichmentTask? = nil) async throws -> ContentEnrichmentConfirmation? {
         let configuration=settings.ai, revision=settings.aiRevision
-        if !configuration.isRemote || !settings.requiresRemoteAIConfirmation { retryEnrichment(sourceID); return nil }
-        guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:sourceID) }),
+        if !configuration.isRemote || !settings.requiresRemoteAIConfirmation { scheduleEnrichment(sourceID,task:task); return nil }
+        guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:sourceID,task:task) }),
               settings.ai == configuration, settings.aiRevision == revision else { throw ContentSegmentError.staleRevision }
         return .init(scope:scope,configuration:configuration,configurationRevision:revision)
     }
@@ -196,18 +204,18 @@ struct ContentEnrichmentConfirmation: Identifiable {
     }
     func approveEnrichment(_ confirmation: ContentEnrichmentConfirmation, rememberChoice: Bool) async throws {
         let id=confirmation.scope.sourceID
-        let current=try await withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,segmentID:confirmation.scope.segmentID,field:confirmation.scope.field) }
+        let current=try await withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,segmentID:confirmation.scope.segmentID,field:confirmation.scope.field,task:confirmation.scope.task) }
         let matches=current == confirmation.scope && settings.ai == confirmation.configuration && settings.aiRevision == confirmation.configurationRevision
         guard settings.authorizeRemoteAISend(confirmationIsCurrent:matches,rememberChoice:rememberChoice) else { throw ContentSegmentError.staleRevision }
         enrichmentApprovals[id]=confirmation
         if let segmentID=confirmation.scope.segmentID {
             if await performFieldGeneration(sourceID:id,segmentID:segmentID,field:confirmation.scope.field,confirmation:confirmation) == .stale { throw ContentSegmentError.staleRevision }
-        } else { scheduleEnrichment(id) }
+        } else { scheduleEnrichment(id,task:confirmation.scope.task) }
     }
-    private func enrichSource(_ id: AudioSourceID) async -> ContentEnrichmentStatus {
+    private func enrichSource(_ id: AudioSourceID, task: ContentEnrichmentTask?, runID: UUID) async -> ContentEnrichmentStatus {
         do {
             let configuration=settings.ai, revision=settings.aiRevision
-            guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }) else { return .stale }
+            guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,task:task) }) else { return .stale }
             let approval=enrichmentApprovals[id]
             let confirmed=approval.map { $0.scope == scope && $0.configuration == configuration && $0.configurationRevision == revision } ?? false
             let allowed: @MainActor () async throws -> Bool = { [weak self] in
@@ -215,7 +223,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 if !self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil) {
                     throw ContentEnrichmentFailure.confirmationRequired
                 }
-                let current=try await self.withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }
+                let current=try await self.withRepository { try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id,task:task) }
                 return current == scope && self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil)
             }
             let router=ConfiguredContentTextModel(configuration:configuration,authorized:allowed,
@@ -240,11 +248,21 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 try Task.checkCancellation()
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
                 return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
-            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
+            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value,runID:runID) })
+            if task == .fields {
+                publishEnrichmentProgress(id,.init(stage:.summary,segmentID:nil),runID:runID)
+                let result=await fields.generateMissingFields(sourceID:id)
+                if result == .complete || result == .idle { enrichmentApprovals.removeValue(forKey:id) }
+                return result
+            }
+            publishEnrichmentProgress(id,.init(stage:.topicUnification,segmentID:nil),runID:runID)
             if topicAction == .keepWholeRecording {
+                enrichmentSteps[id,default:.init()].complete(.topics)
+                if task == .topics { enrichmentApprovals.removeValue(forKey:id); return .complete }
                 // The complete ASR/VAD source already has one final boundary from the
                 // deterministic whole-recording policy. Generate display fields later;
                 // this path never asks AI to split or classify the recording.
+                publishEnrichmentProgress(id,.init(stage:.summary,segmentID:nil),runID:runID)
                 let result=await fields.generateMissingFields(sourceID:id)
                 if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
                 return result
@@ -260,6 +278,9 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 try ContentSegmentRepository(database:$0.derivedDatabase).hasPublishedContentV2(sourceID:id,input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
             }
             if alreadyPublished {
+                enrichmentSteps[id,default:.init()].complete(.topics)
+                if task == .topics { enrichmentApprovals.removeValue(forKey:id); return .complete }
+                publishEnrichmentProgress(id,.init(stage:.summary,segmentID:nil),runID:runID)
                 let result=await fields.generateMissingFields(sourceID:id)
                 if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
                 return result
@@ -272,8 +293,10 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 progress:{ stage in
                     Task { @MainActor [weak self] in
                         guard let self else { return }
-                        if stage == "complete" { self.publishEnrichmentProgress(id,nil) }
-                        else { self.publishEnrichmentProgress(id,.init(stage:stage == "final" ? .classification : .topicUnification,segmentID:nil)) }
+                        guard self.enrichmentRunIDs[id] == runID,
+                              self.enrichmentSteps[id]?.statuses[.topics] != .complete else { return }
+                        if stage == "complete" { self.publishEnrichmentProgress(id,nil,runID:runID) }
+                        else { self.publishEnrichmentProgress(id,.init(stage:stage == "final" ? .classification : .topicUnification,segmentID:nil),runID:runID) }
                     }
                 },
                 publish:{ value in
@@ -282,11 +305,16 @@ struct ContentEnrichmentConfirmation: Identifiable {
                     NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id])
                 })
             _ = output
+            enrichmentSteps[id,default:.init()].complete(.topics)
+            if task == .topics { enrichmentApprovals.removeValue(forKey:id); return .complete }
+            publishEnrichmentProgress(id,.init(stage:.summary,segmentID:nil),runID:runID)
             let fieldResult=await fields.generateMissingFields(sourceID:id)
             guard fieldResult == .complete || fieldResult == .idle else { return fieldResult }
             enrichmentApprovals.removeValue(forKey:id)
             return .complete
         } catch is CancellationError { return .cancelled }
+        catch ContentEnrichmentFailure.confirmationRequired { return .awaitingConsent }
+        catch ContentEnrichmentFailure.unavailable { return .unavailable }
         catch ContentSegmentError.staleRevision { return .stale }
         catch let failure as ContentSegmentationV2.Failure {
             Self.contentV2Logger.error("V2 failed: \(failure.description, privacy: .public)")
@@ -350,8 +378,12 @@ struct ContentEnrichmentConfirmation: Identifiable {
         catch ContentSegmentError.staleRevision { fieldGenerationStatuses[segmentID] = .stale; return .stale }
         catch { fieldGenerationStatuses[segmentID] = .failed; return .failed }
     }
-    private func publishEnrichmentProgress(_ sourceID: AudioSourceID, _ value: ContentEnrichmentProgress?) {
-        if let value { enrichmentProgress[sourceID]=value }
+    private func publishEnrichmentProgress(_ sourceID: AudioSourceID, _ value: ContentEnrichmentProgress?, runID: UUID? = nil) {
+        if let runID, enrichmentRunIDs[sourceID] != runID { return }
+        if let value {
+            if runID != nil { enrichmentSteps[sourceID,default:.init()].enter(value.stage == .title || value.stage == .summary ? .fields : .topics) }
+            enrichmentProgress[sourceID]=value
+        }
         else { enrichmentProgress.removeValue(forKey:sourceID) }
     }
     private func enrichmentCurrent(_ id: AudioSourceID, configuration: AIConfiguration, revision: Int, confirmationID: UUID?) -> Bool {
@@ -363,8 +395,16 @@ struct ContentEnrichmentConfirmation: Identifiable {
         !deletedSources.contains(id) && !enrichmentSuspended && !enrichmentCapturePaused && captureIDs.isEmpty &&
             settings.ai == configuration && settings.aiRevision == revision
     }
-    private func scheduleEnrichment(_ sourceID: AudioSourceID) {
+    func enrichmentStatus(_ sourceID: AudioSourceID, task: ContentEnrichmentTask) -> ContentEnrichmentStatus? {
+        enrichmentSteps[sourceID]?.statuses[task] ?? enrichmentStatuses[sourceID]
+    }
+    func isEnrichmentBusy(_ sourceID: AudioSourceID) -> Bool {
+        pendingEnrichment.contains(sourceID) || enrichmentStatuses[sourceID] == .running
+    }
+    private func scheduleEnrichment(_ sourceID: AudioSourceID, task: ContentEnrichmentTask? = nil) {
         guard !deletedSources.contains(sourceID) else { return }
+        if let task { pendingEnrichmentTasks[sourceID]=task }
+        else { pendingEnrichmentTasks.removeValue(forKey:sourceID) }
         pendingEnrichment.insert(sourceID); startEnrichment()
     }
     private func startEnrichment() {
@@ -378,11 +418,21 @@ struct ContentEnrichmentConfirmation: Identifiable {
             while !Task.isCancelled, !self.enrichmentSuspended, !self.enrichmentCapturePaused, self.captureIDs.isEmpty, let id=self.pendingEnrichment.first {
                 self.pendingEnrichment.remove(id)
                 guard !self.deletedSources.contains(id) else { continue }
+                let selectedTask=self.pendingEnrichmentTasks.removeValue(forKey:id)
+                if let selectedTask { self.enrichmentRetryTasks[id]=selectedTask }
+                else { self.enrichmentRetryTasks.removeValue(forKey:id) }
+                let runID=UUID(); self.enrichmentRunIDs[id]=runID
+                self.enrichmentSteps[id,default:.init()].begin(selectedTask)
                 self.publishEnrichment(id,status:.running)
-                let result=await self.enrichSource(id)
+                let result=await self.enrichSource(id,task:selectedTask,runID:runID)
                 guard !self.deletedSources.contains(id) else { continue }
+                self.enrichmentRunIDs.removeValue(forKey:id)
+                self.enrichmentSteps[id,default:.init()].finish(result)
                 self.publishEnrichment(id,status:result)
-                if result == .cancelled && Task.isCancelled { self.pendingEnrichment.insert(id) }
+                if result == .cancelled && Task.isCancelled && !self.pendingEnrichment.contains(id) {
+                    self.pendingEnrichment.insert(id)
+                    if let selectedTask { self.pendingEnrichmentTasks[id]=selectedTask }
+                }
                 if result == .complete, let progress=try? await self.coordinator.withRepository({ try $0.progress(sourceID:id) }) {
                     NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id,"revision":progress.revision,"configurationKey":progress.configurationKey ?? ""])
                 }

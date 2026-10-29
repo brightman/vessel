@@ -782,7 +782,7 @@ struct DaybookView: View {
         case .recap(let date):
             DaybookRecapDetailView(model: recaps, date: date, onOpen: { id in
                 recapSource = recaps.record(id); citation = recapSource?.contentProvenance; present(.record(id))
-            }, onClose: { sheet = nil })
+            }, onClose: { sheet = nil }, onOpenToday: { present(.recap(.now)) })
         case .capture: DaybookCaptureMenu(voice: { sheet = nil; recordingAction(.start) }, image: { present(.photo) })
         case .places: DaybookPlacesView(records: dayRecords.filter { $0.kind == .location && $0.location != nil }, date: selectedDate, onOpen: openRecord, onClose: { sheet = nil })
         case .photo: PhotoCaptureView(library: photos, onSaved: { date in showToday(); selectedDate = date })

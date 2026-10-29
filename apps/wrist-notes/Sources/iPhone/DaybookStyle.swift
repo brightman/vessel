@@ -89,12 +89,14 @@ struct DaybookSheetLayout<Content: View>: View {
 }
 
 struct DaybookPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     var wide = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.system(size: wide ? 13 : 11, weight: .medium))
             .foregroundStyle(DaybookStyle.white).padding(.horizontal, 14).padding(.vertical, wide ? 14 : 10)
             .frame(maxWidth: wide ? .infinity : nil)
             .background(DaybookStyle.accent.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: wide ? 14 : 20))
+            .opacity(isEnabled ? 1 : 0.4)
     }
 }
 

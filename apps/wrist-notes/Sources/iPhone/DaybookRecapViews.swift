@@ -73,6 +73,7 @@ struct DaybookRecapDetailView: View {
     let date: Date
     let onOpen: (UUID) -> Void
     let onClose: () -> Void
+    var onOpenToday: (() -> Void)? = nil
     @State private var confirmation: DaybookRecapModel.RemoteRequest?
 
     var body: some View {
@@ -106,13 +107,23 @@ struct DaybookRecapDetailView: View {
                         Button("取消生成") { model.cancel() }.font(.system(size: 12))
                     } else {
                         if let message = model.message { Text(message).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary) }
+                        if let blocker = model.generationBlocker, blocker.message != model.message {
+                            Text(LocalizedStringKey(blocker.message)).font(.system(size: 12))
+                                .foregroundStyle(DaybookStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("recap.generationUnavailable")
+                        }
+                        if !Calendar.current.isDateInToday(date), let onOpenToday,
+                           model.generationBlocker == .noRecords || model.generationBlocker == .awaitingText {
+                            Button("查看今天的回顾", action: onOpenToday)
+                                .font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.accent)
+                                .accessibilityIdentifier("recap.openToday")
+                        }
                         if settings.ai.isRemote && settings.requiresRemoteAIConfirmation && model.input?.sources.isEmpty == false {
                             Text("使用所选外部 AI，需要你确认将发送的文字。原始文件保留在本机。")
                                 .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(5)
                         }
                         Button(model.current?.text == nil ? "生成每日回顾" : "更新每日回顾") {
-                            if settings.ai.isRemote && settings.requiresRemoteAIConfirmation { confirmation = model.remoteRequest() }
-                            else { model.generate() }
+                            confirmation = model.requestGeneration()
                         }.buttonStyle(DaybookPrimaryButtonStyle(wide: true)).disabled(!model.canGenerate)
                             .accessibilityIdentifier("recap.generate")
                     }

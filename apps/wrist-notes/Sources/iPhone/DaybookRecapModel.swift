@@ -2,6 +2,21 @@ import Combine
 import Foundation
 
 @MainActor final class DaybookRecapModel: ObservableObject {
+    enum GenerationBlocker: Equatable {
+        case storage, loading, generating, inactive, recording, noAllowedSources, noRecords, awaitingText
+        var message: String {
+            switch self {
+            case .storage: return DaybookRecapFailure.storage.localizedDescription
+            case .loading: return "正在整理当天的记录，请稍后重试。"
+            case .generating: return "正在生成回顾，请稍候。"
+            case .inactive: return "请回到 App 前台后生成回顾。"
+            case .recording: return "请先结束并保存当前录音，再生成回顾。"
+            case .noAllowedSources: return "请先在“AI 偏好与提醒”中选择允许使用的数据。"
+            case .noRecords: return "这一天没有允许用于回顾的记录。可查看其他日期，或在“AI 偏好与提醒”中检查数据范围。"
+            case .awaitingText: return "这一天的录音还没有可用文字，完成转写后可生成回顾。"
+            }
+        }
+    }
     struct RemoteRequest: Identifiable {
         let id = UUID()
         let input: DaybookRecapInput
@@ -49,7 +64,19 @@ import Foundation
     var dayKey: String { context.map { DaybookRecapInput.key($0.day) } ?? "" }
     var input: DaybookRecapInput? { inputs[dayKey] }
     var isStale: Bool { current.map { entry in input.map { entry.relationship(to: $0) != .current } ?? true } ?? false }
-    var canGenerate: Bool { storageError == nil && !isLoading && !isGenerating && context?.foreground == true && context?.capturing == false && input?.sources.isEmpty == false }
+    var generationBlocker: GenerationBlocker? {
+        if storageError != nil { return .storage }
+        if isGenerating { return .generating }
+        guard !isLoading, let context, scopeLoader != nil else { return .loading }
+        guard context.foreground else { return .inactive }
+        guard !context.capturing else { return .recording }
+        guard !context.allowedKinds.isEmpty else { return .noAllowedSources }
+        guard let input else { return .loading }
+        guard !input.references.isEmpty else { return .noRecords }
+        guard !input.sources.isEmpty else { return .awaitingText }
+        return nil
+    }
+    var canGenerate: Bool { generationBlocker == nil }
     func isStale(_ entry: DaybookRecapEntry) -> Bool { inputs[entry.dayKey].map { entry.relationship(to: $0) != .current } ?? true }
     func record(_ id: UUID) -> DayRecord? { sourceRecords[dayKey]?[id] }
 
@@ -175,6 +202,24 @@ import Foundation
         guard canGenerate, let input, let context, context.configuration.isRemote else { return nil }
         return RemoteRequest(input: input, configuration: context.configuration, revision: context.revision, language: context.language)
     }
+    /// The button uses one model snapshot for readiness, provider and consent.
+    /// A stale or blocked tap always produces feedback instead of silently returning nil.
+    func requestGeneration() -> RemoteRequest? {
+        guard canGenerate, let context, let settings else {
+            message = generationBlocker?.message ?? DaybookRecapFailure.changed.localizedDescription
+            return nil
+        }
+        guard context.configuration == settings.ai, context.revision == settings.aiRevision,
+              context.language == settings.interfaceLanguage.rawValue else {
+            reload(); message = DaybookRecapFailure.changed.localizedDescription
+            return nil
+        }
+        if context.configuration.isRemote && settings.requiresRemoteAIConfirmation {
+            return remoteRequest()
+        }
+        generate()
+        return nil
+    }
     func cancel() {
         cancelGeneration(persistAttempt:true)
     }
@@ -194,7 +239,10 @@ import Foundation
 #if WISELIFE_CONTENT_LAB && targetEnvironment(simulator)
         if automatic { return }
 #endif
-        guard canGenerate, let input, let context, let settings else { return }
+        guard canGenerate, let input, let context, let settings else {
+            if !automatic { message = generationBlocker?.message ?? DaybookRecapFailure.changed.localizedDescription }
+            return
+        }
         guard !automatic || !context.configuration.isRemote || !settings.requiresRemoteAIConfirmation else { return }
         let token = UUID(); generation = token; isGenerating = true; message = nil
         var initialAttempt = current ?? DaybookRecapEntry(input: input)

@@ -7,6 +7,29 @@ enum ContentTopicDecision: String, Codable, Sendable { case sameTopic, newTopic,
 enum ContentEnrichmentStatus: String, Sendable { case idle, running, complete, awaitingConsent, unavailable, stale, failed, cancelled }
 enum ContentEnrichmentField: String, Equatable, Sendable { case title, summary }
 enum ContentEnrichmentStage: String, Sendable { case topicUnification, classification, title, summary }
+enum ContentEnrichmentTask: String, Hashable, Sendable {
+    case topics, fields
+    var title: String { self == .topics ? "主题拆分与分类" : "标题与摘要" }
+}
+/// Keep failures on the step that actually ran, including across a targeted retry.
+struct ContentEnrichmentStepStates: Sendable {
+    private(set) var statuses: [ContentEnrichmentTask: ContentEnrichmentStatus] = [:]
+    private(set) var current: ContentEnrichmentTask?
+    mutating func begin(_ task: ContentEnrichmentTask?) {
+        if task == nil || statuses.isEmpty { statuses = [.topics: .idle, .fields: .idle] }
+        current = task ?? .topics
+        statuses[current!] = .running
+    }
+    mutating func enter(_ task: ContentEnrichmentTask) {
+        if let previous = current, previous != task, statuses[previous] == .running { statuses[previous] = .complete }
+        current = task; statuses[task] = .running
+    }
+    mutating func complete(_ task: ContentEnrichmentTask) { statuses[task] = .complete }
+    mutating func finish(_ status: ContentEnrichmentStatus) {
+        if let current { statuses[current] = status }
+        current = nil
+    }
+}
 struct ContentEnrichmentProgress: Sendable { let stage: ContentEnrichmentStage; let segmentID: UUID? }
 enum ContentEnrichmentFailure: Error { case unavailable, invalidReply, confirmationRequired }
 struct ContentLocalRequest: Sendable {

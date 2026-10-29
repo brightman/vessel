@@ -9,11 +9,12 @@ struct ContentEnrichmentScope: Equatable, Sendable {
     let title: String
     var segmentID: UUID? = nil
     var field: ContentEnrichmentField? = nil
+    var task: ContentEnrichmentTask? = nil
 }
 
 enum ContentEnrichmentAuthorization {
     static let pageSize = 100
-    static func scope(database db: DaybookDatabase, sourceID: AudioSourceID, segmentID: UUID? = nil, field: ContentEnrichmentField? = nil) throws -> ContentEnrichmentScope? {
+    static func scope(database db: DaybookDatabase, sourceID: AudioSourceID, segmentID: UUID? = nil, field: ContentEnrichmentField? = nil, task: ContentEnrichmentTask? = nil) throws -> ContentEnrichmentScope? {
         try db.transaction {
             guard try db.query("SELECT source_key FROM audio_source_tombstones WHERE source_key=?",[.text(sourceID.key)]).isEmpty else { return nil }
             if sourceID.kind == .session {
@@ -27,9 +28,11 @@ enum ContentEnrichmentAuthorization {
                 guard let segment=try ContentSegmentRepository(database:db).segment(id:segmentID),
                       segment.sourceID == sourceID, segment.isFinal, segment.hasText else { return nil }
             } else if field != nil { return nil }
+            guard task == nil || segmentID == nil else { return nil }
             let progress=try processing.progress(sourceID:sourceID)
             var digest=SHA256()
             digest.update(data:Data([source.contentIdentity,progress.configurationKey ?? "",String(progress.revision)].joined(separator:"|").utf8))
+            if let task { digest.update(data: Data(("retry:" + task.rawValue).utf8)) }
             if let segmentID,let segment=try ContentSegmentRepository(database:db).segment(id:segmentID) {
                 digest.update(data:Data([segment.id.uuidString,String(segment.revision),segment.provenance.contentSignature,field?.rawValue ?? "title+summary"].joined(separator:"|").utf8))
             }
@@ -47,12 +50,12 @@ enum ContentEnrichmentAuthorization {
                     offset += rows.count; if rows.count < pageSize { break }
                 }
             }
-            return .init(sourceID:sourceID,fingerprint:digest.finalize().map { String(format:"%02x",$0) }.joined(),title:source.title,segmentID:segmentID,field:field)
+            return .init(sourceID:sourceID,fingerprint:digest.finalize().map { String(format:"%02x",$0) }.joined(),title:source.title,segmentID:segmentID,field:field,task:task)
         }
     }
     static func transcriptPage(database db: DaybookDatabase, scope expected: ContentEnrichmentScope, offset: Int) throws -> [AudioTranscriptSpan] {
         try db.transaction {
-            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field) == expected else { throw ContentSegmentError.staleRevision }
+            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field,task:expected.task) == expected else { throw ContentSegmentError.staleRevision }
             if let segmentID=expected.segmentID {
                 return try ContentSegmentRepository(database:db).spans(segmentID:segmentID,limit:pageSize,offset:offset)
             }
@@ -61,7 +64,7 @@ enum ContentEnrichmentAuthorization {
     }
     static func contextPage(database db: DaybookDatabase, scope expected: ContentEnrichmentScope, offset: Int) throws -> String {
         try db.transaction {
-            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field) == expected,
+            guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field,task:expected.task) == expected,
                   let source=try AudioProcessingRepository(database:db).currentSource(expected.sourceID) else { throw ContentSegmentError.staleRevision }
             if let segmentID=expected.segmentID {
                 guard let context=try ContentSegmentRepository(database:db).enrichmentContextForAuthorization(segmentID:segmentID) else { throw ContentSegmentError.staleRevision }

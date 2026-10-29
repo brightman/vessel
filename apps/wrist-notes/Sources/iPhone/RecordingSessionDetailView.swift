@@ -21,6 +21,7 @@ struct RecordingSessionDetailView: View {
     @State private var sourceSegments: [ContentSegment] = []
     @State private var enrichmentConfirmation: ContentEnrichmentConfirmation?
     @State private var enrichmentError: String?
+    @State private var preparingEnrichment = false
     @State private var selectedTab: DaybookAudioContentTab = .summary
 
     private var sourceID: AudioSourceID { .init(kind: .session, id: sessionID) }
@@ -141,7 +142,11 @@ struct RecordingSessionDetailView: View {
             }
             VStack(spacing: 0) {
                 ForEach(processingSteps) { step in
-                    RecordingProcessingStepRow(step: step)
+                    RecordingProcessingStepRow(step: step, retry: retryAction(for: step),
+                        retryDisabled: preparingEnrichment || audioProcessing.isEnrichmentBusy(sourceID) || !playbackAllowed ||
+                            (processingStatus?.progress.states[.running,default:0] ?? 0) > 0 ||
+                            (processingStatus?.progress.states[.pending,default:0] ?? 0) > 0,
+                        retryTitle: step.state == .failure ? "重新处理" : "继续处理")
                     if step.id != processingSteps.last?.id { DaybookStyle.line.frame(height: 1).padding(.leading, 25) }
                 }
             }
@@ -151,7 +156,7 @@ struct RecordingSessionDetailView: View {
             if enrichmentStatus == .awaitingConsent {
                 Button {
                     Task {
-                        do { enrichmentConfirmation = try await audioProcessing.prepareEnrichment(sourceID) }
+                        do { enrichmentConfirmation = try await audioProcessing.prepareEnrichment(sourceID,task:audioProcessing.enrichmentRetryTasks[sourceID]) }
                         catch { enrichmentError = "录音数据已更新，请重试。" }
                     }
                 } label: {
@@ -172,6 +177,22 @@ struct RecordingSessionDetailView: View {
         .padding(15)
         .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(DaybookStyle.line, lineWidth: 1))
+    }
+
+    private func retryAction(for step: RecordingProcessingStep) -> (() -> Void)? {
+        guard let task=ContentEnrichmentTask(rawValue:step.id),
+              step.state == .failure || (task == .fields && step.state == .waiting &&
+                audioProcessing.enrichmentStatus(sourceID,task:.topics) == .complete &&
+                audioProcessing.enrichmentStatus(sourceID,task:.fields) == .idle &&
+                ContentSegmentPresentation.fieldGenerationCounts(currentSegments.filter(\.isFinal)).eligible > 0) else { return nil }
+        return {
+            preparingEnrichment=true; enrichmentError=nil
+            Task {
+                defer { preparingEnrichment=false }
+                do { enrichmentConfirmation=try await audioProcessing.prepareEnrichment(sourceID,task:task) }
+                catch { enrichmentError="录音数据已更新，请重试。" }
+            }
+        }
     }
 
     private var synchronizationCard: some View {
@@ -349,7 +370,7 @@ struct RecordingSessionDetailView: View {
         let speaker = stageStep("speaker", title: "说话人分析", progress: status.speaker, total: windowCount, live: live, pending: pending, optional: true)
         let current = currentSegments
         let finalized = current.filter(\.isFinal)
-        let enrichment = enrichmentStatus
+        let enrichment = audioProcessing.enrichmentStatus(sourceID,task:.topics)
         let totalWindows = status.progress.states.values.reduce(0, +)
         let stagesCovered = status.asr.success == totalWindows &&
             (topicStageDisposition == .skippedWholeRecording || status.vad.success == totalWindows)
@@ -380,20 +401,21 @@ struct RecordingSessionDetailView: View {
         let topics = RecordingProcessingStep(id: "topics", title: "主题拆分与分类", detail: topicDetail, state: topicState)
 
         let fieldCounts = ContentSegmentPresentation.fieldGenerationCounts(finalized)
+        let fieldEnrichment = audioProcessing.enrichmentStatus(sourceID,task:.fields)
         let eligibleFields = fieldCounts.eligible
         let withFields = fieldCounts.complete
         let fieldState: RecordingProcessingStep.State
         let fieldDetail: String
-        if enrichment == .failed || enrichment == .unavailable {
+        if fieldEnrichment == .failed || fieldEnrichment == .unavailable {
             fieldState = .failure; fieldDetail = "标题或摘要整理失败，可重新处理"
-        } else if enrichment == .running, let progress = audioProcessing.enrichmentProgress[sourceID], progress.stage == .title || progress.stage == .summary {
+        } else if fieldEnrichment == .running, let progress = audioProcessing.enrichmentProgress[sourceID], progress.stage == .title || progress.stage == .summary {
             fieldState = .running; fieldDetail = progress.stage == .title ? "正在生成片段标题" : "正在生成片段摘要"
         } else if eligibleFields > 0 && withFields == eligibleFields {
             fieldState = .success; fieldDetail = "\(withFields) 个可生成片段已有标题和摘要"
-        } else if enrichment == .complete && audioFinished {
+        } else if (fieldEnrichment == .complete || (fieldEnrichment == .idle && eligibleFields == 0 && enrichment == .complete)) && audioFinished {
             fieldState = .skipped
             fieldDetail = eligibleFields == 0 ? "没有需要生成标题与摘要的内容片段" : "部分内容片段没有标题或摘要"
-        } else if enrichment == .awaitingConsent {
+        } else if fieldEnrichment == .awaitingConsent {
             fieldState = .waiting; fieldDetail = "等待确认后继续"
         } else {
             fieldState = .waiting; fieldDetail = eligibleFields == 0 ? "主题定稿后生成" : "\(withFields) / \(eligibleFields) 个可生成片段已有标题和摘要"
@@ -538,14 +560,28 @@ struct RecordingProcessingStep: Identifiable {
 
 struct RecordingProcessingStepRow: View {
     let step: RecordingProcessingStep
+    var retry: (() -> Void)? = nil
+    var retryDisabled = false
+    var retryTitle = "重新处理"
     var body: some View {
-        HStack(spacing: 7) {
-            RecordingProcessingStateIcon(state: step.state, size: 12)
-            Text(step.title).font(.system(size: 10, weight: .medium)).foregroundStyle(DaybookStyle.ink)
-            Spacer(minLength: 4)
-            Text(step.detail).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineLimit(2).multilineTextAlignment(.trailing)
-        }.padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
+        VStack(alignment:.trailing,spacing:2) {
+            HStack(spacing: 7) {
+                RecordingProcessingStateIcon(state: step.state, size: 12)
+                Text(step.title).font(.system(size: 10, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+                Spacer(minLength: 4)
+                Text(step.detail).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineLimit(2).multilineTextAlignment(.trailing)
+            }.accessibilityElement(children:.combine)
+            if let retry {
+                Button(action:retry) {
+                    Label(LocalizedStringKey(retryTitle),systemImage:"arrow.clockwise")
+                        .font(.system(size:11,weight:.semibold)).padding(.horizontal,10).frame(minHeight:32)
+                        .background(DaybookStyle.blueSoft,in:RoundedRectangle(cornerRadius:8))
+                }.buttonStyle(.plain).foregroundStyle(DaybookStyle.accent).disabled(retryDisabled)
+                    .opacity(retryDisabled ? 0.4 : 1)
+                    .accessibilityLabel(retryTitle + step.title)
+                    .accessibilityIdentifier("processing.retry." + step.id)
+            }
+        }.padding(.vertical,6)
     }
 }
 

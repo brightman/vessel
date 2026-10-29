@@ -15,16 +15,27 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         try repository.reconcile(sourceID:id)
         _ = try repository.enrichment(.finalizeTopics(id,try processing.progress(sourceID:id).revision))
         let segment=try repository.segments(sourceID:id)[0]
-        let fieldScope=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary)!
+        var fieldScope=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary)!
         expect(fieldScope.segmentID == segment.id && fieldScope.field == .summary,"field authorization is bound to one final segment and operation")
         expect(try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:fieldScope,offset:0).map(\.text) == ["确认材料"],"segment consent previews only the requested segment transcript")
         let a=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id)!
+        let topics=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,task:.topics)!
+        let fields=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,task:.fields)!
+        expect(topics != a && fields != a && topics != fields,"consent for a single retry task cannot authorize another task or the full pipeline")
+        expect(topics.task == .topics && fields.task == .fields,"approval retains the exact requested retry task")
+        expect(try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:topics,offset:0).map(\.text) == ["确认材料"],"topic retry previews the actual scoped text")
+        expect(try !ContentEnrichmentAuthorization.contextPage(database:db,scope:fields,offset:0).isEmpty,"field retry can preview its current context")
+        try repository.applyEnrichment(id:segment.id,expectedRevision:segment.revision,sourceRevision:segment.sourceRevision,title:"新生成的标题",summary:"新生成的摘要")
+        expect(try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,task:.fields) == fields,"writing generated fields does not invalidate consent halfway through a multi-segment retry")
+        fieldScope=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary)!
+        expect(try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,task:.fields) == nil,"whole-source retry cannot be mixed with a different segment operation")
         expect(try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:a,offset:0).first?.text == "确认材料","preview reads the actual current transcript")
         let point=CaptureLocation(latitude:40,longitude:116,accuracy:100,measuredAt:source.capturedAt,source:.watchRecording)!
         let sample=RecordingLocationSample(id:UUID(),sessionID:id.id,sessionOffset:0,requestedAt:source.capturedAt,location:point,sourceDevice:"Watch")
         try db.execute("INSERT INTO recording_location_samples(id,session_id,session_offset,requested_at,payload) VALUES (?,?,?,?,?)",[.text(sample.id.uuidString),.text(id.id.uuidString),.real(0),.real(source.capturedAt.timeIntervalSinceReferenceDate),try DaybookDatabase.json(sample)])
         let b=try ContentEnrichmentAuthorization.scope(database:db,sourceID:id)!
         expect(a != b,"late location invalidates a previously displayed consent snapshot")
+        expect(try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,task:.topics) != topics,"late location also invalidates a targeted retry approval")
         expect(try ContentEnrichmentAuthorization.scope(database:db,sourceID:id,segmentID:segment.id,field:.summary) != fieldScope,"late location also invalidates the field-specific authorization")
         do { _ = try ContentEnrichmentAuthorization.transcriptPage(database:db,scope:a,offset:0); fatalError("stale preview must fail") } catch ContentSegmentError.staleRevision {}
         expect(try ContentEnrichmentAuthorization.contextPage(database:db,scope:b,offset:0).contains("100"),"preview discloses accuracy with observed position")

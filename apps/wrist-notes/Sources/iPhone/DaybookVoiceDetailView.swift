@@ -111,6 +111,9 @@ struct DaybookVoiceDetailView: View {
     @State private var showEditor = false
     @State private var confirmFullDeletion = false
     @State private var remoteSummary: NotesModel.RemoteSummaryRequest?
+    @State private var enrichmentConfirmation: ContentEnrichmentConfirmation?
+    @State private var enrichmentError: String?
+    @State private var preparingEnrichment = false
 
     private var sourceID: AudioSourceID { .init(kind:.legacyNote,id:id) }
     private var isLongRecording: Bool { model.note(id).map { $0.kind == .long || $0.duration > 300 } ?? false }
@@ -145,6 +148,15 @@ struct DaybookVoiceDetailView: View {
         .sheet(isPresented: $showEditor) {
             NavigationStack { NoteDetailView(id: id) }
                 .environmentObject(model).environmentObject(settings)
+        }
+        .sheet(item: $enrichmentConfirmation) { request in
+            ContentEnrichmentConfirmationView(request:request,onCancel:{ enrichmentConfirmation=nil },onConfirm:{ remember in
+                enrichmentConfirmation=nil
+                Task {
+                    do { try await audioProcessing.approveEnrichment(request,rememberChoice:remember); enrichmentError=nil }
+                    catch { enrichmentError="录音或模型已更新，请重新确认发送内容。" }
+                }
+            })
         }
         .sheet(item: $remoteSummary) { request in
             RemoteSummaryConfirmationView(request: request, onCancel: { remoteSummary = nil }, onConfirm: { doNotAskAgain in
@@ -252,6 +264,23 @@ struct DaybookVoiceDetailView: View {
         }.daybookRecordingCard(padding:13)
     }
 
+    private func retryAction(for step: RecordingProcessingStep) -> (() -> Void)? {
+        let current=segmentModel.library.filter { $0.sourceID == sourceID && $0.isFinal }
+        guard let task=ContentEnrichmentTask(rawValue:step.id),
+              step.state == .failure || (task == .fields && step.state == .waiting &&
+                audioProcessing.enrichmentStatus(sourceID,task:.topics) == .complete &&
+                audioProcessing.enrichmentStatus(sourceID,task:.fields) == .idle &&
+                ContentSegmentPresentation.fieldGenerationCounts(current).eligible > 0) else { return nil }
+        return {
+            preparingEnrichment=true; enrichmentError=nil
+            Task {
+                defer { preparingEnrichment=false }
+                do { enrichmentConfirmation=try await audioProcessing.prepareEnrichment(sourceID,task:task) }
+                catch { enrichmentError="录音数据已更新，请重试。" }
+            }
+        }
+    }
+
     private var legacyProcessingCard: some View {
         VStack(alignment:.leading,spacing:10) {
             HStack {
@@ -269,11 +298,26 @@ struct DaybookVoiceDetailView: View {
             }
             VStack(spacing:0) {
                 ForEach(legacyProcessingSteps) { step in
-                    RecordingProcessingStepRow(step:step)
+                    RecordingProcessingStepRow(step:step,retry:retryAction(for:step),
+                        retryDisabled:preparingEnrichment || audioProcessing.isEnrichmentBusy(sourceID) || !playbackAllowed ||
+                            (audioProcessing.statuses[sourceID]?.progress.states[.running,default:0] ?? 0) > 0 ||
+                            (audioProcessing.statuses[sourceID]?.progress.states[.pending,default:0] ?? 0) > 0,
+                        retryTitle:step.state == .failure ? "重新处理" : "继续处理")
                     if step.id != legacyProcessingSteps.last?.id {
                         DaybookStyle.line.frame(height:1).padding(.leading,25)
                     }
                 }
+            }
+            if let enrichmentError { Text(enrichmentError).font(.system(size:10)).foregroundStyle(DaybookStyle.red) }
+            if audioProcessing.enrichmentStatuses[sourceID] == .awaitingConsent {
+                Button("确认并继续 AI 整理") {
+                    preparingEnrichment=true
+                    Task {
+                        defer { preparingEnrichment=false }
+                        do { enrichmentConfirmation=try await audioProcessing.prepareEnrichment(sourceID,task:audioProcessing.enrichmentRetryTasks[sourceID]) }
+                        catch { enrichmentError="录音数据已更新，请重试。" }
+                    }
+                }.buttonStyle(DaybookSecondaryButtonStyle()).disabled(preparingEnrichment)
             }
             Button {
                 audioProcessing.reprocess(sourceID)
@@ -335,7 +379,7 @@ struct DaybookVoiceDetailView: View {
         let speaker=legacyStageStep("speaker",title:"说话人分析",progress:status.speaker,total:total,live:live,pending:pending,optional:true)
         let current=segmentModel.library.filter { $0.sourceID == sourceID && $0.sourceRevision == status.progress.revision }
         let finalized=current.filter(\.isFinal)
-        let enrichment=audioProcessing.enrichmentStatuses[sourceID]
+        let enrichment=audioProcessing.enrichmentStatus(sourceID,task:.topics)
         let topics:RecordingProcessingStep
         if topicStageDisposition == .skippedWholeRecording {
             topics = .init(id:"topics",title:"主题拆分与分类",detail:current.contains(where:{$0.editorial != nil}) ? "保留历史分类结果；新规则跳过主题拆分与 AI 分类" : "短录音保留为整段；跳过主题拆分与 AI 分类",state:.skipped)
@@ -348,7 +392,7 @@ struct DaybookVoiceDetailView: View {
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"正在整理主题与分类",state:.running)
         case .awaitingConsent:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"等待确认后继续",state:.waiting)
-        case .complete where !current.isEmpty && finalized.count == current.count:
+        case _ where !current.isEmpty && finalized.count == current.count:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"\(finalized.count) 个片段边界与分类已确定",state:.success)
         case .complete where current.isEmpty && total > 0 && status.asr.success == total && status.vad.success == total:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"没有需要展示的内容片段",state:.success)
@@ -359,16 +403,17 @@ struct DaybookVoiceDetailView: View {
         } }
         let fieldCounts=ContentSegmentPresentation.fieldGenerationCounts(finalized)
         let eligibleFields=fieldCounts.eligible, titled=fieldCounts.complete
+        let fieldEnrichment=audioProcessing.enrichmentStatus(sourceID,task:.fields)
         let fields:RecordingProcessingStep
-        if enrichment == .failed || enrichment == .unavailable {
+        if fieldEnrichment == .failed || fieldEnrichment == .unavailable {
             fields = .init(id:"fields",title:"标题与摘要",detail:"标题或摘要整理失败，可重新处理",state:.failure)
-        } else if enrichment == .running,let progress=audioProcessing.enrichmentProgress[sourceID],progress.stage == .title || progress.stage == .summary {
+        } else if fieldEnrichment == .running,let progress=audioProcessing.enrichmentProgress[sourceID],progress.stage == .title || progress.stage == .summary {
             fields = .init(id:"fields",title:"标题与摘要",detail:progress.stage == .title ? "正在生成片段标题" : "正在生成片段摘要",state:.running)
         } else if eligibleFields > 0 && titled == eligibleFields {
             fields = .init(id:"fields",title:"标题与摘要",detail:"\(titled) 个可生成片段已有标题和摘要",state:.success)
-        } else if enrichment == .complete && legacyAudioFinished(status:status,total:total) {
+        } else if (fieldEnrichment == .complete || (fieldEnrichment == .idle && eligibleFields == 0 && enrichment == .complete)) && legacyAudioFinished(status:status,total:total) {
             fields = .init(id:"fields",title:"标题与摘要",detail:eligibleFields == 0 ? "没有需要生成标题与摘要的内容片段" : "部分内容片段没有标题或摘要",state:.skipped)
-        } else if enrichment == .awaitingConsent {
+        } else if fieldEnrichment == .awaitingConsent {
             fields = .init(id:"fields",title:"标题与摘要",detail:"等待确认后继续",state:.waiting)
         } else {
             fields = .init(id:"fields",title:"标题与摘要",detail:eligibleFields == 0 ? "主题定稿后生成" : "\(titled) / \(eligibleFields) 个可生成片段已有标题和摘要",state:.waiting)

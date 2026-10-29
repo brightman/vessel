@@ -91,6 +91,17 @@ actor ModelFixture {
 @main struct ContentEnrichmentSmoke {
     static func check(_ value: Bool, _ message: String) { if !value { fatalError(message) } }
     static func main() async throws {
+        var steps=ContentEnrichmentStepStates()
+        steps.begin(nil); steps.finish(.failed)
+        check(steps.statuses[.topics] == .failed && steps.statuses[.fields] == .idle,"topic failure does not falsely fail the unstarted field stage")
+        steps.begin(.topics); steps.complete(.topics); steps.finish(.complete)
+        check(steps.statuses[.topics] == .complete && steps.statuses[.fields] == .idle,"topic retry completes only its own step")
+        steps.begin(.fields); steps.finish(.failed)
+        check(steps.statuses[.topics] == .complete && steps.statuses[.fields] == .failed,"field failure retains successful topic state")
+        steps.begin(.topics); steps.finish(.complete)
+        check(steps.statuses[.fields] == .failed,"retrying topics cannot clear another failed step")
+        steps.begin(.fields); steps.finish(.complete)
+        check(steps.statuses[.topics] == .complete && steps.statuses[.fields] == .complete,"field retry preserves completed topics")
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }
         func fixture(_ name: String, gap: String? = nil, silence: Bool = false, large: Bool = false) throws -> EnrichmentFixture {
@@ -114,6 +125,20 @@ actor ModelFixture {
             check(await topicGateService.generateFields(sourceID:topicGate.source.id,segmentID:target.id,field:.summary) == .complete,"manual summary generation completes for a final text segment")
             let afterSummary=try await topicGate.content.segment(id:target.id)!
             check(afterSummary.title == "本地标题" && afterSummary.summary != "独立摘要应保留","summary generation changes only summary")
+            try await topicGate.setFields(target.id,title:"已完成的标题",summary:"")
+            let beforeFields=try await topicGate.segments(), beforeInferenceRows=try await topicGate.inferenceRows()
+            let fieldModel=ModelFixture()
+            let fieldsOnly=ContentEnrichmentService(modelKey:"fields-only-retry",model:{ try await fieldModel.respond($0) },store:{ try await topicGate.command($0) })
+            check(await fieldsOnly.generateMissingFields(sourceID:topicGate.source.id) == .complete,"failed fields can be retried without topic enrichment")
+            let afterFields=try await topicGate.segments()
+            check(afterFields.map(\.id) == beforeFields.map(\.id) && afterFields.map(\.ranges) == beforeFields.map(\.ranges),"field retry preserves segment identities and topic boundaries")
+            check(afterFields.first(where:{$0.id == target.id})?.title == "已完成的标题" && afterFields.first(where:{$0.id == target.id})?.summary.isEmpty == false,"field retry fills the missing summary while preserving a completed title")
+            let topicCalls=await fieldModel.topicCalls, classifications=await fieldModel.classificationInputs, titles=await fieldModel.titleInputs
+            check(topicCalls == 0 && classifications.isEmpty && titles.isEmpty,"field retry does not invoke topics, classification or an already completed title")
+            check(try await topicGate.inferenceRows() == beforeInferenceRows,"field retry preserves committed ASR inference")
+            let fieldCalls=await fieldModel.calls
+            check(await fieldsOnly.generateMissingFields(sourceID:topicGate.source.id) == .idle,"completed fields are not generated again")
+            check(await fieldModel.calls == fieldCalls,"completed field retry performs no new model requests")
         }
         let topicFailure = try fixture("topic-unavailable")
         let topicFailureService = ContentEnrichmentService(modelKey:"topic-failure",model:{ _ in throw ContentEnrichmentFailure.unavailable },store:{ try await topicFailure.command($0) })

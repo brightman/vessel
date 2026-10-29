@@ -64,7 +64,7 @@ phone_target.build_configurations.each do |configuration|
   settings['PRODUCT_NAME'] = 'WiseNote'
   version = existing_app_versions.fetch(configuration.name, {})
   settings['MARKETING_VERSION'] = version.fetch('MARKETING_VERSION', '1.0.1')
-  settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '7')
+  settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '9')
   settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   settings['INFOPLIST_FILE'] = 'Sources/iPhone/Info.plist'
   settings['CODE_SIGN_ENTITLEMENTS'] = 'Sources/iPhone/WristNotes.entitlements'
