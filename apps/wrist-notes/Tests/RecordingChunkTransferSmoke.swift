@@ -361,6 +361,57 @@ import Foundation
         delayed.removeAll(); try nonceBounded.pump(force: true)
         expect(delayed.count == 4 && Set(delayed.map { $0.payload.ordinal }) == Set(4..<8), "bounded completion eventually advances to remaining media")
         expect(FileManager.default.fileExists(atPath: source.path), "transfer completion retains original media")
+        // Reproduce 2/5 saved with the missing files still queued under an old
+        // nonce. Cancellation may finish asynchronously; it must neither exceed
+        // the cap nor leave the missing files behind a 15-minute retry deadline.
+        var staleJobs: [RecordingWireEnvelope<RecordingChunkDescriptor>] = []
+        var cancellationFinished = false
+        let recovering = try WatchChunkTransferQueue(root: root.appendingPathComponent("obsolete-recovery"), now: { now },
+            outstandingFileCount: { staleJobs.count },
+            retireObsoleteFiles: { binding in
+                let ids = staleJobs.compactMap { value -> UUID? in
+                    let metadata = [RecordingChunkProtocol.chunkKey: try! JSONEncoder().encode(value)]
+                    return RecordingChunkWire.obsoleteChunkID(in: metadata, binding: binding)
+                }
+                if cancellationFinished { staleJobs.removeAll { $0.binding != binding && $0.binding.watchID == binding.watchID } }
+                return ids
+            },
+            isOutstanding: { id, end, binding in !end && staleJobs.contains { $0.binding == binding && $0.payload.id == id } },
+            sendFile: { _, value in staleJobs.append(value) }, sendEnd: { _ in })
+        let recoveryChunks = Array(many.prefix(5))
+        try recovering.update(chunks: recoveryChunks, ends: [], audioURL: { _ in source })
+        let firstRecoveryHello = try recovering.beginHandshake()
+        let firstRecoveryBinding = RecordingTransferBinding(counterpart: counterpart, watchID: firstRecoveryHello.watchID, nonce: firstRecoveryHello.nonce)
+        try recovering.accept(.init(version: 2, versions: [2], binding: firstRecoveryBinding))
+        for saved in recoveryChunks.suffix(2) {
+            try recovering.receive(.init(binding: firstRecoveryBinding, payload: .init(receipt:
+                .init(sessionID: saved.sessionID, chunkID: saved.id, ordinal: saved.ordinal, sha256: saved.sha256), savedAt: now)))
+        }
+        try recovering.pump()
+        expect(staleJobs.count == 3 && recovering.sessionStates.first?.savedChunkCount == 2, "only three unsaved originals should be queued")
+        let freshRecoveryHello = try recovering.beginHandshake()
+        let freshRecoveryBinding = RecordingTransferBinding(counterpart: counterpart, watchID: freshRecoveryHello.watchID, nonce: freshRecoveryHello.nonce)
+        try recovering.accept(.init(version: 2, versions: [2], binding: freshRecoveryBinding))
+        try recovering.pump()
+        expect(staleJobs.count <= 4, "cancelled jobs still consume slots until the system removes them")
+        cancellationFinished = true
+        try recovering.pump()
+        expect(staleJobs.count == 3 && staleJobs.allSatisfy { $0.binding == freshRecoveryBinding },
+               "missing files must resume immediately under the new binding without forcing or waiting for backoff")
+        expect(Set(staleJobs.map { $0.payload.ordinal }) == Set(0..<3), "saved chunks must not be resent after cleanup")
+        for value in staleJobs {
+            try recovering.receive(.init(binding: freshRecoveryBinding, payload: .init(receipt:
+                .init(sessionID: value.payload.sessionID, chunkID: value.payload.id, ordinal: value.payload.ordinal, sha256: value.payload.sha256), savedAt: now)))
+        }
+        staleJobs.removeAll(); try recovering.pump()
+        expect(recovering.sessionStates.first?.savedChunkCount == 5 && staleJobs.isEmpty, "2/5 must advance to 5/5 without duplicate sends")
+        let metadata: [String: Any] = [RecordingChunkProtocol.chunkKey: try JSONEncoder().encode(RecordingWireEnvelope(binding: freshRecoveryBinding, payload: recoveryChunks[0]))]
+        expect(RecordingChunkWire.obsoleteChunkID(in: metadata, binding: freshRecoveryBinding) == nil, "current jobs must never be cancelled")
+        let otherWatch = RecordingTransferBinding(counterpart: counterpart, watchID: UUID(), nonce: UUID())
+        expect(RecordingChunkWire.obsoleteChunkID(in: metadata, binding: otherWatch) == nil, "another Watch's jobs must remain untouched")
+        expect(RecordingChunkWire.obsoleteChunkID(in: ["id": UUID().uuidString], binding: freshRecoveryBinding) == nil, "legacy jobs must remain untouched")
+        expect(RecordingChunkWire.obsoleteChunkID(in: [RecordingChunkProtocol.chunkKey: Data([0])], binding: freshRecoveryBinding) == nil, "malformed jobs must not be cancelled speculatively")
+        expect(FileManager.default.fileExists(atPath: source.path), "obsolete job cleanup must retain the original audio")
         var helloSends: [RecordingCapabilityHello] = []
         let handshakeQueue = try WatchChunkTransferQueue(root: root.appendingPathComponent("hello"), sendHello: { helloSends.append($0) }, sendFile: { _, _ in fatalError("no negotiated send") }, sendEnd: { _ in fatalError("no negotiated end") })
         try handshakeQueue.requestCapability(); try handshakeQueue.requestCapability()

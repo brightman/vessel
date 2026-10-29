@@ -209,9 +209,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             let state = sessionSyncStates.first { $0.id == entry.recordingID }
             if state?.isComplete == true { return .init(phase: .synced) }
             let matching = transfers.filter {
-                let value = try? RecordingChunkWire.decode(RecordingWireEnvelope<RecordingChunkDescriptor>.self,
-                    key: RecordingChunkProtocol.chunkKey, from: $0.file.metadata ?? [:])
-                return value?.payload.sessionID == entry.recordingID
+                guard let binding = chunkQueue?.binding,
+                      let value = try? RecordingChunkWire.decode(RecordingWireEnvelope<RecordingChunkDescriptor>.self,
+                        key: RecordingChunkProtocol.chunkKey, from: $0.file.metadata ?? [:]) else { return false }
+                return value.binding == binding && value.payload.sessionID == entry.recordingID
             }
             let saved = state?.savedChunkCount ?? 0
             let total = state?.end?.finalOrdinal.map { $0 + 1 } ?? state?.chunkCount ?? 0
@@ -453,6 +454,18 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 #else
                     return systemCount
 #endif
+                }, retireObsoleteFiles: { [weak self] binding in
+                    guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return [] }
+                    var retired: [UUID] = []
+                    for transfer in WCSession.default.outstandingFileTransfers {
+                        guard let id = RecordingChunkWire.obsoleteChunkID(in: transfer.file.metadata ?? [:], binding: binding) else { continue }
+                        transfer.cancel()
+                        retired.append(id)
+                    }
+                    if !retired.isEmpty {
+                        self?.logger.notice("Retired \(retired.count, privacy: .public) obsolete V2 file jobs; originals retained for the current binding")
+                    }
+                    return retired
                 }, isOutstanding: { [weak self] id, isEnd, binding in
                     guard WCSession.isSupported() else { return false }
                     if isEnd {
@@ -517,7 +530,9 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                 })
         } catch { message = "长录音同步记录暂时不可用，录音仍保存在手表" }
         chunkRetryTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.refreshChunkTransfers() }
-        foregroundObservation = NotificationCenter.default.addObserver(forName: WKExtension.applicationDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.startChunkHandshake() }
+        // Waking the display must not invalidate files already queued with a
+        // valid binding. Explicit peer offers and activation still renegotiate.
+        foregroundObservation = NotificationCenter.default.addObserver(forName: WKExtension.applicationDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.refreshChunkTransfers() }
     }
 #if targetEnvironment(simulator)
     private func sendSimulatorChunkFile(_ url: URL, envelope: RecordingWireEnvelope<RecordingChunkDescriptor>) throws {
@@ -952,11 +967,12 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         if RecordingChunkWire.owns(fileTransfer.file.metadata ?? [:]) {
             DispatchQueue.main.async { [weak self] in
                 if let value = try? RecordingChunkWire.decode(RecordingWireEnvelope<RecordingChunkDescriptor>.self,
-                    key: RecordingChunkProtocol.chunkKey, from: fileTransfer.file.metadata ?? [:]) {
+                    key: RecordingChunkProtocol.chunkKey, from: fileTransfer.file.metadata ?? [:]),
+                   value.binding == self?.chunkQueue?.binding {
                     if error != nil { self?.sessionTransferFailures.insert(value.payload.sessionID) }
                     else { self?.sessionTransferFailures.remove(value.payload.sessionID) }
+                    if error != nil { self?.message = "长录音传输待重试，原件保留在手表" }
                 }
-                if error != nil { self?.message = "长录音传输待重试，原件保留在手表" }
                 self?.refreshChunkTransfers()
             }
             return

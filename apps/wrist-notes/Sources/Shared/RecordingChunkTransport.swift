@@ -94,6 +94,15 @@ enum RecordingChunkWire {
         receipt.sessionID == chunk.sessionID && receipt.chunkID == chunk.id && receipt.ordinal == chunk.ordinal &&
         receipt.sha256.caseInsensitiveCompare(chunk.sha256) == .orderedSame
     }
+    /// Only retire a decodable V2 job from this Watch after a new binding has
+    /// been accepted. Its old envelope can no longer pass the phone's validation.
+    static func obsoleteChunkID(in metadata: [String: Any], binding: RecordingTransferBinding) -> UUID? {
+        guard let value = try? decode(RecordingWireEnvelope<RecordingChunkDescriptor>.self,
+                                     key: RecordingChunkProtocol.chunkKey, from: metadata),
+              value.version == RecordingChunkProtocol.version,
+              value.binding.watchID == binding.watchID, value.binding != binding else { return nil }
+        return value.payload.id
+    }
 }
 
 /// Atomic, flushed private metadata. Complete protection is preserved on iPhone.

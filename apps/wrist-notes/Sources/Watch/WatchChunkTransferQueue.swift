@@ -29,6 +29,7 @@ final class WatchChunkTransferQueue {
     private var supportsLocationSamples = false
     private let sendEnd: (RecordingWireEnvelope<RecordingSessionEnd>) throws -> Void
     private let outstandingFileCount: () -> Int
+    private let retireObsoleteFiles: (RecordingTransferBinding) -> [UUID]
     private let isOutstanding: (UUID, Bool, RecordingTransferBinding) -> Bool
     private var chunks: [RecordingChunkDescriptor] = []
     private var ends: [RecordingSessionEnd] = []
@@ -64,6 +65,7 @@ final class WatchChunkTransferQueue {
 
     init(root: URL, now: @escaping () -> Date = Date.init,
          outstandingFileCount: @escaping () -> Int = { 0 },
+         retireObsoleteFiles: @escaping (RecordingTransferBinding) -> [UUID] = { _ in [] },
          isOutstanding: @escaping (UUID, Bool, RecordingTransferBinding) -> Bool = { _, _, _ in false },
          sendHello: @escaping (RecordingCapabilityHello) throws -> Void = { _ in },
          sendFile: @escaping (URL, RecordingWireEnvelope<RecordingChunkDescriptor>) throws -> Void,
@@ -71,6 +73,7 @@ final class WatchChunkTransferQueue {
          sendLocation: @escaping (RecordingWireEnvelope<RecordingLocationSample>) throws -> Void = { _ in }) throws {
         self.root = root; self.now = now; self.isOutstanding = isOutstanding
         self.outstandingFileCount = outstandingFileCount
+        self.retireObsoleteFiles = retireObsoleteFiles
         self.sendLocation = sendLocation
         self.sendHello = sendHello; self.sendFile = sendFile; self.sendEnd = sendEnd
         try RecordingTransportDisk.directory(root)
@@ -138,6 +141,13 @@ final class WatchChunkTransferQueue {
     }
     func pump(force: Bool = false) throws {
         guard let binding, let audioURL, let maximumChunkDuration else { return }
+        // Obsolete system jobs retain their four-slot capacity until cancellation
+        // takes effect. Clear only their retry deadlines so retained originals
+        // can immediately re-enter the bounded batch under the accepted binding.
+        let retired = Set(retireObsoleteFiles(binding))
+        for chunk in chunks where retired.contains(chunk.id) {
+            try clearRetryBackoff("chunk_\(chunk.id.uuidString)", binding: binding)
+        }
         var firstError: Error?
         // Small in-flight batch. Completion/periodic wake drives subsequent work.
         var submitted = max(outstandingFileCount(), chunks.filter { isOutstanding($0.id, false, binding) }.count)
@@ -230,12 +240,13 @@ final class WatchChunkTransferQueue {
     }
     private func clearRetryBackoff(for binding: RecordingTransferBinding) throws {
         let keys = chunks.map { "chunk_\($0.id.uuidString)" } + ends.map { "end_\($0.sessionID.uuidString)_\($0.revision)" }
-        for key in keys {
-            let url = ledger("\(key).retry.json", binding: binding)
-            guard FileManager.default.fileExists(atPath: url.path) else { continue }
-            try FileManager.default.removeItem(at: url)
-            try RecordingTransportDisk.syncDirectory(url.deletingLastPathComponent())
-        }
+        for key in keys { try clearRetryBackoff(key, binding: binding) }
+    }
+    private func clearRetryBackoff(_ key: String, binding: RecordingTransferBinding) throws {
+        let url = ledger("\(key).retry.json", binding: binding)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+        try RecordingTransportDisk.syncDirectory(url.deletingLastPathComponent())
     }
     private func loadReceipts(for binding: RecordingTransferBinding, chunks: [RecordingChunkDescriptor],
                               ends: [RecordingSessionEnd], locations: [RecordingLocationSample]) throws -> ReceiptSnapshot {
