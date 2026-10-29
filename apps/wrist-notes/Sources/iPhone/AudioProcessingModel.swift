@@ -37,8 +37,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
     private var deletedSources = Set<AudioSourceID>()
     private var pendingDerivation = Set<AudioSourceID>()
     private var derivationTask: Task<Void,Never>?
-    private var pendingEnrichment = Set<AudioSourceID>()
-    private var pendingEnrichmentTasks: [AudioSourceID:ContentEnrichmentTask] = [:]
+    @Published private var enrichmentQueue = ContentEnrichmentQueue()
     private var enrichmentRunIDs: [AudioSourceID:UUID] = [:]
     private var enrichmentTask: Task<Void,Never>?
     private var enrichmentSuspended = false
@@ -136,8 +135,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
     func reprocess(_ sourceID: AudioSourceID) { Task { await coordinator.reprocess(sourceID); await synchronizeStorageState() } }
     func cancel(_ sourceID: AudioSourceID) { Task { await coordinator.cancel(sourceID) } }
     func delete(_ sourceID: AudioSourceID) {
-        pendingEnrichment.remove(sourceID)
-        pendingEnrichmentTasks.removeValue(forKey:sourceID)
+        enrichmentQueue.remove(sourceID)
         enrichmentRunIDs.removeValue(forKey:sourceID)
         enrichmentSteps.removeValue(forKey:sourceID)
         enrichmentRetryTasks.removeValue(forKey:sourceID)
@@ -182,7 +180,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
     }
     func rebuildContent(_ sourceID: AudioSourceID) { scheduleDerivation(sourceID) }
     private func retryEnrichmentAvailability() async {
-        for id in statuses.keys where !deletedSources.contains(id) { pendingEnrichmentTasks.removeValue(forKey:id); pendingEnrichment.insert(id) }
+        for id in statuses.keys where !deletedSources.contains(id) { enrichmentQueue.enqueue(id) }
         startEnrichment()
     }
     func prepareEnrichment(_ sourceID: AudioSourceID, task: ContentEnrichmentTask? = nil) async throws -> ContentEnrichmentConfirmation? {
@@ -398,14 +396,20 @@ struct ContentEnrichmentConfirmation: Identifiable {
     func enrichmentStatus(_ sourceID: AudioSourceID, task: ContentEnrichmentTask) -> ContentEnrichmentStatus? {
         enrichmentSteps[sourceID]?.statuses[task] ?? enrichmentStatuses[sourceID]
     }
-    func isEnrichmentBusy(_ sourceID: AudioSourceID) -> Bool {
-        pendingEnrichment.contains(sourceID) || enrichmentStatuses[sourceID] == .running
+    func isEnrichmentQueued(_ sourceID: AudioSourceID) -> Bool {
+        enrichmentQueue.contains(sourceID) && enrichmentStatuses[sourceID] != .running
+    }
+    func enrichmentRetryBlockReason(_ sourceID: AudioSourceID, task: ContentEnrichmentTask) -> String? {
+        if enrichmentCapturePaused || !captureIDs.isEmpty { return "录音结束后可重新处理" }
+        if enrichmentSuspended { return "返回 App 并解锁后可重新处理" }
+        if let reason = enrichmentQueue.retryBlockReason(sourceID,task:task,running:enrichmentStatuses[sourceID] == .running) { return reason }
+        if let states = statuses[sourceID]?.progress.states,
+           states[.running,default:0] > 0 || states[.pending,default:0] > 0 { return "语音处理完成后可重新处理" }
+        return nil
     }
     private func scheduleEnrichment(_ sourceID: AudioSourceID, task: ContentEnrichmentTask? = nil) {
         guard !deletedSources.contains(sourceID) else { return }
-        if let task { pendingEnrichmentTasks[sourceID]=task }
-        else { pendingEnrichmentTasks.removeValue(forKey:sourceID) }
-        pendingEnrichment.insert(sourceID); startEnrichment()
+        enrichmentQueue.enqueue(sourceID,task:task); startEnrichment()
     }
     private func startEnrichment() {
 #if WISELIFE_CONTENT_LAB && targetEnvironment(simulator)
@@ -414,11 +418,11 @@ struct ContentEnrichmentConfirmation: Identifiable {
         guard enrichmentTask == nil, !enrichmentSuspended, !enrichmentCapturePaused, captureIDs.isEmpty else { return }
         enrichmentTask=Task { [weak self] in
             guard let self else { return }
-            defer { self.enrichmentTask=nil; if !self.pendingEnrichment.isEmpty { self.startEnrichment() } }
-            while !Task.isCancelled, !self.enrichmentSuspended, !self.enrichmentCapturePaused, self.captureIDs.isEmpty, let id=self.pendingEnrichment.first {
-                self.pendingEnrichment.remove(id)
+            defer { self.enrichmentTask=nil; if !self.enrichmentQueue.isEmpty { self.startEnrichment() } }
+            while !Task.isCancelled, !self.enrichmentSuspended, !self.enrichmentCapturePaused, self.captureIDs.isEmpty, let request=self.enrichmentQueue.popNext() {
+                let id=request.id
                 guard !self.deletedSources.contains(id) else { continue }
-                let selectedTask=self.pendingEnrichmentTasks.removeValue(forKey:id)
+                let selectedTask=request.task
                 if let selectedTask { self.enrichmentRetryTasks[id]=selectedTask }
                 else { self.enrichmentRetryTasks.removeValue(forKey:id) }
                 let runID=UUID(); self.enrichmentRunIDs[id]=runID
@@ -429,9 +433,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 self.enrichmentRunIDs.removeValue(forKey:id)
                 self.enrichmentSteps[id,default:.init()].finish(result)
                 self.publishEnrichment(id,status:result)
-                if result == .cancelled && Task.isCancelled && !self.pendingEnrichment.contains(id) {
-                    self.pendingEnrichment.insert(id)
-                    if let selectedTask { self.pendingEnrichmentTasks[id]=selectedTask }
+                if result == .cancelled && Task.isCancelled && !self.enrichmentQueue.contains(id) {
+                    self.enrichmentQueue.enqueue(id,task:selectedTask)
                 }
                 if result == .complete, let progress=try? await self.coordinator.withRepository({ try $0.progress(sourceID:id) }) {
                     NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id,"revision":progress.revision,"configurationKey":progress.configurationKey ?? ""])

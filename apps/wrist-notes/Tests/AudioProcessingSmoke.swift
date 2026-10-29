@@ -107,6 +107,10 @@ import Foundation
         try repo.commit(job: job, result: result)
         try expect(try repo.spans(sourceID: id).count == 1, "completion replay idempotent")
         try repo.register(source: appended, configurationKey: "v1", windows: windows)
+        let speakerBackfill = try repo.claimNext()!
+        try expect(speakerBackfill.window.id == job.window.id, "source completion must backfill the previously skipped speaker stage first")
+        try expect(try repo.stages(for:speakerBackfill) == [.speaker], "completion backfill must preserve successful ASR and skip short-recording VAD")
+        try repo.commit(job:speakerBackfill,delta:.init(result:.init(spans:[],activities:[],asr:.notRequested,vad:.notRequested,speaker:.success,asrCoverage:[],vadCoverage:[]),speakerSpanUpdates:[.init(start:1,end:2,text:"synthetic")]))
         try expect(try repo.progress(sourceID: id).states[.completed] == 1, "append retains unchanged completed job")
         let lost = try repo.claimNext()!
         repo = AudioProcessingRepository(database: try DaybookDatabase(url: dbURL))
@@ -123,7 +127,7 @@ import Foundation
         try expect(try repo.results(sourceID: id).last?.asr == .success, "empty ASR successful, VAD independent")
         try expect(try repo.results(sourceID: id).last?.vad == .missingResource, "empty ASR is not no speech")
         let partial = try repo.completedAnalyses(sourceID: id)
-        try expect(partial.count == 2 && partial[0].window.id == initial[0].id && partial[0].result.vad == .missingResource, "partial outcomes retain window provenance")
+        try expect(partial.count == 2 && partial[0].window.id == initial[0].id && partial[0].result.speaker == .success && partial[0].result.vad == .notRequested, "speaker backfill retains window provenance while skipping short-recording VAD")
         try expect(try repo.spans(sourceID: id).count == 1, "missing VAD retains successful ASR")
         try repo.retry(sourceID: id)
         let failing = try repo.claimNext()!

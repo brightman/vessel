@@ -49,8 +49,12 @@ final class ContentSegmentRepository {
             asr += result.asrCoverage.map { .init(start:$0.start,end:$0.end) }
             vad += result.vadCoverage.map { .init(start:$0.start,end:$0.end) }
         }
-        let jobIdentity = results.map { [$0.0,$0.1.contentIdentity] }.flatMap { $0 }
-        let inputRevision = AudioStableID.make([String(progress.revision),configurationKey,descriptor.contentIdentity]+jobIdentity)
+        let resultHashes = Dictionary(uniqueKeysWithValues:try jobs.map { (try $0.requiredString("id"),$0["result_hash"]?.string ?? "") })
+        let jobIdentity = results.flatMap { [$0.0,$0.1.contentIdentity,resultHashes[$0.0] ?? ""] }
+        // Lease/progress revisions are not content. Bind checkpoints to the
+        // actual ASR rows and analysis evidence so no-op wakes and file relocation
+        // can resume them, while changed text/coverage still invalidates them.
+        let inputRevision = AudioStableID.make(["content-v2-input-evidence-v1",configurationKey,descriptor.contentIdentity,AudioStableID.make(spans)]+jobIdentity)
         let activityRows = try db.query("SELECT t.start,t.end,t.kind FROM audio_activity_intervals t JOIN audio_processing_jobs j ON j.id=t.job_id WHERE j.source_key=? AND j.active=1 AND j.configuration_key=? ORDER BY t.start,t.end,j.id,t.position",[.text(sourceID.key),.text(configurationKey)])
         let activities = try activityRows.map { row -> ContentSegmentationV2.Activity in
             guard let kind = AudioActivityKind(rawValue:try row.requiredString("kind")) else { throw AudioProcessingError.invalidInput }

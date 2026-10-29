@@ -143,9 +143,8 @@ struct RecordingSessionDetailView: View {
             VStack(spacing: 0) {
                 ForEach(processingSteps) { step in
                     RecordingProcessingStepRow(step: step, retry: retryAction(for: step),
-                        retryDisabled: preparingEnrichment || audioProcessing.isEnrichmentBusy(sourceID) || !playbackAllowed ||
-                            (processingStatus?.progress.states[.running,default:0] ?? 0) > 0 ||
-                            (processingStatus?.progress.states[.pending,default:0] ?? 0) > 0,
+                        retryDisabled: retryDisabledReason(for:step) != nil,
+                        retryDisabledReason: retryDisabledReason(for:step),
                         retryTitle: step.state == .failure ? "重新处理" : "继续处理")
                     if step.id != processingSteps.last?.id { DaybookStyle.line.frame(height: 1).padding(.leading, 25) }
                 }
@@ -177,6 +176,13 @@ struct RecordingSessionDetailView: View {
         .padding(15)
         .background(DaybookStyle.white, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(DaybookStyle.line, lineWidth: 1))
+    }
+
+    private func retryDisabledReason(for step: RecordingProcessingStep) -> String? {
+        if preparingEnrichment { return "正在准备整理，请稍候" }
+        if !playbackAllowed { return "录音结束后可重新处理" }
+        guard let task=ContentEnrichmentTask(rawValue:step.id) else { return nil }
+        return audioProcessing.enrichmentRetryBlockReason(sourceID,task:task)
     }
 
     private func retryAction(for step: RecordingProcessingStep) -> (() -> Void)? {
@@ -392,6 +398,8 @@ struct RecordingSessionDetailView: View {
             topicState = .success; topicDetail = "\(finalized.count) 个片段边界与分类已确定"
         } else if enrichment == .complete && current.isEmpty && audioFinished {
             topicState = .success; topicDetail = "没有需要展示的内容片段"
+        } else if audioProcessing.isEnrichmentQueued(sourceID) {
+            topicState = .waiting; topicDetail = "已排队，等待 AI 整理"
         } else if !current.isEmpty {
             topicState = .waiting; topicDetail = "\(finalized.count) / \(current.count) 个片段已定稿"
         } else {
@@ -444,6 +452,9 @@ struct RecordingSessionDetailView: View {
             state = .success; detail = successDetail ?? "\(progress.success) / \(total) 个窗口成功"
         } else if optional && total > 0 && progress.notRequested >= total {
             state = .skipped; detail = "未运行（可选步骤）"
+        } else if optional && total > 0 && !live && !pending && progress.success + progress.notRequested >= total {
+            state = .success
+            detail = "\(progress.success) 个窗口完成 · \(progress.notRequested) 个跳过"
         } else if progress.success > 0 {
             state = live || pending ? .running : .waiting
             detail = "\(progress.success) / \(max(total, accounted)) 个窗口完成"
@@ -562,6 +573,7 @@ struct RecordingProcessingStepRow: View {
     let step: RecordingProcessingStep
     var retry: (() -> Void)? = nil
     var retryDisabled = false
+    var retryDisabledReason: String? = nil
     var retryTitle = "重新处理"
     var body: some View {
         VStack(alignment:.trailing,spacing:2) {
@@ -580,6 +592,10 @@ struct RecordingProcessingStepRow: View {
                     .opacity(retryDisabled ? 0.4 : 1)
                     .accessibilityLabel(retryTitle + step.title)
                     .accessibilityIdentifier("processing.retry." + step.id)
+                if let retryDisabledReason {
+                    Text(retryDisabledReason).font(.system(size:9)).foregroundStyle(DaybookStyle.secondary)
+                        .accessibilityIdentifier("processing.retry.reason." + step.id)
+                }
             }
         }.padding(.vertical,6)
     }

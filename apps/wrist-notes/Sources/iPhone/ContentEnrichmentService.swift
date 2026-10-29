@@ -11,6 +11,33 @@ enum ContentEnrichmentTask: String, Hashable, Sendable {
     case topics, fields
     var title: String { self == .topics ? "主题拆分与分类" : "标题与摘要" }
 }
+/// Automatic refreshes coalesce without erasing an explicitly selected retry.
+/// Manual retries run before background work; a queued automatic pass is not a
+/// running model request and must not lock the failed step's retry button.
+struct ContentEnrichmentQueue {
+    private var order: [AudioSourceID] = []
+    private var tasks: [AudioSourceID:ContentEnrichmentTask] = [:]
+    var isEmpty: Bool { order.isEmpty }
+    func contains(_ id: AudioSourceID) -> Bool { order.contains(id) }
+    func retryBlockReason(_ id: AudioSourceID, task: ContentEnrichmentTask, running: Bool) -> String? {
+        if running { return "本条录音正在 AI 整理，完成后可重试" }
+        if let queued = tasks[id] { return queued == task ? "已加入重试队列" : "\(queued.title)已排队，完成后可重试" }
+        return nil
+    }
+    mutating func enqueue(_ id: AudioSourceID, task: ContentEnrichmentTask? = nil) {
+        if !contains(id) { order.append(id) }
+        if let task { tasks[id] = task }
+    }
+    mutating func remove(_ id: AudioSourceID) {
+        order.removeAll { $0 == id }; tasks.removeValue(forKey:id)
+    }
+    mutating func popNext() -> (id: AudioSourceID, task: ContentEnrichmentTask?)? {
+        guard !order.isEmpty else { return nil }
+        let index = order.firstIndex { tasks[$0] != nil } ?? order.startIndex
+        let id = order.remove(at:index)
+        return (id,tasks.removeValue(forKey:id))
+    }
+}
 /// Keep failures on the step that actually ran, including across a targeted retry.
 struct ContentEnrichmentStepStates: Sendable {
     private(set) var statuses: [ContentEnrichmentTask: ContentEnrichmentStatus] = [:]

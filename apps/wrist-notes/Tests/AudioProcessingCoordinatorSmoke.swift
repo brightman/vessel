@@ -24,8 +24,9 @@ import Foundation
         let range = try AudioSourceRange(range: .init(chunkID: UUID(), url: root.appendingPathComponent("fixture.wav"), startFrame: 0, endFrame: 9_600_000, sampleRate: 16000), contentHash: String(repeating:"a",count:64))
         let source = try AudioSourceSnapshot(id:id,capturedAt:Date(),title:"fixture",ranges:[range],complete:true)
         let repo = AudioProcessingRepository(database:db)
-        let windows = try AudioWindowPlanner.plan(source:source,configurationKey:"test")
-        try repo.register(source:source,configurationKey:"test",windows:windows)
+        let initialKey = AudioProcessingCoordinator.configurationKey(.init())
+        let windows = try AudioWindowPlanner.plan(source:source,configurationKey:initialKey)
+        try repo.register(source:source,configurationKey:initialKey,windows:windows)
         let beforeClaim = try repo.progress(sourceID:id).revision
         let first = try repo.claimNext()!
         try require(try repo.stages(for:first) == [.asr,.speaker],"short recording initial claim unexpectedly requested VAD")
@@ -49,7 +50,7 @@ import Foundation
         try repo.retryIncompleteStages(sourceID:id)
         retry = try repo.claimNext()!
         try require(try repo.stages(for:retry) == [.speaker],"partial retry selected successful or disabled stages")
-        try repo.commit(job:retry,delta:.init(result:.init(spans:[],activities:[],asr:.notRequested,vad:.notRequested,speaker:.success,asrCoverage:[],vadCoverage:[]),speakerSpanUpdates:[]))
+        try repo.commit(job:retry,delta:.init(result:.init(spans:[],activities:[],asr:.notRequested,vad:.notRequested,speaker:.success,asrCoverage:[],vadCoverage:[]),speakerSpanUpdates:[.init(start:1,end:2,text:"synthetic")]))
         try require(try repo.spans(sourceID:id).map(\.text) == ["synthetic"],"speaker retry erased retained text")
         try require(try repo.results(sourceID:id).first?.asr == .success,"VAD retry erased ASR outcome")
         // A suspended native boundary lets independent wakes/cancel/config changes race real storage.
@@ -124,26 +125,41 @@ import Foundation
         let receivingState = InferenceState()
         let receivingWorker = AudioProcessingCoordinator(open:{repo},configuration:.init(),discover:{ _ in [receiving] },infer:{ window,_,stages,duration,_,budget in
             await receivingState.enter(window:window,stages:stages,budget:budget,duration:duration); await receivingState.leave()
-            return full(window)
+            return full(window,speaker:.notRequested)
         })
         await receivingWorker.refresh(); await receivingWorker.waitUntilIdle()
         try require(await receivingState.durations == [nil],"receiving source incorrectly advertised a known full duration to speaker inference")
         let finalized = try AudioSourceSnapshot(id:receivingID,capturedAt:source.capturedAt,title:"receiving",ranges:[receivingRange],complete:true)
         let receivingKey = try repo.progress(sourceID:receivingID).configurationKey!
         try repo.register(source:finalized,configurationKey:receivingKey,windows:AudioWindowPlanner.plan(source:finalized,configurationKey:receivingKey))
-        let finalTail = try repo.claimNext()!
-        try repo.commit(job:finalTail,delta:full(finalTail.window))
-        try require(try repo.claimNext() == nil,"finalization reran an already committed skipped stage")
-        try repo.retryIncompleteStages(sourceID:receivingID,resourceOnly:true)
-        try require(try repo.claimNext() == nil,"resource-only retry requeued skipped speaker stage")
-        try repo.retryIncompleteStages(sourceID:receivingID)
         let eligible = try repo.claimNext()
-        try require(eligible != nil,"explicit retry did not requeue newly eligible speaker-only work")
-        try require(try repo.stages(for:eligible!) == [.speaker],"eligible speaker retry repeated ASR or VAD")
+        try require(eligible?.window.coreStart == 0,"source completion did not automatically backfill the receiving window")
+        try require(try repo.stages(for:eligible!) == [.speaker],"automatic speaker backfill repeated ASR or VAD")
         try repo.deferInterrupted(job:eligible!)
         let stageReader = AudioProcessingRepository(database:try DaybookDatabase(url:root.appendingPathComponent("test.sqlite")))
         let resumedStage = try stageReader.claimNext()!
         try require(try stageReader.stages(for:resumedStage) == [.speaker],"speaker-only selection lost across worker reopen")
+        let retainedText = try stageReader.spans(sourceID:receivingID)
+        try stageReader.commit(job:resumedStage,delta:.init(result:.init(spans:[],activities:[],asr:.notRequested,vad:.notRequested,speaker:.success,asrCoverage:[],vadCoverage:[]),speakerSpanUpdates:retainedText))
+        try require(try stageReader.spans(sourceID:receivingID) == retainedText,"automatic speaker backfill changed retained ASR rows")
+        let finalTail = try stageReader.claimNext()!
+        try require(finalTail.window.coreStart == 300,"automatic backfill lost the newly completed tail")
+        try stageReader.commit(job:finalTail,result:.init(spans:[],activities:[],asr:.success,vad:.notRequested,speaker:.notRequested,asrCoverage:[.init(start:300,end:600)],vadCoverage:[]))
+        try stageReader.register(source:finalized,configurationKey:receivingKey,windows:AudioWindowPlanner.plan(source:finalized,configurationKey:receivingKey))
+        try require(try stageReader.claimNext() == nil,"empty ASR or successful speaker windows were repeatedly requeued")
+        try stageReader.retryIncompleteStages(sourceID:receivingID,resourceOnly:true)
+        try require(try stageReader.claimNext() == nil,"resource-only retry requeued an intentionally empty speaker stage")
+
+        let cancelledID = AudioSourceID(kind:.session,id:UUID())
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(cancelledID.id.uuidString)])
+        let cancelledReceiving = try AudioSourceSnapshot(id:cancelledID,capturedAt:source.capturedAt,title:"cancelled",ranges:[receivingRange],complete:false)
+        try repo.register(source:cancelledReceiving,configurationKey:"cancelled-speaker",windows:AudioWindowPlanner.plan(source:cancelledReceiving,configurationKey:"cancelled-speaker"))
+        let cancelledJob = try repo.claimNext()!
+        try repo.commit(job:cancelledJob,delta:full(cancelledJob.window,speaker:.notRequested))
+        try repo.cancel(sourceID:cancelledID)
+        let cancelledFinal = try AudioSourceSnapshot(id:cancelledID,capturedAt:source.capturedAt,title:"cancelled",ranges:[receivingRange],complete:true)
+        try repo.register(source:cancelledFinal,configurationKey:"cancelled-speaker",windows:AudioWindowPlanner.plan(source:cancelledFinal,configurationKey:"cancelled-speaker"))
+        try require(try repo.claimNext() == nil,"automatic speaker backfill overrode explicit cancellation")
         print("Coordinator and adaptive bounds: passed")
     }
     static func adaptiveCommit(root: URL) async throws {
@@ -178,13 +194,20 @@ import Foundation
             let url = root.appendingPathComponent("interrupted-\(index).sqlite"), db = try DaybookDatabase(url:url)
             let id = AudioSourceID(kind:.session,id:UUID())
             try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(id.id.uuidString)])
-            let range = try AudioSourceRange(range:.init(chunkID:UUID(),url:root.appendingPathComponent("retry.wav"),startFrame:0,endFrame:4_800_000,sampleRate:16000),contentHash:String(repeating:"f",count:64))
+            let speakerOnly = outcome == .notRequested
+            // VAD retries require a recording over thirty minutes. Keep the
+            // other windows complete so this race exercises only the failed one.
+            let frames: Int64 = speakerOnly ? 4_800_000 : 28_816_000
+            let range = try AudioSourceRange(range:.init(chunkID:UUID(),url:root.appendingPathComponent("retry.wav"),startFrame:0,endFrame:frames,sampleRate:16000),contentHash:String(repeating:"f",count:64))
             let source = try AudioSourceSnapshot(id:id,capturedAt:Date(),title:"fixture",ranges:[range],complete:true)
             let repo = AudioProcessingRepository(database:db), key = AudioProcessingCoordinator.configurationKey(.init())
             try repo.register(source:source,configurationKey:key,windows:AudioWindowPlanner.plan(source:source,configurationKey:key))
             let job = try repo.claimNext()!
-            let speakerOnly = outcome == .notRequested
             try repo.commit(job:job,result:.init(spans:[.init(start:1,end:2,text:"retained")],activities:[],asr:.success,vad:speakerOnly ? .success : outcome,speaker:speakerOnly ? .notRequested : .success,asrCoverage:[.init(start:0,end:300)],vadCoverage:speakerOnly ? [.init(start:0,end:300)] : []))
+            while let other = try repo.claimNext() {
+                let coverage = [AudioTimeRange(start:other.window.coreStart,end:other.window.coreEnd)]
+                try repo.commit(job:other,result:.init(spans:[],activities:[],asr:.success,vad:.success,speaker:.success,asrCoverage:coverage,vadCoverage:coverage))
+            }
             let blocked = SuspendedInference(), state = InferenceState()
             let worker = AudioProcessingCoordinator(open:{repo},configuration:.init(),discover:{ _ in [source] },infer:{ window,_,stages,_,_,budget in
                 await state.enter(window:window,stages:stages,budget:budget)
@@ -303,8 +326,8 @@ import Foundation
         try require(try reopened.currentSource(id) == nil,"discovery recreated a deleted parent")
         print("Lifecycle: committed-window recovery, metadata revision, late config/delete rejection passed")
     }
-    static func full(_ window: AudioProcessingWindow) -> AudioInferenceDelta {
-        .init(result:.init(spans:[.init(start:window.coreStart+1,end:window.coreStart+2,text:"synthetic")],activities:[.init(start:window.coreStart,end:window.coreEnd,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:window.coreStart,end:window.coreEnd)],vadCoverage:[.init(start:window.coreStart,end:window.coreEnd)]),speakerSpanUpdates:[])
+    static func full(_ window: AudioProcessingWindow, speaker: AudioAnalysisOutcome = .success) -> AudioInferenceDelta {
+        .init(result:.init(spans:[.init(start:window.coreStart+1,end:window.coreStart+2,text:"synthetic")],activities:[.init(start:window.coreStart,end:window.coreEnd,kind:.speech)],asr:.success,vad:.success,speaker:speaker,asrCoverage:[.init(start:window.coreStart,end:window.coreEnd)],vadCoverage:[.init(start:window.coreStart,end:window.coreEnd)]),speakerSpanUpdates:[])
     }
 
 }

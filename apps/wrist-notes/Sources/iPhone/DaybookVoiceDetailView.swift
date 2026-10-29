@@ -264,6 +264,13 @@ struct DaybookVoiceDetailView: View {
         }.daybookRecordingCard(padding:13)
     }
 
+    private func retryDisabledReason(for step: RecordingProcessingStep) -> String? {
+        if preparingEnrichment { return "正在准备整理，请稍候" }
+        if !playbackAllowed { return "录音结束后可重新处理" }
+        guard let task=ContentEnrichmentTask(rawValue:step.id) else { return nil }
+        return audioProcessing.enrichmentRetryBlockReason(sourceID,task:task)
+    }
+
     private func retryAction(for step: RecordingProcessingStep) -> (() -> Void)? {
         let current=segmentModel.library.filter { $0.sourceID == sourceID && $0.isFinal }
         guard let task=ContentEnrichmentTask(rawValue:step.id),
@@ -299,9 +306,8 @@ struct DaybookVoiceDetailView: View {
             VStack(spacing:0) {
                 ForEach(legacyProcessingSteps) { step in
                     RecordingProcessingStepRow(step:step,retry:retryAction(for:step),
-                        retryDisabled:preparingEnrichment || audioProcessing.isEnrichmentBusy(sourceID) || !playbackAllowed ||
-                            (audioProcessing.statuses[sourceID]?.progress.states[.running,default:0] ?? 0) > 0 ||
-                            (audioProcessing.statuses[sourceID]?.progress.states[.pending,default:0] ?? 0) > 0,
+                        retryDisabled:retryDisabledReason(for:step) != nil,
+                        retryDisabledReason:retryDisabledReason(for:step),
                         retryTitle:step.state == .failure ? "重新处理" : "继续处理")
                     if step.id != legacyProcessingSteps.last?.id {
                         DaybookStyle.line.frame(height:1).padding(.leading,25)
@@ -396,6 +402,8 @@ struct DaybookVoiceDetailView: View {
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"\(finalized.count) 个片段边界与分类已确定",state:.success)
         case .complete where current.isEmpty && total > 0 && status.asr.success == total && status.vad.success == total:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"没有需要展示的内容片段",state:.success)
+        case _ where audioProcessing.isEnrichmentQueued(sourceID):
+            topics = .init(id:"topics",title:"主题拆分与分类",detail:"已排队，等待 AI 整理",state:.waiting)
         case .complete where !current.isEmpty:
             topics = .init(id:"topics",title:"主题拆分与分类",detail:"\(finalized.count) / \(current.count) 个片段已定稿",state:.waiting)
         default:
@@ -446,6 +454,9 @@ struct DaybookVoiceDetailView: View {
         if progress.cancelled>0 { return .init(id:id,title:title,detail:"已暂停，可重新处理",state:.waiting) }
         if total>0 && progress.success>=total { return .init(id:id,title:title,detail:successDetail ?? "\(progress.success) / \(total) 个窗口成功",state:.success) }
         if optional && total>0 && progress.notRequested>=total { return .init(id:id,title:title,detail:"未运行（可选步骤）",state:.skipped) }
+        if optional && total>0 && !live && !pending && progress.success+progress.notRequested>=total {
+            return .init(id:id,title:title,detail:"\(progress.success) 个窗口完成 · \(progress.notRequested) 个跳过",state:.success)
+        }
         if progress.success>0 { return .init(id:id,title:title,detail:"\(progress.success) / \(max(total,accounted)) 个窗口完成",state:live || pending ? .running : .waiting) }
         if live { return .init(id:id,title:title,detail:"正在处理",state:.running) }
         if pending || total==0 { return .init(id:id,title:title,detail:"等待处理",state:.waiting) }

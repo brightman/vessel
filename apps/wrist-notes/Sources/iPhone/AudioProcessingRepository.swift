@@ -87,6 +87,20 @@ final class AudioProcessingRepository {
                         try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=? AND active=1",[.text(window.id)])
                     }
                 }
+                // Windows received before source completion cannot run speaker
+                // analysis yet. Once complete, backfill only windows with retained
+                // ASR rows; an empty window remains an intentional skip.
+                if source.complete, !cancelled, let previousJob,
+                   previousJob["state"]?.string == "completed",
+                   previousJob["result"] != nil, previousJob["result"] != .null {
+                    let result = try DaybookDatabase.decode(AudioWindowResult.self,previousJob["result"])
+                    if result.asr == .success, result.speaker == .notRequested,
+                       AudioSpeakerMapping.permitsAnalysis(sourceDuration:source.ranges.last?.end),
+                       try !db.query("SELECT 1 FROM audio_transcript_spans WHERE job_id=? LIMIT 1",[.text(window.id)]).isEmpty {
+                        try db.execute("INSERT INTO audio_processing_stage_requests(job_id,stages) VALUES (?,?) ON CONFLICT(job_id) DO UPDATE SET stages=stages|excluded.stages",[.text(window.id),.integer(Int64(AudioInferenceStages.speaker.rawValue))])
+                        try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=? AND active=1",[.text(window.id)])
+                    }
+                }
             }
         }
     }
@@ -188,6 +202,7 @@ final class AudioProcessingRepository {
             // Resource availability never overrides explicit user cancellation.
             if resourceOnly && source["cancelled"]?.double == 1 { return }
             if !resourceOnly { try retry(sourceID: sourceID) }
+            var requeued = false
             for row in try db.query("SELECT id,result,state FROM audio_processing_jobs WHERE source_key=? AND active=1 AND configuration_key=?", [.text(sourceID.key), .text(try source.requiredString("configuration_key"))]) {
                 let state = row["state"]?.string
                 guard state != "running" else { continue }
@@ -196,7 +211,7 @@ final class AudioProcessingRepository {
                     let result = try DaybookDatabase.decode(AudioWindowResult.self, row["result"])
                     // A revoked running lease is resumable independently of the older snapshot.
                     let relevantOutcomes = needsVAD ? [result.asr,result.vad,result.speaker] : [result.asr,result.speaker]
-                    incomplete = relevantOutcomes.contains { resourceOnly ? $0 == .missingResource : [.missingResource,.failed,.cancelled].contains($0) }
+                    incomplete = incomplete || relevantOutcomes.contains { resourceOnly ? $0 == .missingResource : [.missingResource,.failed,.cancelled].contains($0) }
                     if !resourceOnly && result.speaker == .notRequested {
                         if snapshot.complete && AudioSpeakerMapping.permitsAnalysis(sourceDuration:snapshot.ranges.last?.end) {
                             try db.execute("INSERT OR REPLACE INTO audio_processing_stage_requests(job_id,stages) VALUES (?,?)",[.text(try row.requiredString("id")),.integer(Int64(AudioInferenceStages.speaker.rawValue))])
@@ -204,9 +219,14 @@ final class AudioProcessingRepository {
                         }
                     }
                 }
-                if incomplete { try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=?", [.text(try row.requiredString("id"))]) }
+                if incomplete {
+                    if state != "pending" { requeued = true }
+                    try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=?", [.text(try row.requiredString("id"))])
+                }
             }
-            try bump(sourceID)
+            // Foreground/protected-data wakes probe every source. A no-op probe
+            // must not revoke an unrelated in-flight AI authorization snapshot.
+            if requeued { try bump(sourceID) }
         }
     }
 

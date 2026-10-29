@@ -91,6 +91,22 @@ actor ModelFixture {
 @main struct ContentEnrichmentSmoke {
     static func check(_ value: Bool, _ message: String) { if !value { fatalError(message) } }
     static func main() async throws {
+        var queue=ContentEnrichmentQueue()
+        let automaticID=AudioSourceID(kind:.session,id:UUID()),failedID=AudioSourceID(kind:.session,id:UUID())
+        queue.enqueue(automaticID); queue.enqueue(failedID)
+        check(queue.retryBlockReason(failedID,task:.topics,running:false) == nil,"an automatic queued pass must not disable a failed topic retry")
+        queue.enqueue(failedID,task:.topics)
+        queue.enqueue(failedID) // A later discovery/foreground wake cannot widen the manual scope.
+        check(queue.retryBlockReason(failedID,task:.topics,running:false) != nil,"a manually queued retry must prevent duplicate submissions")
+        check(queue.retryBlockReason(failedID,task:.fields,running:false) != nil,"another step must not overwrite an already selected manual retry")
+        let manualRequest=queue.popNext()
+        check(manualRequest?.id == failedID && manualRequest?.task == .topics,"manual topic retry must retain its scope and run before automatic work")
+        check(!queue.contains(failedID),"a started retry must leave the queue")
+        check(queue.retryBlockReason(failedID,task:.topics,running:true) != nil,"a running model request must still block duplicate retry")
+        let automatic=queue.popNext()
+        check(automatic?.id == automaticID && automatic?.task == nil && queue.isEmpty,"background work must resume without duplicating the retried source")
+        queue.enqueue(failedID,task:.fields); queue.remove(failedID)
+        check(queue.popNext() == nil,"deleted sources must leave no orphaned retry")
         var steps=ContentEnrichmentStepStates()
         steps.begin(nil); steps.finish(.failed)
         check(steps.statuses[.topics] == .failed && steps.statuses[.fields] == .idle,"topic failure does not falsely fail the unstarted field stage")

@@ -15,7 +15,29 @@ import Foundation
     static func source(_ ranges: [AudioSourceRange], complete: Bool = true, id: AudioSourceID = .init(kind:.session,id:UUID())) throws -> AudioSourceSnapshot {
         try .init(id:id,capturedAt:Date(timeIntervalSince1970:86390),title:"Synthetic",ranges:ranges,complete:complete)
     }
+    static func stableTopicInputRevisions() throws {
+        let db=try DaybookDatabase(inMemory:true),processing=AudioProcessingRepository(database:db)
+        let source=try source([range(0,2_000)])
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(source.id.id.uuidString)])
+        let windows=try AudioWindowPlanner.plan(source:source,configurationKey:"topic-stability")
+        try processing.register(source:source,configurationKey:"topic-stability",windows:windows)
+        while let job=try processing.claimNext() {
+            let coverage=[AudioTimeRange(start:job.window.coreStart,end:job.window.coreEnd)]
+            try processing.commit(job:job,result:.init(spans:[.init(start:job.window.coreStart+1,end:job.window.coreStart+2,text:"synthetic evidence")],activities:[],asr:.success,vad:.success,speaker:.success,asrCoverage:coverage,vadCoverage:coverage))
+        }
+        let content=ContentSegmentRepository(database:db),before=try content.contentV2Input(sourceID:source.id)!
+        let revision=try processing.progress(sourceID:source.id).revision
+        for _ in 0..<6 { try processing.retryIncompleteStages(sourceID:source.id,resourceOnly:true) }
+        try check(try processing.progress(sourceID:source.id).revision == revision,"no-op resource probes must not revoke an AI request")
+        try processing.retry(sourceID:source.id)
+        try check(try processing.progress(sourceID:source.id).revision > revision,"explicit retry still advances the processing lease")
+        try check(try content.contentV2Input(sourceID:source.id) == before,"progress-only changes must preserve topic input and checkpoint identity")
+        // A changed row must invalidate content even if an old/stale hash remains.
+        try db.execute("UPDATE audio_transcript_spans SET text='corrected synthetic evidence' WHERE job_id=? AND position=0",[.text(windows[0].id)])
+        try check(try content.contentV2Input(sourceID:source.id)?.sourceRevision != before.sourceRevision,"changed ASR evidence must invalidate topic checkpoints")
+    }
     static func main() throws {
+        try stableTopicInputRevisions()
         for (duration,count) in [(599.0,1),(600.0,2),(601.0,2)] {
             let s = try source([range(0,300),range(300,1000)])
             let output = try ContentSegmentation.build(source:s,reliableNoSpeech:[.init(start:20,end:20+duration)],successfulCoverage:[.init(start:0,end:1000)])
