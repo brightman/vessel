@@ -32,6 +32,8 @@ enum ContentEnrichmentAuthorization {
             digest.update(data:Data([source.contentIdentity,progress.configurationKey ?? "",String(progress.revision)].joined(separator:"|").utf8))
             if let segmentID,let segment=try ContentSegmentRepository(database:db).segment(id:segmentID) {
                 digest.update(data:Data([segment.id.uuidString,String(segment.revision),segment.provenance.contentSignature,field?.rawValue ?? "title+summary"].joined(separator:"|").utf8))
+                let identities=try ContentSegmentRepository(database:db).boundSpeakerIdentities(sourceID:sourceID)
+                digest.update(data:Data(identities.keys.sorted().map { "\($0)=\(identities[$0] ?? "")" }.joined(separator:"|").utf8))
             }
             for row in try db.query("SELECT result_hash FROM audio_processing_jobs WHERE source_key=? AND active=1 ORDER BY id",[.text(sourceID.key)]) {
                 digest.update(data:Data((row["result_hash"]?.string ?? "pending").utf8))
@@ -64,8 +66,16 @@ enum ContentEnrichmentAuthorization {
             guard offset >= 0, try scope(database:db,sourceID:expected.sourceID,segmentID:expected.segmentID,field:expected.field) == expected,
                   let source=try AudioProcessingRepository(database:db).currentSource(expected.sourceID) else { throw ContentSegmentError.staleRevision }
             if let segmentID=expected.segmentID {
-                guard let context=try ContentSegmentRepository(database:db).enrichmentContextForAuthorization(segmentID:segmentID) else { throw ContentSegmentError.staleRevision }
-                return context
+                let repository=ContentSegmentRepository(database:db)
+                guard let context=try repository.enrichmentContextForAuthorization(segmentID:segmentID) else { throw ContentSegmentError.staleRevision }
+                let identities=try repository.boundSpeakerIdentities(sourceID:expected.sourceID)
+                let labels=try repository.speakerLabels(sourceID:expected.sourceID)
+                guard offset == 0,!identities.isEmpty else { return context }
+                let lines=identities.keys.sorted().compactMap { speakerID -> String? in
+                    guard let identity=identities[speakerID] else { return nil }
+                    return "\(labels[speakerID] ?? "说话人")：\(identity)"
+                }
+                return context+"\n已绑定说话人姓名/公司（会与对应转写一起用于总结和建议）：\n"+lines.joined(separator:"\n")
             }
             let date=ISO8601DateFormatter()
             var lines = offset == 0 ? ["录音开始：\(date.string(from:source.capturedAt))", "地点是稀疏采样，不能证明完整路线。"] : []

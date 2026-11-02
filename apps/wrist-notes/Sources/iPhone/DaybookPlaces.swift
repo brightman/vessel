@@ -18,6 +18,24 @@ enum DaybookPlaces {
         record.recordingGroupID = note.recordingGroupID
         return record
     }
+    static func voiceForRecap(_ note: VoiceNote) -> DayRecord {
+        var record = voice(note)
+        record.attributedTranscript = note.transcriptSegments?.map { span in
+            let label: String
+            if let id = span.speakerID, let contact = note.speakerContacts?[id], !contact.needsReview {
+                label = "已关联联系人：" + String(contact.displayName.prefix(60))
+            } else if let id = span.speakerID, note.speakerContacts?[id] == nil,
+                      let name = note.speakerNames?[id], !name.isEmpty {
+                label = name == "我" ? "用户本人（手动标记）" : "手动命名发言人：" + String(name.prefix(60))
+            } else if let id = span.speakerID, note.speakerContacts?[id] == nil,
+                      note.speakerNames?[id] == nil, note.ownerSpeakerIDs?.contains(id) == true {
+                label = "用户本人（声纹匹配）"
+            } else { label = "身份未确认" }
+            return .init(start:span.start,end:span.end,text:span.text,speaker:label)
+        }
+        if record.attributedTranscript?.contains(where: { $0.speaker != "身份未确认" }) != true { record.attributedTranscript = nil }
+        return record
+    }
     static func photo(_ moment: PhotoMoment) -> DayRecord {
         var record = DayRecord(id: moment.id, capturedAt: moment.capturedAt, kind: .image, title: moment.title, text: moment.searchableText)
         record.captureDevice = moment.captureDevice

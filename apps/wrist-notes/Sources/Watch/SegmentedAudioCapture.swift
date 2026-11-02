@@ -53,7 +53,7 @@ final class RecordingChunkWriter {
     private var intent: RecordingCaptureIntent?
     private var checkpointFrames: Int64 = 0
     private let root: URL
-    private let onSeal: (RecordingChunkDescriptor, URL) throws -> Void
+    private let onSeal: (RecordingChunkDescriptor, URL, Bool) throws -> Void
     private let capacityReader: (URL) throws -> Int64
     private let onStorageWarning: () -> Void
     private var warnedAboutStorage = false
@@ -75,7 +75,7 @@ final class RecordingChunkWriter {
          location: CaptureLocation? = nil,
          capacityReader: @escaping (URL) throws -> Int64 = RecordingStorageCapacity.availableBytes,
          onStorageWarning: @escaping () -> Void = {},
-         onSeal: @escaping (RecordingChunkDescriptor, URL) throws -> Void) throws {
+         onSeal: @escaping (RecordingChunkDescriptor, URL, Bool) throws -> Void) throws {
         self.sessionID = sessionID; self.root = root; self.onSeal = onSeal
         self.capacityReader = capacityReader; self.onStorageWarning = onStorageWarning
         context = .init(sessionID: sessionID, startedAt: startedAt, timeZoneIdentifier: TimeZone.current.identifier, origin: origin, location: location)
@@ -85,6 +85,17 @@ final class RecordingChunkWriter {
         if initialCapacity <= RecordingStorageCapacity.warningBytes { warnedAboutStorage = true; onStorageWarning() }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         scratch = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: Self.sampleRate, channels: 1)!, frameCapacity: 8192)!
+    }
+
+    convenience init(sessionID: UUID, root: URL, startedAt: Date = .now,
+                     origin: RecordingOrigin = .init(device: "Watch", deviceID: "synthetic", fileName: "continuous-capture", recordingTimeIsEstimated: false),
+                     location: CaptureLocation? = nil,
+                     capacityReader: @escaping (URL) throws -> Int64 = RecordingStorageCapacity.availableBytes,
+                     onStorageWarning: @escaping () -> Void = {},
+                     onSeal: @escaping (RecordingChunkDescriptor, URL) throws -> Void) throws {
+        try self.init(sessionID: sessionID, root: root, startedAt: startedAt, origin: origin,
+                      location: location, capacityReader: capacityReader, onStorageWarning: onStorageWarning,
+                      onSeal: { descriptor, url, _ in try onSeal(descriptor, url) })
     }
 
     func append(_ pcm: AVAudioPCMBuffer) throws {
@@ -127,10 +138,10 @@ final class RecordingChunkWriter {
         }
     }
 
-    func finish() throws {
+    func finish(isFinal: Bool = true) throws {
         guard !stopped else { return }
         stopped = true
-        try seal()
+        try seal(isFinal: isFinal)
     }
 
     func updateLocation(_ location: CaptureLocation) throws {
@@ -149,7 +160,7 @@ final class RecordingChunkWriter {
         checkpointFrames = chunkFrames
     }
 
-    private func seal() throws {
+    private func seal(isFinal: Bool = false) throws {
         guard let url = partial, chunkFrames > 0 else { return }
         file = nil // Close AAC and its packet table before embedding metadata or inspecting bytes.
         try RecordingChunkFileMetadata.embed(groupID: intent!.context.sessionID, ordinal: intent!.ordinal,
@@ -158,7 +169,7 @@ final class RecordingChunkWriter {
         try checkpoint()
         let descriptor = intent!.descriptor(info: info)
         _ = try RecordingAudioFile.validate(descriptor, at: url)
-        try onSeal(descriptor, url)
+        try onSeal(descriptor, url, isFinal)
         // The seal callback may move the M4A into its durable destination.
         // Delete the source only if the callback left it in place.
         if FileManager.default.fileExists(atPath: url.path) {
@@ -257,7 +268,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
     init(format: AVAudioFormat, sessionID: UUID, root: URL, origin: RecordingOrigin,
          capacityReader: @escaping (URL) throws -> Int64 = RecordingStorageCapacity.availableBytes,
          onStorageWarning: @escaping () -> Void = {},
-         onSeal: @escaping (RecordingChunkDescriptor, URL) throws -> Void,
+         onSeal: @escaping (RecordingChunkDescriptor, URL, Bool) throws -> Void,
          onFailure: @escaping (Error) -> Void) throws {
         guard format.sampleRate.isFinite, (8000...192000).contains(format.sampleRate), (1...8).contains(format.channelCount),
               let target = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1),
@@ -310,7 +321,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
     func interrupt(_ error: Error) { worker.async { self.fail(error) } }
 
     /// Producer must be stopped before finish. Concurrent/repeated stops serialize.
-    func finish(onEnqueued: (() -> Void)? = nil) async throws {
+    func finish(isFinal: Bool = true, onEnqueued: (() -> Void)? = nil) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             worker.async {
                 if !self.finished {
@@ -318,7 +329,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
                     self.drain()
                     do {
                         if self.terminalError == nil { try self.convert(nil) }
-                        try self.writer.finish()
+                        try self.writer.finish(isFinal: isFinal)
                     } catch { self.fail(error) }
                     self.finished = true
                     self.signal.cancel(); self.overflow.cancel()
@@ -393,7 +404,7 @@ final class SegmentedAudioCapture {
     private let root: URL
     private let origin: RecordingOrigin
     private let engine = AVAudioEngine()
-    private let onSeal: (RecordingChunkDescriptor, URL) throws -> Void
+    private let onSeal: (RecordingChunkDescriptor, URL, Bool) throws -> Void
     var onFailure: ((Error) -> Void)?
     var onStorageWarning: (() -> Void)?
     private var pipeline: RecordingCapturePipeline?
@@ -402,7 +413,7 @@ final class SegmentedAudioCapture {
     private var tapInstalled = false
     var sampledDuration: Double { pipeline?.sampledDuration ?? 0 }
 
-    init(root: URL, origin: RecordingOrigin, onSeal: @escaping (RecordingChunkDescriptor, URL) throws -> Void) {
+    init(root: URL, origin: RecordingOrigin, onSeal: @escaping (RecordingChunkDescriptor, URL, Bool) throws -> Void) {
         self.root = root; self.origin = origin; self.onSeal = onSeal
     }
     func start(sessionID: UUID) throws {
@@ -423,10 +434,10 @@ final class SegmentedAudioCapture {
         }
 #endif
         do { try engine.start() }
-        catch { detach(); Task { try? await pipeline.finish() }; throw error }
+        catch { detach(); Task { try? await pipeline.finish(isFinal: false) }; throw error }
     }
     func updateLocation(_ location: CaptureLocation) { pipeline?.updateLocation(location) }
-    func stop() async throws { detach(); try await pipeline?.finish() }
+    func stop(finalizeGroup: Bool = true) async throws { detach(); try await pipeline?.finish(isFinal: finalizeGroup) }
     private func detach() {
         engine.stop()
         if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }

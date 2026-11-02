@@ -2,6 +2,8 @@ import Foundation
 
 /// Synchronous worker-owned API; each lease/result transition is one SQLite transaction.
 final class AudioProcessingRepository {
+    /// Retries after the initial failed attempt; terminal failure occurs on attempt four.
+    static let maximumAutomaticRetries = 3
     private let db: DaybookDatabase
     /// Worker-confined derived repository construction only. Never retain across actors.
     var derivedDatabase: DaybookDatabase { db }
@@ -10,7 +12,7 @@ final class AudioProcessingRepository {
     func register(source: AudioSourceSnapshot, configurationKey: String, windows: [AudioProcessingWindow]) throws {
         let planned = try AudioWindowPlanner.plan(source: source, configurationKey: configurationKey)
         guard windows == planned else { throw AudioProcessingError.invalidInput }
-        let sourceDuration = source.ranges.reduce(0) { $0 + $1.duration }
+        let sourceDuration = source.timelineDuration
         let sourceNeedsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:sourceDuration)
         try db.transaction {
             guard try !isDeleted(source.id) else { throw AudioProcessingError.deletedSource }
@@ -76,6 +78,19 @@ final class AudioProcessingRepository {
                 } else {
                     try db.execute("UPDATE audio_processing_jobs SET active=1 WHERE id=?", [.text(window.id)])
                 }
+                // Rows written before retry_count was introduced may be terminal because
+                // a stage failed without ever receiving the automatic retry budget.
+                if let previousJob, Int(previousJob["retry_count"]?.double ?? 0) < Self.maximumAutomaticRetries {
+                    let state = previousJob["state"]?.string
+                    var failedResult = false
+                    if let data = previousJob["result"]?.data {
+                        let result = try DaybookDatabase.decode(AudioWindowResult.self,.blob(data))
+                        failedResult = [result.asr,result.vad,result.speaker].contains(.failed)
+                    }
+                    if state == "failed" || (state == "completed" && failedResult) {
+                        try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE id=? AND active=1",[.text(window.id)])
+                    }
+                }
                 // A recording may cross 30 minutes while earlier windows were being
                 // transcribed. Requeue those completed ASR-only windows for VAD so
                 // the now-long recording can use the normal topic pipeline.
@@ -110,16 +125,19 @@ final class AudioProcessingRepository {
                 guard urls.count == 1, let url = urls.first else { return }
                 ranges.append(try .init(range:.init(chunkID:range.chunkID,url:url,startFrame:range.startFrame,endFrame:range.endFrame,sampleRate:range.sampleRate,sessionStartOffset:range.sessionStartOffset,discontinuityBefore:range.discontinuityBefore),contentHash:range.contentHash))
             }
-            guard let historical = try? AudioSourceSnapshot(id:source.id,capturedAt:source.capturedAt,title:source.title,origin:source.origin,location:source.location,ranges:ranges,complete:source.complete) else { return }
+            guard let historical = try? AudioSourceSnapshot(id:source.id,recordingGroupID:source.recordingGroupID,capturedAt:source.capturedAt,title:source.title,origin:source.origin,location:source.location,ranges:ranges,complete:source.complete,completionReason:source.completionReason) else { return }
             source = historical
         }
         guard content["signature"]?.string == AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs,legacy:true) else { return }
         try db.execute("UPDATE content_segment_sources SET semantic_signature=? WHERE source_key=?",[.text(AudioContentSnapshotIdentity.make(source:source,key:key,jobs:jobs)),.text(source.id.key)])
     }
 
-    func claimNext() throws -> AudioProcessingJob? {
+    func claimNext(excluding activeSources: Set<AudioSourceID> = []) throws -> AudioProcessingJob? {
         try db.transaction {
-            guard let row = try db.query("SELECT j.* FROM audio_processing_jobs j JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.state='pending' AND j.active=1 AND s.cancelled=0 AND j.configuration_key=s.configuration_key ORDER BY s.source_key,j.core_start,j.id LIMIT 1").first else { return nil }
+            let excluded = activeSources.map(\.key)
+            let exclusionSQL = excluded.isEmpty ? "" : " AND j.source_key NOT IN (" + Array(repeating:"?",count:excluded.count).joined(separator:",") + ")"
+            let rows = try db.query("SELECT j.* FROM audio_processing_jobs j JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.state='pending' AND j.active=1 AND s.cancelled=0 AND j.configuration_key=s.configuration_key\(exclusionSQL) ORDER BY s.source_key,j.core_start,j.id LIMIT 1", excluded.map(DaybookDatabase.Value.text))
+            guard let row = rows.first else { return nil }
             let window = try DaybookDatabase.decode(AudioProcessingWindow.self, row["window"])
             guard try !isDeleted(window.sourceID) else { throw AudioProcessingError.deletedSource }
             let lease = UUID()
@@ -154,7 +172,20 @@ final class AudioProcessingRepository {
             // Per-window metadata stays bounded. Transcript/activity rows are never a growing JSON document.
             let metadata = AudioWindowResult(spans: [], activities: [], asr: result.asr, asrEngineName: result.asrEngineName,
                 vad: result.vad, speaker: result.speaker, asrCoverage: result.asrCoverage, vadCoverage: result.vadCoverage, speakerFeatures: result.speakerFeatures)
-            try db.execute("UPDATE audio_processing_jobs SET state='completed',result=?,result_hash=?,message=NULL WHERE id=?", [try DaybookDatabase.json(metadata), .text(hash), .text(window.id)])
+            let retryCount = Int(row["retry_count"]?.double ?? 0)
+            let outcomes = [metadata.asr,metadata.vad,metadata.speaker]
+            let hasFailure = outcomes.contains(.failed)
+            let hasMissingResource = outcomes.contains(.missingResource)
+            let hasCancellation = outcomes.contains(.cancelled)
+            let nextRetryCount = hasFailure && !hasMissingResource && !hasCancellation ? retryCount + 1 : retryCount
+            let nextState: AudioJobState
+            if hasCancellation { nextState = .cancelled }
+            else if hasMissingResource { nextState = .missingResource }
+            else if hasFailure { nextState = nextRetryCount <= Self.maximumAutomaticRetries ? .pending : .failed }
+            else { nextState = .completed }
+            try db.execute("UPDATE audio_processing_jobs SET state=?,retry_count=?,result=?,result_hash=?,message=? WHERE id=?", [
+                .text(nextState.rawValue),.integer(Int64(nextRetryCount)),try DaybookDatabase.json(metadata),.text(hash),
+                nextState == .pending ? .text("retrying") : (nextState == .failed ? .text("failed") : .null),.text(window.id)])
             try db.execute("DELETE FROM audio_processing_stage_requests WHERE job_id=?",[.text(window.id)])
             try bump(window.sourceID)
         }
@@ -184,7 +215,7 @@ final class AudioProcessingRepository {
         try db.transaction {
             guard let source = try sourceRow(sourceID), try !isDeleted(sourceID) else { throw AudioProcessingError.deletedSource }
             let snapshot = try DaybookDatabase.decode(AudioSourceSnapshot.self,source["descriptor"])
-            let needsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:snapshot.ranges.reduce(0) { $0 + $1.duration })
+            let needsVAD = AudioInferenceStagePolicy.requiresVAD(sourceDuration:snapshot.timelineDuration)
             // Resource availability never overrides explicit user cancellation.
             if resourceOnly && source["cancelled"]?.double == 1 { return }
             if !resourceOnly { try retry(sourceID: sourceID) }
@@ -317,7 +348,12 @@ final class AudioProcessingRepository {
             let row = try valid(job)
             guard row["state"]?.string == "running" else { throw AudioProcessingError.staleJob }
             // Adapter messages may contain private text/paths. Persist only this fixed safe status.
-            try db.execute("UPDATE audio_processing_jobs SET state=?,message=?,lease=NULL WHERE id=?", [.text(state.rawValue), .text(state.rawValue), .text(job.window.id)])
+            let retryCount = Int(row["retry_count"]?.double ?? 0)
+            let nextRetryCount = state == .failed ? retryCount + 1 : retryCount
+            let nextState: AudioJobState = state == .failed && nextRetryCount <= Self.maximumAutomaticRetries ? .pending : state
+            try db.execute("UPDATE audio_processing_jobs SET state=?,retry_count=?,message=?,lease=NULL WHERE id=?", [
+                .text(nextState.rawValue),.integer(Int64(nextRetryCount)),
+                nextState == .pending ? .text("retrying") : .text(nextState.rawValue),.text(job.window.id)])
             try bump(job.window.sourceID)
         }
     }
@@ -325,7 +361,8 @@ final class AudioProcessingRepository {
         try db.transaction {
             guard try sourceRow(sourceID) != nil, try !isDeleted(sourceID) else { throw AudioProcessingError.deletedSource }
             try db.execute("UPDATE audio_processing_sources SET cancelled=0 WHERE source_key=?", [.text(sourceID.key)])
-            try db.execute("UPDATE audio_processing_jobs SET state='pending',lease=NULL,message=NULL WHERE source_key=? AND active=1 AND state IN ('missingResource','failed','cancelled')", [.text(sourceID.key)])
+            try db.execute("UPDATE audio_processing_jobs SET state='pending',retry_count=0,lease=NULL,message=NULL WHERE source_key=? AND active=1 AND state IN ('missingResource','failed','cancelled')", [.text(sourceID.key)])
+            try db.execute("UPDATE audio_processing_jobs SET retry_count=0 WHERE source_key=? AND active=1",[.text(sourceID.key)])
             try bump(sourceID)
         }
     }
@@ -393,7 +430,7 @@ final class AudioProcessingRepository {
     private func effectiveDuration(_ sourceID:AudioSourceID) throws -> TimeInterval? {
         guard let row=try sourceRow(sourceID),let data=row["descriptor"] else { return nil }
         let source=try DaybookDatabase.decode(AudioSourceSnapshot.self,data)
-        let duration=source.ranges.reduce(0) { $0 + $1.duration }
+        let duration=source.timelineDuration
         return duration.isFinite && duration > 0 ? duration : nil
     }
     private func isDeleted(_ sourceID: AudioSourceID) throws -> Bool {

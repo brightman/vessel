@@ -13,6 +13,9 @@ struct IncomingRecording: Codable {
     var recordingGroupID: UUID? = nil
     var recordingGroupOrdinal: Int? = nil
     var recordingGroupOffset: TimeInterval? = nil
+    var recordingGroupFinalOrdinal: Int? = nil
+    var recordingGroupIsFinal = false
+    var receivedAt: Date = .now
     var recordingOrigin: RecordingOrigin? = nil
 }
 
@@ -275,6 +278,8 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
             recordingGroupID: (file.metadata?["recordingGroupID"] as? String).flatMap(UUID.init(uuidString:)),
             recordingGroupOrdinal: file.metadata?["recordingGroupOrdinal"] as? Int,
             recordingGroupOffset: file.metadata?["recordingGroupOffset"] as? Double,
+            recordingGroupFinalOrdinal: file.metadata?["recordingGroupFinalOrdinal"] as? Int,
+            recordingGroupIsFinal: file.metadata?["isGroupFinal"] as? Bool ?? false,
             recordingOrigin: (file.metadata?["recordingOrigin"] as? Data).flatMap { try? JSONDecoder().decode(RecordingOrigin.self, from: $0) })
         persistReceivedRecording(metadata, temporaryFileURL: file.fileURL)
     }
@@ -283,11 +288,13 @@ final class PhoneConnectivity: NSObject, WCSessionDelegate {
         let id = metadata.id
         let capturedAt = metadata.capturedAt
         let duration = metadata.duration
-        let hasGroupFields = metadata.recordingGroupID != nil || metadata.recordingGroupOrdinal != nil || metadata.recordingGroupOffset != nil
+        let hasGroupFields = metadata.recordingGroupID != nil || metadata.recordingGroupOrdinal != nil || metadata.recordingGroupOffset != nil || metadata.recordingGroupFinalOrdinal != nil || metadata.recordingGroupIsFinal
         if hasGroupFields {
             guard let groupID = metadata.recordingGroupID, let ordinal = metadata.recordingGroupOrdinal,
                   let offset = metadata.recordingGroupOffset, (0...RecordingSessionFileLimits.maximumOrdinal).contains(ordinal), offset.isFinite, offset >= 0,
                   abs(offset - Double(ordinal) * RecordingSessionFileLimits.fileDuration) < 0.001,
+                  metadata.recordingGroupIsFinal == (metadata.recordingGroupFinalOrdinal != nil),
+                  metadata.recordingGroupFinalOrdinal.map({ $0 == ordinal }) ?? true,
                   id == RecordingChunkFileIdentity.stableID(groupID: groupID, ordinal: ordinal),
                   RecordingChunkFileMetadata.matches(groupID: groupID, ordinal: ordinal,
                                                      capturedAt: capturedAt, audioURL: temporaryFileURL) else {

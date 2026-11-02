@@ -3,12 +3,13 @@ import Combine
 
 /// All pages are bounded SQL reads. The requested scope is complete regardless of UI pagination.
 enum ContentSegmentSnapshot {
-    static func read(_ processing: AudioProcessingRepository, scope: DateInterval, requireComplete: Bool = true) throws -> [DayRecord] {
+    static func read(_ processing: AudioProcessingRepository, scope: DateInterval, requireComplete: Bool = true, includeRecapSpeakers: Bool = false) throws -> [DayRecord] {
         let db = processing.derivedDatabase
         // A day's transcript can span hours; keep a consistent WAL snapshot
         // without holding the writer needed by location, health and recap state.
         return try db.readTransaction {
         var result: [DayRecord] = [], offset = 0
+        var speakerCache: [AudioSourceID: [String:String]] = [:]
         while true {
             try Task.checkCancellation()
             let rows = try db.query("""
@@ -32,7 +33,20 @@ enum ContentSegmentSnapshot {
                     continue
                 }
                 let spans = try DaybookDatabase.decode([AudioTranscriptSpan].self,row["transcript"])
-                if let projected = ContentSegmentPresentation.record(segment,source:source,spans:spans).recordingProjection(from:scope.start,to:scope.end) { result.append(projected) }
+                var record = ContentSegmentPresentation.record(segment,source:source,spans:spans)
+                if includeRecapSpeakers {
+                    if speakerCache[source.id] == nil {
+                        speakerCache[source.id] = try ContentSegmentRepository(database:db).boundSpeakerIdentities(sourceID:source.id)
+                    }
+                    if let names = speakerCache[source.id], !names.isEmpty {
+                        record.contentProvenance?.transcript = spans.map { span in
+                            let name = span.speakerID.flatMap { names[$0] }
+                            return .init(start:span.start,end:span.end,text:span.text,
+                                         speaker:name.map { "已关联联系人：" + String($0.prefix(100)) } ?? "身份未确认")
+                        }
+                    }
+                }
+                if let projected = record.recordingProjection(from:scope.start,to:scope.end) { result.append(projected) }
             }
             offset += rows.count
             if rows.count < 100 { return result }
@@ -86,6 +100,8 @@ struct ContentSegmentDetail: Sendable {
     let source: AudioSourceSnapshot
     let state: ContentProcessingState
     let spans: [AudioTranscriptSpan]
+    let speakerLabels: [String: String]
+    let speakerContacts: [String: SpeakerContactSnapshot]
     let hasMore: Bool
     let neighbors: [ContentSegment]
 }
@@ -196,9 +212,9 @@ struct ContentSegmentDetail: Sendable {
             }
         }
     }
-    func load(scope: DateInterval, requireComplete: Bool = true) async throws -> [DayRecord] {
+    func load(scope: DateInterval, requireComplete: Bool = true, includeRecapSpeakers: Bool = false) async throws -> [DayRecord] {
         let captured = epoch
-        let result = try await processing.withRepository { try ContentSegmentSnapshot.read($0,scope:scope,requireComplete:requireComplete) }
+        let result = try await processing.withRepository { try ContentSegmentSnapshot.read($0,scope:scope,requireComplete:requireComplete,includeRecapSpeakers:includeRecapSpeakers) }
         try Task.checkCancellation()
         guard captured == epoch else { throw ContentSegmentError.staleRevision }
         let current = LegacyAudioDeletionLedger.shared.filter(result)
@@ -224,10 +240,52 @@ struct ContentSegmentDetail: Sendable {
                 spans += page; offset += page.count
                 if page.isEmpty { break }
             }
+            let speakerLabels = try repository.speakerLabels(sourceID:segment.sourceID)
+            let speakerContacts = try repository.speakerContacts(sourceID:segment.sourceID)
             let row = try processing.derivedDatabase.query("SELECT count(*) AS count FROM content_segments WHERE source_key=? AND deleted=0 AND start<?",[.text(segment.sourceID.key),.real(segment.ranges.first?.sessionStartOffset ?? 0)]).first
             let index = Int(try row?.requiredInt("count") ?? 0)
-            return ContentSegmentDetail(segment:segment,source:source,state:try repository.state(sourceID:segment.sourceID),spans:Array(spans.prefix(limit)),hasMore:spans.count>limit,neighbors:try repository.segments(sourceID:segment.sourceID,limit:3,offset:max(0,index-1)))
+            return ContentSegmentDetail(segment:segment,source:source,state:try repository.state(sourceID:segment.sourceID),spans:Array(spans.prefix(limit)),speakerLabels:speakerLabels,speakerContacts:speakerContacts,hasMore:spans.count>limit,neighbors:try repository.segments(sourceID:segment.sourceID,limit:3,offset:max(0,index-1)))
         }
+    }
+    func editFields(sourceID:AudioSourceID,segmentID:UUID,expectedRevision:Int,title:String,summary:String) async -> Bool {
+        do {
+            try await processing.withRepository {
+                _ = try ContentSegmentRepository(database:$0.derivedDatabase).editFields(sourceID:sourceID,id:segmentID,expectedRevision:expectedRevision,title:title,summary:summary)
+            }
+            epoch += 1; revision += 1; refresh(); errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "片段已更新或保存失败，请刷新后重试。"
+            return false
+        }
+    }
+    func setSpeakerContact(sourceID:AudioSourceID,speakerID:String,contact:SpeakerContactSnapshot?) async -> Bool {
+        do {
+            try await processing.withRepository {
+                try ContentSegmentRepository(database:$0.derivedDatabase).setSpeakerContact(sourceID:sourceID,speakerID:speakerID,contact:contact)
+            }
+            revision += 1; errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "说话人资料已更新或保存失败，请刷新后重试。"
+            return false
+        }
+    }
+    func contactProfiles(search:String = "") async -> [SpeakerContactSnapshot] {
+        do {
+            return try await processing.withRepository {
+                try ContentSegmentRepository(database:$0.derivedDatabase).contactProfiles(search:search)
+            }
+        } catch { errorMessage = "无法读取本机联系人，请解锁后重试。"; return [] }
+    }
+    func saveManualContact(name:String,organization:String?,email:String?,phone:String?) async -> SpeakerContactSnapshot? {
+        do {
+            let contact=try await processing.withRepository {
+                try ContentSegmentRepository(database:$0.derivedDatabase).saveManualContact(name:name,organization:organization,email:email,phone:phone)
+            }
+            errorMessage=nil
+            return contact
+        } catch { errorMessage=error.localizedDescription; return nil }
     }
     func mutate(sourceID: AudioSourceID, _ operation: @escaping @Sendable (ContentSegmentRepository) throws -> Void) async -> Bool {
         do {

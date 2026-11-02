@@ -3,12 +3,15 @@ set -eu
 cd "$(dirname "$0")/.."
 recap_output=$(mktemp -d /private/tmp/wiselife-recaps.XXXXXX)
 trap 'rm -rf "$recap_output"' EXIT
+storage_sources="Sources/Shared/VoiceNote.swift Sources/Shared/RecordingSession.swift Sources/iPhone/AudioProcessing.swift Sources/iPhone/AudioWindowPlanner.swift"
 swiftc -module-cache-path "$recap_output/cache" \
+  $storage_sources \
   Sources/Shared/CaptureMetadata.swift Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift \
   Sources/iPhone/DaybookRecap.swift Sources/iPhone/DaybookRecapStore.swift \
   Tests/DaybookRecapSmoke.swift -o "$recap_output/recaps"
 "$recap_output/recaps"
 swiftc -module-cache-path "$recap_output/cache" \
+  $storage_sources \
   Sources/Shared/CaptureMetadata.swift Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift \
   Sources/iPhone/ChatGPTProtocol.swift Sources/iPhone/ChatGPTIDToken.swift Sources/iPhone/ChatGPTAPI.swift \
   Sources/iPhone/ChatGPTAccountStore.swift Sources/iPhone/ChatGPTAccountModel.swift \

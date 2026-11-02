@@ -1,6 +1,6 @@
 import AVFAudio
 import XCTest
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class PhoneRecordingPersistenceTests: XCTestCase {
     private final class Activities: RecordingActivityManaging {

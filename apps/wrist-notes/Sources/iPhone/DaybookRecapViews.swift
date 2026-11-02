@@ -59,8 +59,9 @@ struct DaybookRecapHome: View {
     }
     private var status: String {
         if model.storageError != nil { return "回顾暂时无法读取，点开重试。" }
-        if model.isGenerating { return "正在生成回顾…" }
+        if model.isGenerating { return model.generationProgress ?? "正在生成回顾…" }
         if model.isLoading { return "正在整理当天的记录…" }
+        if let message = model.message { return message }
         if model.input?.references.isEmpty != false { return yesterday ? "昨天还没有可回顾的记录。" : "这一天还没有可回顾的记录。" }
         if model.input?.sources.isEmpty != false { return "文字尚未就绪，转写完成后可生成回顾。" }
         return "回顾尚未生成，点开手动生成。"
@@ -102,7 +103,7 @@ struct DaybookRecapDetailView: View {
                     Text("结合生活、工作与学习记录回顾这一天，按需给出跟进建议。推断可能有误，请核对来源；建议不会自动创建待办或日程。")
                         .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)
                     if model.isGenerating {
-                        ProgressView("正在生成回顾…")
+                        ProgressView(LocalizedStringKey(model.generationProgress ?? "正在生成回顾…"))
                         Button("取消生成") { model.cancel() }.font(.system(size: 12))
                     } else {
                         if let message = model.message { Text(message).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary) }

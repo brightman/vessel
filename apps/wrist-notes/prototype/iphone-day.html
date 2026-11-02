@@ -6,21 +6,25 @@
   <meta name="theme-color" content="#fafbfc">
   <title>WiseLife · 轻松记录，每天更懂自己</title>
   <meta name="description" content="用 Apple Watch 轻松记录，让 AI 每日回顾，并在有帮助时提出建议。WiseLife App 不提供云端服务，日常记录保存在 iPhone 本机。首发优惠 US$9.99（原价 US$19.99），截至 2026 年 12 月 31 日。">
-  <link rel="stylesheet" href="daybook.css?v=record-merge-1">
-  <link rel="stylesheet" href="daybook-ai.css?v=auto-retrieval-20261023">
+  <link rel="stylesheet" href="daybook.css?v=single-add-20261030">
+  <link rel="stylesheet" href="daybook-ai.css?v=voice-hold-20261031">
   <link rel="stylesheet" href="daybook-speaker-contacts.css">
   <link rel="stylesheet" href="daybook-apple-reminders.css">
   <link rel="stylesheet" href="daybook-capture-settings.css?v=settings-font-12px">
   <link rel="stylesheet" href="daybook-voice-profile.css">
   <link rel="stylesheet" href="daybook-theme.css?v=recap-insight">
-  <link rel="stylesheet" href="daybook-record-management.css?v=20261024">
+  <link rel="stylesheet" href="daybook-record-management.css?v=record-suggestions-20261030">
   <link rel="stylesheet" href="daybook-hardware.css">
   <link rel="stylesheet" href="daybook-places.css">
   <link rel="stylesheet" href="daybook-life-moments.css">
   <link rel="stylesheet" href="daybook-chatgpt.css">
-  <link rel="stylesheet" href="daybook-flash-assets.css?v=insight-action-1">
+  <link rel="stylesheet" href="daybook-flash-assets.css?v=flash-timeline-20261031">
   <link rel="stylesheet" href="wiselife-site.css?v=companion-first-image-20261023">
   <link rel="stylesheet" href="wiselife-story.css">
+  <link rel="stylesheet" href="daybook-settings.css?v=settings-hierarchy-20261031">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/brand/apple-touch-icon.png">
+<link rel="stylesheet" href="wiselife-brand.css">
 </head>
 <body class="wiselife-site">
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><symbol id="i-Ring" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="9"></ellipse><ellipse cx="12" cy="12" rx="4.5" ry="6.5"></ellipse><path d="m6.8 5.2 2.1 2M15.1 16.8l2.1 2"></path></symbol></defs></svg>
@@ -29,7 +33,7 @@
   <a class="site-skip" href="#product">跳到产品体验</a>
   <header class="site-header">
     <div class="site-nav-wrap">
-      <a class="wordmark" href="#welcome" aria-label="WiseLife 首页"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg></span>WiseLife</a>
+      <a class="wordmark" href="#welcome" aria-label="WiseLife 首页"><img class="wiselife-app-logo" src="assets/brand/app-icon.png" alt="" width="32" height="32">WiseLife</a>
       <nav class="site-nav" aria-label="官网导航">
         <a href="#product" aria-current="location">产品体验</a>
         <a id="macNav" href="#mac">Mac 伴侣</a>
@@ -99,12 +103,14 @@
   <section id="product" class="site-screen product-screen" aria-labelledby="productTitle">
   <div class="design-stage">
     <aside class="design-note">
+      <div class="fa-timeline-review-note"><p class="eyebrow">闪念 · 结果时间轴</p><h2>说过的话，<br>已经安排好。</h2><p>日程、待办、提醒直接呈现。<br>一条闪念，多项结果各自可点。</p><dl><dt>左侧是录制时间</dt><dd>事项内单独显示执行日期与时间。</dd><dt>状态跟着事项走</dt><dd>已创建、待补充、未安排、已撤销。</dd><dt>原话始终可回看</dt><dd>每组底部保留设备、时长与录音入口。</dd></dl></div>
       <p class="design-kicker">现在，轮到你了</p>
       <h2 class="product-demo-title" id="productTitle">亲手试试。<br>从一条记录开始。</h2>
       <p class="design-description">点开一条语音，切换总结与全文。<br>问问 AI，沿着来源回看，<br>或连接一款随身设备。</p>
       <div class="site-hero-actions"><button class="site-button" data-demo-view="ai">问问我的一天<svg class="icon" aria-hidden="true"><use href="#i-ArrowRight"></use></svg></button><a class="site-text-link" href="#hardware">认识随身设备</a></div>
-      <div class="people-demo-entry"><p>新功能体验</p><button type="button" data-prototype-flow="contacts"><svg class="icon" aria-hidden="true"><use href="#i-Link2"></use></svg>说话人关联联系人<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button><button type="button" data-prototype-flow="reminders"><svg class="icon" aria-hidden="true"><use href="#i-Bell"></use></svg>添加到 Apple 提醒事项<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button></div>
-      <div class="fa-design-entry" aria-label="闪念资产原型入口"><p>CAPTURE → INSIGHT → ACTION</p><button data-fa-preview="assets"><svg class="icon"><use href="#i-Lightbulb"></use></svg>体验闪念资产</button><button data-fa-preview="ready"><svg class="icon"><use href="#i-AudioLines"></use></svg>一条闪念的提炼结果</button><div class="fa-design-states"><button data-fa-preview="waiting">整理中</button><button data-fa-preview="unavailable">模型不可用</button><button data-fa-preview="empty">无需提炼</button></div></div>
+      <div class="people-demo-entry"><p>新功能体验</p><a class="site-text-link" href="onboarding.html"><svg class="icon" aria-hidden="true"><use href="#i-MessageCircle"></use></svg>首次使用：AI 与数据准备<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></a><button type="button" data-demo-view="data"><svg class="icon" aria-hidden="true"><use href="#i-Settings2"></use></svg>查看新版设置<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button><button type="button" data-prototype-flow="contacts"><svg class="icon" aria-hidden="true"><use href="#i-Link2"></use></svg>说话人关联联系人<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button><button type="button" data-prototype-flow="reminders"><svg class="icon" aria-hidden="true"><use href="#i-Bell"></use></svg>添加到 Apple 提醒事项<svg class="icon" aria-hidden="true"><use href="#i-ArrowUpRight"></use></svg></button></div>
+      <div class="fa-design-entry" aria-label="新版闪念原型入口"><p>说下来，事情就有了着落</p><button data-fa-timeline="home"><svg class="icon"><use href="#i-CheckCheck"></use></svg>时间轴：直接看已安排的事</button><button data-fa-timeline="library"><svg class="icon"><use href="#i-BookOpen"></use></svg>我的记录：查看全部整理结果</button><button data-fa-preview="ready"><svg class="icon"><use href="#i-AudioLines"></use></svg>混合闪念：想法、记账与行动</button><div class="fa-design-states"><button data-fa-preview="idea">只记一个想法</button><button data-fa-preview="expense">记一笔账</button><button data-fa-preview="incomplete">信息待补充</button><button data-fa-preview="failed">提醒未获授权</button><button data-fa-preview="waiting">整理中</button><button data-fa-preview="unavailable">模型不可用</button><button data-fa-preview="empty">仅保留原话</button></div><button data-fa-preview="assets"><svg class="icon"><use href="#i-Lightbulb"></use></svg>打开记事本</button></div>
+      <div class="settings-demo-tools"><button type="button" class="text-button" id="clearDayButton">看看没有记录的一天</button></div>
       <div class="design-footer"><span class="concept-tag">交互概念 · 示例数据</span><p>试着问问 AI，或设一个提醒。<br>所有操作仅在原型内演示。</p></div>
     </aside>
     <div class="phone-shell">
@@ -164,39 +170,43 @@
           </section>
           <section id="libraryView" class="app-view" aria-label="全部记录" hidden>
             <div class="page-heading"><span class="eyebrow">留住那些片刻</span><h2>我的记录</h2><p id="libraryDate">10月19日 · 10 条记录</p></div>
+            <div class="fa-result-links fa-library-entry"><button data-fa-library-kind="idea">我的想法 <svg class="icon"><use href="#i-ChevronRight"></use></svg></button><button data-fa-library-kind="expense">我的记账 <svg class="icon"><use href="#i-ChevronRight"></use></svg></button></div>
             <label class="search-field"><svg class="icon"><use href="#i-Search"></use></svg><input id="searchInput" type="search" placeholder="搜索想法、片段或关键词" aria-label="搜索想法、片段或关键词"></label>
             <div class="filter-row" id="libraryFilters" role="group" aria-label="筛选记录"></div>
             <div class="moment-list" id="libraryMoments"></div>
           </section>
-          <section id="dataView" class="app-view" aria-label="设置" hidden>
+          <section id="dataView" class="app-view settings-page" aria-label="设置" hidden>
             <div class="page-heading"><span class="eyebrow">按自己的方式记录</span><h2>设置</h2><p>选择模型、数据来源和 AI 提醒的节奏。</p></div>
-            <div class="daybook-preferences" aria-label="界面偏好">
-              <label class="daybook-language-row" for="appearance"><span>外观</span><select id="appearance" aria-label="外观"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
-              <label class="daybook-language-row" for="interfaceLanguage"><span>界面语言</span><select id="interfaceLanguage" aria-label="界面语言"><option value="en">English</option><option value="zh-Hans">中文</option><option value="ja">日本語</option></select></label>
-            </div>
-            <div class="section-title"><h3>语音与 AI</h3><span class="subtle">优先在本机处理</span></div>
-            <div class="model-settings-list">
-              <button class="capture-option" id="asrSettingsButton"><svg class="icon"><use href="#i-AudioLines"></use></svg><div><strong>语音转写模型</strong><p id="dayASRLabel">iPhone端上转写 · 普通话</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-              <button class="capture-option" id="myVoiceSettingsButton"><svg class="icon"><use href="#i-Mic"></use></svg><div><strong>我的声音</strong><p id="dayMyVoiceLabel">未登记 · 让笔记认出我说的话</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-              <button class="capture-option" id="aiModelSettingsButton"><svg class="icon"><use href="#i-MessageCircle"></use></svg><div><strong>AI 模型</strong><p id="dayAIModelLabel">Apple 本地模型</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-              <button class="capture-option" data-ai-action="preferences"><svg class="icon"><use href="#i-Bell"></use></svg><div><strong>AI 偏好与提醒</strong><p>主动建议、免打扰和数据范围</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-            </div>
-            <div class="section-title"><h3>连接硬件</h3></div>
-            <div id="hardwareList" class="device-list"></div>
-            <div class="section-title"><h3>数据管理</h3></div>
-            <div class="model-settings-list"><button class="capture-option" data-rm-action="raw"><svg class="icon"><use href="#i-AudioLines"></use></svg><div><strong>原始录音</strong><p>按录制批次查看原始文件</p></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button></div>
-            <div class="section-title"><h3>数据来源</h3></div>
-            <div class="local-banner"><svg class="icon"><use href="#i-ShieldCheck"></use></svg><div><strong>从本机开始</strong><p>原型使用示例数据，不读取真实账户或设备。</p></div></div>
-            <div id="sourceList" class="source-list"></div>
-            <p class="source-footnote">暂停来源后，已有记录仍保留。这里的开关只演示连接状态；录音始终由你主动开始。</p>
-            <button class="plain-row" id="clearDayButton"><span><svg class="icon"><use href="#i-CalendarDays"></use></svg>看看没有记录的一天</span><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-            <div class="section-title"><h3>关于</h3></div>
-            <div class="model-settings-list about-menu" aria-label="关于 WiseLife">
-              <button class="capture-option" data-about-action="faq"><svg class="icon"><use href="#i-CircleHelp"></use></svg><div><strong>常见问题</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></button>
-              <a class="capture-option" href="privacy/index.html"><svg class="icon"><use href="#i-ShieldCheck"></use></svg><div><strong>隐私条款</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
-              <a class="capture-option" href="terms/index.html"><svg class="icon"><use href="#i-BookOpen"></use></svg><div><strong>服务条款</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
-              <a class="capture-option" href="mailto:hello@wiselife.cloud"><svg class="icon"><use href="#i-MessageCircle"></use></svg><div><strong>联系我们</strong></div><svg class="icon"><use href="#i-ChevronRight"></use></svg></a>
-            </div>
+            <section class="settings-group" aria-labelledby="settings-general-title">
+              <h3 id="settings-general-title">通用设置</h3>
+              <div class="settings-menu"><label class="capture-option settings-select" for="appearance"><svg class="icon" aria-hidden="true"><use href="#i-Sun"></use></svg><div><strong>外观</strong></div><select id="appearance" aria-label="外观"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label><label class="capture-option settings-select" for="interfaceLanguage"><svg class="icon" aria-hidden="true"><use href="#i-MessageCircle"></use></svg><div><strong>界面语言</strong></div><select id="interfaceLanguage" aria-label="界面语言"><option value="en">English</option><option value="zh-Hans">中文</option><option value="ja">日本語</option></select></label><button class="capture-option" data-settings-action="shortcuts"><svg class="icon" aria-hidden="true"><use href="#i-Mic"></use></svg><div><strong>快捷设置</strong><p>操作按钮、锁屏小组件与实时活动</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button></div>
+
+            </section>
+            <section class="settings-group" aria-labelledby="settings-ai-title">
+              <h3 id="settings-ai-title">语言与AI</h3>
+              <div class="settings-menu"><button class="capture-option" id="asrSettingsButton"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg><div><strong>语音转写模型</strong><p><span id="dayASRLabel">iPhone端上转写 · 普通话</span></p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><button class="capture-option" id="myVoiceSettingsButton"><svg class="icon" aria-hidden="true"><use href="#i-Mic"></use></svg><div><strong>我的声音</strong><p><span id="dayMyVoiceLabel">未登记 · 让笔记认出我说的话</span></p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><button class="capture-option" id="aiModelSettingsButton"><svg class="icon" aria-hidden="true"><use href="#i-MessageCircle"></use></svg><div><strong>AI 模型</strong><p><span id="dayAIModelLabel">Apple 本地模型</span></p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><button class="capture-option" data-settings-action="retrieval"><svg class="icon" aria-hidden="true"><use href="#i-Search"></use></svg><div><strong>AI 检索</strong><p>本地语义检索、语言包与索引</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><button class="capture-option" data-ai-action="preferences"><svg class="icon" aria-hidden="true"><use href="#i-Bell"></use></svg><div><strong>AI 偏好与提醒</strong><p>主动建议、免打扰和数据范围</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button></div>
+
+            </section>
+            <section class="settings-group" aria-labelledby="settings-hardware-title">
+              <h3 id="settings-hardware-title">硬件</h3>
+              <div class="settings-menu"><div id="hardwareList" class="device-list"></div></div>
+
+            </section>
+            <section class="settings-group" aria-labelledby="settings-sources-title">
+              <h3 id="settings-sources-title">数据来源</h3>
+              <div class="settings-menu"><div id="sourceList" class="source-list"></div><button class="capture-option" data-rm-action="raw"><svg class="icon" aria-hidden="true"><use href="#i-AudioLines"></use></svg><div><strong>原始录音</strong><p>按录制批次查看原始文件</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><button class="capture-option" data-fa-notebook="open"><svg class="icon" aria-hidden="true"><use href="#i-NotebookPen"></use></svg><div><strong>记事本</strong><p>我的想法 · 我的记账</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button></div>
+              <p class="settings-footnote">暂停来源后，已有记录仍保留。录音始终由你主动开始。</p>
+            </section>
+            <section class="settings-group" aria-labelledby="settings-privacy-title">
+              <h3 id="settings-privacy-title">隐私与安全</h3>
+              <div class="settings-menu"><div class="capture-option settings-toggle"><svg class="icon" aria-hidden="true"><use href="#i-ShieldCheck"></use></svg><div><strong>Face ID</strong><p>重新打开 App 时验证身份</p></div><button class="switch" role="switch" aria-checked="false" aria-label="Face ID" data-settings-action="face-id"></button></div><button class="capture-option" data-settings-action="privacy"><svg class="icon" aria-hidden="true"><use href="#i-ShieldCheck"></use></svg><div><strong>数据与隐私</strong><p>了解本机存储与 AI 数据使用范围</p></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button></div>
+
+            </section>
+            <section class="settings-group" aria-labelledby="settings-about-title">
+              <h3 id="settings-about-title">关于</h3>
+              <div class="settings-menu"><button class="capture-option" data-about-action="faq"><svg class="icon" aria-hidden="true"><use href="#i-CircleHelp"></use></svg><div><strong>常见问题</strong></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></button><a class="capture-option" href="privacy/index.html"><svg class="icon" aria-hidden="true"><use href="#i-ShieldCheck"></use></svg><div><strong>隐私条款</strong></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></a><a class="capture-option" href="terms/index.html"><svg class="icon" aria-hidden="true"><use href="#i-BookOpen"></use></svg><div><strong>服务条款</strong></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></a><a class="capture-option" href="mailto:hello@wiselife.cloud"><svg class="icon" aria-hidden="true"><use href="#i-MessageCircle"></use></svg><div><strong>联系我们</strong></div><svg class="icon" aria-hidden="true"><use href="#i-ChevronRight"></use></svg></a></div>
+
+            </section>
             <dl class="about-release-info" aria-label="版本信息">
               <div><dt>版本号</dt><dd>1.0.1 <span>（6）</span></dd></div>
               <div><dt>发布时间</dt><dd><time datetime="2026-10-26">2026-10-26</time><span class="release-example">示例</span></dd></div>
@@ -205,13 +215,19 @@
         </div>
         <div id="aiComposerDock" class="ai-composer-dock" hidden>
           <div id="aiProvider" class="ai-provider-bar"></div>
+          <section id="aiVoicePanel" class="ai-voice-panel" aria-label="语音输入演示" hidden>
+            <div class="ai-voice-heading"><span id="aiVoiceStatus" role="status">正在聆听…</span><span id="aiVoiceClock" class="ai-voice-clock" aria-hidden="true">00:00</span></div>
+            <div class="ai-voice-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </section>
+          <div id="aiVoiceTranscribing" class="ai-voice-transcribing" hidden><span role="status">正在转成文字…</span><button id="aiVoiceCancel" type="button">取消</button></div>
           <form id="aiChatForm" class="ai-composer">
             <label class="sr-only" for="aiQuestion">问问自己的记录</label>
-            <textarea id="aiQuestion" rows="1" maxlength="600" placeholder="问问自己的记录…" required></textarea>
+            <textarea id="aiQuestion" rows="1" maxlength="300" placeholder="打字或按住说话…" aria-describedby="aiComposerHint" required></textarea>
+            <button id="aiVoice" class="ai-voice-button" type="button" aria-label="按住说话" aria-controls="aiVoicePanel" aria-expanded="false" title="按住说话，松开转写"><svg class="icon" aria-hidden="true"><use href="#i-Mic"></use></svg></button>
             <button id="aiSend" type="submit" aria-label="发送问题"><svg class="icon"><use href="#i-ArrowUp"></use></svg></button>
             <button id="aiStop" type="button" data-ai-action="stop" aria-label="停止回答" hidden><svg class="icon"><use href="#i-Square"></use></svg></button>
           </form>
-          <span id="aiComposerHint">仅使用你允许的记录 · 示例回答</span>
+          <span id="aiComposerHint" role="status">仅使用你允许的记录 · 示例回答</span>
         </div>
         <div class="recording-banner" id="recordingBanner" hidden><span class="recording-dot"></span><span>模拟录音中</span><strong id="recordingClock">0小时0分0秒</strong><button id="finishRecording">结束并保存</button></div>
         <nav class="bottom-nav fa-nav" aria-label="主导航">
@@ -230,7 +246,7 @@
       </div>
     </div>
     <aside class="design-index" aria-label="设计说明">
-      <div class="rm-design-entry" aria-label="详情管理原型入口"><p>详情页 · 管理入口</p><button data-rm-preview="segment"><svg class="icon"><use href="#i-AudioLines"></use></svg>查看内容片段</button><div class="rm-design-states"><button data-rm-preview="record-voice">普通语音</button><button data-rm-preview="record-thought">闪念 · 无总结</button><button data-rm-preview="record-image">图片记录</button><button data-rm-preview="raw-recordings">原始录音</button></div></div>
+      <div class="rm-design-entry" aria-label="详情管理原型入口"><p>详情页 · 管理入口</p><button data-rm-preview="segment"><svg class="icon"><use href="#i-AudioLines"></use></svg>查看内容片段</button><div class="rm-design-states"><button data-rm-preview="record-voice">普通语音</button><button data-rm-preview="record-thought">闪念 · 仅原话</button><button data-rm-preview="record-image">图片记录</button><button data-rm-preview="raw-recordings">原始录音</button></div></div>
       <div class="lm-design-entry" aria-label="生活片段原型入口"><p>今天的片段 · 新设计</p><button data-lm-preview="ready"><svg class="icon"><use href="#i-Sun"></use></svg>查看生活片段</button><div class="lm-design-states"><button data-lm-preview="steps">昨日步数</button><button data-lm-preview="sleep">起床与睡眠</button><button data-lm-preview="move">城市变化</button><button data-lm-preview="pending">等待同步</button><button data-lm-preview="basic">无睡眠分期</button><button data-lm-preview="unresolved">地点待解析</button></div></div>
       <div class="index-item"><span>01</span><h2>留住生活</h2><p>用 24 小时视角，<br>串起零散的声音与经历。</p></div>
       <div class="index-item"><span>02</span><h2>随时问问 AI</h2><p>从自己的记录里找答案，<br>每条线索都能回到出处。</p></div>
@@ -345,12 +361,12 @@
     </div>
   </section>
   </main>
-  <footer class="site-footer"><a class="wordmark" href="#welcome">WiseLife</a><div class="footer-links"><a href="#questions">常见问题</a><a href="#ownership">数据与 AI</a><a href="privacy/">隐私政策</a><a href="terms/">服务条款</a><a href="mailto:hello@wiselife.cloud">联系我们</a><a href="https://unsplash.com/photos/pathway-between-green-trees-during-daytime-aZRU_SAUnmA" target="_blank" rel="noopener noreferrer">摄影：Ilse / Unsplash</a></div><p>把值得记住的，留给自己。</p></footer>
+  <footer class="site-footer"><a class="wordmark" href="#welcome"><img class="wiselife-app-logo" src="assets/brand/app-icon.png" alt="" width="32" height="32">WiseLife</a><div class="footer-links"><a href="#questions">常见问题</a><a href="#ownership">数据与 AI</a><a href="privacy/">隐私政策</a><a href="terms/">服务条款</a><a href="mailto:hello@wiselife.cloud">联系我们</a><a href="https://unsplash.com/photos/pathway-between-green-trees-during-daytime-aZRU_SAUnmA" target="_blank" rel="noopener noreferrer">摄影：Ilse / Unsplash</a></div><p>把值得记住的，留给自己。</p></footer>
   <script src="wiselife-site-locales.js"></script>
   <script src="wiselife-story-locales.js?v=companion-first-image-20261023"></script>
   <script src="daybook-speaker-contacts.js"></script>
   <script src="daybook-apple-reminders.js"></script>
-  <script src="daybook-ai.js?v=auto-retrieval-20261023"></script>
+  <script src="daybook-ai.js?v=voice-hold-20261031"></script>
   <script src="daybook-model-catalog.js"></script>
   <script src="daybook-chatgpt.js"></script>
   <script src="daybook-model-settings.js"></script>
@@ -360,11 +376,12 @@
   <script src="daybook-places.js"></script>
   <script src="daybook-record-sources.js"></script>
   <script src="daybook-life-moments.js"></script>
-  <script src="daybook-flash-assets.js?v=insight-action-1"></script>
+  <script src="daybook-flash-assets.js?v=flash-timeline-20261031"></script>
   <script src="daybook-record-merge.js?v=record-management-20261024"></script>
-  <script src="daybook-record-management.js?v=20261024"></script>
-  <script src="daybook.js?v=record-management-20261024"></script>
-  <script src="daybook-locales.js?v=record-management-20261024"></script>
+  <script src="daybook-record-management.js?v=flash-organized-20261031"></script>
+  <script src="daybook-settings.js?v=settings-hierarchy-20261031"></script>
+  <script src="daybook.js?v=flash-timeline-20261031"></script>
+  <script src="daybook-locales.js?v=settings-hierarchy-20261031"></script>
   <script src="wiselife-site.js"></script>
   <script src="wiselife-story.js"></script>
 </body>

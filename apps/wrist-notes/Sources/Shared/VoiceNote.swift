@@ -211,6 +211,7 @@ struct RecordingOrigin: Codable, Equatable {
     let deviceID: String
     let fileName: String
     let recordingTimeIsEstimated: Bool
+    var timeZoneIdentifier: String? = nil
 }
 
 struct MergedRecordingSource: Codable, Equatable, Identifiable {
@@ -249,6 +250,41 @@ struct SpeakerContactSnapshot: Codable, Equatable, Sendable {
     let identifier: String
     let displayName: String
     let thumbnailData: Data?
+    var origin: SpeakerContactOrigin = .ios
+    var organization: String? = nil
+    var emails: [SpeakerContactField] = []
+    var phoneNumbers: [SpeakerContactField] = []
+    var needsReview: Bool = false
+
+    init(identifier:String,displayName:String,thumbnailData:Data?,origin:SpeakerContactOrigin = .ios,organization:String? = nil,emails:[SpeakerContactField] = [],phoneNumbers:[SpeakerContactField] = []) {
+        self.identifier=identifier;self.displayName=displayName;self.thumbnailData=thumbnailData;self.origin=origin
+        self.organization=organization;self.emails=emails;self.phoneNumbers=phoneNumbers;self.needsReview=false
+    }
+    private enum CodingKeys:String,CodingKey { case identifier,displayName,thumbnailData,origin,organization,emails,phoneNumbers,needsReview }
+    init(from decoder:Decoder) throws {
+        let values=try decoder.container(keyedBy:CodingKeys.self)
+        identifier=try values.decode(String.self,forKey:.identifier)
+        displayName=try values.decode(String.self,forKey:.displayName)
+        thumbnailData=try values.decodeIfPresent(Data.self,forKey:.thumbnailData)
+        origin=try values.decodeIfPresent(SpeakerContactOrigin.self,forKey:.origin) ?? .ios
+        organization=try values.decodeIfPresent(String.self,forKey:.organization)
+        emails=try values.decodeIfPresent([SpeakerContactField].self,forKey:.emails) ?? []
+        phoneNumbers=try values.decodeIfPresent([SpeakerContactField].self,forKey:.phoneNumbers) ?? []
+        needsReview=try values.decodeIfPresent(Bool.self,forKey:.needsReview) ?? false
+    }
+}
+
+enum SpeakerContactOrigin: String, Codable, Sendable { case ios, manual }
+
+enum SpeakerContactSyncState: String, Codable, Sendable {
+    case manual, current, unavailable, missing
+    case needsRefresh = "needs_refresh"
+}
+
+struct SpeakerContactField: Codable, Equatable, Sendable, Identifiable {
+    let label: String
+    let value: String
+    var id: String { label + ":" + value }
 }
 
 enum RecordingTitleSource: String, Codable { case model, transcriptExcerpt }
@@ -316,6 +352,9 @@ struct VoiceNote: Codable, Identifiable, Equatable {
     var recordingGroupID: UUID? = nil
     var recordingGroupOrdinal: Int? = nil
     var recordingGroupOffset: TimeInterval? = nil
+    var recordingGroupFinalOrdinal: Int? = nil
+    /// Local iPhone receipt time, used only for the lost-final-marker idle fallback.
+    var recordingGroupReceivedAt: Date? = nil
 
     private var hasDefaultRecordingTitle: Bool {
         let content = RecordingTitleText.withoutPrefix(title)

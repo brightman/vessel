@@ -36,7 +36,8 @@ final class NoteRepository {
     func importRecording(id: UUID, from source: URL, kind: RecordingKind, capturedAt: Date, duration: TimeInterval,
                          origin: RecordingOrigin? = nil, location: CaptureLocation? = nil,
                          mergedSources: [MergedRecordingSource]? = nil, recordingGroupID: UUID? = nil,
-                         recordingGroupOrdinal: Int? = nil, recordingGroupOffset: TimeInterval? = nil) throws -> VoiceNote {
+                         recordingGroupOrdinal: Int? = nil, recordingGroupOffset: TimeInterval? = nil,
+                         recordingGroupFinalOrdinal: Int? = nil, recordingGroupReceivedAt: Date? = nil) throws -> VoiceNote {
         var copied: URL?
         let result: (VoiceNote, [VoiceNote])
         do {
@@ -50,6 +51,8 @@ final class NoteRepository {
                     note.recordingGroupID = recordingGroupID
                     note.recordingGroupOrdinal = recordingGroupOrdinal
                     note.recordingGroupOffset = recordingGroupOffset
+                    note.recordingGroupFinalOrdinal = recordingGroupFinalOrdinal
+                    note.recordingGroupReceivedAt = recordingGroupReceivedAt
                 }
                 let destination = try validatedURL(for: note)
                 if !files.fileExists(atPath: destination.path) {
@@ -92,6 +95,42 @@ final class NoteRepository {
             return try load()
         }
         notes = revised
+    }
+
+    @discardableResult
+    func setSpeakerContact(noteID:UUID,speakerID:String,contact:SpeakerContactSnapshot?,expectedRevision:UUID?,expectedSegments:[TranscriptSegment]) throws -> Bool {
+        let saved = try db.transaction {
+            guard var note=try load().first(where:{$0.id==noteID}),note.kind != .thought else { return false }
+            let sourceID=AudioSourceID(kind:.legacyNote,id:noteID)
+            let hasSource=try !db.query("SELECT 1 FROM audio_processing_sources WHERE source_key=?",[.text(sourceID.key)]).isEmpty
+            let contacts=ContentSegmentRepository(database:db)
+            if contact != nil {
+                guard hasSource else { return false }
+                let hasSpeaker=try !db.query("SELECT 1 FROM audio_transcript_spans t JOIN audio_processing_jobs j ON j.id=t.job_id JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.source_key=? AND j.active=1 AND j.configuration_key=s.configuration_key AND j.result IS NOT NULL AND t.speaker_id=? LIMIT 1",[.text(sourceID.key),.text(speakerID)]).isEmpty
+                // A VoiceNote payload alone is not searchable speaker evidence. Do not
+                // report a successful association until the normalized transcript exists.
+                guard hasSpeaker else { return false }
+            }
+            guard note.setSpeakerContact(speakerID,contact:contact,expectedRevision:expectedRevision,expectedSegments:expectedSegments) else { return false }
+            let values=try values(for:note)
+            try db.execute("UPDATE voice_notes SET captured_at=?,kind=?,title=?,transcript=?,summary=?,duration=?,audio_filename=?,payload=? WHERE id=?",Array(values.dropFirst())+[.text(noteID.uuidString)])
+            if let contact {
+                try contacts.setSpeakerContact(sourceID:sourceID,speakerID:speakerID,contact:contact)
+            } else if hasSource {
+                try contacts.setSpeakerContact(sourceID:sourceID,speakerID:speakerID,contact:nil)
+            }
+            return true
+        }
+        if saved { notes=try load() }
+        return saved
+    }
+
+    func saveManualContact(name:String,organization:String?,email:String?,phone:String?) throws -> SpeakerContactSnapshot {
+        try ContentSegmentRepository(database:db).saveManualContact(name:name,organization:organization,email:email,phone:phone)
+    }
+
+    func contactProfiles(search:String = "") throws -> [SpeakerContactSnapshot] {
+        try ContentSegmentRepository(database:db).contactProfiles(search:search)
     }
 
     @discardableResult
@@ -163,10 +202,17 @@ final class NoteRepository {
     }
     private func load() throws -> [VoiceNote] {
         try db.query("SELECT * FROM voice_notes ORDER BY captured_at,id").map { row in
-            let note = try DaybookDatabase.decode(VoiceNote.self, row["payload"])
+            var note = try DaybookDatabase.decode(VoiceNote.self, row["payload"])
             let projected = try values(for: note)
             for (index, column) in ["id","captured_at","kind","title","transcript","summary","duration","audio_filename"].enumerated() {
                 guard row[column] == projected[index] else { throw invalidStorage() }
+            }
+            if note.kind != .thought {
+                let normalized=try ContentSegmentRepository(database:db).speakerContacts(sourceID:AudioSourceID(kind:.legacyNote,id:note.id))
+                var visible=note.speakerContacts ?? [:]
+                for key in Array(visible.keys) { visible[key]?.needsReview=true }
+                visible.merge(normalized,uniquingKeysWith:{ _,current in current })
+                note.speakerContacts=visible.isEmpty ? nil : visible
             }
             return note
         }

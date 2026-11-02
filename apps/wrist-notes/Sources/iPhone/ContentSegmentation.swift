@@ -11,6 +11,7 @@ struct ContentSegmentationResult: Sendable {
     let state: ContentProcessingState
 }
 enum ContentSegmentation {
+    static let minimumBlankDuration: TimeInterval = 10 * 60
     static func build(source: AudioSourceSnapshot, reliableNoSpeech: [AudioTimeRange], successfulCoverage: [AudioTimeRange], asrEmpty: [AudioTimeRange] = [], transcriptRanges: [AudioTimeRange] = [], keepAsSingleRecording: Bool = false) throws -> ContentSegmentationResult {
         try source.validate()
         for interval in reliableNoSpeech + successfulCoverage + asrEmpty + transcriptRanges { try interval.validate() }
@@ -32,7 +33,7 @@ enum ContentSegmentation {
             // Only dual-success coverage may supply a silence boundary.
             let gaps = intersect(silence,coverage).compactMap { value -> AudioTimeRange? in
                 let a = max(start,value.start), b = min(end,value.end)
-                return b-a >= 600 ? .init(start:a,end:b) : nil
+                return b-a >= minimumBlankDuration ? .init(start:a,end:b) : nil
             }
             var cursor = start
             for gap in gaps {
@@ -60,7 +61,7 @@ enum ContentSegmentation {
         var separated: [ContentSegmentDraft] = []
         for draft in drafts {
             guard let start=draft.ranges.first?.sessionStartOffset, let end=draft.ranges.last?.end else { continue }
-            let blanks=normalized(asrEmpty).filter { $0.end-$0.start >= 180 }
+            let blanks=normalized(asrEmpty).filter { $0.end-$0.start >= minimumBlankDuration }
             let cuts=blanks.flatMap { blank -> [Double] in
                 let gap=AudioTimeRange(start:max(start,blank.start),end:min(end,blank.end))
                 guard gap.end > gap.start else { return [] }
@@ -187,6 +188,8 @@ struct ContentSegment: Codable, Equatable, Identifiable, Sendable {
     var editorial: ContentSegmentEditorial? = nil
     /// Missing in older stores means model-generated, so adaptive enrichment may refresh it.
     var titleManuallyEdited: Bool? = nil
+    /// Missing in older stores means model-generated; a manual summary survives routine enrichment.
+    var summaryManuallyEdited: Bool? = nil
     var displayTitle: String {
         if !title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty { return title }
         return hasText ? "录音片段" : (isFinal || boundaryReady == true ? "未识别到文字" : "等待识别")

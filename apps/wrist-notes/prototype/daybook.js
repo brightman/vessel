@@ -36,7 +36,7 @@
     {id:'tired-14',day:14,kind:'thought',start:7+5/60,end:7+6/60,time:'07:05',duration:46,title:'今早醒来还有点困',preview:'“今天醒来还有点困，先喝杯水。”',source:'Apple Watch',summary:'醒来后主动记录了有点困的感受。',text:'今天醒来还有点困，先喝杯水。',tags:['晨间','自述']},
     {id:'sleep-13',day:13,kind:'sleep',start:0,end:7+35/60,time:'00:00',duration:27300,title:'10月13日睡眠记录',preview:'睡眠片段合计 7 小时 35 分钟。',source:'Apple 健康',summary:'10月13日睡眠片段合计 7 小时 35 分钟。',text:'来源：Apple 健康（示例）\n时长：7 小时 35 分钟',tags:['睡眠']}
   ];
-  const flashAssets=window.createDaybookFlashAssets({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord:id=>records.find(r=>r.id===id),refreshRecords:renderRecordLists});
+  const flashAssets=window.createDaybookFlashAssets({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord:id=>records.find(r=>r.id===id),refreshRecords:renderRecordLists,showTimeline:showFlashTimeline});
   flashAssets.seed(records);
   const places=window.createDaybookPlaces({$,esc,icon,openSheet,getDay:()=>state.day,getRecords:()=>records,isEnabled:()=>sources.places.enabled});
   places.seed(records);
@@ -84,7 +84,7 @@
   function filteredRecords() {
     return dayRecords().filter(r=>{
       const type=state.filter==='all'||(state.filter==='audio'&&audioRecord(r))||(state.filter==='image'&&r.kind==='image')||(state.filter==='thought'&&r.kind==='thought')||(state.filter==='life'&&['sleep','activity','journal','location'].includes(r.kind));
-      return type&&`${r.title} ${r.text} ${r.preview} ${r.tags.join(' ')}`.toLocaleLowerCase().includes(state.query.toLocaleLowerCase().trim());
+      return type&&`${r.title} ${r.text} ${r.preview} ${r.tags.join(' ')} ${flashAssets.searchText(r)}`.toLocaleLowerCase().includes(state.query.toLocaleLowerCase().trim());
     });
   }
   function renderMetrics() {
@@ -113,12 +113,12 @@
   }
   function recapCard(recap,home=false) {
     const pending=recapPending(recap);
-    return `<article class="recap-card"><div class="recap-label">${icon('BookOpen')}<span>${home&&recap.day===TODAY-1?'昨日回顾':`${humanDate(recap.day)} · `}<span>${home&&recap.day===TODAY-1?'':'回顾'}</span></span><span class="recap-status">${pending?'有新记录 · 待更新':'每日记录'}</span></div><p>${esc(recap.text)}</p><button class="recap-open" data-recap="${recap.day}"><span>${pending?'新记录加入后将重新生成':`<span>来自</span> ${recap.sourceIds.length} <span>条记录</span>`}</span><span><span>查看回顾</span> ${icon('ArrowUpRight')}</span></button></article>`;
+    return `<article class="recap-card"><div class="recap-label">${icon('BookOpen')}<span>${home&&recap.day===TODAY-1?'昨日回顾':`${humanDate(recap.day)} · `}<span>${home&&recap.day===TODAY-1?'':'回顾'}</span></span><span class="recap-status">${pending?'有新记录 · 待更新':'每日记录'}</span></div><p>${esc(recap.text)}</p><button class="recap-open" data-recap="${recap.day}"><span>${pending?'有新记录，可手动更新回顾':`<span>来自</span> ${recap.sourceIds.length} <span>条记录</span>`}</span><span><span>查看回顾</span> ${icon('ArrowUpRight')}</span></button></article>`;
   }
   function renderHomeRecap() {
     const recapDay=state.day===TODAY?TODAY-1:state.day;
     const recap=recapForDay(recapDay);
-    $('homeRecap').innerHTML=recap?recapCard(recap,true):`<div class="quiet-info">${icon('BookOpen')}<p>${records.some(r=>r.day===recapDay)?'记录正在整理，回顾生成后会出现在这里。':state.day===TODAY?'昨天还没有可回顾的记录。':'这一天还没有可回顾的记录。'}</p></div>`;
+    $('homeRecap').innerHTML=recap?recapCard(recap,true):`<div class="quiet-info">${icon('BookOpen')}<p>${records.some(r=>r.day===recapDay)?'回顾尚未生成，点开手动生成。':state.day===TODAY?'昨天还没有可回顾的记录。':'这一天还没有可回顾的记录。'}</p></div>`;
   }
   function recordingContentTitle(r) {
     const title=(r.title||'').trim().replace(/^长录音\s*·\s*/u,'');
@@ -126,6 +126,8 @@
     return /^\d{1,2}月\d{1,2}日\s+\d{1,2}:\d{2}$/u.test(title)?'':title;
   }
   function recordMarkup(r,swipeable=false) {
+    const flashMarkup=flashAssets.timelineMarkup(r);
+    if(flashMarkup)return flashMarkup;
     let markup;
     if(r.lifeMoment)markup=lifeMoments.markup(r);
     else {
@@ -162,6 +164,16 @@
       $('searchInput').placeholder='搜索想法、片段或关键词';
     }
     $('momentsTitle').textContent=state.day===TODAY?'今天的片段':`${humanDate(state.day)}的片段`;
+  }
+  function showFlashTimeline(target='home') {
+    document.body.classList.add('flash-timeline-preview');
+    closeSheet();state.day=TODAY;state.query='';state.filter='thought';$('searchInput').value='';
+    renderDay();showView(target==='library'?'library':'today');
+    $('product').scrollIntoView({block:'start'});
+    if(target!=='library'){
+      const section=$('homeMoments').querySelector('[data-flash-group]')||$('momentsTitle').closest('section'),scroll=$('screenScroll');
+      scroll.scrollTop+=section.getBoundingClientRect().top-scroll.getBoundingClientRect().top-10;
+    }
   }
   function renderInsights() {
     const pending=dayHasNewRecords(state.day);
@@ -204,9 +216,10 @@
   }
   function openSheet(title,body,{record}={}) {
     stopPlayback();$('sheetTitle').textContent=title;$('sheetBody').innerHTML=body;
+    $('sheet').dataset.flash=String(record?.kind==='thought');
     recordManagement?.setRecord(record);
     if(!$('sheet').open){sheetOpener=document.activeElement;$('sheet').showModal();}
-    positionSheet();$('sheet').scrollTop=0;$('closeSheet').focus();
+    positionSheet();$('sheetBody').scrollTop=0;$('closeSheet').focus();
   }
   function closeSheet(){stopPlayback();$('sheet').close();}
   function openAboutFAQ() {
@@ -238,12 +251,13 @@
     const saved=state.plans.has(id);
     openSheet('给明天，一小步',`<div class="insight-label">${icon('Sun')}10月20日 · 明天</div><h3 class="insight-detail-title">${esc(item.action)}</h3><p class="sheet-intro">${esc(item.actionDetail)}</p><div class="quiet-info">${icon('Link2')}<p>来自：${esc(item.title)}<br>只加入原型内的计划，不写入系统日历。</p></div><button class="primary-button wide" data-confirm-plan="${id}">${icon(saved?'Check':'Plus')}${saved?'已记到明天':'记到明天'}</button>${saved?`<button class="plain-row" data-remove-plan="${id}"><span>撤销这条计划</span>${icon('RotateCcw')}</button>`:''}`);
   }
+  function recordSummaryMarkup(record){if(record.kind==='thought')return flashAssets.resultMarkup(record);return `${recordManagement.summaryMarkup(record)}${flashAssets.recordSuggestions(record)}`;}
   function openRecord(id, detailTab = 'summary') {
     const r=records.find(r=>r.id===id);if(!r)return;activeRecord=r;playSeconds=0;
     if(lifeMoments.open(r))return;
     if(r.kind==='image'){photos.openRecord(r);return;}
     const wave=Array.from({length:46},(_,i)=>`<span style="height:${4+Math.round(Math.abs(Math.sin(i*1.17)*Math.cos(i*.41))*32)}px"></span>`).join('');
-    openSheet(r.title,`<div class="detail-meta">${humanDate(r.day)} ${r.time} · ${esc(r.source)}${audioRecord(r)?' · '+formatDuration(r.duration):''}</div>${recordSources.detail(r)}${places.detail(r)}${recordManagement.segmentInfo(r)}${audioRecord(r)?`<div class="audio-player" aria-label="${r.segment?'本段录音播放进度演示':'录音播放进度演示'}"><div class="audio-wave" aria-hidden="true">${wave}</div><div class="audio-controls"><span id="playerTime">${formatDuration(0)}</span><button class="play-button" id="playButton" aria-label="演示播放进度">${icon('Play')}</button><span>${formatDuration(r.duration)}</span></div><p class="subtle" style="margin:12px 0 0;text-align:center">示例录音，仅演示进度，不播放声音</p></div>`:''}${r.transcriptAdjusted?'':speakerContacts.overview(r)}<div class="detail-tabs" role="tablist" aria-label="记录内容"><button role="tab" id="recordSummaryTab" data-detail-tab="summary" aria-selected="true" aria-controls="recordContent">总结</button><button role="tab" id="recordTextTab" data-detail-tab="text" aria-selected="false" aria-controls="recordContent">全文</button></div><div id="recordContent" class="detail-content" role="tabpanel" aria-labelledby="recordSummaryTab">${recordManagement.summaryMarkup(r)}</div>${flashAssets.entry(r)}`,{record:r});
+    openSheet(r.title,`<div class="detail-meta">${humanDate(r.day)} ${r.time} · ${esc(r.source)}${audioRecord(r)?' · '+formatDuration(r.duration):''}</div>${recordSources.detail(r)}${places.detail(r)}${recordManagement.segmentInfo(r)}${audioRecord(r)?`<div class="audio-player" aria-label="${r.segment?'本段录音播放进度演示':'录音播放进度演示'}"><div class="audio-wave" aria-hidden="true">${wave}</div><div class="audio-controls"><span id="playerTime">${formatDuration(0)}</span><button class="play-button" id="playButton" aria-label="演示播放进度">${icon('Play')}</button><span>${formatDuration(r.duration)}</span></div><p class="subtle" style="margin:12px 0 0;text-align:center">示例录音，仅演示进度，不播放声音</p></div>`:''}${r.transcriptAdjusted?'':speakerContacts.overview(r)}<div class="detail-tabs" role="tablist" aria-label="记录内容"><button role="tab" id="recordSummaryTab" data-detail-tab="summary" aria-selected="true" aria-controls="recordContent">${r.kind==='thought'?'整理':'总结'}</button><button role="tab" id="recordTextTab" data-detail-tab="text" aria-selected="false" aria-controls="recordContent">全文</button></div><div id="recordContent" class="detail-content" role="tabpanel" aria-labelledby="recordSummaryTab">${recordSummaryMarkup(r)}</div>${flashAssets.entry(r)}`,{record:r});
     if(detailTab==='text'){$('recordTextTab').click();$('recordTextTab').scrollIntoView({block:'nearest'});}
   }
   function stopPlayback(){clearInterval(playerTimer);playerTimer=null;}
@@ -366,7 +380,7 @@
     if(b.dataset.dismissInsight){state.dismissed.add(b.dataset.dismissInsight);closeSheet();renderInsights();ai?.render();toast('已收起这条洞察，谢谢你的反馈。');return;}
     if(b.dataset.prototypeFlow){if(b.dataset.prototypeFlow==='contacts')openRecord('review','text');else ai.createDraft('scope');return;}
     if(b.dataset.aboutAction==='faq'){openAboutFAQ();return;}
-    if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').innerHTML=b.dataset.detailTab==='text'?(activeRecord.transcriptAdjusted?esc(activeRecord.text):speakerContacts.transcript(activeRecord)):recordManagement.summaryMarkup(activeRecord);$('recordContent').setAttribute('aria-labelledby',b.id);return;}
+    if(b.dataset.detailTab){document.querySelectorAll('[data-detail-tab]').forEach(tab=>tab.setAttribute('aria-selected',String(tab===b)));$('recordContent').innerHTML=b.dataset.detailTab==='text'?(activeRecord.transcriptAdjusted?esc(activeRecord.text):speakerContacts.transcript(activeRecord)):recordSummaryMarkup(activeRecord);$('recordContent').setAttribute('aria-labelledby',b.id);return;}
     if(b.dataset.source){openSource(b.dataset.source);return;}
     if(b.dataset.connectSource){sources[b.dataset.connectSource].enabled=true;renderSources();renderRhythm();closeSheet();toast('示例来源已连接，未读取真实数据。');return;}
     const actions={watchButton:()=>hardware.open(),dateButton:openCalendar,searchButton:()=>showView('library',{focusSearch:true}),settingsButton:()=>showView('data'),allMomentsButton:()=>showView('library'),captureButton:openCapture,closeSheet,captureImagesButton:()=>photos.openCapture(),asrSettingsButton:()=>modelSettings.openASR(),myVoiceSettingsButton:()=>myVoice.open(),aiModelSettingsButton:()=>modelSettings.openAI(),startRecordingButton:startRecording,finishRecording,playButton:togglePlayback,clearDayButton:()=>{mergeSelection.clear();state.day=17;state.filter='all';state.query='';$('searchInput').value='';renderDay();showView('today');}};
@@ -398,6 +412,7 @@
     renderDay();
   }});
   modelSettings=window.createDaybookModelSettings(sharedUI);
+  window.createDaybookSettings(sharedUI);
   myVoice=window.createDaybookVoiceProfile(sharedUI);
   ai=window.createDaybookAI({
     $,esc,icon,toast,openSheet,closeSheet,openCalendar,showView,
@@ -409,13 +424,16 @@
   });
   renderDay();
   const preview=new URLSearchParams(window.location.search).get('preview');
+  if(preview==='today')requestAnimationFrame(()=>{showView('today');$('product').scrollIntoView({block:'start'});});
+  if(preview==='flash-timeline')requestAnimationFrame(()=>showFlashTimeline());
+  if(preview==='settings')requestAnimationFrame(()=>{showView('data');$('product').scrollIntoView({block:'start'});});
   if(['record-management','segment','record-voice','record-thought','record-image','raw-recordings'].includes(preview))requestAnimationFrame(()=>recordManagement.preview(preview));
   if(preview?.startsWith('moments'))requestAnimationFrame(()=>lifeMoments.preview(preview.split('-')[1]||'ready'));
-  if(['assets','flash','flash-waiting','flash-unavailable','flash-empty','actions'].includes(preview))requestAnimationFrame(()=>{
+  if(['notebook','assets','flash','flash-idea','flash-expense','flash-incomplete','flash-failed','flash-waiting','flash-unavailable','flash-empty','actions'].includes(preview))requestAnimationFrame(()=>{
     $('product').scrollIntoView({block:'start'});
-    if(preview==='assets')flashAssets.openLibrary();
+    if(preview==='notebook'||preview==='assets')flashAssets.openLibrary();
     else if(preview==='actions')showView('actions');
-    else {showView('insights');flashAssets.openCapture(preview==='flash'?'flash-mixed':'thought-noon',preview==='flash'?'ready':preview.replace('flash-',''));}
+    else {showView('library');const id={flash:'flash-mixed','flash-idea':'flash-method','flash-expense':'flash-expense','flash-incomplete':'flash-incomplete','flash-failed':'flash-failed'}[preview];flashAssets.openCapture(id||'thought-noon',id?'ready':preview.replace('flash-',''));}
   });
   if(['contacts','reminders'].includes(preview))requestAnimationFrame(()=>{
     $('product').scrollIntoView({block:'start'});

@@ -26,7 +26,7 @@ extension PhoneRecordingEngine {
     func recoverDraft(_ draft: PhoneRecordingDraft) throws -> PhoneRecordingDraft {
         PhoneRecordingDraft(id:draft.id,fileURL:draft.fileURL,duration:recoveredDuration(for:draft),capturedAt:draft.capturedAt,
             location:draft.location,chunks:draft.chunks,activeChunkOrdinal:draft.activeChunkOrdinal,isChunked:draft.isChunked,
-            timeZoneIdentifier:draft.timeZoneIdentifier)
+            timeZoneIdentifier:draft.timeZoneIdentifier, isThought:draft.isThought)
     }
 }
 
@@ -64,6 +64,8 @@ extension PhoneRecordingEngine {
         activity.onDismiss = { [weak self] id in Task { try? await self?.stopAndSave(expectedSessionID: id) } }
         do {
             if let draft = try store.load().first {
+                // Retain the identity even if audio inspection fails, so the user can discard it.
+                current = draft; phase = .failed
                 current = try engine.recoverDraft(draft)
                 phase = .failed; errorMessage = "发现未保存的录音，请重试保存或丢弃。"
             }
@@ -76,6 +78,7 @@ extension PhoneRecordingEngine {
         let drafts = try self.store.load()
         if drafts.isEmpty && self.current == nil { self.phase = .idle; self.errorMessage = self.store.recoveryWarning }
         for draft in drafts {
+            self.current = draft; self.phase = .failed
             self.current = try self.engine.recoverDraft(draft)
             self.phase = .failed
             // An empty manifest means the process stopped before any samples were captured.
@@ -86,7 +89,7 @@ extension PhoneRecordingEngine {
         }
         if let warning = self.store.recoveryWarning { self.errorMessage = warning }
     }
-    func start(requireLiveActivity: Bool) async throws { try await serialized { try await self.begin(requireLiveActivity: requireLiveActivity) } }
+    func start(requireLiveActivity: Bool, isThought: Bool = false) async throws { try await serialized { try await self.begin(requireLiveActivity: requireLiveActivity, isThought: isThought) } }
     func toggle() async throws {
         try await serialized {
             if self.phase == .recording { try await self.finish(expected: nil) }
@@ -101,10 +104,23 @@ extension PhoneRecordingEngine {
         }
     }
     func discard() async {
-        try? await serialized {
-            self.engine.discardRecording()
-            if let d = self.current { try self.store.remove(d); await self.activity.finish(sessionID: d.id, saved: false) }
-            self.current = nil; self.phase = .idle; self.errorMessage = nil
+        do {
+            try await serialized {
+                do {
+                    self.engine.discardRecording()
+                    if let d = self.current {
+                        try self.store.remove(d)
+                        await self.activity.finish(sessionID: d.id, saved: false)
+                    }
+                    self.current = nil; self.phase = .idle; self.errorMessage = nil; self.pendingWarning = nil
+                } catch {
+                    self.phase = .failed
+                    self.errorMessage = "删除未完成：\(error.localizedDescription)"
+                    throw error
+                }
+            }
+        } catch {
+            // The serialized operation retains its pending draft and reports the failure.
         }
     }
     private func serialized(_ operation: @escaping @MainActor () async throws -> Void) async throws {
@@ -117,13 +133,13 @@ extension PhoneRecordingEngine {
         tail = Task { _ = try? await work.value }
         try await withTaskCancellationHandler { try await work.value } onCancel: { work.cancel() }
     }
-    private func begin(requireLiveActivity: Bool) async throws {
+    private func begin(requireLiveActivity: Bool, isThought: Bool = false) async throws {
         if phase == .recording { return }
         guard phase == .idle else { throw failure("请先保存或丢弃上一段录音。") }
         phase = .starting; errorMessage = nil; lastSaved = nil; pendingWarning = nil
         var prepared: PhoneRecordingDraft?
         do {
-            let d = try store.prepare(id: UUID(), at: .now); prepared = d; current = d
+            let d = try store.prepare(id: UUID(), at: .now, isThought: isThought); prepared = d; current = d
             if requireLiveActivity { try await activity.start(sessionID: d.id, startedAt: d.capturedAt) }
             else { try? await activity.start(sessionID: d.id, startedAt: d.capturedAt) }
             try Task.checkCancellation()

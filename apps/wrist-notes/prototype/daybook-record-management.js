@@ -121,7 +121,7 @@
       closeMenu(); currentID=eligible(record)?record.id:null; more.hidden=!currentID;
       if (!currentID) return;
       const busy=pending.has(record.id), summaryLabel=busy?'正在生成总结…':record.summary?'重新生成总结':'生成总结';
-      const items=[['edit','编辑记录','NotebookPen'],['summary',summaryLabel,'Lightbulb'],...(record.segment?[['adjust','调整片段','Settings2']]:[]),...(audio(record)?[['status','查看处理状态','Activity']]:[]),['delete',record.segment?'删除此片段':record.kind==='image'?'删除图片记录':'删除录音','X']];
+      const items=[['edit',record.kind==='thought'?'编辑标题与全文':'编辑记录','NotebookPen'],record.kind==='thought'?['back','查看整理结果','Lightbulb']:['summary',summaryLabel,'Lightbulb'],...(record.segment?[['adjust','调整片段','Settings2']]:[]),...(audio(record)&&record.kind!=='thought'?[['status','查看处理状态','Activity']]:[]),['delete',record.segment?'删除此片段':record.kind==='image'?'删除图片记录':'删除录音','X']];
       menu.innerHTML=items.map(([name,label,glyph])=>action(name,`${icon(glyph)}<span>${label}</span>`,record.id,`role="menuitem" tabindex="-1" ${name==='summary'&&busy?'disabled':''} class="${name==='delete'?'rm-destructive':''}"`)).join('');
     }
     function toggleMenu() {
@@ -130,13 +130,18 @@
       setRecord(get(currentID));menu.hidden=false;more.setAttribute('aria-expanded','true');menu.querySelector('button:not(:disabled)')?.focus();
     }
     function summaryMarkup(r) {
-      if(pending.has(r.id))return '<div class="rm-empty-summary" role="status"><span class="rm-processing-dot"></span><strong>正在生成总结…</strong><p>仅整理当前记录的示例文字。</p></div>';
-      if(r.summary)return `${esc(r.summary)}${r.summaryDemo?'<p class="source-footnote">总结演示 · 根据本条文字整理，未调用 AI。</p>':''}`;
-      return `<div class="rm-empty-summary"><strong>${r.summaryState==='changed'?'内容已更新':'还没有总结'}</strong><p>为当前记录整理重点，方便下次回看。</p>${action('summary',`${icon('Lightbulb')}生成总结`,r.id,'class="secondary-button"')}</div>`;
+      const heading=r.segment?`<div class="rm-summary-heading"><h3>总结</h3>${action('edit-title-summary',`${icon('NotebookPen')}编辑标题与总结`,r.id,'class="rm-edit-title-summary"')}</div>`:'';
+      if(pending.has(r.id))return `${heading}<div class="rm-empty-summary" role="status"><span class="rm-processing-dot"></span><strong>正在生成总结…</strong><p>仅整理当前记录的示例文字。</p></div>`;
+      if(r.summary)return `${heading}<p class="rm-summary-text">${esc(r.summary)}</p>${r.summaryDemo?'<p class="source-footnote">总结演示 · 根据本条文字整理，未调用 AI。</p>':''}`;
+      return `${heading}<div class="rm-empty-summary"><strong>${r.summaryState==='changed'?'内容已更新':'还没有总结'}</strong><p>为当前记录整理重点，方便下次回看。</p>${action('summary',`${icon('Lightbulb')}生成总结`,r.id,'class="secondary-button"')}</div>`;
     }
-    const segmentInfo = r => r.segment?`<div class="rm-segment-context"><span>内容片段</span><span>${rangeLabel(r)}</span><small>仅播放此片段 · 可跨多个录音文件</small></div>`:'';
+    const segmentInfo = r => r.segment?`<div class="rm-segment-context"><span>内容片段</span><span>${rangeLabel(r)}</span><small>仅播放此片段 · 可跨多个录音文件</small>${sessions.some(session=>session.id===r.segment.batchID)?action('raw',`${icon('AudioLines')}查看完整录音`,r.segment.batchID,'class="rm-full-recording-link"'):''}</div>`:'';
     function openEdit(r) {
-      openSheet('编辑记录',`${back(r.id)}<form id="rmEditForm" data-rm-id="${esc(r.id)}"><label class="note-field"><span>标题</span><input id="rmTitle" maxlength="80" required value="${esc(r.title)}"></label><label class="note-field"><span>${r.kind==='image'?'补充说明':'全文'}</span><textarea id="rmText" rows="8" maxlength="12000">${esc(r.kind==='image'?r.caption||'':r.text||'')}</textarea></label><p class="source-footnote">只修改当前记录。文字更改后，可重新生成总结。</p>${note}<div class="sheet-actions">${action('back','取消',r.id,'class="secondary-button"')}<button type="submit" class="primary-button">保存修改</button></div></form>`);
+      openSheet(r.kind==='thought'?'编辑标题与全文':'编辑记录',`${back(r.id)}<form id="rmEditForm" data-rm-id="${esc(r.id)}"><label class="note-field"><span>标题</span><input id="rmTitle" maxlength="80" required value="${esc(r.title)}"></label><label class="note-field"><span>${r.kind==='image'?'补充说明':'全文'}</span><textarea id="rmText" rows="8" maxlength="12000">${esc(r.kind==='image'?r.caption||'':r.text||'')}</textarea></label><p class="source-footnote">${r.kind==='thought'?'只修改本条标题与全文。已有想法、账目和行动可在各自卡片中编辑，不会重复创建。':'只修改当前记录。文字更改后，可重新生成总结。'}</p>${note}<div class="sheet-actions">${action('back','取消',r.id,'class="secondary-button"')}<button type="submit" class="primary-button">保存修改</button></div></form>`);
+    }
+    function openEditTitleSummary(r) {
+      if(!r.segment)return;
+      openSheet('编辑标题与总结',`${back(r.id)}<form id="rmTitleSummaryForm" data-rm-id="${esc(r.id)}"><label class="note-field"><span>标题</span><input id="rmSummaryTitle" maxlength="80" required value="${esc(r.title)}"></label><label class="note-field"><span>总结</span><textarea id="rmSummaryText" rows="6" maxlength="2400" placeholder="写下这段内容的简短总结">${esc(r.summary||'')}</textarea></label><p class="source-footnote">只修改当前片段的标题与总结，不改全文，也不会调用 AI。</p>${note}<div class="sheet-actions">${action('back','取消',r.id,'class="secondary-button"')}<button type="submit" class="primary-button">保存</button></div></form>`);
     }
     function generate(r) {
       if (pending.has(r.id)) return;
@@ -184,7 +189,7 @@
     }
     function confirmDelete(r) {
       const label=r.segment?'删除此片段':r.kind==='image'?'删除图片记录':'删除录音';
-      openSheet(`${label}？`,`${back(r.id)}<p class="sheet-intro">${esc(r.title)}</p><div class="rm-delete-note">${r.segment?'此片段将从时间轴移除。原始录音文件仍保留，其他片段不受影响。':r.kind==='image'?'移除这条图片记录；系统相册中的照片不受影响。':'移除此录音记录及其全文、总结。'}</div>${note}<div class="sheet-actions">${action('back','取消',r.id,'class="secondary-button"')}${action('confirm-delete',label,r.id,'class="danger-button"')}</div>`);
+      openSheet(`${label}？`,`${back(r.id)}<p class="sheet-intro">${esc(r.title)}</p><div class="rm-delete-note">${r.segment?'此片段将从时间轴移除。原始录音文件仍保留，其他片段不受影响。':r.kind==='image'?'移除这条图片记录；系统相册中的照片不受影响。':r.kind==='thought'?'移除此录音记录及全文；已保存的想法、账目和行动保留，可到各自条目中撤销。':'移除此录音记录及其全文、总结。'}</div>${note}<div class="sheet-actions">${action('back','取消',r.id,'class="secondary-button"')}${action('confirm-delete',label,r.id,'class="danger-button"')}</div>`);
     }
     function openRaw(batchID) {
       const session=sessions.find(s=>s.id===batchID);
@@ -214,6 +219,7 @@
       try {
         if(name==='back')openRecord(r.id);
         if(name==='edit')openEdit(r);
+        if(name==='edit-title-summary')openEditTitleSummary(r);
         if(name==='summary')generate(r);
         if(name==='adjust'||name==='mode')openAdjust(r,b.dataset.rmMode||'split');
         if(name==='status')openStatus(r);
@@ -224,6 +230,15 @@
       } catch(error) {toast(error.message);}
     });
     document.addEventListener('submit',event=>{
+      if(event.target.id==='rmTitleSummaryForm'){
+        event.preventDefault();
+        const r=get(event.target.dataset.rmId),title=$('rmSummaryTitle').value.trim(),summary=$('rmSummaryText').value.trim();
+        if(!r||!title){$('rmSummaryTitle').focus();return;}
+        clearTimeout(pending.get(r.id));pending.delete(r.id);
+        r.title=title;r.summary=summary;r.summaryState='edited';r.summaryDemo=false;
+        r.preview=summary.replace(/\n/g,' ').slice(0,90)||(r.text||'内容片段');
+        refresh();openRecord(r.id);toast('标题与总结已更新。');return;
+      }
       if(event.target.id!=='rmEditForm')return;event.preventDefault();
       const r=get(event.target.dataset.rmId),title=$('rmTitle').value.trim(),text=$('rmText').value.trim();
       if(!r||!title){$('rmTitle').focus();return;}

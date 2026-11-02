@@ -31,7 +31,7 @@ enum DaybookSemanticResourceChange: Sendable {
     private let debounce: Duration
     init(search: (any DaybookSemanticSearching)? = nil, debounce: Duration = .milliseconds(250)) {
         self.search = search ?? DaybookSemanticIndex.shared
-        self.index = search == nil ? DaybookSemanticIndex.shared : nil
+        self.index = (search as? DaybookSemanticIndex) ?? (search == nil ? DaybookSemanticIndex.shared : nil)
         self.debounce = debounce
     }
     func synchronize(query: String, records: [DayRecord], date: Date, allowedKinds: Set<DayRecord.Kind>,
@@ -40,7 +40,11 @@ enum DaybookSemanticResourceChange: Sendable {
         let scopeChanged = self.records != records || allowed != allowedKinds || day != start
         let intentChanged = self.query != query || day != start
         if scopeChanged || intentChanged { cancel() }
-        if (scopeChanged || intentChanged) && !resetInProgress { index?.invalidate(records: DayRecord.evidenceRecords(records,scope:Calendar.current.dateInterval(of:.day,for:date)!), allowedKinds: allowedKinds) }
+        // Loaded library records may be partial. Only update present IDs and remove
+        // explicitly denied kinds; date/query changes cancel this presentation task.
+        if (self.records != records || allowed != allowedKinds) && !resetInProgress {
+            index?.invalidate(records: records, allowedKinds: allowedKinds, authoritative: false)
+        }
         if intentChanged { waitingAfterClear = false }
         self.records = records; allowed = allowedKinds; day = start; self.query = query; self.active = active
         if resume { cancel(); waitingAfterClear = false }

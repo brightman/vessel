@@ -1,7 +1,7 @@
 import SwiftUI
 import FoundationModels
 
-enum SettingsRoute: Hashable { case settings, transcription, myVoice, ai, about }
+enum SettingsRoute: Hashable { case settings, quickRecording, transcription, myVoice, ai, aiRetrieval, about }
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
@@ -11,31 +11,28 @@ struct SettingsView: View {
 
     var body: some View {
         SettingsPage(title: "设置", subtitle: "让记录，按你的习惯来。", backTitle: showDaybookSettings ? "我的一天" : "语音笔记") {
-            SettingsSection("外观") {
-                HStack(spacing: 10) {
-                    ForEach(AppAppearance.allCases, id: \.self) { appearance in
-                        Button { settings.appearance = appearance } label: {
-                            VStack(spacing: 12) {
-                                Image(systemName: appearance.symbol).font(.system(size: 24))
-                                Text(LocalizedStringKey(appearance.title)).font(.system(size: 13, weight: .semibold))
-                            }
-                            .frame(maxWidth: .infinity).frame(height: 94)
-                            .foregroundStyle(settings.appearance == appearance ? NotesStyle.red : .primary)
-                            .background(NotesStyle.card, in: RoundedRectangle(cornerRadius: 15))
-                            .overlay(RoundedRectangle(cornerRadius: 15).stroke(settings.appearance == appearance ? NotesStyle.red : NotesStyle.border, lineWidth: 1))
+            SettingsMenuGroup("通用设置") {
+                SettingsMenuRow(icon: "Sun", title: "外观") {
+                    Menu {
+                        Picker("外观", selection: $settings.appearance) {
+                            ForEach(AppAppearance.allCases, id: \.self) { appearance in Text(LocalizedStringKey(appearance.title)).tag(appearance) }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(settings.appearance == appearance ? .isSelected : [])
-                    }
+                    } label: { SettingsMenuValue(text: settings.appearance.title) }
+                    .accessibilityLabel("外观")
+                }
+                SettingsMenuRow(icon: "MessageCircle", title: "界面语言") {
+                    Menu {
+                        Picker("界面语言", selection: $settings.interfaceLanguage) {
+                            ForEach(AppLanguage.allCases) { language in Text(language.title).tag(language) }
+                        }
+                    } label: { SettingsMenuValue(text: settings.interfaceLanguage.title) }
+                    .accessibilityLabel("界面语言")
+                }
+                NavigationLink(value: SettingsRoute.quickRecording) {
+                    SettingsMenuRow(icon: "Mic", title: "快捷设置", subtitle: "操作按钮、锁屏小组件与实时活动")
                 }
             }
-            SettingsSection("界面语言") {
-                Picker("界面语言", selection: $settings.interfaceLanguage) {
-                    ForEach(AppLanguage.allCases) { language in Text(language.title).tag(language) }
-                }.pickerStyle(.segmented)
-                SettingsFootnote(text: "界面语言独立于语音转写语言。")
-            }
-            SettingsSection("模型与语言") {
+            SettingsSection("语言与AI") {
                 VStack(spacing: 0) {
                     NavigationLink(value: SettingsRoute.transcription) {
                         SettingsRow(symbol: "waveform", title: "语音转写模型", subtitle: settings.transcriptionLabel)
@@ -45,6 +42,10 @@ struct SettingsView: View {
                     Divider().overlay(NotesStyle.border)
                     NavigationLink(value: SettingsRoute.ai) {
                         SettingsRow(symbol: "sparkles", title: "AI 模型", subtitle: settings.ai.label)
+                    }
+                    Divider().overlay(NotesStyle.border)
+                    NavigationLink(value: SettingsRoute.aiRetrieval) {
+                        SettingsRow(symbol: "magnifyingglass", title: "AI 检索", subtitle: "本地语义检索、语言包与索引")
                     }
                 }
                 .settingsCard()
@@ -75,62 +76,66 @@ struct SettingsView: View {
 }
 
 struct AboutView: View {
-    private let faqURL = URL(string: "https://wiselife.cloud/#questions")!
-    private let privacyPolicyURL = URL(string: "https://wiselife.cloud/privacy")!
-    private let termsOfServiceURL = URL(string: "https://wiselife.cloud/terms")!
-    private let contactURL = URL(string: "mailto:hello@wiselife.cloud")!
-
     var body: some View {
         SettingsPage(title: "关于", subtitle: "查看常见问题、隐私与服务条款，或联系 WiseLife。") {
-            SettingsSection("法律与支持") {
-                VStack(spacing: 0) {
-                    Link(destination: faqURL) {
-                        SettingsRow(symbol: "questionmark.circle", title: "常见问题", subtitle: "常见问题与使用说明")
-                    }
-                    Divider().overlay(NotesStyle.border)
-                    Link(destination: privacyPolicyURL) {
-                        SettingsRow(symbol: "hand.raised", title: "隐私条款", subtitle: "查看隐私政策与数据使用说明")
-                    }
-                    Divider().overlay(NotesStyle.border)
-                    Link(destination: termsOfServiceURL) {
-                        SettingsRow(symbol: "doc.text", title: "服务条款", subtitle: "查看应用服务条款")
-                    }
-                    Divider().overlay(NotesStyle.border)
-                    Link(destination: contactURL) {
-                        SettingsRow(symbol: "envelope", title: "联系我们", subtitle: "hello@wiselife.cloud")
-                    }
-                }
-                .settingsCard()
-            }
+            SettingsMenuGroup("法律与支持") { SettingsAboutLinks() }
+            AppReleaseInfoView()
         }
-        .tint(NotesStyle.red)
     }
 }
 
 struct AISettingsView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var localUnavailableReason = Self.appleUnavailableReason()
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var settings: AppSettings
     @StateObject private var editor: AISettingsModel
     @ObservedObject private var chatGPT: ChatGPTAccountModel
     @State private var saveError: String?
 
-    init(settings: AppSettings) {
+    private let embedded: Bool
+    init(settings: AppSettings, editor: AISettingsModel? = nil, embedded: Bool = false) {
+        self.embedded = embedded
         self.settings = settings
-        _editor = StateObject(wrappedValue: AISettingsModel(settings: settings))
+        _editor = StateObject(wrappedValue: editor ?? AISettingsModel(settings: settings))
         chatGPT = settings.chatGPT
     }
 
     var body: some View {
-        SettingsPage(title: "AI 模型", subtitle: "用于笔记总结、跨记录回顾与 AI 对话。", canSave: editor.canSave, save: {
+        Group {
+        if embedded { configurationContent } else {
+        SettingsPage(title: "AI 模型", subtitle: "用于笔记总结、跨记录回顾与 AI 对话。", canSave: editor.canSave && (editor.configuration.mode != .local || localUnavailableReason == nil), save: {
+            localUnavailableReason = Self.appleUnavailableReason()
+            guard editor.configuration.mode != .local || localUnavailableReason == nil else { return }
             do { try editor.save(); dismiss() }
             catch { saveError = error.localizedDescription }
         }) {
+            configurationContent
+        }
+        }
+        }
+        .onAppear { localUnavailableReason = Self.appleUnavailableReason() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { localUnavailableReason = Self.appleUnavailableReason() }
+        }
+        .onDisappear { if !embedded { editor.invalidateTest() } }
+        .alert("配置未保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("好") { saveError = nil }
+        } message: { Text(saveError ?? "") }
+    }
+
+    private var configurationContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 0) {
                 ModelChoice(title: "Apple Intelligence", badge: "本机",
-                            description: "由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。",
+                            description: localUnavailableReason ?? "无需 API Key，在 iPhone 上理解文字。可用性以本机系统检查为准。",
                             selected: editor.configuration.mode == .local) {
+                    guard localUnavailableReason == nil else { return }
                     editor.selectMode(.local)
                 }
+                .disabled(localUnavailableReason != nil)
+                .opacity(localUnavailableReason == nil ? 1 : 0.45)
+                .accessibilityIdentifier("ai.settings.appleIntelligence")
                 ModelChoice(title: "连接本地 Mac 模型", badge: "局域网",
                             description: "连接 WiseLife Mac Companion，使用 Mac 上的 LLM 生成总结、标题与问答。",
                             selected: editor.configuration.mode == .nearbyMac) {
@@ -141,14 +146,19 @@ struct AISettingsView: View {
                             selected: editor.configuration.mode == .chatgpt) {
                     editor.selectMode(.chatgpt)
                 }
-                ModelChoice(title: "自定义模型", badge: "自有服务",
-                            description: "使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。",
+                ModelChoice(title: settings.interfaceLanguage == .english ? "Bring Your Own Model" : "自定义 AI 模型", badge: "自有服务",
+                            description: "使用自己的模型地址与 API Key。选择云端服务时，允许的文字会发送给该服务。",
                             selected: editor.configuration.mode == .custom) {
                     editor.selectMode(.custom)
                 }
             }
+            if embedded {
+                SettingsFootnote(text: "Apple Intelligence：无需 API Key，在 iPhone 上理解文字。WiseLife 产品要求为 iOS 27.3 及以上、iPhone 15 Pro／Pro Max 或更新的支持机型；实际能力以本机系统检查为准。")
+                    .padding(.top, 14)
+                if editor.configuration.mode == .custom { Text("Bring Your Own Model").font(.system(size: 11)).foregroundStyle(DaybookStyle.accent).padding(.top, 10) }
+            }
             if editor.configuration.mode == .local {
-                SettingsInfo(title: localAvailabilityTitle,
+                SettingsInfo(title: localUnavailableReason ?? "Apple Intelligence可用",
                              text: "在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。")
                     .padding(.top, 20)
             } else if editor.configuration.mode == .nearbyMac {
@@ -212,20 +222,24 @@ struct AISettingsView: View {
                     .accessibilityIdentifier("ai.settings.confirmBeforeSending")
                 SettingsFootnote(text: "即时生效。关闭后，外部 AI 问答与总结直接发送允许使用的文字，每日回顾、每日洞察和长录音标题可自动生成；可随时重新开启。")
             }.padding(.top, 24)
-            DaybookSemanticSettingsView().padding(.top, 20)
-            SettingsFootnote(text: "模型配置保存后用于下一次总结、问答、每日回顾与每日洞察。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")
+            SettingsFootnote(text: embedded ? "模型准备后用于总结、问答与回顾。非敏感选择可恢复，未测试的 API Key 不保存；发送确认偏好即时保存。" : "模型配置保存后用于下一次总结、问答、每日回顾与每日洞察。关闭会放弃未保存的模型修改，发送确认偏好即时保存。")
                 .padding(.top, 20)
         }
-        .onDisappear { editor.invalidateTest() }
-        .alert("配置未保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
-            Button("好") { saveError = nil }
-        } message: { Text(saveError ?? "") }
     }
 
-    private var localAvailabilityTitle: String {
-        if case .available = SystemLanguageModel.default.availability,
-           SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN")) { return "Apple Intelligence可用" }
-        return "需要 Apple Intelligence 可用"
+    static func appleUnavailableReason() -> String? {
+        switch SystemLanguageModel.default.availability {
+        case .available:
+            return SystemLanguageModel.default.supportsLocale(Locale(identifier: "zh-CN"))
+                ? nil : "本机 Apple 模型暂不支持中文。"
+        case .unavailable(let reason):
+            switch reason {
+            case .deviceNotEligible: return "此设备不支持 Apple Intelligence。"
+            case .appleIntelligenceNotEnabled: return "请先在系统设置中启用 Apple Intelligence。"
+            case .modelNotReady: return "Apple Intelligence 模型尚未准备好，请等待系统下载完成。"
+            @unknown default: return "Apple Intelligence 当前不可用。"
+            }
+        }
     }
 
     private var testStatus: some View {
@@ -259,7 +273,7 @@ struct SettingsPage<Content: View>: View {
     var body: some View {
         DaybookSheetLayout(title: title, onClose: { dismiss() }) {
             VStack(alignment: .leading, spacing: 0) {
-                Text(LocalizedStringKey(subtitle)).font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+                Text(LocalizedStringKey(subtitle)).font(SettingsMenuStyle.note).foregroundStyle(DaybookStyle.secondary)
                     .lineSpacing(8).padding(.top, 6).padding(.bottom, 20)
                 content
             }
@@ -281,7 +295,7 @@ struct SettingsSection<Content: View>: View {
     init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(LocalizedStringKey(title)).font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+            Text(LocalizedStringKey(title)).font(SettingsMenuStyle.heading).foregroundStyle(DaybookStyle.ink)
             content
         }.padding(.top, 24)
     }
@@ -292,16 +306,7 @@ private struct SettingsRow: View {
     let title: String
     let subtitle: String
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 17)).frame(width: 21).foregroundStyle(DaybookStyle.secondary)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(LocalizedStringKey(title)).font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.ink)
-                Text(LocalizedStringKey(subtitle)).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            DaybookIcon("ChevronRight", size: 17).foregroundStyle(DaybookStyle.secondary)
-        }
-        .padding(.vertical, 16).contentShape(Rectangle())
+        SettingsMenuRow(icon: ["waveform":"AudioLines", "sparkles":"MessageCircle", "magnifyingglass":"Search", "bell.badge":"Bell", "square.and.arrow.down":"AudioLines", "info.circle":"CircleHelp"][symbol] ?? "Settings2", title: title, subtitle: subtitle)
     }
 }
 
@@ -318,7 +323,7 @@ struct ModelChoice: View {
                     .background { if selected { Circle().fill(DaybookStyle.accent).padding(3) } }
                     .frame(width: 13, height: 13).padding(.top, 4)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
+                    Text(LocalizedStringKey(title)).font(SettingsMenuStyle.title).foregroundStyle(DaybookStyle.ink)
                         .lineSpacing(7)
                     Text(description).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
                         .lineSpacing(7).fixedSize(horizontal: false, vertical: true)
@@ -347,7 +352,7 @@ struct SettingsInfo: View {
         HStack(alignment: .top, spacing: 10) {
             DaybookIcon("ShieldCheck", size: 18).foregroundStyle(DaybookStyle.accent)
             VStack(alignment: .leading, spacing: 7) {
-                Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .medium)).lineSpacing(7)
+                Text(LocalizedStringKey(title)).font(SettingsMenuStyle.title).lineSpacing(7)
                 Text(LocalizedStringKey(text)).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary).lineSpacing(7)
             }
         }
@@ -437,8 +442,125 @@ struct AppReleaseInfoView: View {
                 else { Text("未提供") }
             }
         }
-        .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary)
+        .font(SettingsMenuStyle.note).foregroundStyle(DaybookStyle.secondary)
         .monospacedDigit().padding(.top, 16)
         .accessibilityIdentifier("settings.releaseInfo")
+    }
+}
+
+// Shared by the settings overview and its nested menus.
+enum SettingsMenuStyle {
+    static let heading = Font.system(size: 16, weight: .semibold)
+    static let title = Font.system(size: 14, weight: .medium)
+    static let note = Font.system(size: 11)
+}
+
+struct SettingsMenuGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title; self.content = content()
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(LocalizedStringKey(title)).font(SettingsMenuStyle.heading)
+                .foregroundStyle(DaybookStyle.ink).accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0) { content }
+                .overlay(alignment: .top) { DaybookStyle.line.frame(height: 1) }
+        }.padding(.top, 28).buttonStyle(.plain)
+    }
+}
+
+struct SettingsMenuRow<Trailing: View>: View {
+    let icon: String
+    let title: String
+    var subtitle: String = ""
+    var status: String = ""
+    var labelAction: (() -> Void)? = nil
+    @ViewBuilder var trailing: Trailing
+    var body: some View {
+        HStack(spacing: 12) {
+            Group {
+                if icon == "Ring" { Circle().stroke(lineWidth: 1.6).frame(width: 20, height: 20) }
+                else { DaybookIcon(icon, size: 20) }
+            }.foregroundStyle(DaybookStyle.accent).frame(width: 20).accessibilityHidden(true)
+            Group {
+                if let labelAction { Button(action: labelAction) { label }.buttonStyle(.plain) }
+                else { label }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            trailing
+        }.padding(.vertical, 15).frame(minHeight: 72)
+            .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+            .overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 1) }
+    }
+    private var label: some View {
+        VStack(alignment: .leading, spacing: 4) {
+                Text(LocalizedStringKey(title)).font(SettingsMenuStyle.title).foregroundStyle(DaybookStyle.ink)
+                if !subtitle.isEmpty {
+                    Text(LocalizedStringKey(subtitle)).font(SettingsMenuStyle.note)
+                        .foregroundStyle(DaybookStyle.secondary).lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !status.isEmpty {
+                    Text(LocalizedStringKey(status)).font(SettingsMenuStyle.note).foregroundStyle(DaybookStyle.secondary)
+                }
+        }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+    }
+}
+
+struct SettingsMenuValue: View {
+    let text: String
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(LocalizedStringKey(text)).font(.system(size: 13))
+            DaybookIcon("ChevronDown", size: 14)
+        }.foregroundStyle(DaybookStyle.secondary).frame(minHeight: 44)
+    }
+}
+
+struct SettingsMenuChevron: View {
+    var body: some View {
+        DaybookIcon("ChevronRight", size: 16).foregroundStyle(DaybookStyle.secondary).accessibilityHidden(true)
+    }
+}
+
+extension SettingsMenuRow where Trailing == SettingsMenuChevron {
+    init(icon: String, title: String, subtitle: String = "") {
+        self.icon = icon; self.title = title; self.subtitle = subtitle; trailing = SettingsMenuChevron()
+    }
+}
+
+struct SettingsAboutLinks: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Link(destination: URL(string: "https://wiselife.cloud/#questions")!) {
+                SettingsMenuRow(icon: "CircleHelp", title: "常见问题")
+            }
+            Link(destination: URL(string: "https://wiselife.cloud/privacy")!) {
+                SettingsMenuRow(icon: "ShieldCheck", title: "隐私条款")
+            }
+            Link(destination: URL(string: "https://wiselife.cloud/terms")!) {
+                SettingsMenuRow(icon: "BookOpen", title: "服务条款")
+            }
+            Link(destination: URL(string: "mailto:hello@wiselife.cloud")!) {
+                SettingsMenuRow(icon: "MessageCircle", title: "联系我们")
+            }
+        }.buttonStyle(.plain)
+    }
+}
+
+struct DataPrivacySettingsView: View {
+    var body: some View {
+        SettingsPage(title: "数据与隐私", subtitle: "了解本机存储与 AI 数据使用范围") {
+            SettingsSection("记录留在本机") {
+                SettingsFootnote(text: "录音、图片、转写与笔记默认保存在你的 iPhone。由你决定 AI 可以读取哪些来源。")
+            }
+            SettingsSection("本机检索") {
+                SettingsFootnote(text: "语义索引与问题翻译在本机处理；清除索引不会删除原始记录。")
+            }
+            SettingsSection("自选 AI 服务") {
+                SettingsFootnote(text: "使用外部 AI 时，按你的发送确认偏好处理允许使用的文字。原始录音、图片和声音档案留在本机。")
+            }
+        }
     }
 }

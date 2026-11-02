@@ -33,13 +33,16 @@ def main():
             "ChatGPTProtocol.swift", "ChatGPTIDToken.swift", "ChatGPTAPI.swift",
             "ChatGPTAccountStore.swift", "ChatGPTBrowserAuthorization.swift",
             "ChatGPTLoopback.swift", "ChatGPTAccountModel.swift",
-            "AIConfiguration.swift", "TranscriptionConfiguration.swift",
+            "AIConfiguration.swift", "TranscriptionConfiguration.swift", "VoiceIdentity.swift",
             "AppSettings.swift", "KeychainSecretStore.swift",
         ]]
         executable = app / "KeychainCheck"
+        module_cache = base / "module-cache"
+        module_cache.mkdir()
         def compile_probe(linker_arguments=()):
             subprocess.run([
                 "xcrun", "--sdk", "iphonesimulator", "swiftc", "-sdk", sdk,
+                "-module-cache-path", str(module_cache),
                 "-target", f"{arch}-apple-ios26.0-simulator", *map(str, sources),
                 str(root / "Tests/KeychainSimulatorSmoke.swift"), *linker_arguments,
                 "-o", str(executable),
@@ -71,7 +74,7 @@ def main():
                 run(command)
         finally:
             run("cleanup")
-    print("Keychain simulator regression passed: entitlement errors, save, update, restart, secret isolation")
+    print("Keychain simulator regression passed: entitlement errors, secret isolation and voice-profile persistence")
 
 
 if __name__ == "__main__":

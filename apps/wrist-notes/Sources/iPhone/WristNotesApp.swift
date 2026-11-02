@@ -169,13 +169,14 @@ struct WristNotesApp: App {
     var body: some Scene {
         WindowGroup {
             FaceIDLockGate(coordinator: appLock) {
-            DaybookView()
+            OnboardingRootView(store: WiseLifeRuntime.shared.onboarding, settings: model.settings)
                 .environmentObject(appLock)
                 .environmentObject(WiseLifeRuntime.shared.life)
                 .environmentObject(model)
                 .environmentObject(sessions)
                 .environmentObject(WiseLifeRuntime.shared.content)
                 .environmentObject(WiseLifeRuntime.shared.processing)
+                .environmentObject(WiseLifeRuntime.shared.flash)
                 .environmentObject(model.settings)
                 .environmentObject(recorder)
                 .environmentObject(recording)

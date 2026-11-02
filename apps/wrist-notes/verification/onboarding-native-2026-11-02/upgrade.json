@@ -1,0 +1,23 @@
+{
+  "before": {
+    "conversation_turns": 10,
+    "voice_notes": 9,
+    "photo_moments": 0,
+    "recording_sessions": 1,
+    "content_segments": 1
+  },
+  "after": {
+    "conversation_turns": 10,
+    "voice_notes": 9,
+    "photo_moments": 0,
+    "recording_sessions": 1,
+    "content_segments": 1
+  },
+  "unchanged": true,
+  "progress": {
+    "usageReviewed": false,
+    "disposition": "existingUser",
+    "page": "welcome",
+    "dataReviewed": false
+  }
+}

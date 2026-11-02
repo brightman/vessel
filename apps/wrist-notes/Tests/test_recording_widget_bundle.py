@@ -1,6 +1,6 @@
 """Check the actual built app/extension intent contract, not source spelling.
 
-Usage: python3 Tests/test_recording_widget_bundle.py /path/to/WiseNote.app
+Usage: python3 Tests/test_recording_widget_bundle.py /path/to/WiseLife.app
 """
 import json
 from pathlib import Path

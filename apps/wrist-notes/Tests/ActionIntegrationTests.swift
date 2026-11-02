@@ -7,8 +7,11 @@ import XCTest
     var failDelete = false
     var failRead = false
     var saves = 0
+    var holdNextSave = false
+    var gate: CheckedContinuation<Void, Never>?
     func lists(kind: ActionItem.Kind, request: Bool) async throws -> [ActionSystemList] { [.init(id:"test",title:"Test")] }
     func save(_ item: ActionItem) async throws -> ActionItem {
+        if holdNextSave { holdNextSave = false; await withCheckedContinuation { gate = $0 } }
         saves += 1
         var result = item; result.link?.identifier = item.id.uuidString; result.sync = .linked; result.syncError = nil
         values[item.id] = result
@@ -36,6 +39,124 @@ final class ActionFakeScheduler: DaybookReminderScheduling {
 }
 
 @MainActor final class ActionIntegrationTests: XCTestCase {
+    func testFlashEditingCompletedTaskKeepsCompletion() async throws {
+        let repo = try ActionRepository(database: DaybookDatabase(inMemory: true))
+        var task = ActionItem(kind: .todo, title: "完成的草图")
+        task.dedupKey = "flash|completed-edit"; task.status = .completed
+        let saved = try repo.save(task)
+        let store = ActionStore(repository: repo, system: ActionFakeSystem())
+        var edited = saved; edited.title = "草图二版"
+        let okay = await store.save(edited)
+        XCTAssertTrue(okay)
+        XCTAssertEqual(store.flashTimelineItems.first?.title, "草图二版")
+        XCTAssertEqual(store.flashTimelineItems.first?.status, .completed, "Editing content must not silently reopen a completed task")
+    }
+
+    func testFlashDeletionRemainsInSourceTimelineAfterReopen() async throws {
+        let db = try DaybookDatabase(inMemory: true)
+        let repo = try ActionRepository(database: db)
+        let source = ActionSource(id: UUID(), title: "来源闪念", quote: "安排日程", capturedAt: .now, timeZoneID: "Asia/Shanghai")
+        var event = ActionItem(kind: .event, title: "测试日程", source: source)
+        event.start = .now.addingTimeInterval(3600); event.end = .now.addingTimeInterval(7200)
+        event.dedupKey = "flash|timeline-delete"; event.sync = .pending
+        _ = try repo.save(event)
+        let system = ActionFakeSystem()
+        // Use one system owner across execution, failure, retry and reopen.
+        let live = ActionStore(repository: repo, system: system)
+        await live.resumeFlashCommands()
+        system.failDelete = true
+        let failed = await live.delete(try XCTUnwrap(live.items.first))
+        XCTAssertFalse(failed)
+        XCTAssertEqual(FlashCommandState(item: try XCTUnwrap(live.flashTimelineItems.first)), .deleteFailed)
+        XCTAssertEqual(system.values.count, 1)
+        system.failDelete = false
+        let retried = await live.retry(try XCTUnwrap(live.items.first))
+        XCTAssertTrue(retried); XCTAssertTrue(system.values.isEmpty); XCTAssertTrue(live.items.isEmpty)
+        let reopened = ActionStore(repository: repo, system: system)
+        XCTAssertTrue(reopened.items.isEmpty)
+        let tombstone = try XCTUnwrap(reopened.flashTimelineItems.first)
+        XCTAssertEqual(tombstone.source?.id, source.id)
+        XCTAssertEqual(FlashCommandState(item: tombstone), .revoked)
+        await reopened.resumeFlashCommands()
+        XCTAssertTrue(system.values.isEmpty, "Opening the timeline must not recreate a deleted command")
+    }
+
+    func testFlashOutboxWaitsForBusyStore() async throws {
+        let repo = try ActionRepository(database: DaybookDatabase(inMemory: true))
+        let system = ActionFakeSystem()
+        let busyStore = ActionStore(repository: repo, system: system)
+        var regular = ActionItem(kind: .event, title: "正在保存")
+        regular.start = .now.addingTimeInterval(3600); regular.end = .now.addingTimeInterval(7200)
+        regular.link = .init(listID: "test", listTitle: "Test")
+        system.holdNextSave = true
+        let saving = Task { await busyStore.save(regular) }
+        while system.gate == nil { await Task.yield() }
+        var flash = regular; flash.id = UUID(); flash.title = "新闪念"; flash.dedupKey = "flash|busy"; flash.sync = .pending
+        _ = try repo.save(flash)
+        let resuming = Task { await busyStore.resumeFlashCommands() }
+        for _ in 0..<10 { await Task.yield() }
+        system.gate?.resume()
+        _ = await saving.value; await resuming.value
+        XCTAssertEqual(system.values.count, 2, "New commands must not get stranded when another action is saving")
+    }
+
+    func testFlashReminderSchedulesOnceAndCancels() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let repo = try ActionRepository(database: DaybookDatabase(url: root.appendingPathComponent("db.sqlite")))
+        let scheduler = ActionFakeScheduler()
+        let reminders = DaybookReminderStore(root: root.appendingPathComponent("reminders"), scheduler: scheduler, apple: ActionFakeApple())
+        await reminders.refreshAuthorization()
+        let store = ActionStore(repository: repo, system: ActionFakeSystem()); store.attach(reminders)
+        var reminder = ActionItem(kind: .reminder, title: "测试提醒")
+        reminder.start = .now.addingTimeInterval(3600); reminder.sync = .pending; reminder.dedupKey = "flash|reminder"
+        _ = try repo.save(reminder)
+        await store.resumeFlashCommands(); await store.resumeFlashCommands()
+        XCTAssertEqual(scheduler.schedules, 1); XCTAssertEqual(scheduler.ids.count, 1)
+        let cancelled = await store.setStatus(try XCTUnwrap(store.items.first), .cancelled)
+        XCTAssertTrue(cancelled); XCTAssertTrue(scheduler.ids.isEmpty)
+        await store.resumeFlashCommands(); XCTAssertEqual(scheduler.schedules, 1)
+    }
+    func testFlashOutboxRecoveryAndRevocation() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try DaybookDatabase(url: root.appendingPathComponent("flash.sqlite"))
+        let repo = try ActionRepository(database: db), assets = try FlashCaptureRepository(database: db)
+        let source = ActionSource(id: UUID(), title: "测试闪念", quote: "帮我安排日程", capturedAt: .now, timeZoneID: "Asia/Shanghai", recordingKind: "thought", timeZoneKnown: true)
+        var event = ActionItem(kind: .event, title: "测试日程", source: source)
+        event.start = Date.now.addingTimeInterval(3600); event.end = event.start!.addingTimeInterval(1800)
+        event.dedupKey = "flash|test"; event.sync = .pending
+        try assets.commit(.init(actions: [event]), source: source)
+        let system = ActionFakeSystem(); system.failAfterSave = true
+        let store = ActionStore(repository: repo, system: system)
+        await store.resumeFlashCommands()
+        XCTAssertEqual(store.items.first?.sync, .failed)
+        XCTAssertEqual(system.values.count, 1, "Acknowledge loss still leaves one owned event")
+        let reopened = ActionStore(repository: try ActionRepository(database: DaybookDatabase(url: db.url)), system: system)
+        let retried = await reopened.retry(try XCTUnwrap(reopened.items.first))
+        XCTAssertTrue(retried); XCTAssertEqual(system.values.count, 1)
+        await reopened.resumeFlashCommands()
+        XCTAssertEqual(system.saves, 2, "Completed outbox items must not execute on reopen")
+        let cancelled = await reopened.setStatus(try XCTUnwrap(reopened.items.first), .cancelled)
+        XCTAssertTrue(cancelled); XCTAssertTrue(system.values.isEmpty)
+        try assets.commit(.init(actions: [event]), source: source)
+        await reopened.resumeFlashCommands()
+        XCTAssertEqual(system.saves, 2); XCTAssertEqual(try repo.load().first?.status, .cancelled)
+    }
+
+    func testIncompleteFlashCommandDoesNotSchedule() async throws {
+        let db = try DaybookDatabase(inMemory: true)
+        let repo = try ActionRepository(database: db)
+        var item = ActionItem(kind: .event, title: "缺时间的日程")
+        item.dedupKey = "flash|incomplete"; item.sync = .pending
+        _ = try repo.save(item)
+        let system = ActionFakeSystem()
+        let store = ActionStore(repository: repo, system: system)
+        await store.resumeFlashCommands()
+        XCTAssertEqual(store.items.first?.sync, .failed)
+        XCTAssertEqual(store.items.first?.statusTitle, "待补充")
+        XCTAssertEqual(system.saves, 0)
+    }
     func testDurableRetryReadAndDelete() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }

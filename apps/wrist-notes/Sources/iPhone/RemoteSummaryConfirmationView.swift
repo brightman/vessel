@@ -4,6 +4,7 @@ struct RemoteSummaryConfirmationView: View {
     let request: NotesModel.RemoteSummaryRequest
     let onCancel: () -> Void
     let onConfirm: (Bool) -> Void
+    var isFlash = false
     var body: some View {
         DaybookSheetLayout(title: "发送确认", onClose: onCancel) {
             VStack(alignment: .leading, spacing: 18) {
@@ -15,11 +16,11 @@ struct RemoteSummaryConfirmationView: View {
                 } else {
                     Text(request.configuration.baseURL).font(.system(size: 11)).textSelection(.enabled)
                 }
-                Text("仅发送下方转写文字，原始录音、图片和声音档案保留在本机。长记录会分段总结，再合并结果。")
+                Text(isFlash ? "发送下方全文、录制时间与时区，用于整理想法、账目和明确指令。原始音频保留在本机。" : "仅发送下方转写文字，原始录音、图片和声音档案保留在本机。长记录会分段总结，再合并结果。")
                     .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6)
                 Text(request.title).font(.system(size: 14, weight: .medium))
                 Text(request.text).font(.system(size: 12)).lineSpacing(7).textSelection(.enabled)
-                RemoteAISendControls(buttonTitle: "确认并生成总结", onConfirm: onConfirm).id(request.id)
+                RemoteAISendControls(buttonTitle: isFlash ? "确认并整理闪念" : "确认并生成总结", onConfirm: onConfirm).id(request.id)
                 Button("取消", action: onCancel).buttonStyle(DaybookSettingsButtonStyle())
             }.padding(.top, 12)
         }

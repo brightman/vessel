@@ -105,6 +105,20 @@ import Combine
         // Complete-date AI evidence still reads persisted data independently of UI date.
         let evidence = try await model.load(scope:scope)
         precondition(evidence.count == 1 && evidence[0].summary == "Updated persisted summary")
+        // Speaker bindings must reach recap evidence only when the binding revision
+        // matches the retained speech; generic timeline/Ask AI projections stay unchanged.
+        try db.execute("INSERT INTO audio_processing_jobs(id,source_key,configuration_key,core_start,core_end,window,state,result,result_hash) VALUES ('speaker-job',?,'v1',0,30,X'00','completed',X'00','speaker-result')", [.text(sourceID.key)])
+        try db.execute("INSERT INTO audio_transcript_spans(job_id,position,start,end,text,speaker_id) VALUES ('speaker-job',0,0,30,'Saved transcript','speaker-1')")
+        try db.execute("UPDATE content_segment_presentations SET transcript=? WHERE segment_id=?", [try DaybookDatabase.json([AudioTranscriptSpan(start:0,end:30,text:"Saved transcript",speakerID:"speaker-1")]),.text(segment.id.uuidString)])
+        let repository = ContentSegmentRepository(database:db)
+        try repository.setSpeakerContact(sourceID:sourceID,speakerID:"speaker-1",contact:.init(identifier:"test-kate",displayName:"Kate",thumbnailData:nil))
+        let attributed = try await model.load(scope:scope,includeRecapSpeakers:true)
+        precondition(attributed.first?.contentProvenance?.transcript.first?.speaker == "已关联联系人：Kate")
+        let plain = try await model.load(scope:scope)
+        precondition(plain.first?.contentProvenance?.transcript.first?.speaker == nil)
+        try db.execute("UPDATE recording_speaker_contacts SET speaker_revision='stale' WHERE source_key=?", [.text(sourceID.key)])
+        let stale = try await model.load(scope:scope,includeRecapSpeakers:true)
+        precondition(stale.first?.contentProvenance?.transcript.first?.speaker == nil, "outdated speaker binding must not name the speaker")
         print("Content refresh: initial/date loading, quiet updates, burst coalescing, unchanged snapshots, empty dates and complete evidence passed")
     }
 }

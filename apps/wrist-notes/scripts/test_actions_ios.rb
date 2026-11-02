@@ -5,6 +5,7 @@ output = ARGV.fetch(0)
 FileUtils.mkdir_p(output)
 project = Xcodeproj::Project.new(File.join(output, 'Actions.xcodeproj'))
 app = project.new_target(:application, 'Actions', :ios, '26.0')
+%w[Shared/CaptureMetadata Shared/VoiceNote Shared/RecordingSession iPhone/AudioProcessing iPhone/AudioWindowPlanner iPhone/ContentSegmentation iPhone/FlashCapture iPhone/FlashCaptureRepository].each { |name| app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(root,'Sources',name+'.swift'))) }
 %w[DaybookDatabase ActionItem ActionStore ActionSystemService DaybookReminderPersistence DaybookReminderStore AppleReminderService].each { |name| app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(root,'Sources/iPhone',name+'.swift'))) }
 File.write(File.join(output,'App.swift'), "import SwiftUI\n@main struct TestApp: App { var body: some Scene { WindowGroup { Text(\"Actions verification\") } } }\n")
 app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(output,'App.swift')))

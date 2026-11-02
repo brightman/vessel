@@ -13,11 +13,12 @@ struct PendingRecording: Codable, Identifiable {
     var recordingGroupID: UUID? = nil
     var recordingGroupOrdinal: Int? = nil
     var recordingGroupOffset: TimeInterval? = nil
+    var recordingGroupFinalOrdinal: Int? = nil
     var recordingOrigin: RecordingOrigin? = nil
 
     init(id: UUID, kind: RecordingKind, capturedAt: Date, duration: TimeInterval, location: CaptureLocation? = nil, uploaded: Bool = false,
          recordingGroupID: UUID? = nil, recordingGroupOrdinal: Int? = nil, recordingGroupOffset: TimeInterval? = nil,
-         recordingOrigin: RecordingOrigin? = nil) {
+         recordingOrigin: RecordingOrigin? = nil, recordingGroupFinalOrdinal: Int? = nil) {
         self.id = id
         self.kind = kind
         self.capturedAt = capturedAt
@@ -28,9 +29,10 @@ struct PendingRecording: Codable, Identifiable {
         self.recordingGroupOrdinal = recordingGroupOrdinal
         self.recordingGroupOffset = recordingGroupOffset
         self.recordingOrigin = recordingOrigin
+        self.recordingGroupFinalOrdinal = recordingGroupFinalOrdinal
     }
 
-    private enum CodingKeys: String, CodingKey { case id, kind, capturedAt, duration, uploaded, location, uploadedAt, transferFailed, awaitingPhoneSaveConfirmation, recordingGroupID, recordingGroupOrdinal, recordingGroupOffset, recordingOrigin }
+    private enum CodingKeys: String, CodingKey { case id, kind, capturedAt, duration, uploaded, location, uploadedAt, transferFailed, awaitingPhoneSaveConfirmation, recordingGroupID, recordingGroupOrdinal, recordingGroupOffset, recordingOrigin, recordingGroupFinalOrdinal }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -47,6 +49,7 @@ struct PendingRecording: Codable, Identifiable {
         recordingGroupOrdinal = try values.decodeIfPresent(Int.self, forKey: .recordingGroupOrdinal)
         recordingGroupOffset = try values.decodeIfPresent(TimeInterval.self, forKey: .recordingGroupOffset)
         recordingOrigin = try values.decodeIfPresent(RecordingOrigin.self, forKey: .recordingOrigin)
+        recordingGroupFinalOrdinal = try values.decodeIfPresent(Int.self, forKey: .recordingGroupFinalOrdinal)
     }
 }
 

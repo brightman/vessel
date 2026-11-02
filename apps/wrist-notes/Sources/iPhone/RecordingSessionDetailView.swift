@@ -16,7 +16,11 @@ struct RecordingSessionDetailView: View {
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var transcriptSpans: [AudioTranscriptSpan] = []
+    @State private var speakerLabels: [String: String] = [:]
+    @State private var speakerContacts: [String: SpeakerContactSnapshot] = [:]
+    @State private var managingSpeaker: ContentSpeakerManagementRequest?
     @State private var transcriptLoading = false
+    @State private var transcriptLoadGeneration = 0
     @State private var transcriptError: String?
     @State private var sourceSegments: [ContentSegment] = []
     @State private var enrichmentConfirmation: ContentEnrichmentConfirmation?
@@ -89,8 +93,15 @@ struct RecordingSessionDetailView: View {
                 }
             })
         }
+        .sheet(item: $managingSpeaker) { request in
+            ContentSpeakerAssociationView(request: request)
+                .environmentObject(content)
+        }
         .task(id: sessions.revision) { await reload() }
-        .task(id: content.revision) { await loadContentSegments() }
+        .task(id: content.revision) {
+            await loadContentSegments()
+            await loadTranscript()
+        }
         .task(id: sessionID) {
             audioProcessing.refresh()
             await loadTranscript()
@@ -223,8 +234,20 @@ struct RecordingSessionDetailView: View {
                 Text("暂无已识别文字。录音转写完成后，可刷新查看。")
                     .font(.system(size: 12)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
             } else {
-                Text(AudioTranscriptPresentation.fullText(transcriptSpans))
-                    .font(.system(size: 13)).foregroundStyle(DaybookStyle.bodyText).lineSpacing(9).textSelection(.enabled)
+                ContentSegmentSpeakerTranscriptView(
+                    spans: transcriptSpans,
+                    speakerLabels: speakerLabels,
+                    speakerContacts: speakerContacts,
+                    onManage: { speakerID, label, excerpt in
+                        managingSpeaker = ContentSpeakerManagementRequest(
+                            sourceID: sourceID,
+                            speakerID: speakerID,
+                            label: label,
+                            excerpt: excerpt,
+                            contact: speakerContacts[speakerID]
+                        )
+                    }
+                )
                 Text("共 \(transcriptSpans.count) 段识别文字 · 保存在本机")
                     .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
             }
@@ -506,13 +529,16 @@ struct RecordingSessionDetailView: View {
     }
 
     private func loadTranscript() async {
-        guard !transcriptLoading else { return }
+        transcriptLoadGeneration += 1
+        let generation = transcriptLoadGeneration
         transcriptLoading = true
         transcriptError = nil
-        defer { transcriptLoading = false }
+        defer {
+            if generation == transcriptLoadGeneration { transcriptLoading = false }
+        }
         do {
             let sourceID = self.sourceID
-            let values = try await audioProcessing.withRepository { repository in
+            let snapshot = try await audioProcessing.withRepository { repository in
                 var all: [AudioTranscriptSpan] = []
                 var offset = 0
                 while true {
@@ -521,12 +547,21 @@ struct RecordingSessionDetailView: View {
                     offset += page.count
                     if page.count < 1000 { break }
                 }
-                return all
+                let contentRepository = ContentSegmentRepository(database: repository.derivedDatabase)
+                return AudioSpeakerTranscriptSnapshot(
+                    spans: all,
+                    labels: try contentRepository.speakerLabels(sourceID: sourceID),
+                    contacts: try contentRepository.speakerContacts(sourceID: sourceID)
+                )
             }
-            guard !Task.isCancelled else { return }
-            transcriptSpans = values
+            guard !Task.isCancelled, generation == transcriptLoadGeneration else { return }
+            transcriptSpans = snapshot.spans
+            speakerLabels = snapshot.labels
+            speakerContacts = snapshot.contacts
         } catch {
-            if !Task.isCancelled { transcriptError = "无法读取本机转写，请解锁设备后重试。" }
+            if !Task.isCancelled, generation == transcriptLoadGeneration {
+                transcriptError = "无法读取本机转写，请解锁设备后重试。"
+            }
         }
     }
 }

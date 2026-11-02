@@ -21,11 +21,23 @@ private enum ActionEditorRoute: Identifiable {
 struct ActionListView: View {
     @ObservedObject var store: ActionStore
     let onOpenSource: (ActionSource) -> Void
+    @Environment(\.scenePhase) private var scenePhase
     @State private var filter: ActionItem.Kind?
     @State private var editorRoute: ActionEditorRoute?
     @State private var detail: ActionItem?
     @State private var pendingSource: ActionSource?
-    private var visible: [ActionItem] { store.items.filter { filter == nil || $0.kind == filter } }
+    @State private var revealedActionID: UUID?
+    @State private var deleteAction: ActionItem?
+    @State private var todayStart = Calendar.current.startOfDay(for: .now)
+    private var visible: [ActionItem] {
+        store.items.filter { item in
+            guard filter == nil || item.kind == filter else { return false }
+            if item.isFlashCommand && (FlashCommandState(item: item).needsAttention || item.sync == .pending) { return true }
+            guard item.kind == .reminder || item.kind == .event else { return true }
+            guard let start = item.start else { return item.status == .suggested }
+            return start >= todayStart || (item.kind == .event && (item.end ?? start) > todayStart)
+        }
+    }
     var body: some View {
         VStack(alignment:.leading,spacing:18) {
             HStack {
@@ -40,15 +52,17 @@ struct ActionListView: View {
                 } label: { Image(systemName:"plus.circle.fill").font(.title2) }
                     .accessibilityLabel("新建行动")
             }
+            Text("待办会保留到完成或删除；提醒与日程仅显示今天及未来。")
+                .font(.caption2).foregroundStyle(DaybookStyle.secondary)
             ScrollView(.horizontal,showsIndicators:false) {
                 HStack { filterButton(nil,"全部"); ForEach(ActionItem.Kind.allCases,id:\.self) { kind in filterButton(kind,kind.title) } }
             }
             if let error = store.error { Text(error).font(.caption).foregroundStyle(.red) }
-            section("等你决定",items:visible.filter{$0.status == .suggested})
+            section("等你决定",items:visible.filter{$0.status == .suggested},swipeActions:true)
             section("已加入行动",items:visible.filter{$0.status != .suggested && $0.status != .cancelled}.sorted {
                 if ($0.status == .completed) != ($1.status == .completed) { return $0.status != .completed }
                 return ($0.start ?? .distantFuture) < ($1.start ?? .distantFuture)
-            })
+            },swipeActions:true)
             if visible.contains(where:{$0.status == .cancelled}) {
                 DisclosureGroup("已取消 / 已忽略") { ForEach(visible.filter{$0.status == .cancelled}) { row($0) } }
             }
@@ -59,36 +73,75 @@ struct ActionListView: View {
             ActionEditor(store:store,item:route.item,isNew:route.isNew)
         }
         .sheet(item:$detail,onDismiss:{ if let source = pendingSource { pendingSource = nil; onOpenSource(source) } }) { ActionDetailView(store:store,id:$0.id,onOpenSource:{ pendingSource = $0; detail = nil }) }
-        .task { await store.refresh() }
+        .confirmationDialog("删除这项行动？",isPresented:Binding(get:{deleteAction != nil},set:{if !$0 { deleteAction = nil }}),titleVisibility:.visible) {
+            Button("删除",role:.destructive) {
+                guard let item = deleteAction else { return }
+                deleteAction = nil
+                Task { _ = await store.delete(item) }
+            }
+            Button("取消",role:.cancel) { deleteAction = nil }
+        } message: {
+            Text("这项行动将从本机列表删除；若关联了 Apple 提醒事项或日历，也会一并移除。")
+        }
+        .onReceive(NotificationCenter.default.publisher(for:.NSCalendarDayChanged)) { _ in
+            todayStart = Calendar.current.startOfDay(for:.now)
+        }
+        .onChange(of:scenePhase) { _, phase in
+            if phase == .active { todayStart = Calendar.current.startOfDay(for:.now) }
+        }
+        .task { todayStart = Calendar.current.startOfDay(for:.now); await store.refresh() }
     }
     private func filterButton(_ kind: ActionItem.Kind?, _ title: String) -> some View {
         Button(title) { filter = kind }.font(.caption).padding(.horizontal,13).padding(.vertical,8)
             .background(filter == kind ? DaybookStyle.blueSoft : DaybookStyle.white,in:Capsule())
             .accessibilityAddTraits(filter == kind ? .isSelected : [])
     }
-    private func section(_ title: String, items: [ActionItem]) -> some View {
+    private func section(_ title: String, items: [ActionItem], swipeActions: Bool = false) -> some View {
         VStack(alignment:.leading,spacing:12) {
             HStack { Text(title).font(.headline); Spacer(); Text("\(items.count) 项").font(.caption).foregroundStyle(DaybookStyle.secondary) }
             if items.isEmpty { Text(title == "等你决定" ? "暂时没有待确认建议。" : "不必一次安排好所有事情，先从一件小事开始。").font(.caption).foregroundStyle(DaybookStyle.secondary).padding(.vertical,18) }
-            ForEach(items) { row($0) }
+            ForEach(items) { row($0,swipeActions:swipeActions) }
         }
     }
-    private func row(_ item: ActionItem) -> some View {
-        Button { if item.status == .suggested { editorRoute = .edit(item) } else { detail = item } } label: {
+    private func row(_ item: ActionItem, swipeActions: Bool = false) -> some View {
+        Group {
+            if swipeActions {
+                ActionListSwipeRow(item:item,revealedID:$revealedActionID,onComplete:{
+                    Task { _ = await store.setStatus(item,item.status == .completed ? .active : .completed) }
+                },onDelete:{
+                    if item.status == .suggested {
+                        Task { _ = await store.delete(item) }
+                    } else {
+                        deleteAction = item
+                    }
+                }) {
+                    actionButton(item)
+                }
+            } else {
+                actionButton(item)
+            }
+        }
+        .contextMenu {
+            if item.status == .suggested { Button("忽略建议") { Task { _ = await store.setStatus(item,.cancelled) } } }
+        }
+    }
+    private func actionButton(_ item: ActionItem) -> some View {
+        Button {
+            if revealedActionID == item.id { revealedActionID = nil }
+            else if item.status == .suggested { editorRoute = .edit(item) }
+            else { detail = item }
+        } label: {
             HStack(spacing:12) {
                 DaybookIcon(item.status == .completed ? "Check" : item.kind.icon,size:22)
                 VStack(alignment:.leading,spacing:6) {
                     Text(item.title).font(.system(size:14,weight:.medium)).foregroundStyle(DaybookStyle.ink)
                     Text(item.start.map{ item.timeLabel($0) } ?? "未设时间").font(.caption).foregroundStyle(DaybookStyle.secondary)
-                    Text("\(item.kind.title) · \(item.statusTitle)").font(.caption2)
+                    Text("\(item.kind.title) · \(item.isFlashCommand ? FlashCommandState(item: item).title : item.statusTitle)").font(.caption2)
                     if item.sync == .failed || item.sync == .missing || item.sync == .pending { Text(item.syncTitle).font(.caption2).foregroundStyle(.orange) }
                 }
                 Spacer(); Image(systemName:"chevron.right").font(.caption)
             }.padding(15).frame(maxWidth:.infinity,alignment:.leading).background(DaybookStyle.white,in:RoundedRectangle(cornerRadius:16))
         }.buttonStyle(.plain)
-        .contextMenu {
-            if item.status == .suggested { Button("忽略建议") { Task { _ = await store.setStatus(item,.cancelled) } } }
-        }
     }
 }
 
@@ -109,6 +162,29 @@ struct ActionEditor: View {
     }
     private var canSave: Bool {
         !store.busy && !loading && !item.title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
+            && actionValidationMessage == nil
+    }
+    private var actionValidationMessage: String? {
+        switch item.kind {
+        case .event:
+            guard let start = item.start else { return "请设置日程开始时间。" }
+            guard let end = item.end else { return "请补充日程结束时间。" }
+            if item.allDay {
+                var calendar = Calendar(identifier:.gregorian)
+                calendar.timeZone = timeZone
+                guard calendar.startOfDay(for:end) > calendar.startOfDay(for:start) else {
+                    return "全天日程的结束日期必须晚于开始日期。"
+                }
+            } else if end <= start {
+                return "结束时间必须晚于开始时间。"
+            }
+        case .reminder:
+            guard let start = item.start else { return "请设置提醒时间。" }
+            guard start > Date.now.addingTimeInterval(1) else { return "请选择未来的提醒时间。" }
+        case .todo:
+            break
+        }
+        return nil
     }
 
     init(store: ActionStore, item: ActionItem, isNew: Bool = false) {
@@ -189,8 +265,8 @@ struct ActionEditor: View {
                     }
                 }
                 Toggle("全天",isOn:$item.allDay).font(.system(size:13)).tint(DaybookStyle.accent)
-                if item.end == nil {
-                    Text("请补充日程结束时间。").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
+                if let actionValidationMessage {
+                    Text(actionValidationMessage).font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
                 }
             }
             Text("时区：\(item.timeZoneID)").font(.system(size:11)).foregroundStyle(DaybookStyle.secondary)
@@ -252,13 +328,19 @@ struct ActionEditor: View {
     }
 
     private func save() {
+        error = nil
         Task {
             if external {
                 guard let list = lists.first(where:{$0.id == listID}) else { error = "请选择可写的系统列表。"; return }
                 item.link = .init(listID:list.id,listTitle:list.title,identifier:item.link?.identifier)
             } else { item.link = nil }
             if await store.save(item) { dismiss() }
-            else if let current = store.items.first(where:{$0.id == item.id}) { item = current }
+            else if let current = store.items.first(where:{$0.id == item.id}) {
+                // Keep the user's edited fields when validation or an external calendar write fails.
+                // Refresh only the revision so a retry can save against the latest persisted row.
+                item.revision = current.revision
+                item.updatedAt = current.updatedAt
+            }
         }
     }
     private func loadLists() {
@@ -280,7 +362,9 @@ struct ActionDetailView: View {
     @State private var deleting = false
     private var item: ActionItem? { store.items.first{$0.id == id} }
     var body: some View {
-        NavigationStack {
+        if let item, item.isFlashCommand {
+            FlashActionDetailView(store: store, id: id, onOpenSource: onOpenSource, onClose: { dismiss() })
+        } else { NavigationStack {
             if let item {
                 List {
                     Section(item.kind.title) {
@@ -319,6 +403,102 @@ struct ActionDetailView: View {
                 } message: { Text("已安排的通知也会取消。若系统删除失败，将保留行动供你重试。") }
                 .toolbar { ToolbarItem(placement:.cancellationAction) { Button("关闭") { dismiss() } } }
             } else { Text("行动已移除").onAppear { dismiss() } }
+        } }
+    }
+}
+
+private struct ActionListSwipeRow<Content: View>: View {
+    let item: ActionItem
+    @Binding var revealedID: UUID?
+    let onComplete: () -> Void
+    let onDelete: () -> Void
+    @ViewBuilder var content: Content
+    @State private var translation: CGFloat = 0
+    @State private var horizontalDrag: Bool?
+    private let buttonWidth: CGFloat = 72
+    private var showsCompletion: Bool { item.kind == .todo && item.status != .suggested }
+    private var actionWidth: CGFloat { buttonWidth * (showsCompletion ? 2 : 1) }
+    private var offset: CGFloat {
+        let startingOffset = revealedID == item.id ? -actionWidth : 0
+        return max(-actionWidth,min(0,startingOffset + translation))
+    }
+
+    var body: some View {
+        ZStack {
+            HStack(spacing:0) {
+                Spacer(minLength:0)
+                if showsCompletion { completionButton }
+                deleteButton
+            }
+            content.frame(maxWidth:.infinity,alignment:.leading)
+                .background(DaybookStyle.paper)
+                .offset(x:offset)
         }
+        .clipped()
+        .highPriorityGesture(DragGesture(minimumDistance:20)
+            .onChanged { value in
+                if horizontalDrag == nil {
+                    horizontalDrag = abs(value.translation.width) > abs(value.translation.height) * 1.5
+                }
+                if horizontalDrag == true { translation = value.translation.width }
+            }
+            .onEnded { value in
+                if horizontalDrag == true {
+                    let startingOffset = revealedID == item.id ? -actionWidth : 0
+                    let projected = startingOffset + value.predictedEndTranslation.width
+                    withAnimation(.easeOut(duration:0.18)) {
+                        revealedID = projected < -actionWidth / 2 ? item.id : nil
+                        translation = 0
+                    }
+                }
+                translation = 0
+                horizontalDrag = nil
+            })
+        .onChange(of:revealedID) { _, _ in translation = 0 }
+        .accessibilityActions {
+            if showsCompletion {
+                Button(item.status == .completed ? "撤销" : "完成",systemImage:item.status == .completed ? "arrow.uturn.backward" : "checkmark") {
+                    onComplete()
+                }
+            }
+            Button("删除",systemImage:"trash") { onDelete() }
+        }
+    }
+
+    private var completionButton: some View {
+        Button {
+            revealedID = nil
+            onComplete()
+        } label: {
+            VStack(spacing:4) {
+                Image(systemName:item.status == .completed ? "arrow.uturn.backward" : "checkmark")
+                    .font(.system(size:16,weight:.medium))
+                Text(item.status == .completed ? "撤销" : "完成").font(.system(size:10,weight:.medium))
+            }
+            .foregroundStyle(.white)
+            .frame(width:buttonWidth).frame(maxHeight:.infinity)
+            .background(DaybookStyle.green,in:RoundedRectangle(cornerRadius:10))
+        }
+        .allowsHitTesting(revealedID == item.id)
+        .accessibilityHidden(revealedID != item.id)
+        .padding(.bottom,12)
+    }
+
+    private var deleteButton: some View {
+        Button {
+            revealedID = nil
+            onDelete()
+        } label: {
+            VStack(spacing:4) {
+                Image(systemName:"trash").font(.system(size:16,weight:.medium))
+                Text("删除").font(.system(size:10,weight:.medium))
+            }
+            .foregroundStyle(.white)
+            .frame(width:buttonWidth).frame(maxHeight:.infinity)
+            .background(DaybookStyle.red,in:RoundedRectangle(cornerRadius:10))
+        }
+        .allowsHitTesting(revealedID == item.id)
+        .accessibilityHidden(revealedID != item.id)
+        .padding(.bottom,12)
     }
 }

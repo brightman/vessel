@@ -49,6 +49,7 @@ import UIKit
         self.device = device ?? BRRecorderClient(); self.normalize = normalize
         do {
             let root = root ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                // Keep the original persisted path so existing Ring transfer state survives app upgrades.
                 .appendingPathComponent("WiseNote/Ring", isDirectory: true)
             let store = try RingTransferStore(root: root)
             self.store = store
@@ -453,7 +454,7 @@ import UIKit
             if ["unauthorized", "poweredOff", "unsupported"].contains(state), isConnected || transportIsConnected || isBusy {
                 resetDisconnectedState(status: "蓝牙连接不可用，请恢复后重新连接。")
             }
-            if state == "unauthorized" { stopScan(); status = "蓝牙权限未开启。"; errorMessage = "请在 iPhone 设置中允许 WiseNote 使用蓝牙。" }
+            if state == "unauthorized" { stopScan(); status = "蓝牙权限未开启。"; errorMessage = "请在 iPhone 设置中允许 WiseLife 使用蓝牙。" }
             else if state == "poweredOff" { stopScan(); status = "请开启 iPhone 蓝牙。" }
             else if state == "unsupported" { stopScan(); status = "当前设备不支持蓝牙，请在 iPhone 真机上连接 Ring。" }
             else if state == "poweredOn", isScanning { device.scan() }

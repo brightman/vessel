@@ -202,7 +202,7 @@ final class DaybookDatabase: @unchecked Sendable {
     }
     private func installSchema() throws {
         let version = try query("PRAGMA user_version")[0]["user_version"]?.double ?? -1
-        guard version <= 13 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
+        guard version <= 16 else { throw Failure(code: SQLITE_SCHEMA, detail: "数据库版本高于此应用支持的版本") }
         if version < 1 {
             let statements = [
                 "CREATE TABLE storage_migrations (domain TEXT PRIMARY KEY, imported_at REAL NOT NULL)",
@@ -336,6 +336,81 @@ final class DaybookDatabase: @unchecked Sendable {
             // A semantic signature prevents an old artifact representing edited ranges.
             try execute("CREATE TABLE IF NOT EXISTS content_segment_presentations (segment_id TEXT PRIMARY KEY REFERENCES content_segments(id) ON DELETE CASCADE, content_signature TEXT NOT NULL, transcript BLOB NOT NULL)")
             try execute("PRAGMA user_version = 13")
+        }
+
+        if version < 14 {
+            if try !query("PRAGMA table_info(audio_processing_jobs)").contains(where: { $0["name"]?.string == "retry_count" }) {
+                try execute("ALTER TABLE audio_processing_jobs ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0 CHECK(retry_count >= 0)")
+            }
+            try execute("PRAGMA user_version = 14")
+        }
+
+        if version < 15 {
+            // Contact links belong to one processed recording source, not to a
+            // transient segment or a global speaker identity.
+            try execute("CREATE TABLE IF NOT EXISTS content_speaker_contacts (source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, speaker_id TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(source_key,speaker_id))")
+            try execute("PRAGMA user_version = 15")
+        }
+
+        if version < 16 {
+            try execute("CREATE TABLE IF NOT EXISTS contacts (id TEXT PRIMARY KEY, origin_type TEXT NOT NULL CHECK(origin_type IN ('ios','manual')), system_contact_identifier TEXT, display_name TEXT NOT NULL, organization TEXT, emails_json TEXT NOT NULL DEFAULT '[]', phone_numbers_json TEXT NOT NULL DEFAULT '[]', avatar_thumbnail BLOB, sync_state TEXT NOT NULL CHECK(sync_state IN ('manual','current','needs_refresh','unavailable','missing')), created_at REAL NOT NULL, updated_at REAL NOT NULL, last_synced_at REAL, CHECK((origin_type='ios' AND system_contact_identifier IS NOT NULL AND sync_state IN ('current','needs_refresh','unavailable','missing')) OR (origin_type='manual' AND system_contact_identifier IS NULL AND sync_state='manual')))")
+            try execute("CREATE UNIQUE INDEX IF NOT EXISTS contacts_system_identifier ON contacts(system_contact_identifier) WHERE system_contact_identifier IS NOT NULL")
+            try execute("CREATE TABLE IF NOT EXISTS recording_speaker_contacts (source_key TEXT NOT NULL REFERENCES audio_processing_sources(source_key) ON DELETE CASCADE, speaker_id TEXT NOT NULL, contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE, linked_at REAL NOT NULL, speaker_revision TEXT NOT NULL, PRIMARY KEY(source_key,speaker_id))")
+            try execute("CREATE INDEX IF NOT EXISTS speaker_contacts_by_contact ON recording_speaker_contacts(contact_id,source_key)")
+            try execute("CREATE INDEX IF NOT EXISTS audio_spans_speaker_time ON audio_transcript_spans(speaker_id,start,end)")
+
+            let now = Date.now.timeIntervalSinceReferenceDate
+            func contactID(_ snapshot: SpeakerContactSnapshot) -> String {
+                snapshot.origin == .ios ? "ios:\(snapshot.identifier)" : snapshot.identifier
+            }
+            func store(_ snapshot: SpeakerContactSnapshot, sourceKey: String?, speakerID: String?, revision: String) throws {
+                let origin = snapshot.origin.rawValue
+                let id = contactID(snapshot)
+                let name = snapshot.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !id.isEmpty, !name.isEmpty else { return }
+                let emails = String(data: try JSONEncoder().encode(snapshot.emails), encoding: .utf8) ?? "[]"
+                let phones = String(data: try JSONEncoder().encode(snapshot.phoneNumbers), encoding: .utf8) ?? "[]"
+                let state = snapshot.origin == .ios ? SpeakerContactSyncState.current.rawValue : SpeakerContactSyncState.manual.rawValue
+                try execute("INSERT INTO contacts(id,origin_type,system_contact_identifier,display_name,organization,emails_json,phone_numbers_json,avatar_thumbnail,sync_state,created_at,updated_at,last_synced_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,organization=excluded.organization,emails_json=excluded.emails_json,phone_numbers_json=excluded.phone_numbers_json,avatar_thumbnail=excluded.avatar_thumbnail,sync_state=excluded.sync_state,updated_at=excluded.updated_at,last_synced_at=excluded.last_synced_at", [
+                    .text(id), .text(origin), snapshot.origin == .ios ? .text(snapshot.identifier) : .null, .text(name), snapshot.organization.map(Value.text) ?? .null,
+                    .text(emails), .text(phones), snapshot.thumbnailData.map(Value.blob) ?? .null, .text(state), .real(now), .real(now), snapshot.origin == .ios ? .real(now) : .null
+                ])
+                guard let sourceKey, let speakerID,
+                      try !query("SELECT 1 FROM audio_processing_sources WHERE source_key=?", [.text(sourceKey)]).isEmpty else { return }
+                let spans=try query("SELECT j.id,j.result_hash,t.position,t.start,t.end,t.text FROM audio_transcript_spans t JOIN audio_processing_jobs j ON j.id=t.job_id JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.source_key=? AND j.active=1 AND j.configuration_key=s.configuration_key AND j.result IS NOT NULL AND t.speaker_id=? ORDER BY t.start,t.end,j.id,t.position",[.text(sourceKey),.text(speakerID)])
+                var revisionParts: [String] = []
+                revisionParts.reserveCapacity(spans.count * 6)
+                for row in spans {
+                    revisionParts.append(row["id"]?.string ?? "")
+                    revisionParts.append(row["result_hash"]?.string ?? "")
+                    revisionParts.append(String(row["position"]?.double ?? 0))
+                    revisionParts.append(String(row["start"]?.double ?? 0))
+                    revisionParts.append(String(row["end"]?.double ?? 0))
+                    revisionParts.append(row["text"]?.string ?? "")
+                }
+                let currentRevision = spans.isEmpty ? revision : AudioStableID.make(revisionParts)
+                try execute("INSERT INTO recording_speaker_contacts(source_key,speaker_id,contact_id,linked_at,speaker_revision) VALUES(?,?,?,?,?) ON CONFLICT(source_key,speaker_id) DO UPDATE SET contact_id=excluded.contact_id,speaker_revision=excluded.speaker_revision", [.text(sourceKey), .text(speakerID), .text(id), .real(now), .text(currentRevision)])
+            }
+
+            // Convert the source-scoped snapshot table first. It is retained as a rollback
+            // artifact, but the normalized contact/link tables become authoritative.
+            for row in try query("SELECT source_key,speaker_id,payload FROM content_speaker_contacts") {
+                guard let sourceKey = row["source_key"]?.string, let speakerID = row["speaker_id"]?.string else { continue }
+                let snapshot = try DaybookDatabase.decode(SpeakerContactSnapshot.self, row["payload"])
+                try store(snapshot, sourceKey: sourceKey, speakerID: speakerID, revision: "legacy")
+            }
+            // VoiceNote payloads are an older persistence path. Import snapshots and only
+            // create a recording relation when the processed source exists; thoughts never
+            // become speaker/contact records.
+            for row in try query("SELECT payload FROM voice_notes") {
+                let note = try DaybookDatabase.decode(VoiceNote.self, row["payload"])
+                guard note.kind != .thought, let contacts = note.speakerContacts, !contacts.isEmpty else { continue }
+                let sourceKey = AudioSourceID(kind: .legacyNote, id: note.id).key
+                for (speakerID, snapshot) in contacts {
+                    try store(snapshot, sourceKey: sourceKey, speakerID: speakerID, revision: note.transcriptRevision?.uuidString ?? "legacy")
+                }
+            }
+            try execute("PRAGMA user_version = 16")
         }
 
     }

@@ -1,5 +1,19 @@
 # iPhone 设置原型 · 2026-10-18
 
+> 类型：产品说明 · 状态：持续更新 · 更新：2026-11-02 · 适用：iPhone 设置与对应 HTML 原型
+
+## 2026-11-02 · 首次使用 AI 与数据准备（当前约定）
+
+新增独立的[首次使用 HTML 原型](onboarding.html)及[主要设计说明](onboarding-design.md)。准备顺序为语音转写、AI 能力、数据授权、使用说明；AI 能力在同一页准备理解模型与检索模型，最后显示能力影响与就绪清单；下载成功须完成校验，自定义 AI 须测试当前配置。Apple Intelligence 由系统开启／准备，不伪装为 App 下载。
+
+「AI 与数据准备」仅用于新安装 App 首次引导，设置的「语言与 AI」不提供该入口。完成或跳过后进入现有首页，后续通过独立的语音转写、AI 模型、AI 检索菜单调整配置，并在数据来源管理授权。四步设计与原生实现状态统一以[首次使用设计](onboarding-design.md)为准。
+
+## 2026-11-02 · Apple Intelligence 可用性
+
+AI 模型中的 Apple Intelligence 选项按 `SystemLanguageModel.default.availability` 判断。设备不支持、系统未开启、模型未准备好或当前中文能力不支持时置灰且不可选择，行内显示对应原因；已有本地选择保留但不可重新保存，不自动改为云端。进入设置和返回 App 前台重新检查，系统准备好后恢复可选。
+
+HTML 原型默认演示可用；在 `iphone-day.html` URL 添加 `?appleAI=deviceNotEligible`、`?appleAI=appleIntelligenceNotEnabled` 或 `?appleAI=modelNotReady` 可演示置灰原因。浏览器不能检测手机 FoundationModels。原生与原型验证见[持续记录](../verification/ask-ai-runtime-2026-11-01.md#background-lifetime-20261102)。
+
 ## 2026-10-20 · Sign in with ChatGPT 原型
 
 入口：`iphone-day.html` → 设置 → 语音与 AI → **AI 模型**。
@@ -121,3 +135,8 @@ Whisper 的多语言版本用于中文，不能选仅英语的 `.en` 版本。�
 - Node VM + DOM 替身的 12 组逻辑检查通过：导航、三种外观及系统变化、Watch 状态、转写设置保存/放弃草稿、AI 保存门槛、地址校验、测试成功、修改后失效、过期异步结果、失败重试、切回本地、总结/全文切换。
 - 自动浏览器预览被本地 `file:` URL 安全策略拒绝；未绕过该限制。本次未验证浏览器渲染、实际滚动和点击效果，逻辑检查不能替代视觉验收。
 - 未修改或重新编译 Swift。Watch → iPhone 传输故障不属于本次原型变更，仍未完成端到端验证。
+
+
+### 2026-11-02：首次使用准备入口（原生）
+
+根据用户最新要求，移除「语言与 AI」中的「AI 与数据准备」及原生设置弹层路由。该引导只用于新安装首次进入；首次配置中断时保留进度，主动完成或跳过后不再显示，旧用户升级直接进入既有首页。设置保留各模型与数据来源的独立配置入口。详见 [首次使用设计](onboarding-design.md#8-原生实现2026-11-02)。

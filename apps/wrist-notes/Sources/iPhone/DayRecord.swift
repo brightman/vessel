@@ -21,6 +21,8 @@ struct DayRecord: Codable, Equatable, Identifiable, Sendable {
     var recordingGroupID: UUID? = nil
     var recordingContinuation: Bool? = nil
     var lifeMoment: LifeMomentDetails? = nil
+    /// Verified speaker annotations for direct short recordings. No contact details.
+    var attributedTranscript: [ContentProvenance.TextSpan]? = nil
 
     /// File URLs stay in the source repository; persisted citations carry frame provenance only.
     struct ContentProvenance: Codable, Equatable, Sendable {
@@ -36,6 +38,7 @@ struct DayRecord: Codable, Equatable, Identifiable, Sendable {
             let start: Double
             let end: Double
             let text: String
+            var speaker: String? = nil
         }
         let segmentID: UUID
         let sourceID: UUID

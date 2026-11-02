@@ -16,6 +16,14 @@ import Foundation
         try .init(id:id,capturedAt:Date(timeIntervalSince1970:86390),title:"Synthetic",ranges:ranges,complete:complete)
     }
     static func main() throws {
+        for gap in [180.0, 599, 600, 601] {
+            let audio = try source([range(0, 300), range(300, 1000)])
+            let result = try ContentSegmentation.build(source: audio, reliableNoSpeech: [],
+                successfulCoverage: [.init(start: 0, end: 1000)], asrEmpty: [.init(start: 100, end: 100 + gap)],
+                transcriptRanges: [.init(start: 0, end: 100), .init(start: 100 + gap, end: 1000)])
+            try check(result.segments.count == (gap >= 600 ? 3 : 1), "\(Int(gap))s ASR-only blank uses ten minutes and retains the low-information audio")
+        }
+
         for (duration,count) in [(599.0,1),(600.0,2),(601.0,2)] {
             let s = try source([range(0,300),range(300,1000)])
             let output = try ContentSegmentation.build(source:s,reliableNoSpeech:[.init(start:20,end:20+duration)],successfulCoverage:[.init(start:0,end:1000)])
@@ -50,7 +58,103 @@ import Foundation
         try persistentFixtures()
         try coverageFixtures()
         try undoCausalityFixtures()
+        try progressivePublicationFixture()
+        try incrementalPublicationFixture()
         print("Content intervals: 599/600/601, file/midnight continuity, gaps, padding, partial coverage passed")
+    }
+    static func incrementalPublicationFixture() throws {
+        let before=try range(5193.76,6073.450000000001),after=try range(6073.45,6284.38)
+        try check(!ContentSegmentRepository.rangesOverlap(before,after),"fractional adjacent boundaries cannot block incremental publication")
+        try check(ContentSegmentRepository.rangesOverlap(before,range(6073.449,6284.38)),"a real overlap remains protected")
+        let db=try DaybookDatabase(inMemory:true), processing=AudioProcessingRepository(database:db), repository=ContentSegmentRepository(database:db)
+        let s=try source([range(0,7200)],complete:true)
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(s.id.id.uuidString)])
+        try processing.register(source:s,configurationKey:"partial",windows:AudioWindowPlanner.plan(source:s,configurationKey:"partial"))
+        while let job=try processing.claimNext() {
+            let a=job.window.coreStart,b=job.window.coreEnd
+            let spans=stride(from:a+1,to:b-1,by:30).map { AudioTranscriptSpan(start:$0,end:$0+1,text:"Synthetic recording evidence") }
+            try processing.commit(job:job,result:.init(spans:spans,activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        try repository.reconcile(sourceID:s.id)
+        let input=try repository.contentV2RunInput(sourceID:s.id,modelIdentity:"partial")!
+        try repository.saveContentV2Run(sourceID:s.id,input:input,modelIdentity:"partial")
+        let plan=try ContentSegmentationV2.prepare(input),blocks=Dictionary(uniqueKeysWithValues:try ContentSegmentationV2.prepare(input).blocks.map { ($0.id,$0) })
+        let generated=plan.chapters.map { c in ContentSegmentationV2.Segment(id:c.id,regionID:c.regionID,blockIDs:c.blockIDs,
+            spanIDs:c.blockIDs.flatMap { blocks[$0]!.spanIDs },start:c.start,end:c.end,provisional:c.provisional,title:"Saved title",summary:"Saved summary",shortSummary:"",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[c.blockIDs[0]]) }
+        // Network completion order may place the last segment in the timeline first.
+        let partial=try ContentSegmentationV2.partialOutput(plan:plan,segment:generated.last!,original:input.spans)
+        let saved=try repository.publishContentV2(sourceID:s.id,input:input,output:partial,model:"fixture",modelIdentity:"partial",topicSplitting:true)
+        try check(saved.count==1 && saved[0].isFinal,"one independently completed segment is visible immediately")
+        try check(try repository.state(sourceID:s.id) == .pending,"partial publication cannot mark the whole recording complete")
+        try check(try !repository.hasPublishedContentV2(sourceID:s.id,input:input,modelIdentity:"partial",topicSplitting:true),"partial publication has no completion marker")
+        let fresh=try repository.contentV2Input(sourceID:s.id)!
+        try check(fresh.spans.contains(input.spans[0]),"publishing later segments cannot discard unfinished earlier content")
+        let reopened=ContentSegmentRepository(database:db)
+        try check(try reopened.contentV2RunInput(sourceID:s.id,modelIdentity:"partial") == input,"reopen restores the exact frozen input after partial publication")
+        try check(try reopened.contentV2Input(sourceID:s.id,matching:input) == input,"publishing one's own segment does not revoke the ongoing run")
+        _ = try reopened.publishContentV2(sourceID:s.id,input:input,output:partial,model:"fixture",modelIdentity:"partial",topicSplitting:true)
+        try check(try reopened.segments(sourceID:s.id).filter(\.isFinal).count == 1,"checkpoint replay cannot duplicate a final segment")
+        let all=ContentSegmentationV2.Output(sourceID:s.id.key,plan:plan,segments:generated,metrics:.init())
+        _ = try reopened.publishContentV2(sourceID:s.id,input:input,output:all,model:"fixture",modelIdentity:"partial",topicSplitting:true)
+        try check(try reopened.segments(sourceID:s.id).filter(\.isFinal).count == generated.count,"completion preserves the earlier partial publication")
+        try check(try reopened.hasPublishedContentV2(sourceID:s.id,input:input,modelIdentity:"partial",topicSplitting:true),"only full completion writes the completion marker")
+        print("Incremental publication: out-of-order visibility, unfinished earlier ranges, reopen, idempotence and completion passed")
+    }
+    static func progressivePublicationFixture() throws {
+        let db=try DaybookDatabase(inMemory:true)
+        let processing=AudioProcessingRepository(database:db), repository=ContentSegmentRepository(database:db)
+        let s=try source([range(0,7200)],complete:false)
+        try db.execute("INSERT INTO recording_sessions(id,created_at) VALUES (?,0)",[.text(s.id.id.uuidString)])
+        try processing.register(source:s,configurationKey:"progressive",windows:AudioWindowPlanner.plan(source:s,configurationKey:"progressive"))
+        func commitNext() throws {
+            let job=try processing.claimNext()!, a=job.window.coreStart,b=job.window.coreEnd
+            let spans=stride(from:a+1,to:b-1,by:30).map { AudioTranscriptSpan(start:$0,end:$0+1,text:"Synthetic topic evidence") }
+            try processing.commit(job:job,result:.init(spans:spans,activities:[.init(start:a,end:b,kind:.speech)],asr:.success,vad:.success,speaker:.notRequested,asrCoverage:[.init(start:a,end:b)],vadCoverage:[.init(start:a,end:b)]))
+        }
+        for _ in 0..<12 { try commitNext() }
+        try repository.reconcile(sourceID:s.id)
+        let input=try repository.contentV2Input(sourceID:s.id)!
+        try db.execute("UPDATE audio_processing_sources SET revision=revision+1 WHERE source_key=?",[.text(s.id.key)])
+        try check(try repository.contentV2Input(sourceID:s.id) == input,"progress-only updates must not invalidate a topic snapshot")
+        let plan=try ContentSegmentationV2.prepare(input)
+        let blocks=Dictionary(uniqueKeysWithValues:plan.blocks.map { ($0.id,$0) })
+        let generated=plan.chapters.map { chapter in
+            ContentSegmentationV2.Segment(id:chapter.id,regionID:chapter.regionID,blockIDs:chapter.blockIDs,
+                spanIDs:chapter.blockIDs.flatMap { blocks[$0]!.spanIDs },start:chapter.start,end:chapter.end,provisional:chapter.provisional,
+                title:"Synthetic title",summary:"Synthetic summary",shortSummary:"",keyPoints:[],classification:.meaningful,
+                contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[chapter.blockIDs[0]])
+        }
+        let output=ContentSegmentationV2.Output(sourceID:s.id.key,plan:plan,segments:generated,metrics:.init())
+        try commitNext()
+        let appended=try source(s.ranges+[range(7200,10800)],complete:false,id:s.id)
+        try processing.register(source:appended,configurationKey:"progressive",windows:AudioWindowPlanner.plan(source:appended,configurationKey:"progressive"))
+        try repository.reconcile(sourceID:s.id)
+        try check(try repository.contentV2Input(sourceID:s.id,matching:input) == input,"new hourly files and ASR cannot widen the authorized snapshot")
+        let usedID=input.evidenceJobIDs![0]
+        let oldHash=try db.query("SELECT result_hash FROM audio_processing_jobs WHERE id=?",[.text(usedID)])[0]["result_hash"]!
+        try db.execute("UPDATE audio_processing_jobs SET result_hash='changed' WHERE id=?",[.text(usedID)])
+        try check(try repository.contentV2Input(sourceID:s.id,matching:input) != input,"changed evidence must revoke snapshot authorization")
+        try db.execute("UPDATE audio_processing_jobs SET result_hash=? WHERE id=?",[oldHash,.text(usedID)])
+        try db.execute("UPDATE audio_processing_sources SET configuration_key='new-config' WHERE source_key=?",[.text(s.id.key)])
+        try check(try repository.contentV2Input(sourceID:s.id,matching:input) != input,"configuration change revokes frozen authorization")
+        try db.execute("UPDATE audio_processing_sources SET configuration_key='progressive' WHERE source_key=?",[.text(s.id.key)])
+        let published=try repository.publishContentV2(sourceID:s.id,input:input,output:output,model:"fixture",modelIdentity:"fixture",topicSplitting:true)
+        try check(published.contains(where: \.isFinal),"settled content publishes while later windows and the Watch recording remain open")
+        try check(published.last?.isFinal == false,"the open recording tail is not finalized")
+        let final=published.first(where: \.isFinal)!
+        try commitNext()
+        try repository.reconcile(sourceID:s.id)
+        let retained=try repository.segment(id:final.id)!
+        try check(retained.title == final.title && retained.summary == final.summary && retained.editorial == final.editorial,
+                  "later ASR must preserve finalized titles, summary and classification")
+        let nextInput=try repository.contentV2Input(sourceID:s.id)!
+        let draft=try repository.segments(sourceID:s.id).first(where: { !$0.isFinal })!
+        let midpoint=(draft.ranges.first!.sessionStartOffset+draft.ranges.last!.end)/2
+        _ = try repository.split(id:draft.id,at:midpoint,expectedRevision:draft.revision)
+        rejects { _ = try repository.contentV2Input(sourceID:s.id,matching:nextInput) }
+        try processing.delete(sourceID:s.id)
+        try check(try repository.contentV2Input(sourceID:s.id,matching:input) == nil,"deleted source revokes frozen authorization")
+        print("Progressive publication: progress and later ASR preserve frozen results; open tail retained")
     }
     static func shortRecordingUsesASROnlyCoverage() throws {
         let db=try DaybookDatabase(inMemory:true), id=AudioSourceID(kind:.session,id:UUID())

@@ -289,11 +289,8 @@ actor LocalTranscriptionService {
                 let windows = VoiceSpeechSelection.windows(samples:samples,ranges:ranges,limit:6)
                 guard windows.count >= 2 else { continue }
                 let vectors = try await embeddings(windows)
-                // Every clean sample must agree. Do not turn a mixed cluster into a centroid.
-                guard vectors.allSatisfy({ a in vectors.allSatisfy { b in zip(a,b).reduce(Float(0)) { $0+$1.0*$1.1 } >= VoiceIdentityPolicy.matchSimilarity } }) else { continue }
-                var mean = [Float](repeating:0,count:256)
-                for vector in vectors { for i in mean.indices { mean[i] += vector[i]/Float(vectors.count) } }
-                let normalized = try VoiceIdentityPolicy.normalized(mean)
+                guard VoiceIdentityPolicy.isConsistent(vectors, minimum: VoiceIdentityPolicy.queryCentroidSimilarity) else { continue }
+                let normalized = try VoiceIdentityPolicy.centroid(vectors)
                 features.append(.init(localSpeakerID:id,modelVersion:VoiceIdentityPolicy.modelID,vector:normalized))
                 if let profile, VoiceIdentityPolicy.matches(embeddings:vectors,profile:profile) { owners.insert(id) }
             }

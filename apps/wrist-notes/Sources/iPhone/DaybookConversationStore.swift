@@ -7,9 +7,12 @@ struct DaybookEvidenceSnapshot: Codable, Equatable, Sendable {
     let dayEnd: Date
     let allowedKinds: Set<DayRecord.Kind>
     let fingerprint: String
+    var speakerContactID: String? = nil
+    var speakerFingerprint: String? = nil
 
-    init(records: [DayRecord], dayStart: Date, dayEnd: Date, allowedKinds: Set<DayRecord.Kind>) {
+    init(records: [DayRecord], dayStart: Date, dayEnd: Date, allowedKinds: Set<DayRecord.Kind>, speakerContactID:String? = nil, speakerFingerprint:String? = nil) {
         self.dayStart = dayStart; self.dayEnd = dayEnd; self.allowedKinds = allowedKinds
+        self.speakerContactID=speakerContactID; self.speakerFingerprint=speakerFingerprint
         let scoped = DayRecord.evidenceRecords(records, scope: DateInterval(start:dayStart,end:dayEnd)).filter { allowedKinds.contains($0.kind) }
             .sorted { $0.id.uuidString < $1.id.uuidString }
         let encoder = JSONEncoder()
@@ -17,11 +20,15 @@ struct DaybookEvidenceSnapshot: Codable, Equatable, Sendable {
         encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "+Infinity", negativeInfinity: "-Infinity", nan: "NaN")
         // DayRecord is an entirely Codable value; nonfinite numbers have an explicit stable encoding.
         let data = try! encoder.encode(scoped)
-        fingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        fingerprint = speakerFingerprint ?? SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     func isCurrent(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>) -> Bool {
-        self.allowedKinds == allowedKinds && self == Self(records: records, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
+        // A persisted speaker fingerprint cannot be checked against the current SQLite
+        // contact links here. Only DaybookAssistantModel has the repository needed to do
+        // that check; generic retrieval must never reuse speaker answers as prior context.
+        if speakerContactID != nil { return false }
+        return self.allowedKinds == allowedKinds && self == Self(records: records, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
     }
 }
 
@@ -77,7 +84,12 @@ final class DaybookConversationStore {
     private struct Archive: Codable { let version: Int; let conversations: [DaybookConversation] }
     private let url: URL
     private var database: DaybookDatabase?
-    private var blocked = false
+    private let connectionLock = NSRecursiveLock()
+    private var blockedValue = false
+    private var blocked: Bool {
+        get { connectionLock.lock(); defer { connectionLock.unlock() }; return blockedValue }
+        set { connectionLock.lock(); defer { connectionLock.unlock() }; blockedValue = newValue }
+    }
     static let pageSize = 10
     struct Cursor: Equatable { let createdAt: Double; let id: String }
     struct Page { let turns: [DaybookConversationTurn]; let cursor: Cursor?; let hasMore: Bool }
@@ -89,6 +101,7 @@ final class DaybookConversationStore {
 
     init(url: URL, database: DaybookDatabase? = nil) { self.url = url; self.database = database }
     private func connection() throws -> DaybookDatabase {
+        connectionLock.lock(); defer { connectionLock.unlock() }
         if let database { return database }
         let db = try DaybookDatabase(url: DaybookDatabase.url(forLegacy: url)); database = db; return db
     }
@@ -111,6 +124,13 @@ final class DaybookConversationStore {
             try Self.write(archive.conversations, db: db)
         }
         return db
+    }
+
+    /// Runtime worker shares the authoritative connection and domain migration. No database path escapes.
+    func runtimeDatabase() throws -> DaybookDatabase { try preparedConnection() }
+
+    func runtimeTurn(id: UUID) throws -> DaybookConversationTurn? {
+        try preparedConnection().query("SELECT * FROM conversation_turns WHERE id = ?", [.text(id.uuidString)]).first.map(Self.turn)
     }
 
     func load() throws -> [DaybookConversation] {
@@ -163,16 +183,17 @@ final class DaybookConversationStore {
     }
 
     /// The request and every subsequent state are committed by UUID, never by replacing the archive.
+    /// `day` assigns a new question's thread. Existing questions keep their stored thread,
+    /// even when retried after midnight or with a different homepage date selected.
     func saveTurn(_ turn: DaybookConversationTurn, day: Date) throws {
         guard !blocked else { throw DaybookConversationFailure.load }
         do {
             try Self.validate(Archive(version: 1, conversations: [.init(day: day, updatedAt: .now, turns: [turn])]))
             let db = try preparedConnection()
             try db.transaction {
-                let dayValue = DaybookDatabase.Value.real(day.timeIntervalSinceReferenceDate)
-                try db.execute("INSERT INTO conversations(day,updated_at) VALUES (?,?) ON CONFLICT(day) DO UPDATE SET updated_at = excluded.updated_at", [dayValue, .real(Date.now.timeIntervalSinceReferenceDate)])
                 let existing = try db.query("SELECT position,day FROM conversation_turns WHERE id = ?", [.text(turn.id.uuidString)]).first
-                if let existing, existing["day"] != dayValue { throw DaybookConversationFailure.save }
+                let dayValue = existing?["day"] ?? .real(day.timeIntervalSinceReferenceDate)
+                try db.execute("INSERT INTO conversations(day,updated_at) VALUES (?,?) ON CONFLICT(day) DO UPDATE SET updated_at = excluded.updated_at", [dayValue, .real(Date.now.timeIntervalSinceReferenceDate)])
                 let position = try existing?["position"] ?? db.query("SELECT COALESCE(MAX(position),-1)+1 AS next FROM conversation_turns WHERE day = ?", [dayValue])[0]["next"]!
                 try Self.writeTurn(turn, day: dayValue, position: position, fallbackDate: .now, db: db)
             }
@@ -188,6 +209,7 @@ final class DaybookConversationStore {
     func redactDisallowed(_ allowedKinds: Set<DayRecord.Kind>) throws {
         let db = try preparedConnection()
         try db.transaction {
+            var didRedact = false
             var cursor = ""
             while true {
                 let rows = try db.query("SELECT id,evidence FROM conversation_turns WHERE id > ? AND COALESCE(state,'completed') != 'redacted' ORDER BY id LIMIT 128", [.text(cursor)])
@@ -196,11 +218,25 @@ final class DaybookConversationStore {
                     cursor = try row.requiredString("id")
                     let evidence = try DaybookDatabase.decode(DaybookEvidenceSnapshot.self, row["evidence"])
                     if !evidence.allowedKinds.isSubset(of: allowedKinds) {
+                        didRedact = true
                         try db.execute("UPDATE conversation_turns SET state = 'redacted', text = ?, generated = 0, provider = '', sources = ?, scope = '', question_references = NULL WHERE id = ?", [.text("相关资料的读取权限已关闭，回答和引用已移除。你的问题仍保留在历史中。"), try DaybookDatabase.json([DaybookRetrieval.Source]()), .text(cursor)])
                     }
                 }
             }
+            // Privacy cleanup must work even when this launch has not constructed the runtime.
+            // Routine refreshes with unchanged permissions retain stable caches and active runs.
+            if didRedact, !(try db.query("SELECT domain FROM storage_migrations WHERE domain = 'ask-ai-runtime-v1'")).isEmpty {
+                try Self.invalidateRuntimeCaches(db)
+            }
         }
+    }
+
+    /// Called inside a short transaction, including by the worker-owned runtime.
+    static func invalidateRuntimeCaches(_ db: DaybookDatabase) throws {
+        try db.execute("INSERT INTO storage_migrations(domain,imported_at) VALUES('ask-ai-runtime-cache-generation',1) ON CONFLICT(domain) DO UPDATE SET imported_at=imported_at+1")
+        try db.execute("UPDATE conversation_turns SET state='cancelled',text=?,generated=0,provider='',sources=?,scope='',question_references=NULL WHERE state='pending' AND id IN (SELECT turn_id FROM ask_ai_runs WHERE state NOT IN ('completed','failed','cancelled','interrupted'))", [.text("资料权限已变化，本次回答已中断，可重试。"), try DaybookDatabase.json([DaybookRetrieval.Source]())])
+        try db.execute("UPDATE ask_ai_runs SET state='interrupted',ended_at=?,error_code='permissions_changed' WHERE state NOT IN ('completed','failed','cancelled','interrupted')", [.real(Date.now.timeIntervalSinceReferenceDate)])
+        for table in ["ask_ai_evidence", "ask_ai_tool_calls", "ask_ai_memory", "ask_ai_checkpoints"] { try db.execute("DELETE FROM " + table) }
     }
 
     func reset() throws {

@@ -8,7 +8,7 @@ private final class RecapSecrets: SecretStore {
     var requests: [DaybookRecapInput] = []
     var waiting: [CheckedContinuation<String, Error>] = []
     func generate(_ input: DaybookRecapInput, configuration: AIConfiguration, apiKey: String?, language: String,
-                  isCurrent: @escaping @MainActor () -> Bool) async throws -> String {
+                  isCurrent: @escaping @MainActor () -> Bool, progress: @escaping @MainActor (String) -> Void) async throws -> String {
         precondition(isCurrent()); requests.append(input)
         return try await withCheckedThrowingContinuation { waiting.append($0) }
     }
@@ -17,7 +17,7 @@ private final class RecapSecrets: SecretStore {
 @MainActor private final class CountingRecapGenerator: DaybookRecapGenerating {
     var requests = 0
     func generate(_ input: DaybookRecapInput, configuration: AIConfiguration, apiKey: String?, language: String,
-                  isCurrent: @escaping @MainActor () -> Bool) async throws -> String {
+                  isCurrent: @escaping @MainActor () -> Bool, progress: @escaping @MainActor (String) -> Void) async throws -> String {
         precondition(isCurrent()); requests += 1
         return "昨天整理了花园。[1]"
     }
@@ -243,6 +243,29 @@ private final class RecapSecrets: SecretStore {
         recovered.generate()
         await wait { !recovered.isGenerating }
         precondition(counting.requests == 2 && recovered.current?.text != nil, "manual request can regenerate after automatic budget is consumed")
+        // Even a provider that does not resume on cancellation must not hold the
+        // UI forever. A late response cannot overwrite a newer manual result.
+        let timeoutStore = DaybookRecapStore(database: try DaybookDatabase(inMemory: true))
+        let hanging = RecapGenerator()
+        let timed = DaybookRecapModel(store: timeoutStore, service: hanging, generationTimeout: .milliseconds(30))
+        timed.scopeLoader = { _ in claimRecords }
+        timed.synchronize(day: day, records: claimRecords, revisions: [], settings: localSettings,
+                          allowedKinds: [.thought], foreground: true, capturing: false)
+        await wait { hanging.waiting.count == 1 }
+        try await Task.sleep(for: .milliseconds(80))
+        precondition(!timed.isGenerating && timed.canGenerate && timed.message == DaybookRecapFailure.timedOut.localizedDescription,
+                     "a hung recap must stop spinning and allow a manual retry by its deadline")
+        let timedArchive = try timeoutStore.load()
+        precondition(timedArchive.first?.message == DaybookRecapFailure.timedOut.localizedDescription,
+                     "timeout outcome must survive relaunch")
+        timed.generate(); await wait { hanging.waiting.count == 2 }
+        hanging.waiting.removeLast().resume(returning: "手动重试成功。[1]")
+        await wait { !timed.isGenerating }
+        hanging.finish("过期的响应。[1]")
+        for _ in 0..<30 { await Task.yield() }
+        precondition(timed.current?.text == "手动重试成功。[1]", "late timed-out results cannot replace a completed retry")
+        timed.reload(); await wait { !timed.isRefreshing }
+        precondition(hanging.requests.count == 2, "timeout never restores the automatic attempt budget")
         print("Daily recap coordinator consent, stale output, retry and privacy tests passed")
     }
 }

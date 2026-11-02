@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1600"
+   LastUpgradeVersion = "2720"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -55,7 +55,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D96FEEF2721496E3FE1F42E5"
             BuildableName = "WristNotesWatch.app"
-            BlueprintName = "WristNotesWatch"
             ReferencedContainer = "container:WristNotes.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -72,7 +71,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D96FEEF2721496E3FE1F42E5"
             BuildableName = "WristNotesWatch.app"
-            BlueprintName = "WristNotesWatch"
             ReferencedContainer = "container:WristNotes.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

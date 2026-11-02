@@ -37,6 +37,11 @@ import Foundation
         let engine = FakeEngine(), activity = FakeActivity()
         var saved: [UUID] = []; var fail = true
         let store = PhoneRecordingDraftStore(root: root)
+        let flashStore = PhoneRecordingDraftStore(root: root.appendingPathComponent("flash-store"))
+        let flashDraft = try flashStore.prepare(id: UUID(), at: .now, isThought: true)
+        precondition(flashDraft.isThought && !flashDraft.isChunked)
+        let recoveredFlash = try flashStore.load()
+        precondition(recoveredFlash.first?.isThought == true && recoveredFlash.first?.timeZoneIdentifier == flashDraft.timeZoneIdentifier, "Flash kind and recording timezone must survive restart")
         let chunkStore = PhoneRecordingDraftStore(root: root.appendingPathComponent("chunk-store"))
         let chunkDraft = try chunkStore.prepare(id: UUID(), at: .now)
         try checkPhone(chunkDraft.isChunked && chunkDraft.activeChunkOrdinal == 0, "new iPhone long recordings use a recoverable chunk session")
@@ -145,6 +150,28 @@ import Foundation
         noDuration.recoveryDuration = 3
         try await protected.retrySave()
         assert(protected.phase == .idle && protected.lastSaved?.duration == 3)
+        // Deleting an unreadable pending take must clean its durable manifest and
+        // report a filesystem refusal instead of silently leaving a stuck banner.
+        let deleteRoot = root.appendingPathComponent("discard-failure")
+        let deleteStore = PhoneRecordingDraftStore(root: deleteRoot)
+        let rejected = try deleteStore.prepare(id: UUID(), at: .now)
+        try Data([1,2,3]).write(to: rejected.fileURL)
+        let noAudio = FakeEngine(); noAudio.recoveryDuration = 0
+        let deleting = PhoneRecordingSession(engine: noAudio, activity: FakeActivity(), store: deleteStore) { _ in assertionFailure("unreadable audio must not be saved") }
+        let outside = root.appendingPathComponent("unrelated-audio.m4a")
+        try Data([9]).write(to: outside)
+        let link = rejected.fileURL.deletingLastPathComponent().appendingPathComponent("unsafe-link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
+        deleting.clearError()
+        await deleting.discard()
+        assert(deleting.phase == .failed && deleting.errorMessage?.contains("删除") == true,
+               "a failed delete must be visible and remain retryable")
+        assert(FileManager.default.fileExists(atPath: rejected.fileURL.path) && FileManager.default.fileExists(atPath: outside.path))
+        try FileManager.default.removeItem(at: link)
+        await deleting.discard()
+        assert(deleting.phase == .idle && deleting.pendingDraft == nil && deleting.errorMessage == nil)
+        let afterDelete = try deleteStore.load()
+        assert(afterDelete.isEmpty && !FileManager.default.fileExists(atPath: rejected.fileURL.path))
         // A transient initial store error must clear after a later successful empty scan.
         let badRoot = root.appendingPathComponent("blocked")
         try Data([1]).write(to: badRoot)

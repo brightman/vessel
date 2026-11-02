@@ -5,6 +5,16 @@ import SQLite3
 struct DaybookRetrievalSmoke {
     @MainActor
     static func main() async throws {
+        #if DAYBOOK_ASSISTANT_MODEL_TESTS
+        if CommandLine.arguments.contains("--submission") {
+            try await assistantModelTests()
+            try await automaticScopeLoadingTests()
+            try await conversationPersistenceTests()
+            print("Ask AI submission: immediate acceptance, validation, confirmation, async loading and persistence passed")
+            return
+        }
+        #endif
+        try await citationRepairTests()
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
         func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
@@ -22,6 +32,25 @@ struct DaybookRetrievalSmoke {
                                    title: "旧笔记", text: "过去的项目", duration: 10)
         let records = [tomorrow, first, yesterday, last, historical]
         let service = DaybookRetrieval(calendar: calendar)
+
+        let speakerRecord=DayRecord(id:UUID(),capturedAt:now,kind:.voice,title:"项目 MVP 讨论",text:"张毅介绍了项目的人力配置与功能规划。",duration:90)
+        let speakerEvidence=SpeakerAskEvidence(id:speakerRecord.id,sourceKey:"session:speaker-fixture",speakerID:"speaker-1",speakerLabel:"说话人 1",
+            title:speakerRecord.title,capturedAt:now,kind:.voice,start:0,end:90,text:speakerRecord.text)
+        let speakerPrepared=try service.prepareSpeaker(question:"张毅说了什么？",items:[speakerEvidence],records:[speakerRecord],contactID:"contact-zhangyi",
+            contactName:"张毅",fingerprint:"fingerprint",selectedDate:now)
+        precondition(speakerPrepared.sources.count==1 && speakerPrepared.evidence.speakerContactID=="contact-zhangyi"
+            && speakerPrepared.context.contains("「张毅」") && speakerPrepared.context.contains(speakerRecord.text),
+            "speaker retrieval gives the model the associated contact name and that speaker's transcript")
+
+        let siriVoice = DayRecord(id: UUID(), capturedAt: date("2026-10-18T12:00:00+08:00"), kind: .voice,
+                                  title: "海风项目", text: "客户说海风项目的预算需要调整。")
+        let siriImage = DayRecord(id: UUID(), capturedAt: date("2026-10-18T13:00:00+08:00"), kind: .image,
+                                  title: "海风预算截图", text: "海风项目预算")
+        let siriPrepared = try WiseLifeSiriQuery.prepare(question: "海风预算", records: [siriVoice, siriImage], now: now, calendar: calendar)
+        precondition(siriPrepared.sources.map(\.id) == [siriVoice.id], "Siri query searches only local voice/thought records and returns the matching source")
+        let siriDenied = try WiseLifeSiriQuery.prepare(question: "海风预算", records: [siriVoice], now: now,
+                                                       calendar: calendar, allowedKinds: [])
+        precondition(siriDenied.sources.isEmpty, "Siri query honors the user's AI source permissions")
 
         var workoutRecord = DayRecord(id: UUID(), capturedAt: now.addingTimeInterval(-3600), kind: .activity,
             title: "运动 · 跑步", text: "Apple 健康体能训练：跑步，持续30分钟，来源 Apple Watch。", duration: 1800)
@@ -130,6 +159,8 @@ struct DaybookRetrievalSmoke {
             preconditionFailure("Invalid explicit dates must not silently use the selected day")
         } catch is DaybookRetrieval.Failure { }
         #if DAYBOOK_ASSISTANT_MODEL_TESTS
+        try await backgroundAnswerTests()
+        try await initialScopeProgressRefreshTests()
         try await automaticScopeLoadingTests()
         try await requestedContentScopeTests()
         try await durableSourceDeletionTests()
@@ -142,8 +173,33 @@ struct DaybookRetrievalSmoke {
         try await assistantModelTests()
         try await conversationTests()
         try await conversationPersistenceTests()
+        try await sameTurnRetryTests()
+        try await crossDayRetryTests()
+        try await scopedRevalidationTests()
         #endif
         print("DaybookRetrievalSmoke passed: date boundaries, Chinese search, bounded snippets, complete-day counts, source invalidation, privacy, DST")
+    }
+
+    static func citationRepairTests() async throws {
+        let allowed=DaybookAnswerCitationPolicy.allowedSourcesInstruction([1])
+        precondition(allowed.contains("[1]") && allowed.contains("唯一有效"),"answer prompt names the exact allowed source marker")
+        var repairs:[String]=[]
+        let repaired=try await DaybookAnswerCitationPolicy.validatedAnswer("张毅谈到了项目规划。",sourceNumbers:[1]) { instruction in
+            repairs.append(instruction)
+            return "张毅介绍了项目的人力配置与功能规划。[1]"
+        }
+        precondition(repairs.count==1 && repairs[0].contains("[1]") && repaired.hasSuffix("[1]"),
+            "a missing citation triggers one constrained answer retry")
+        var unnecessaryRetry=false
+        let valid=try await DaybookAnswerCitationPolicy.validatedAnswer("张毅讨论了项目规划。[1]",sourceNumbers:[1]) { _ in
+            unnecessaryRetry=true
+            return ""
+        }
+        precondition(!unnecessaryRetry && valid.contains("[1]"),"valid citations do not trigger a second model request")
+        do {
+            _=try await DaybookAnswerCitationPolicy.validatedAnswer("没有引用",sourceNumbers:[1]) { _ in "张毅说了项目规划。[2]" }
+            preconditionFailure("an invalid citation after repair must be rejected")
+        } catch DaybookAnswerFailure.missingCitations { }
     }
 }
 
@@ -162,7 +218,9 @@ private func automaticScopeLoadingTests() async throws {
     let model = DaybookAssistantModel(store:DaybookConversationStore(url:root.appendingPathComponent("auto.json")))
     var scopes: [DateInterval] = []
     model.scopeLoader = { scope in scopes.append(scope); return scope.contains(old) ? [record] : [] }
-    model.ask("最近有多少条记录？",records:[],selectedDate:old,allowedKinds:[.voice],settings:settings)
+    let accepted = model.ask("最近有多少条记录？",records:[],selectedDate:old,allowedKinds:[.voice],settings:settings)
+    precondition(accepted && model.isPending && model.turns.last?.completionState == .pending && scopes.isEmpty,
+                 "Accept the durable question before asynchronous scope loading so the composer can clear immediately")
     for _ in 0..<2000 { if !model.isPending && model.answer != nil { break }; await Task.yield() }
     precondition(scopes.count == 2 && scopes[0].duration < 8*86400 && scopes[1].contains(old), "Soft recent query must load again before expanding evidence")
     precondition(model.answer?.sources.first?.id == record.id && model.answer?.scopeDescription.contains("扩大") == true)
@@ -206,7 +264,8 @@ private func requestedContentScopeTests() async throws {
     for _ in 0..<1000 { if continuation != nil { break }; await Task.yield() }
     let pendingScope = try scopeStore.loadPage().turns.last
     precondition(pendingScope?.completionState == .pending,"question persisted before scope read completes")
-    model.invalidateLoadedScope(); continuation?.resume(returning:rows)
+    precondition(model.prepared == nil && model.preparedTurnID == nil,"new scope read cannot retain prior question evidence")
+    model.invalidateLoadedScope(force: true); continuation?.resume(returning:rows)
     for _ in 0..<100 { await Task.yield() }
     precondition(model.prepared == nil && !model.isPending,"mutation rejects late scope load")
     let sameSource = UUID()
@@ -348,6 +407,319 @@ private final class DelayedDaybookAnswerService: DaybookAnswering {
 }
 
 @MainActor
+private func backgroundAnswerTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let suite = "BackgroundAnswer-\(UUID())"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let settings = AppSettings(defaults: defaults, secrets: DaybookTestSecrets())
+    let store = DaybookConversationStore(url: root.appendingPathComponent("history.json"))
+    let service = DelayedDaybookAnswerService()
+    let background = TestAskAIBackgroundExecution()
+    let model = DaybookAssistantModel(answerService: service, store: store, backgroundExecution: background)
+    let day = Date()
+    let note = DayRecord(id: UUID(), capturedAt: day, kind: .voice, title: "客户会议", text: "客户需要新报价")
+    precondition(model.ask("客户说了什么？", records: [note], selectedDate: day, allowedKinds: [.voice], settings: settings))
+    for _ in 0..<1_000 { if service.calls == 1 { break }; await Task.yield() }
+    precondition(service.calls == 1)
+    model.setApplicationInBackground(true)
+    precondition(model.isPending, "Switching Apps or locking must not cancel an accepted answer")
+    service.finishOldest("客户需要新报价 [1]")
+    for _ in 0..<1_000 { if !model.isPending { break }; await Task.yield() }
+    let saved = try store.load().flatMap(\.turns)
+    precondition(saved.count == 1 && saved[0].completionState == .completed, "Background answer must persist in SQLite")
+    for _ in 0..<100 { await Task.yield() }
+    precondition(background.begins == 1 && background.ends == 1, "Release the lease once after persistence")
+    model.setApplicationInBackground(false)
+    precondition(model.answer?.id == saved[0].id, "Return to foreground preserves the completed answer")
+
+    func askAndWait() async {
+        let count = service.calls + 1
+        precondition(model.ask("客户需要什么？", records: [note], selectedDate: day, allowedKinds: [.voice], settings: settings))
+        for _ in 0..<1_000 { if service.calls == count { break }; await Task.yield() }
+        precondition(service.calls == count)
+    }
+    await askAndWait()
+    model.setApplicationInBackground(true)
+    let expired = background.expirations.last!
+    expired()
+    precondition(!model.isPending && model.turns.last?.text.contains("后台时间已用尽") == true)
+    service.finishOldest("迟到的回答不能发布 [1]")
+    for _ in 0..<100 { await Task.yield() }
+    let interrupted = try store.load().flatMap(\.turns).last!
+    precondition(interrupted.completionState == .cancelled && !interrupted.text.contains("迟到"))
+    precondition(background.begins == 2 && background.ends == 2, "Expiration ends exactly once")
+
+    model.setApplicationInBackground(false)
+    await askAndWait()
+    model.setApplicationInBackground(true)
+    expired()
+    precondition(model.isPending, "Stale expiry must not cancel a newer run")
+    let latest = background.expirations.last!
+    model.setApplicationInBackground(false)
+    latest()
+    precondition(model.isPending, "Returning to foreground invalidates the old lease callback")
+    model.setApplicationInBackground(true)
+    model.cancel()
+    service.finishOldest("手动停止后的回答 [1]")
+    for _ in 0..<100 { await Task.yield() }
+    precondition(background.begins == 4 && background.ends == 4 && !model.isPending)
+
+    model.setApplicationInBackground(false)
+    background.grant = false
+    await askAndWait()
+    model.setApplicationInBackground(true)
+    precondition(!model.isPending && model.turns.last?.text.contains("暂未允许后台") == true)
+    service.finishOldest("未获后台时间的迟到结果 [1]")
+    for _ in 0..<100 { await Task.yield() }
+    precondition(background.ends == 4, "A denied lease cannot be ended")
+
+    // Waiting for external-send consent survives a hidden/background page, with no network call or lease.
+    background.grant = true
+    model.setApplicationInBackground(false)
+    try settings.saveAI(AIConfiguration(mode: .custom, model: "fixture", baseURL: "https://example.invalid/v1"), apiKey: "fixture-key")
+    let before = service.calls
+    precondition(model.ask("客户需要什么？", records: [note], selectedDate: day, allowedKinds: [.voice], settings: settings))
+    let confirmation = model.remoteConfirmation?.id
+    precondition(confirmation != nil)
+    model.setApplicationInBackground(true)
+    for _ in 0..<100 { await Task.yield() }
+    precondition(model.remoteConfirmation?.id == confirmation && service.calls == before && background.begins == 5,
+                 "Backgrounding cannot dismiss or authorize external-send consent")
+    model.setApplicationInBackground(false)
+    model.confirmRemote(records: [note], selectedDate: day, allowedKinds: [.voice], settings: settings)
+    for _ in 0..<1_000 { if service.calls == before + 1 { break }; await Task.yield() }
+    precondition(service.calls == before + 1)
+    model.setApplicationInBackground(true)
+    model.synchronize(records: [note], selectedDate: day, allowedKinds: [], configuration: settings.ai, configurationRevision: settings.aiRevision)
+    service.finishOldest("撤回权限后的迟到结果 [1]")
+    for _ in 0..<100 { await Task.yield() }
+    precondition(!model.isPending && background.begins == 6 && background.ends == 5)
+    precondition(model.turns.last?.completionState == .redacted, "Background support must preserve revocation protection")
+    // A runtime worker may commit before its MainActor completion callback runs.
+    // Expiration must not overwrite that already durable result with cancellation.
+    model.setApplicationInBackground(false)
+    try settings.saveAI(AIConfiguration(mode: .local), apiKey: "")
+    await askAndWait()
+    model.setApplicationInBackground(true)
+    let draft = model.turns.last!
+    try store.saveTurn(draft.replacing(text: "已提交的回答 [1]", state: .completed), day: day)
+    background.expirations.last!()
+    let committed = try store.runtimeTurn(id: draft.id)
+    precondition(committed?.completionState == .completed && model.turns.last?.text == "已提交的回答 [1]",
+                 "Background expiration must preserve a worker's already committed answer")
+    service.finishOldest("迟到的重复回答 [1]")
+    for _ in 0..<100 { await Task.yield() }
+
+    print("Ask AI background lifetime passed: SQLite completion, expiry, denial, stale callbacks, manual stop, consent and revocation")
+}
+
+@MainActor
+private final class TestAskAIBackgroundExecution: AskAIBackgroundExecuting {
+    var grant = true
+    var begins = 0, ends = 0
+    var expirations: [@MainActor () -> Void] = []
+    func begin(expiration: @escaping @MainActor () -> Void) -> Bool {
+        begins += 1; expirations.append(expiration); return grant
+    }
+    func end() { ends += 1 }
+}
+
+@MainActor
+private func initialScopeProgressRefreshTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let suite = "InitialScopeProgress-\(UUID())"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let settings = AppSettings(defaults: defaults, secrets: DaybookTestSecrets())
+    try settings.saveAI(AIConfiguration(mode: .custom, model: "fixture", baseURL: "https://example.invalid/v1"), apiKey: "fixture-key")
+    let store = DaybookConversationStore(url: root.appendingPathComponent("history.json"))
+    let model = DaybookAssistantModel(answerService: DelayedDaybookAnswerService(), store: store)
+    let date = Date()
+    let old = DayRecord(id: UUID(), capturedAt: date, kind: .thought, title: "项目", text: "项目周五交付")
+    var updated = old; updated.text = "项目改为周一交付"
+    var continuation: CheckedContinuation<[DayRecord], Never>?
+    var reads = 0
+    model.scopeLoader = { _ in
+        reads += 1
+        if reads == 1 { return await withCheckedContinuation { continuation = $0 } }
+        return [updated]
+    }
+    precondition(model.ask("今天项目何时交付？", records: [old], selectedDate: date, allowedKinds: [.thought], settings: settings))
+    for _ in 0..<2000 where continuation == nil { await Task.yield() }
+    precondition(continuation != nil)
+    let turnID = model.turns[0].id
+    // The actual View receives both the repository revision and a live records update.
+    // Neither is a user cancellation, and no evidence has been authorized for this run yet.
+    model.invalidateLoadedScope()
+    model.synchronize(records: [updated], selectedDate: date, allowedKinds: [.thought], configuration: settings.ai, configurationRevision: settings.aiRevision)
+    precondition(model.isPending && model.turns[0].completionState == .pending,
+                 "background progress during initial scope loading must not cancel the accepted question")
+    continuation!.resume(returning: [old])
+    for _ in 0..<2000 where model.remoteConfirmation == nil && model.isPending { await Task.yield() }
+    precondition(reads == 2 && model.remoteConfirmation?.context.contains("周一") == true,
+                 "a dirty initial read must refresh before exposing or sending stale evidence")
+    let persisted = try store.loadPage()
+    precondition(model.turns.count == 1 && model.turns[0].id == turnID && persisted.turns[0].completionState == .pending,
+                 "refresh retains the original durable turn")
+    model.cancel()
+    reads = 0
+    model.scopeLoader = { _ in
+        reads += 1
+        if reads == 1 { throw ContentSegmentError.staleRevision }
+        return [updated]
+    }
+    precondition(model.ask("今天项目何时交付？", records: [updated], selectedDate: date, allowedKinds: [.thought], settings: settings))
+    for _ in 0..<2000 where model.remoteConfirmation == nil && model.isPending { await Task.yield() }
+    precondition(reads == 2 && model.remoteConfirmation != nil, "initial consistency read errors retry before notification delivery")
+    model.cancel()
+    reads = 0
+    model.scopeLoader = { _ in
+        reads += 1; model.invalidateLoadedScope()
+        return [updated]
+    }
+    precondition(model.ask("今天项目何时交付？", records: [updated], selectedDate: date, allowedKinds: [.thought], settings: settings))
+    for _ in 0..<2000 where model.isPending { await Task.yield() }
+    precondition(reads == 3 && model.remoteConfirmation == nil && model.turns.last?.completionState == .failed,
+                 "persistent churn is bounded and cannot send unchecked evidence")
+    precondition(model.turns.last?.text.contains("资料正在持续更新") == true)
+    continuation = nil
+    model.scopeLoader = { _ in await withCheckedContinuation { continuation = $0 } }
+    precondition(model.ask("今天项目何时交付？", records: [updated], selectedDate: date, allowedKinds: [.thought], settings: settings))
+    for _ in 0..<2000 where continuation == nil { await Task.yield() }
+    model.synchronize(records: [updated], selectedDate: date, allowedKinds: [], configuration: settings.ai, configurationRevision: settings.aiRevision)
+    continuation!.resume(returning: [updated])
+    for _ in 0..<100 { await Task.yield() }
+    precondition(!model.isPending && model.remoteConfirmation == nil && model.turns.last?.completionState == .redacted,
+                 "permission revocation during a read still blocks late publication")
+    print("Initial scope progress: coalesced refresh, current evidence and original turn retained passed")
+}
+
+@MainActor
+private func sameTurnRetryTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let suite = "SameTurnRetry-\(UUID())"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let settings = AppSettings(defaults: defaults, secrets: DaybookTestSecrets())
+    let store = DaybookConversationStore(url: root.appendingPathComponent("history.json"))
+    let service = DelayedDaybookAnswerService()
+    let model = DaybookAssistantModel(answerService: service, store: store)
+    let date = Date()
+    let record = DayRecord(id: UUID(), capturedAt: date, kind: .voice, title: "项目", text: "项目周五交付")
+    precondition(model.ask("项目何时交付？", records: [record], selectedDate: date, allowedKinds: [.voice], settings: settings))
+    for _ in 0..<2000 where service.calls < 1 { await Task.yield() }
+    service.finishOldest("项目周五交付。[1]")
+    for _ in 0..<2000 where model.isPending { await Task.yield() }
+    let original = model.turns[0]
+    precondition(model.retry(turnID: original.id, records: [record], selectedDate: date, allowedKinds: [.voice], settings: settings))
+    for _ in 0..<2000 where service.calls < 2 { await Task.yield() }
+    precondition(model.turns.count == 1 && model.turns[0].text == original.text, "Retry retains successful answer until replacement is ready")
+    service.failOldest()
+    for _ in 0..<2000 where model.isPending { await Task.yield() }
+    precondition(model.turns == [original], "Failed retry must preserve prior successful answer")
+    precondition(model.retry(turnID: original.id, records: [record], selectedDate: date, allowedKinds: [.voice], settings: settings))
+    for _ in 0..<2000 where service.calls < 3 { await Task.yield() }
+    service.finishOldest("交付时间是周五。[1]")
+    for _ in 0..<2000 where model.isPending { await Task.yield() }
+    let rows = try store.load().flatMap(\.turns)
+    precondition(rows.count == 1 && rows[0].id == original.id && rows[0].createdAt == original.createdAt && rows[0].text == "交付时间是周五。[1]")
+    print("Same-turn retry: stable identity/time, failed attempt preserves success, replacement without duplicate history passed")
+}
+
+@MainActor
+private func crossDayRetryTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let suite = "CrossDayRetry-\(UUID())"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let settings = AppSettings(defaults: defaults, secrets: DaybookTestSecrets())
+    let today = Calendar.current.startOfDay(for: Date())
+    let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+    let record = DayRecord(id: UUID(), capturedAt: Date(), kind: .voice, title: "记录", text: "一条记录")
+    for state in [DaybookConversationTurn.State.cancelled, .failed, .completed] {
+        for loadsScope in [false, true] {
+            let store = DaybookConversationStore(url: root.appendingPathComponent("\(state.rawValue)-\(loadsScope)/history.json"))
+            let original = DaybookConversationTurn(id: UUID(), question: "今天有多少条记录？", text: "之前的回答",
+                generated: false, provider: "本地", evidence: DaybookEvidenceSnapshot(records: [], dayStart: yesterday, dayEnd: today, allowedKinds: [.voice]),
+                sources: [], scopeDescription: "", state: state, createdAt: yesterday.addingTimeInterval(3600))
+            try store.saveTurn(original, day: yesterday)
+            let model = DaybookAssistantModel(store: store)
+            if loadsScope { model.scopeLoader = { _ in [record] } }
+            model.synchronize(records: [record], selectedDate: today, allowedKinds: [.voice], configuration: settings.ai)
+            precondition(model.retry(turnID: original.id, records: [record], selectedDate: today, allowedKinds: [.voice], settings: settings),
+                         "retrying yesterday's cancelled/failed question must not fail its initial save")
+            for _ in 0..<2000 where model.isPending { await Task.yield() }
+            precondition(model.storageError == nil && model.turns.first?.completionState == .completed,
+                         "cross-day retry must complete without a false storage error")
+            let conversations = try store.load()
+            let turns = conversations.flatMap(\.turns)
+            precondition(conversations.count == 1 && conversations[0].day == yesterday && turns.count == 1,
+                         "retry must preserve the original conversation day without creating an empty current-day thread")
+            precondition(turns[0].id == original.id && turns[0].createdAt == original.createdAt && turns[0].evidence.dayStart == today,
+                         "retry keeps identity and send time while refreshing the requested evidence scope")
+            let reopened = DaybookAssistantModel(store: DaybookConversationStore(url: root.appendingPathComponent("\(state.rawValue)-\(loadsScope)/history.json")))
+            reopened.synchronize(records: [record], selectedDate: today, allowedKinds: [.voice], configuration: settings.ai)
+            precondition(reopened.turns.first?.completionState == .completed, "cross-day retry remains completed after reopen")
+        }
+    }
+    print("Cross-day retry: cancelled/failed/completed, loaded/scoped paths, original day/time/ID and restart passed")
+}
+
+@MainActor
+private func scopedRevalidationTests() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let suite = "ScopedRevalidation-\(UUID())"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let settings = AppSettings(defaults: defaults, secrets: DaybookTestSecrets())
+    try settings.saveAI(AIConfiguration(mode: .custom, model: "fixture", baseURL: "https://example.invalid/v1"), apiKey: "fixture-key")
+    let model = DaybookAssistantModel(answerService: DelayedDaybookAnswerService(), store: DaybookConversationStore(url: root.appendingPathComponent("history.json")))
+    let date = Date()
+    let record = DayRecord(id: UUID(), capturedAt: date, kind: .voice, title: "项目", text: "项目周五交付")
+    model.scopeLoader = { _ in [record] }
+    precondition(model.ask("今天项目何时交付？", records: [], selectedDate: date, allowedKinds: [.voice], settings: settings))
+    for _ in 0..<2000 where model.remoteConfirmation == nil { await Task.yield() }
+    let confirmationID = model.remoteConfirmation!.id
+    var continuation: CheckedContinuation<[DayRecord], Never>?
+    var requested: DateInterval?
+    model.scopeLoader = { scope in
+        requested = scope
+        return await withCheckedContinuation { continuation = $0 }
+    }
+    model.invalidateLoadedScope()
+    var validated = false
+    let gate = Task { try await model.validateSourceChanges(); validated = true }
+    for _ in 0..<2000 where continuation == nil { await Task.yield() }
+    precondition(!validated && model.remoteConfirmation?.id == confirmationID, "revision starts a freshness barrier without immediately discarding unchanged scope")
+    precondition(requested?.contains(date) == true && requested!.duration <= 25 * 3600, "revalidation uses exact original date scope")
+    continuation!.resume(returning: [record])
+    try await gate.value
+    precondition(validated && model.remoteConfirmation?.id == confirmationID, "unrelated repository changes preserve preview and active turn")
+    var readAttempts = 0
+    model.scopeLoader = { _ in
+        readAttempts += 1
+        if readAttempts == 1 { throw ContentSegmentError.staleRevision }
+        return [record]
+    }
+    model.invalidateLoadedScope()
+    try? await model.validateSourceChanges()
+    precondition(readAttempts == 2 && model.remoteConfirmation?.id == confirmationID,
+                 "a transient repository revision during validation must retry without cancelling unchanged evidence")
+    model.scopeLoader = { _ in [] }
+    model.invalidateLoadedScope()
+    try? await model.validateSourceChanges()
+    precondition(model.remoteConfirmation == nil && !model.isPending && model.prepared == nil, "deleting relevant evidence cancels pending answer")
+    precondition(model.turns.count == 1 && model.turns[0].completionState == .cancelled, "scope invalidation retains the accepted question")
+    print("Scoped revalidation: exact-date barrier, unrelated changes preserved, relevant deletion cancels passed")
+}
+
+@MainActor
 private func historyRetentionTests() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
@@ -449,7 +821,9 @@ private func assistantModelTests() async throws {
     let note = DayRecord(id: UUID(), capturedAt: now, kind: .voice, title: "客户会议", text: "客户明天需要报价", duration: 20)
     let all: Set<DayRecord.Kind> = [.voice, .thought, .image]
     func ask(_ question: String, records: [DayRecord] = []) {
-        model.ask(question, records: records, selectedDate: now, allowedKinds: all, settings: settings)
+        let accepted = model.ask(question, records: records, selectedDate: now, allowedKinds: all, settings: settings)
+        precondition(accepted && model.turns.last?.question == question,
+                     "Accept a saved question immediately, including delayed answers and remote confirmation")
     }
     func waitForCalls(_ count: Int) async {
         for _ in 0..<1_000 {
@@ -458,6 +832,8 @@ private func assistantModelTests() async throws {
         }
         preconditionFailure("Expected model request did not start")
     }
+    precondition(!model.ask("   ", records: [], selectedDate: now, allowedKinds: all, settings: settings), "Empty input must retain the draft")
+    precondition(!model.ask(String(repeating: "字", count: 301), records: [], selectedDate: now, allowedKinds: all, settings: settings), "Invalid input must retain the draft")
     ask("回顾这一天")
     precondition(model.answer?.generated == false && !model.isPending && service.calls == 0)
     ask("这一天有多少条记录？", records: [note])
@@ -831,7 +1207,9 @@ private func conversationPersistenceTests() async throws {
         func sync(_ kinds: Set<DayRecord.Kind> = allowed) {
             model.synchronize(records: [note], selectedDate: day, allowedKinds: kinds, configuration: settings.ai)
         }
-        model.ask("客户说了什么？", records: [note], selectedDate: day, allowedKinds: allowed, settings: settings)
+        let accepted = model.ask("客户说了什么？", records: [note], selectedDate: day, allowedKinds: allowed, settings: settings)
+        precondition(accepted && model.isPending && model.answer == nil && service.calls == 0,
+                     "Submission is accepted before the answer service starts")
         let draft = try store.load().flatMap(\.turns)
         precondition(draft.count == 1 && draft[0].completionState == .pending && draft[0].question == "客户说了什么？",
                      "Persist the question before awaiting the model")
@@ -883,7 +1261,8 @@ private func conversationPersistenceTests() async throws {
         let service = DelayedDaybookAnswerService()
         let model = DaybookAssistantModel(answerService: service, store: store)
         try db.execute("CREATE TRIGGER fail_mutation BEFORE INSERT ON conversation_turns BEGIN SELECT RAISE(ABORT, 'question failure'); END")
-        model.ask("客户说了什么？", records: [note], selectedDate: day, allowedKinds: allowed, settings: settings)
+        let accepted = model.ask("客户说了什么？", records: [note], selectedDate: day, allowedKinds: allowed, settings: settings)
+        precondition(!accepted, "Failed question persistence must not clear the composer's draft")
         await settle()
         precondition(service.calls == 0 && model.storageError != nil && model.turns.isEmpty)
         try db.execute("DROP TRIGGER fail_mutation")

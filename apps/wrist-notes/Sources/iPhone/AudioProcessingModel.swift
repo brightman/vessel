@@ -39,7 +39,8 @@ struct ContentEnrichmentConfirmation: Identifiable {
     private var pendingDerivation = Set<AudioSourceID>()
     private var derivationTask: Task<Void,Never>?
     private var pendingEnrichment = Set<AudioSourceID>()
-    private var enrichmentTask: Task<Void,Never>?
+    private var enrichmentWorkers: [AudioSourceID:Task<Void,Never>] = [:]
+    private let maximumConcurrentEnrichmentSources = 2
     private var enrichmentSuspended = false
     private var enrichmentCapturePaused = false
     private var enrichmentApprovals: [AudioSourceID:ContentEnrichmentConfirmation] = [:]
@@ -78,14 +79,14 @@ struct ContentEnrichmentConfirmation: Identifiable {
         observations.append(settings.$transcription.dropFirst().sink { [weak self] configuration in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.enrichmentTask?.cancel()
+                self.cancelEnrichmentWorkers()
                 await self.coordinator.refresh(configuration:configuration)
             }
         })
         observations.append(Publishers.CombineLatest(settings.$aiRevision,settings.$requiresRemoteAIConfirmation)
             .dropFirst().sink { [weak self] _ in
                 self?.enrichmentApprovals.removeAll()
-                self?.enrichmentTask?.cancel()
+                self?.cancelEnrichmentWorkers()
                 Task { @MainActor [weak self] in await self?.retryEnrichmentAvailability() }
             })
         observations.append(NotificationCenter.default.publisher(for:Self.resourcesDidChange).sink { [weak self] _ in
@@ -97,13 +98,13 @@ struct ContentEnrichmentConfirmation: Identifiable {
         })
         observations.append(NotificationCenter.default.publisher(for:UIApplication.didReceiveMemoryWarningNotification).sink { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.enrichmentSuspended=true; self?.enrichmentTask?.cancel()
+                self?.enrichmentSuspended=true; self?.cancelEnrichmentWorkers()
                 await self?.coordinator.memoryPressure()
             }
         })
         observations.append(NotificationCenter.default.publisher(for:UIApplication.protectedDataWillBecomeUnavailableNotification).sink { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.enrichmentSuspended=true; self?.enrichmentTask?.cancel()
+                self?.enrichmentSuspended=true; self?.cancelEnrichmentWorkers()
                 await self?.coordinator.suspend(.protectedData)
             }
         })
@@ -116,7 +117,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 if self.captureIDs.isEmpty {
                     await self.coordinator.resume(.capture)
                     self.startEnrichment()
-                } else { self.enrichmentTask?.cancel(); await self.coordinator.suspend(.capture) }
+                } else { self.cancelEnrichmentWorkers(); await self.coordinator.suspend(.capture) }
             }
         })
         captureIDs = AudioCaptureActivity.activeIDs
@@ -146,6 +147,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
     func cancel(_ sourceID: AudioSourceID) { Task { await coordinator.cancel(sourceID) } }
     func delete(_ sourceID: AudioSourceID) {
         pendingEnrichment.remove(sourceID)
+        enrichmentWorkers[sourceID]?.cancel()
         enrichmentApprovals.removeValue(forKey:sourceID)
         enrichmentStatuses.removeValue(forKey:sourceID)
         pendingDerivation.remove(sourceID)
@@ -174,9 +176,9 @@ struct ContentEnrichmentConfirmation: Identifiable {
         }
 #endif
     }
-    func suspendForCapture() async { enrichmentCapturePaused=true; enrichmentTask?.cancel(); await coordinator.suspend(.capture) }
+    func suspendForCapture() async { enrichmentCapturePaused=true; cancelEnrichmentWorkers(); await coordinator.suspend(.capture) }
     func resumeAfterCapture() { if AudioCaptureActivity.activeIDs.isEmpty { enrichmentCapturePaused=false; startEnrichment(); Task { await coordinator.resume(.capture) } } }
-    func shutdown() { enrichmentSuspended=true; enrichmentTask?.cancel(); Task { await coordinator.shutdown() } }
+    func shutdown() { enrichmentSuspended=true; cancelEnrichmentWorkers(); Task { await coordinator.shutdown() } }
     func withRepository<T: Sendable>(_ operation: @escaping @Sendable (AudioProcessingRepository) throws -> T) async throws -> T {
         try await coordinator.withRepository(operation)
     }
@@ -220,7 +222,17 @@ struct ContentEnrichmentConfirmation: Identifiable {
     private func enrichSource(_ id: AudioSourceID) async -> ContentEnrichmentStatus {
         do {
             let configuration=settings.ai, revision=settings.aiRevision
-            guard let scope=try await withRepository({ try ContentEnrichmentAuthorization.scope(database:$0.derivedDatabase,sourceID:id) }) else { return .stale }
+            let modelKey=ConfiguredContentTextModel.configurationKey(configuration)
+            let modelIdentity=modelKey+"|"+(configuration.model)+"|content-v2-fields-actions-3"
+            // Capture the preview/consent and the exact topic evidence together.
+            // Subsequent model requests use only this frozen text, never newly arrived ASR.
+            let captured=try await withRepository { repository in
+                try repository.derivedDatabase.readTransaction {
+                    (try ContentEnrichmentAuthorization.scope(database:repository.derivedDatabase,sourceID:id),
+                     try ContentSegmentRepository(database:repository.derivedDatabase).contentV2RunInput(sourceID:id,modelIdentity:modelIdentity))
+                }
+            }
+            guard let scope=captured.0 else { return .stale }
             let approval=enrichmentApprovals[id]
             let confirmed=approval.map { $0.scope == scope && $0.configuration == configuration && $0.configurationRevision == revision } ?? false
             let allowed: @MainActor () async throws -> Bool = { [weak self] in
@@ -243,17 +255,20 @@ struct ContentEnrichmentConfirmation: Identifiable {
             let worker=coordinator
             guard let topicAction=try await worker.withRepository({ repository -> ContentSegmentationV2.LongRecordingTopicPolicy.Action? in
                 guard let source=try repository.currentSource(id) else { return nil }
-                let duration=source.ranges.reduce(0) { $0 + $1.duration }
+                let duration=source.timelineDuration
                 return ContentSegmentationV2.LongRecordingTopicPolicy.action(
                     duration:duration,sourceComplete:source.complete)
             }) else { return .stale }
             guard topicAction != .waitForSourceCompletion else { return .idle }
-            let modelKey=ConfiguredContentTextModel.configurationKey(configuration)
             let fields=ContentEnrichmentService(modelKey:modelKey,model:{ try await router.respond($0) },store:{ [weak self] command in
                 try Task.checkCancellation()
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
                 return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
-            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
+            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) },
+                actionSuggestions:{ [weak self] segment,suggestions in
+                    guard let self else { return }
+                    await self.persistActionSuggestions(suggestions,for:segment)
+                })
             if topicAction == .keepWholeRecording {
                 // The complete ASR/VAD source already has one final boundary from the
                 // deterministic whole-recording policy. Generate display fields later;
@@ -264,22 +279,51 @@ struct ContentEnrichmentConfirmation: Identifiable {
             }
             // Short recordings intentionally have no Content V2 input: they skip
             // topic splitting and classification, but still need title and summary.
-            guard let input=try await worker.withRepository({ try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id) }) else { return .idle }
+            guard let input=captured.1 else {
+                let result=await fields.generateMissingFields(sourceID:id)
+                if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
+                return result
+            }
             let budget=router.summaryBudget(context:"")
             let requestLimit=max(4_096,min(1_000_000,budget.availableTranscriptTokens))
-            let modelIdentity=modelKey+"|"+(configuration.model)
             let topicSplitting=topicAction == .splitTopics
             let alreadyPublished=try await worker.withRepository {
                 try ContentSegmentRepository(database:$0.derivedDatabase).hasPublishedContentV2(sourceID:id,input:input,modelIdentity:modelIdentity,topicSplitting:topicSplitting)
             }
             if alreadyPublished {
-                let result=await fields.generateMissingFields(sourceID:id)
+                let classificationResult=await fields.classifyMissing(sourceID:id)
+                guard classificationResult == .complete || classificationResult == .idle else { return classificationResult }
+                let fieldResult=await fields.generateMissingFields(sourceID:id)
+                guard fieldResult == .complete || fieldResult == .idle else { return fieldResult }
+                let result:ContentEnrichmentStatus=classificationResult == .complete || fieldResult == .complete ? .complete : .idle
                 if result == .complete { enrichmentApprovals.removeValue(forKey:id) }
                 return result
             }
+            let topicAllowed: @MainActor () async throws -> Bool = { [weak self] in
+                guard let self,self.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }
+                if !self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil) {
+                    throw ContentEnrichmentFailure.confirmationRequired
+                }
+                let current=try await self.withRepository {
+                    try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Input(sourceID:id,matching:input)
+                }
+                return current == input && self.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil)
+            }
+            let topicRouter=ConfiguredContentTextModel(configuration:configuration,authorized:topicAllowed,
+                apiKey:{ [settings] in try settings.apiKey() },
+                local:{ try await FoundationContentTextModel().respond($0) },
+                chat:{ [weak self,settings] instruction,text,configuration in
+                    try await settings.chatGPT.complete(instruction:instruction,content:text,modelID:configuration.chatGPTModel,
+                        accountID:configuration.chatGPTAccountID,isCurrent:{ [weak self] in
+                            self?.enrichmentCurrent(id,configuration:configuration,revision:revision,confirmationID:confirmed ? approval?.id : nil) ?? false
+                        },sourceIsCurrent:topicAllowed)
+                })
+            try await worker.withRepository {
+                try ContentSegmentRepository(database:$0.derivedDatabase).saveContentV2Run(sourceID:id,input:input,modelIdentity:modelIdentity)
+            }
             let output=try await ContentSegmentationV2Production.run(input:input,modelIdentity:modelIdentity,requestCharacterLimit:requestLimit,
-                topicSplitting:topicSplitting,
-                model:{ instruction,content in try await router.respond(instruction:instruction,content:content) },
+                topicSplitting:topicSplitting,publishIncrementally:true,
+                model:{ instruction,content in try await topicRouter.respond(instruction:instruction,content:content) },
                 loadCheckpoint:{ key in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Checkpoint(sourceID:id,key:key) } },
                 saveCheckpoint:{ key,data in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).saveContentV2Checkpoint(sourceID:id,key:key,data:data) } },
                 progress:{ stage in
@@ -291,7 +335,15 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 },
                 publish:{ value in
                     guard self.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { throw CancellationError() }
-                    try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).publishContentV2(sourceID:id,input:input,output:value,model:configuration.model,modelIdentity:modelIdentity,topicSplitting:topicSplitting) }
+                    let published=try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).publishContentV2(sourceID:id,input:input,output:value,model:configuration.model,modelIdentity:modelIdentity,topicSplitting:topicSplitting) }
+                    guard published.count==value.segments.count else { throw ContentSegmentError.staleRevision }
+                    for (generated,segment) in zip(value.segments,published) where !generated.suggestions.isEmpty {
+                        let suggestions=generated.suggestions.compactMap { item -> ContentLocalActionSuggestion? in
+                            guard let kind=ContentLocalActionSuggestion.Kind(rawValue:item.kind.rawValue) else { return nil }
+                            return .init(kind:kind,title:item.title,quote:item.quote)
+                        }
+                        await self.persistActionSuggestions(suggestions,for:segment)
+                    }
                     NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id])
                 })
             _ = output
@@ -353,7 +405,11 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 try Task.checkCancellation()
                 guard await self?.enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) == true else { throw CancellationError() }
                 return try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).enrichment(command) }
-            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) })
+            },budget:{ context in await router.summaryBudget(context:context) },progress:{ [weak self] value in await self?.publishEnrichmentProgress(id,value) },
+                actionSuggestions:{ [weak self] segment,suggestions in
+                    guard let self else { return }
+                    await self.persistActionSuggestions(suggestions,for:segment)
+                })
             let result=await service.generateFields(sourceID:id,segmentID:segmentID,field:field)
             if let confirmation,enrichmentApprovals[id]?.id == confirmation.id { enrichmentApprovals.removeValue(forKey:id) }
             fieldGenerationStatuses[segmentID]=result
@@ -366,6 +422,45 @@ struct ContentEnrichmentConfirmation: Identifiable {
     private func publishEnrichmentProgress(_ sourceID: AudioSourceID, _ value: ContentEnrichmentProgress?) {
         if let value { enrichmentProgress[sourceID]=value }
         else { enrichmentProgress.removeValue(forKey:sourceID) }
+    }
+    private func persistActionSuggestions(_ suggestions:[ContentLocalActionSuggestion],for segment:ContentSegment) async {
+        guard !suggestions.isEmpty else { return }
+        do {
+            guard let current=try await coordinator.withRepository({ repository -> (AudioSourceSnapshot,ContentSegment)? in
+                let derived=ContentSegmentRepository(database:repository.derivedDatabase)
+                guard let fresh=try derived.segment(id:segment.id),fresh.sourceID==segment.sourceID,
+                      fresh.revision==segment.revision,fresh.isFinal,fresh.hasText,
+                      let source=try repository.currentSource(segment.sourceID) else { return nil }
+                return (source,fresh)
+            }) else { return }
+            let actionRepository=try ActionRepository(database:DaybookDatabase())
+            let allForSegment=try actionRepository.load().filter {
+                $0.source?.id == segment.id && $0.source?.recordingKind == "segment"
+            }
+            let existing=allForSegment.filter { !$0.deleted && $0.status != .cancelled }
+            var knownKeys=Set(allForSegment.compactMap(\.dedupKey))
+            var remaining=max(0,5-existing.count)
+            guard remaining > 0 else { return }
+            let offset=segment.ranges.first?.sessionStartOffset ?? 0
+            var inserted=false
+            for proposal in suggestions where remaining > 0 {
+                let title=proposal.title.trimmingCharacters(in:.whitespacesAndNewlines)
+                let quote=proposal.quote.trimmingCharacters(in:.whitespacesAndNewlines)
+                guard !title.isEmpty,!quote.isEmpty else { continue }
+                let dedupKey="\(segment.id.uuidString)|\(proposal.kind.rawValue)|\(quote)"
+                guard knownKeys.insert(dedupKey).inserted else { continue }
+                let source=ActionSource(id:segment.id,title:current.1.displayTitle,quote:quote,
+                    capturedAt:current.0.capturedAt.addingTimeInterval(offset),timeZoneID:TimeZone.current.identifier,
+                    recordingKind:"segment",timeZoneKnown:false,offset:offset)
+                guard let kind=ActionItem.Kind(rawValue:proposal.kind.rawValue) else { continue }
+                let item=ActionItem(kind:kind,title:title,source:source)
+                _ = try actionRepository.addSuggestion(item)
+                remaining -= 1; inserted=true
+            }
+            if inserted { NotificationCenter.default.post(name:ActionStore.itemsDidChange,object:nil) }
+        } catch {
+            Self.contentV2Logger.error("Could not save transcript-grounded action suggestions: \(error.localizedDescription, privacy: .public)")
+        }
     }
     private func enrichmentCurrent(_ id: AudioSourceID, configuration: AIConfiguration, revision: Int, confirmationID: UUID?) -> Bool {
         guard enrichmentConfigurationCurrent(id,configuration:configuration,revision:revision) else { return false }
@@ -380,25 +475,29 @@ struct ContentEnrichmentConfirmation: Identifiable {
         guard !deletedSources.contains(sourceID) else { return }
         pendingEnrichment.insert(sourceID); startEnrichment()
     }
+    private func cancelEnrichmentWorkers() { enrichmentWorkers.values.forEach { $0.cancel() } }
     private func startEnrichment() {
 #if WISELIFE_CONTENT_LAB && targetEnvironment(simulator)
         return
 #else
-        guard enrichmentTask == nil, !enrichmentSuspended, !enrichmentCapturePaused, captureIDs.isEmpty else { return }
-        enrichmentTask=Task { [weak self] in
-            guard let self else { return }
-            defer { self.enrichmentTask=nil; if !self.pendingEnrichment.isEmpty { self.startEnrichment() } }
-            while !Task.isCancelled, !self.enrichmentSuspended, !self.enrichmentCapturePaused, self.captureIDs.isEmpty, let id=self.pendingEnrichment.first {
-                self.pendingEnrichment.remove(id)
-                guard !self.deletedSources.contains(id) else { continue }
-                self.publishEnrichment(id,status:.running)
+        guard !enrichmentSuspended, !enrichmentCapturePaused, captureIDs.isEmpty else { return }
+        while enrichmentWorkers.count < maximumConcurrentEnrichmentSources,
+              let id=pendingEnrichment.first(where: { enrichmentWorkers[$0] == nil }) {
+            pendingEnrichment.remove(id)
+            guard !deletedSources.contains(id) else { continue }
+            publishEnrichment(id,status:.running)
+            enrichmentWorkers[id]=Task { [weak self] in
+                guard let self else { return }
                 let result=await self.enrichSource(id)
-                guard !self.deletedSources.contains(id) else { continue }
-                self.publishEnrichment(id,status:result)
-                if result == .cancelled && Task.isCancelled { self.pendingEnrichment.insert(id) }
-                if result == .complete, let progress=try? await self.coordinator.withRepository({ try $0.progress(sourceID:id) }) {
-                    NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id,"revision":progress.revision,"configurationKey":progress.configurationKey ?? ""])
+                if !self.deletedSources.contains(id) {
+                    self.publishEnrichment(id,status:result)
+                    if result == .cancelled && Task.isCancelled { self.pendingEnrichment.insert(id) }
+                    if result == .complete, let progress=try? await self.coordinator.withRepository({ try $0.progress(sourceID:id) }) {
+                        NotificationCenter.default.post(name:Self.contentDidChange,object:nil,userInfo:["sourceID":id,"revision":progress.revision,"configurationKey":progress.configurationKey ?? ""])
+                    }
                 }
+                self.enrichmentWorkers.removeValue(forKey:id)
+                self.startEnrichment()
             }
         }
 #endif

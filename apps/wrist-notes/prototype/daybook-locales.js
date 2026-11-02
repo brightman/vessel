@@ -250,6 +250,21 @@
   "问问自己的记录…": "Ask your records…",
   "发送问题": "Send question",
   "停止回答": "Stop answer",
+  "语音输入": "Voice input",
+  "结束语音输入": "Finish voice input",
+  "语音输入演示": "Voice input demo",
+  "打字或说话…": "Type or speak…",
+  "打字或按住说话…": "Type or hold to talk…",
+  "按住说话": "Hold to talk",
+  "按住说话，松开转写": "Hold to talk, release to transcribe",
+  "正在聆听…": "Listening…",
+  "正在转成文字…": "Transcribing…",
+  "示例：昨天有哪些值得跟进的事？": "Example: What should I follow up on from yesterday?",
+  "语音交互演示 · 未启用麦克风": "Voice demo · microphone is off",
+  "已取消语音输入，原有文字已保留。": "Voice input cancelled. Your draft is unchanged.",
+  "问题最多 600 字，请先删减再使用语音输入。": "Questions are limited to 600 characters. Shorten your draft first.",
+  "已填入示例文字，达到 600 字上限，请检查后发送。": "Sample text added up to the 600-character limit. Review before sending.",
+  "示例文字已填入，可编辑后发送。": "Sample text added. Edit it before sending.",
   "今天的故事还没开始。先记下一句话，或选择一个数据来源。": "Today’s story has not started. Record a thought or choose a data source.",
   "看看没有记录的一天": "See an empty day",
   "原语音笔记与模型设置原型": "Original voice notes and model settings prototype",
@@ -427,6 +442,21 @@
     "保存设置": "設定を保存",
     "做个语音回顾": "音声記録を振り返る",
     "停止回答": "回答を停止",
+    "语音输入": "音声入力",
+    "结束语音输入": "音声入力を終了",
+    "语音输入演示": "音声入力デモ",
+    "打字或说话…": "文字や音声で質問…",
+    "打字或按住说话…": "入力、または長押しで話す…",
+    "按住说话": "長押しで話す",
+    "按住说话，松开转写": "長押しで話し、指を離すと文字起こし",
+    "正在聆听…": "聞き取り中…",
+    "正在转成文字…": "文字起こし中…",
+    "示例：昨天有哪些值得跟进的事？": "例：昨日のことで、フォローすべきことは？",
+    "语音交互演示 · 未启用麦克风": "音声入力デモ · マイクは使用しません",
+    "已取消语音输入，原有文字已保留。": "音声入力をキャンセルしました。下書きはそのままです。",
+    "问题最多 600 字，请先删减再使用语音输入。": "質問は600文字までです。下書きを短くしてから音声入力してください。",
+    "已填入示例文字，达到 600 字上限，请检查后发送。": "600文字の上限まで例文を入力しました。確認してから送信してください。",
+    "示例文字已填入，可编辑后发送。": "例文を入力しました。編集してから送信できます。",
     "先记录，再发现": "記録から始めましょう",
     "先选择模型，再选择转写语言和离线资源。": "モデル、文字起こし言語、オフラインリソースを選択します。",
     "全天回顾": "一日を振り返る",
@@ -613,7 +643,7 @@
     "管理这条主动建议": "この提案を管理",
     "给反复想到的事，留一点时间。": "繰り返し考えることに、少し時間を使いましょう。"
   };
-  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookHardwareCopy ?? []), ...(window.daybookVoiceProfileCopy ?? []), ...(window.daybookChatGPTCopy ?? []), ...(window.daybookPlacesCopy ?? []), ...(window.daybookRecordSourcesCopy ?? []), ...(window.daybookSpeakerContactsCopy ?? []), ...(window.daybookAppleRemindersCopy ?? []), ...(window.daybookFlashAssetsCopy ?? []), ...(window.daybookLifeMomentsCopy ?? []), ...(window.daybookRecordMergeCopy ?? []), ...(window.daybookRecordManagementCopy ?? [])]) {
+  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookSettingsCopy ?? []), ...(window.daybookHardwareCopy ?? []), ...(window.daybookVoiceProfileCopy ?? []), ...(window.daybookChatGPTCopy ?? []), ...(window.daybookPlacesCopy ?? []), ...(window.daybookRecordSourcesCopy ?? []), ...(window.daybookSpeakerContactsCopy ?? []), ...(window.daybookAppleRemindersCopy ?? []), ...(window.daybookFlashAssetsCopy ?? []), ...(window.daybookLifeMomentsCopy ?? []), ...(window.daybookRecordMergeCopy ?? []), ...(window.daybookRecordManagementCopy ?? [])]) {
     translations[zh] = en;
     japanese[zh] = ja;
   }

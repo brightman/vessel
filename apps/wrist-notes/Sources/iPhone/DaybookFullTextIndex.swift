@@ -29,7 +29,7 @@ struct DaybookFullTextIndex {
             usesFTS = false
         }
     }
-    func synchronize(_ records: [DayRecord]) throws {
+    func synchronize(_ records: [DayRecord], authoritative: Bool = true) throws {
         let records = Dictionary(records.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
         var existing = Dictionary(uniqueKeysWithValues: try db.query("SELECT rowid,id,fingerprint FROM fulltext_records").map { (try $0.requiredString("id"), $0) })
         for (id, record) in records {
@@ -43,7 +43,7 @@ struct DaybookFullTextIndex {
                 try db.execute("INSERT INTO fulltext_fts(rowid,title,original,summary) SELECT rowid,title,original,summary FROM fulltext_records WHERE id=?", [.text(id)])
             }
         }
-        for row in existing.values { try remove(row) }
+        if authoritative { for row in existing.values { try remove(row) } }
     }
     private func remove(_ row: DaybookDatabase.Row) throws {
         if usesFTS { try db.execute("DELETE FROM fulltext_fts WHERE rowid=?", [row["rowid"]!]) }
@@ -75,18 +75,19 @@ struct DaybookFullTextIndex {
     }
     func search(query: String, records: [DayRecord], start: Date, end: Date, allowed: Set<DayRecord.Kind>) throws -> DaybookSemanticMatches.Keywords {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentIDs = Set(records.map(\.id))
         let library = try matching(DaybookRetrieval.normalize(query), start: start, end: end, kinds: nil, summary: true)
         let terms = try DaybookRetrieval().keywordTerms(question: query, selectedDate: start)
         let kinds = DaybookRetrieval.requestedKind(for: query).map { allowed.intersection([$0]) } ?? allowed
         var scores: [UUID: Int] = [:]
         for term in terms {
             for row in try matching(term, start: start, end: end, kinds: kinds, summary: false) {
-                guard let id = UUID(uuidString: try row.requiredString("id")) else { continue }
+                guard let id = UUID(uuidString: try row.requiredString("id")), currentIDs.contains(id) else { continue }
                 let score = (try row.requiredString("title").contains(term) ? 4 * term.count : 0) + (try row.requiredString("original").contains(term) ? term.count : 0)
                 scores[id, default: 0] += score
             }
         }
-        return .init(query: query, terms: terms, libraryIDs: Set(library.compactMap { $0["id"]?.string.flatMap(UUID.init(uuidString:)) }), aiScores: scores,
+        return .init(query: query, terms: terms, libraryIDs: Set(library.compactMap { $0["id"]?.string.flatMap(UUID.init(uuidString:)) }).intersection(currentIDs), aiScores: scores,
                      libraryEvidence: .init(records: records, dayStart: start, dayEnd: end, allowedKinds: DaybookSemanticMatches.Keywords.allKinds), usesFTS: usesFTS)
     }
 }

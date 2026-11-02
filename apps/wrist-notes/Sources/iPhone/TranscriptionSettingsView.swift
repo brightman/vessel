@@ -3,20 +3,39 @@ import SwiftUI
 struct TranscriptionSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var locale
     @StateObject private var editor: TranscriptionSettingsModel
     @State private var saveError: String?
 
-    init(settings: AppSettings) {
-        _editor = StateObject(wrappedValue: TranscriptionSettingsModel(settings: settings, resources: .live()))
+    private let embedded: Bool
+    init(settings: AppSettings, editor: TranscriptionSettingsModel? = nil, embedded: Bool = false) {
+        self.embedded = embedded
+        _editor = StateObject(wrappedValue: editor ?? TranscriptionSettingsModel(settings: settings, resources: .live()))
     }
 
     var body: some View {
+        Group {
+        if embedded { configurationContent } else {
         SettingsPage(title: "语音转写模型", subtitle: "先选择模型，再选择转写语言和离线资源。", canSave: editor.canSave, save: {
             do { try editor.save(); dismiss() } catch { saveError = error.localizedDescription }
         }) {
+            configurationContent
+        }
+        }
+        }
+        .task { if !embedded { await editor.refresh() } }
+        .onChange(of: scenePhase) { _, phase in if phase == .active && !editor.isDownloading { editor.scheduleRefresh() } }
+        .onDisappear { if !embedded { editor.cancel() } }
+        .alert("配置未保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("好") {}
+        } message: { Text(saveError ?? "") }
+    }
+
+    private var configurationContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 0) {
                 ModelChoice(title: "iPhone端上转写", badge: "推荐 · 本机",
-                    description: "优先使用 SpeechTranscriber，设备或语言不支持时回退 DictationTranscriber；均在本机运行",
+                    description: "iPhone系统语音模型，无需API Key，支持单语言转写，按需下载系统语言包",
                     selected: editor.configuration.engine == .apple) { editor.configuration.engine = .apple }
                 ModelChoice(title: "Whisper", badge: "本机",
                     description: "下载多语言模型后离线转写，可指定语言或自动检测，无需逐语言下载。",
@@ -76,17 +95,11 @@ struct TranscriptionSettingsView: View {
             Link("声纹模型：FluidInference / WeSpeaker · CC BY 4.0", destination: URL(string: "https://huggingface.co/FluidInference/speaker-diarization-coreml")!)
                 .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).padding(.top, 8)
         }
-        .task { await editor.refresh() }
-        .onChange(of: scenePhase) { _, phase in if phase == .active && !editor.isDownloading { editor.scheduleRefresh() } }
-        .onDisappear { editor.cancel() }
-        .alert("配置未保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
-            Button("好") {}
-        } message: { Text(saveError ?? "") }
     }
 
     private var resourceStatus: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(editor.configuration.resourceName) · 说话人与我的声音 · \(NSLocalizedString(resourceStateTitle, comment: ""))")
+            Text("\(editor.configuration.resourceName) · 说话人与我的声音 · \(String(localized: String.LocalizationValue(resourceStateTitle), locale: locale))")
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(DaybookStyle.ink)
             switch editor.state {
             case .checking:

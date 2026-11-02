@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class NotesDiarizationTests: XCTestCase {
     private func fixture() throws -> (NoteRepository, VoiceNote, AppSettings) {

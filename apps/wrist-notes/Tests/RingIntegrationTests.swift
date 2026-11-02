@@ -2,7 +2,7 @@ import AVFAudio
 import BRRecorderCore
 import XCTest
 import BRRecorderOpus
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class RingIntegrationTests: XCTestCase {
     private let hardware = BRRecorderDevice(sn: "SYNTHETIC-RING", address: "00000000-0000-0000-0000-000000000001", name: "EurekaRing")

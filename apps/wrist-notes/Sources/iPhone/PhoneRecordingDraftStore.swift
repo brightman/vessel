@@ -24,14 +24,17 @@ struct PhoneRecordingDraft: Identifiable, Codable {
     var activeChunkOrdinal: Int? = nil
     var isChunked: Bool = false
     var timeZoneIdentifier: String = TimeZone.current.identifier
+    private var recordingMode: String? = nil
+    var isThought: Bool { recordingMode == "thought" }
 
     init(id: UUID = UUID(), fileURL: URL, duration: TimeInterval, capturedAt: Date,
          location: CaptureLocation? = nil, chunks: [PhoneRecordingChunkFile] = [],
          activeChunkOrdinal: Int? = nil, isChunked: Bool = false,
-         timeZoneIdentifier: String = TimeZone.current.identifier) {
+         timeZoneIdentifier: String = TimeZone.current.identifier, isThought: Bool = false) {
         self.id = id; self.fileURL = fileURL; self.duration = duration; self.capturedAt = capturedAt
         self.location = location; self.chunks = chunks; self.activeChunkOrdinal = activeChunkOrdinal
         self.isChunked = isChunked; self.timeZoneIdentifier = timeZoneIdentifier
+        self.recordingMode = isThought ? "thought" : nil
     }
 }
 
@@ -48,8 +51,9 @@ final class PhoneRecordingDraftStore {
         var activeChunkOrdinal: Int? = nil
         var isChunked: Bool? = nil
         var timeZoneIdentifier: String? = nil
+        var isThought: Bool? = nil
 
-        private enum CodingKeys: String, CodingKey { case id, duration, capturedAt, location, chunks, activeChunkOrdinal, isChunked, timeZoneIdentifier }
+        private enum CodingKeys: String, CodingKey { case id, duration, capturedAt, location, chunks, activeChunkOrdinal, isChunked, timeZoneIdentifier, isThought }
         init(id: UUID, duration: TimeInterval, capturedAt: Date, location: CaptureLocation?, chunks: [PhoneRecordingChunkFile]?, activeChunkOrdinal: Int?, isChunked: Bool?, timeZoneIdentifier: String?) {
             self.id = id; self.duration = duration; self.capturedAt = capturedAt; self.location = location
             self.chunks = chunks; self.activeChunkOrdinal = activeChunkOrdinal; self.isChunked = isChunked
@@ -65,6 +69,7 @@ final class PhoneRecordingDraftStore {
             activeChunkOrdinal = try values.decodeIfPresent(Int.self, forKey: .activeChunkOrdinal)
             isChunked = try values.decodeIfPresent(Bool.self, forKey: .isChunked)
             timeZoneIdentifier = try values.decodeIfPresent(String.self, forKey: .timeZoneIdentifier)
+            isThought = try values.decodeIfPresent(Bool.self, forKey: .isThought)
         }
     }
     private(set) var recoveryWarning: String?
@@ -72,12 +77,12 @@ final class PhoneRecordingDraftStore {
     init(root: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("WiseLife/RecordingDrafts", isDirectory: true)) { self.root = root }
 
-    func prepare(id: UUID, at date: Date) throws -> PhoneRecordingDraft {
+    func prepare(id: UUID, at date: Date, isThought: Bool = false) throws -> PhoneRecordingDraft {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let folder = sessionDirectory(id)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let draft = PhoneRecordingDraft(id: id, fileURL: chunkURL(id, ordinal: 0), duration: 0,
-            capturedAt: date, activeChunkOrdinal: 0, isChunked: true, timeZoneIdentifier: TimeZone.current.identifier)
+        let draft = PhoneRecordingDraft(id: id, fileURL: isThought ? audioURL(id) : chunkURL(id, ordinal: 0), duration: 0,
+            capturedAt: date, activeChunkOrdinal: isThought ? nil : 0, isChunked: !isThought, timeZoneIdentifier: TimeZone.current.identifier, isThought: isThought)
         try persist(draft); return draft
     }
 
@@ -89,11 +94,12 @@ final class PhoneRecordingDraftStore {
             try rejectSymlink(sessionDirectory(draft.id))
             for chunk in draft.chunks { try rejectSymlink(chunkURL(draft.id, ordinal: chunk.ordinal)) }
         }
-        let metadata = Manifest(id: draft.id, duration: draft.duration, capturedAt: draft.capturedAt,
+        var metadata = Manifest(id: draft.id, duration: draft.duration, capturedAt: draft.capturedAt,
             location: draft.location, chunks: draft.isChunked ? draft.chunks : nil,
             activeChunkOrdinal: draft.isChunked ? draft.activeChunkOrdinal : nil,
             isChunked: draft.isChunked ? true : nil,
-            timeZoneIdentifier: draft.isChunked ? draft.timeZoneIdentifier : nil)
+            timeZoneIdentifier: draft.isChunked || draft.isThought ? draft.timeZoneIdentifier : nil)
+        metadata.isThought = draft.isThought ? true : nil
         try JSONEncoder().encode(metadata).write(to: manifest(draft.id), options: .atomic)
     }
 
@@ -163,7 +169,8 @@ final class PhoneRecordingDraftStore {
                     let audio = audioURL(metadata.id)
                     try rejectSymlink(audio)
                     drafts.append(PhoneRecordingDraft(id: metadata.id, fileURL: audio, duration: metadata.duration,
-                        capturedAt: metadata.capturedAt, location: metadata.location))
+                        capturedAt: metadata.capturedAt, location: metadata.location,
+                        timeZoneIdentifier: metadata.timeZoneIdentifier ?? TimeZone.current.identifier, isThought: metadata.isThought == true))
                 }
             } catch {
                 let quarantine = url.appendingPathExtension("invalid-" + UUID().uuidString)

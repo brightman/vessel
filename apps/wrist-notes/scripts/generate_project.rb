@@ -33,10 +33,10 @@ shared = sources.new_group('Shared', 'Shared')
 phone = sources.new_group('iPhone', 'iPhone')
 watch = sources.new_group('Watch', 'Watch')
 shared_files = %w[VoiceNote.swift WatchSyncSnapshot.swift RecordingFormat.swift CaptureMetadata.swift CaptureLocationService.swift RecordingSession.swift RecordingSessionFiles.swift RecordingFramePartition.swift RecordingAudioFile.swift RecordingDiagnostics.swift].map { |name| shared.new_file(name) }
-phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
+phone_files = %w[OnboardingProgress.swift OnboardingStore.swift OnboardingView.swift OnboardingDataView.swift OnboardingUsageView.swift WristNotesApp.swift NotesListView.swift NoteDetailView.swift NotesModel.swift
                  NoteRepository.swift AudioProcessing.swift AudioProcessingCoordinator.swift AudioProcessingModel.swift AudioSourceDiscovery.swift AudioAdaptiveInference.swift AudioWindowPlanner.swift AudioProcessingRepository.swift ContentSegmentation.swift ContentSegmentationV2.swift ContentSegmentRepository.swift ContentEnrichmentService.swift ConfiguredContentTextModel.swift ContentEnrichmentAuthorization.swift ContentEnrichmentConfirmationView.swift ContentSegmentPresentation.swift ContentSegmentModel.swift ContentSegmentDetailView.swift RecordingSessionRepository.swift
                  RecordingSessionModel.swift RecordingSessionDetailView.swift RecordingRangePlayback.swift RecordingSessionPresentation.swift
-                 PhoneConnectivity.swift OnDeviceTranscriber.swift
+                 PhoneConnectivity.swift OnDeviceTranscriber.swift AssistantVoiceInputModel.swift AssistantVoiceInputLive.swift AppKeyboardCoordinator.swift
                  RingTransferStore.swift EurekaRingModel.swift RingHardwareViews.swift
                  OnDeviceSummarizer.swift OnDeviceRecordingTitleGenerator.swift RecordingTitleCoordinator.swift NotesStyle.swift AudioPlayback.swift
                  AIConfiguration.swift AppReleaseInfo.swift NearbyMacClient.swift NearbyMacSettingsView.swift NearbyMacScanner.swift AppSettings.swift KeychainSecretStore.swift
@@ -46,12 +46,12 @@ phone_files = %w[WristNotesApp.swift NotesListView.swift NoteDetailView.swift No
                  TranscriptionConfiguration.swift TranscriptionSettingsModel.swift TranscriptionSettingsView.swift
                  AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift LocalAudioInferenceGate.swift BoundedAudioReader.swift OnDeviceSpeechActivity.swift AudioSpeakerMapping.swift SpeakerTranscript.swift SpeakerModelStore.swift SpeakerTranscriptView.swift SpeakerContactViews.swift
                  VoiceIdentity.swift VoiceEmbeddingEngine.swift VoiceIdentityModelStore.swift VoiceSpeechSelection.swift MyVoiceProfileModel.swift MyVoiceEnrollmentView.swift
-                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
+                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift AskAIContext.swift AskAIRuntimeStore.swift AskAIReadTools.swift AskAIRuntime.swift AskAIAppleDriver.swift AskAICustomDriver.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift FlashCapture.swift FlashCaptureRepository.swift FlashCaptureService.swift FlashCaptureModel.swift FlashCaptureViews.swift FlashTimelineViews.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift AppleQueryTranslator.swift DaybookQueryExpansion.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
 watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift SegmentedAudioCapture.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
 phone_target = project.new_target(:application, 'WristNotes', :ios, '26.0')
-phone_target.product_reference.path = 'WiseNote.app'
+phone_target.product_reference.path = 'WiseLife.app'
 shared_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 phone_files.each { |file| phone_target.source_build_phase.add_file_reference(file) }
 if File.directory?(File.join(root, 'Sources/iPhone/Assets.xcassets'))
@@ -61,7 +61,7 @@ phone_target.build_configurations.each do |configuration|
   settings = configuration.build_settings
   settings['SWIFT_VERSION'] = '5.0'
   settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote'
-  settings['PRODUCT_NAME'] = 'WiseNote'
+  settings['PRODUCT_NAME'] = 'WiseLife'
   version = existing_app_versions.fetch(configuration.name, {})
   settings['MARKETING_VERSION'] = version.fetch('MARKETING_VERSION', '1.0.1')
   settings['CURRENT_PROJECT_VERSION'] = version.fetch('CURRENT_PROJECT_VERSION', '6')
@@ -202,7 +202,7 @@ test_target.build_configurations.each do |configuration|
   configuration.build_settings['SWIFT_VERSION'] = '5.0'
   configuration.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cloud.karama.wisenote.RingIntegrationTests'
   configuration.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
-  configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseNote.app/WiseNote'
+  configuration.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/WiseLife.app/WiseLife'
   configuration.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
 end
 metadata_phase = phone_target.new_shell_script_build_phase('Write build metadata')

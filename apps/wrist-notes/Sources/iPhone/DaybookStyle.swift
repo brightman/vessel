@@ -64,15 +64,17 @@ struct DaybookIcon: View {
 struct DaybookSheetLayout<Content: View>: View {
     let title: String
     let onClose: () -> Void
+    let trailing: AnyView?
     @ViewBuilder let content: Content
-    init(title: String, onClose: @escaping () -> Void, @ViewBuilder content: () -> Content) {
-        self.title = title; self.onClose = onClose; self.content = content()
+    init(title: String, onClose: @escaping () -> Void, trailing: AnyView? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title; self.onClose = onClose; self.trailing = trailing; self.content = content()
     }
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Text(LocalizedStringKey(title)).font(.system(size: 17, weight: .semibold))
                 Spacer(minLength: 0)
+                if let trailing { trailing }
                 Button(action: onClose) { DaybookIcon("X", size: 17).frame(width: 32, height: 32).background(DaybookStyle.field, in: Circle()) }
                     .accessibilityLabel("关闭")
             }.padding(.horizontal, 23).padding(.top, 7).padding(.bottom, 8)

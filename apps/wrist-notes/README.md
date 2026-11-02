@@ -1,5 +1,9 @@
 # WiseLife · 我的一天
 
+文档入口：[WiseLife 文档总索引](docs/INDEX.md) — 产品、技术、按日期变更、功能模块、验证发布与历史资料。
+
+官网源码已独立到同级目录 [`../wiselife-website/`](../wiselife-website/README.md)，包含现有首页、两版设计与对比页。从 Vessel 根目录运行 `npm run dev:wiselife-website` 即可预览。App 的 Swift 源码、交互原型与品牌母版继续在本目录维护。
+
 一套本地优先的 iPhone 与 Apple Watch 个人每日记录 App。手表录音并保留待传文件；iPhone 收到音频后保存原文件，在设备上转写、编辑，默认使用 Apple 本地模型总结。可选用户自有的 OpenAI / Anthropic 兼容服务生成总结；不使用 Vessel API，也不需要自建中转服务器或 App 账号。
 
 ## 2026-10-21：长录音内容标题
@@ -158,7 +162,7 @@ swiftc -module-cache-path /private/tmp/wristnotes-modulecache apps/wrist-notes/S
 
 ```sh
 xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath /private/tmp/wiselife-simulator CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
-xcrun simctl install booted /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseNote.app
+xcrun simctl install booted /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseLife.app
 ```
 
 仅在构建成功后执行安装。此操作更新现有 App，保留其数据；不需要卸载 App 或重置模拟器。设备名称可替换成已有的 iOS 模拟器。模拟器使用临时签名，真机继续使用项目原有的开发者签名设置。
@@ -167,8 +171,8 @@ xcrun simctl install booted /private/tmp/wiselife-simulator/Build/Products/Debug
 
 ```sh
 python3 apps/wrist-notes/Tests/test_keychain_entitlements.py \\
-  --app /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseNote.app \\
-  --simulated-entitlements /private/tmp/wiselife-simulator/Build/Intermediates.noindex/WristNotes.build/Debug-iphonesimulator/WristNotes.build/WiseNote.app-Simulated.xcent
+  --app /private/tmp/wiselife-simulator/Build/Products/Debug-iphonesimulator/WiseLife.app \\
+  --simulated-entitlements /private/tmp/wiselife-simulator/Build/Intermediates.noindex/WristNotes.build/Debug-iphonesimulator/WristNotes.build/WiseLife.app-Simulated.xcent
 ```
 
 无需完整 App 或外部 AI 服务即可运行钥匙串回归检查（先启动一个 iOS 模拟器）：

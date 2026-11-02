@@ -322,6 +322,9 @@ struct AISettingsSmoke {
         restartedEditor.selectMode(.custom)
         expect(restartedEditor.configuration == normalized && restartedEditor.canSave, "custom configuration survives app restart")
         restartedEditor.configuration.model = "unsaved-draft"
+        let freshEditor = AISettingsModel(settings: settings, requiresFreshTest: true)
+        freshEditor.selectMode(.custom)
+        expect(freshEditor.state == .idle && !freshEditor.canSave, "onboarding must not equate saved configuration with a live connection test")
         restartedEditor.selectMode(.local)
         restartedEditor.selectMode(.custom)
         expect(restartedEditor.configuration.model == "unsaved-draft" && !restartedEditor.canSave,

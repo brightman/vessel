@@ -6,7 +6,7 @@ struct SpeakerNameText: View {
     let note: VoiceNote
     let speakerID: String
     var body: some View {
-        if let contact = note.speakerContacts?[speakerID] {
+        if let contact = note.speakerContacts?[speakerID],!contact.needsReview {
             Text(verbatim: contact.displayName)
         } else if let name = note.speakerNames?[speakerID], !name.isEmpty {
             Text(verbatim: name)
@@ -59,7 +59,95 @@ struct SpeakerContactPicker: UIViewControllerRepresentable {
                 let reduced = UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
                 if let encoded = reduced.jpegData(compressionQuality: 0.7), encoded.count <= 32 * 1024 { thumbnail = encoded }
             }
-            parent.selected(.init(identifier: contact.identifier, displayName: name, thumbnailData: thumbnail))
+            let emails = contact.isKeyAvailable(CNContactEmailAddressesKey)
+                ? contact.emailAddresses.prefix(8).map { SpeakerContactField(label:CNLabeledValue<NSString>.localizedString(forLabel:$0.label ?? ""),value:$0.value as String) } : []
+            let phones = contact.isKeyAvailable(CNContactPhoneNumbersKey)
+                ? contact.phoneNumbers.prefix(8).map { SpeakerContactField(label:CNLabeledValue<CNPhoneNumber>.localizedString(forLabel:$0.label ?? ""),value:$0.value.stringValue) } : []
+            parent.selected(.init(identifier: contact.identifier, displayName: name, thumbnailData: thumbnail,origin:.ios,
+                organization:organization.isEmpty ? nil : organization,emails:emails,phoneNumbers:phones))
+        }
+    }
+}
+
+private struct ManualSpeakerContactForm: View {
+    let save: (String,String?,String?,String?) async -> SpeakerContactSnapshot?
+    let onSaved: (SpeakerContactSnapshot) -> Void
+    let cancel: () -> Void
+    @State private var name=""
+    @State private var organization=""
+    @State private var email=""
+    @State private var phone=""
+    @State private var saving=false
+    @State private var failure:String?
+    var body:some View {
+        NavigationStack {
+            Form {
+                Section("联系人信息") {
+                    TextField("姓名",text:$name).textContentType(.name)
+                    TextField("公司",text:$organization).textContentType(.organizationName)
+                    TextField("邮箱",text:$email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never)
+                    TextField("手机号",text:$phone).textContentType(.telephoneNumber).keyboardType(.phonePad)
+                }
+                if let failure { Text(failure).foregroundStyle(.orange) }
+            }
+            .navigationTitle("添加联系人").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement:.cancellationAction) { Button("取消",action:cancel).disabled(saving) }
+                ToolbarItem(placement:.confirmationAction) {
+                    Button(saving ? "保存中…" : "保存") {
+                        saving=true
+                        Task {
+                            if let contact=await save(name,organization,email,phone) { onSaved(contact) }
+                            else { failure="无法保存联系人关联，请检查姓名并重试。"; saving=false }
+                        }
+                    }.disabled(saving || name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+}
+
+private struct SavedSpeakerContactPicker: View {
+    let load: (String) async -> [SpeakerContactSnapshot]
+    let selected: (SpeakerContactSnapshot) -> Void
+    let cancelled: () -> Void
+    @State private var search=""
+    @State private var contacts:[SpeakerContactSnapshot]=[]
+    @State private var loading=false
+
+    var body:some View {
+        NavigationStack {
+            Group {
+                if loading && contacts.isEmpty {
+                    ProgressView("正在读取联系人…")
+                } else if contacts.isEmpty {
+                    ContentUnavailableView("没有找到联系人",systemImage:"person.crop.circle",
+                        description:Text(search.isEmpty ? "可先从通讯录选择，或手动添加联系人。" : "请尝试其他姓名或公司名称。"))
+                } else {
+                    List(contacts,id:\.identifier) { contact in
+                        Button { selected(contact) } label: {
+                            HStack(spacing:12) {
+                                SpeakerAvatar(contact:contact)
+                                VStack(alignment:.leading,spacing:3) {
+                                    Text(verbatim:contact.displayName).foregroundStyle(.primary)
+                                    let detail=[contact.organization,contact.emails.first?.value,contact.phoneNumbers.first?.value]
+                                        .compactMap{$0}.first
+                                    if let detail { Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                                }
+                            }
+                        }.buttonStyle(.plain)
+                    }.listStyle(.plain)
+                }
+            }
+            .searchable(text:$search,prompt:"姓名或公司")
+            .navigationTitle("已保存联系人").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement:.cancellationAction) { Button("取消",action:cancelled) } }
+            .task(id:search) {
+                loading=true
+                let result=await load(search)
+                guard !Task.isCancelled else { return }
+                contacts=result; loading=false
+            }
         }
     }
 }
@@ -70,8 +158,8 @@ struct SpeakerManagementView: View {
     @EnvironmentObject private var model: NotesModel
     @Environment(\.dismiss) private var dismiss
     @State private var showPicker = false
-    @State private var pendingContact: SpeakerContactSnapshot?
-    @State private var showConfirmation = false
+    @State private var showSavedContacts=false
+    @State private var showManualContact = false
     @State private var showUnlink = false
     @State private var showRename = false
     @State private var nameDraft = ""
@@ -87,8 +175,15 @@ struct SpeakerManagementView: View {
                         SpeakerAvatar(contact: contact)
                         VStack(alignment: .leading, spacing: 4) {
                             SpeakerNameText(note: current, speakerID: speakerID).font(.headline)
-                            Text(contact == nil ? "尚未关联联系人" : "已关联联系人").font(.caption).foregroundStyle(.secondary)
+                            Text(contact == nil ? "尚未关联联系人" : contact?.needsReview == true ? "说话人识别已变化，请复核关联" : "已关联联系人").font(.caption).foregroundStyle(contact?.needsReview == true ? Color.orange : Color.secondary)
                         }
+                    }
+                    if let contact {
+                        VStack(alignment:.leading,spacing:4) {
+                            if let organization=contact.organization,!organization.isEmpty { Text(organization) }
+                            if let email=contact.emails.first?.value { Text(email).textSelection(.enabled) }
+                            if let phone=contact.phoneNumbers.first?.value { Text(phone).textSelection(.enabled) }
+                        }.font(.caption).foregroundStyle(.secondary)
                     }
                     if let excerpt = note.transcriptSegments?.first(where: { $0.speakerID == speakerID })?.text {
                         Text(verbatim: excerpt).font(.system(size: 14)).lineSpacing(6).foregroundStyle(.secondary)
@@ -96,6 +191,8 @@ struct SpeakerManagementView: View {
                 }
                 Section {
                     Button(contact == nil ? "关联联系人" : "更换联系人") { showPicker = true }.disabled(!valid)
+                    Button("选择已保存联系人") { showSavedContacts=true }.disabled(!valid)
+                    Button("手动添加联系人") { showManualContact=true }.disabled(!valid)
                     if contact == nil {
                         Button("修改说话人名称") { nameDraft = current.speakerName(speakerID); showRename = true }.disabled(!valid)
                     } else {
@@ -108,13 +205,24 @@ struct SpeakerManagementView: View {
             }
             .navigationTitle("说话人").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
-            .sheet(isPresented: $showPicker, onDismiss: { if pendingContact != nil { showConfirmation = true } }) {
-                SpeakerContactPicker(selected: { pendingContact = $0; showPicker = false }, cancelled: { pendingContact = nil; showPicker = false })
+            .sheet(isPresented: $showPicker) {
+                SpeakerContactPicker(selected: { contact in
+                    // Persist while this view is still alive. On device, dismissing the
+                    // system contact picker can also dismiss this nested speaker sheet.
+                    if save(contact) { showPicker = false }
+                }, cancelled: { showPicker = false })
             }
-            .alert("确认关联联系人", isPresented: $showConfirmation) {
-                Button("取消", role: .cancel) { pendingContact = nil }
-                Button("确认关联") { if save(pendingContact) { pendingContact = nil } }
-            } message: { Text(verbatim: pendingContact?.displayName ?? "") }
+            .sheet(isPresented:$showSavedContacts) {
+                SavedSpeakerContactPicker(load:{ model.contactProfiles(search:$0) },selected:{ contact in
+                    _=save(contact); showSavedContacts=false
+                },cancelled:{ showSavedContacts=false })
+            }
+            .sheet(isPresented:$showManualContact) {
+                ManualSpeakerContactForm(save:{ name,organization,email,phone in
+                    guard let created=model.createManualContact(name:name,organization:organization,email:email,phone:phone),save(created) else { return nil }
+                    return created
+                },onSaved:{ _ in showManualContact=false },cancel:{ showManualContact=false })
+            }
             .alert("解除关联", isPresented: $showUnlink) {
                 Button("取消", role: .cancel) {}
                 Button("解除关联", role: .destructive) { _ = save(nil) }
@@ -133,5 +241,135 @@ struct SpeakerManagementView: View {
         let saved = model.setSpeakerContact(noteID: note.id, speakerID: speakerID, contact: contact, expectedRevision: note.transcriptRevision, expectedSegments: note.transcriptSegments ?? [])
         failure = saved ? nil : model.errorMessage
         return saved
+    }
+}
+
+struct ContentSpeakerManagementRequest: Identifiable {
+    let sourceID:AudioSourceID
+    let speakerID:String
+    let label:String
+    let excerpt:String
+    let contact:SpeakerContactSnapshot?
+    var id:String { sourceID.key+":"+speakerID }
+}
+
+struct ContentSpeakerAssociationView: View {
+    let request:ContentSpeakerManagementRequest
+    @EnvironmentObject private var content:ContentSegmentModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var linkedContact:SpeakerContactSnapshot?
+    @State private var showPicker=false
+    @State private var showSavedContacts=false
+    @State private var showManualContact=false
+    @State private var showUnlink=false
+    @State private var saving=false
+    @State private var failure:String?
+    @State private var savedMessage:String?
+
+    init(request:ContentSpeakerManagementRequest) {
+        self.request=request
+        _linkedContact=State(initialValue:request.contact)
+    }
+
+    var body:some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment:.leading,spacing:16) {
+                    HStack(spacing:12) {
+                        SpeakerAvatar(contact:linkedContact).frame(width:42,height:42)
+                        VStack(alignment:.leading,spacing:4) {
+                            Text(linkedContact?.displayName ?? request.label)
+                                .font(.system(size:15,weight:.semibold)).foregroundStyle(DaybookStyle.ink)
+                            Text(linkedContact == nil ? "尚未关联通讯录" : linkedContact?.needsReview == true ? "说话人识别已变化，请复核关联" : "已关联通讯录")
+                                .font(.system(size:11)).foregroundStyle(linkedContact?.needsReview == true ? DaybookStyle.red : DaybookStyle.secondary)
+                        }
+                        Spacer()
+                    }.daybookRecordingCard(padding:14)
+
+                    if !request.excerpt.isEmpty {
+                        VStack(alignment:.leading,spacing:7) {
+                            Text("对话片段").font(.system(size:11,weight:.semibold)).foregroundStyle(DaybookStyle.secondary)
+                            Text(request.excerpt).font(.system(size:13)).lineSpacing(6).foregroundStyle(DaybookStyle.bodyText)
+                                .textSelection(.enabled)
+                        }.daybookRecordingCard(padding:14)
+                    }
+
+                    Button(linkedContact == nil ? "关联联系人" : "更换联系人") { showPicker=true }
+                        .buttonStyle(DaybookPrimaryButtonStyle(wide:true)).disabled(saving)
+                    Button("选择已保存联系人") { showSavedContacts=true }
+                        .font(.system(size:12,weight:.medium)).foregroundStyle(DaybookStyle.accent)
+                        .frame(maxWidth:.infinity).padding(.vertical,4).disabled(saving)
+                    Button("手动添加联系人") { showManualContact=true }
+                        .font(.system(size:12,weight:.medium)).foregroundStyle(DaybookStyle.accent)
+                        .frame(maxWidth:.infinity).padding(.vertical,6).disabled(saving)
+                    if let linkedContact {
+                        VStack(alignment:.leading,spacing:4) {
+                            if let organization=linkedContact.organization,!organization.isEmpty { Text(organization) }
+                            if let email=linkedContact.emails.first?.value { Text(email).textSelection(.enabled) }
+                            if let phone=linkedContact.phoneNumbers.first?.value { Text(phone).textSelection(.enabled) }
+                        }.font(.system(size:10)).foregroundStyle(DaybookStyle.secondary)
+                    }
+                    if linkedContact != nil {
+                        Button("解除关联") { showUnlink=true }
+                            .font(.system(size:12)).foregroundStyle(DaybookStyle.red)
+                            .frame(maxWidth:.infinity).padding(.vertical,8).disabled(saving)
+                    }
+                    Text("关联仅用于这条录音中的说话人，不会修改系统通讯录，也不会用于其他录音。")
+                        .font(.system(size:10)).lineSpacing(4).foregroundStyle(DaybookStyle.secondary)
+                    if saving {
+                        ProgressView("正在保存联系人关联…")
+                            .font(.system(size:11)).tint(DaybookStyle.accent)
+                    } else if let savedMessage {
+                        Label(savedMessage, systemImage:"checkmark.circle.fill")
+                            .font(.system(size:11,weight:.medium)).foregroundStyle(DaybookStyle.green)
+                    }
+                    if let failure { Text(failure).font(.system(size:11)).foregroundStyle(DaybookStyle.red) }
+                }.padding(20)
+            }
+            .background(DaybookStyle.paper.ignoresSafeArea())
+            .navigationTitle("说话人").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement:.confirmationAction) { Button("完成") { dismiss() }.disabled(saving) } }
+            .tint(DaybookStyle.accent)
+            .sheet(isPresented:$showPicker) {
+                SpeakerContactPicker(selected:{ contact in
+                    // Do the durable write before dismissing the picker. This avoids
+                    // losing the pending selection when UIKit closes both nested sheets.
+                    save(contact)
+                    showPicker=false
+                },cancelled:{ showPicker=false })
+            }
+            .sheet(isPresented:$showSavedContacts) {
+                SavedSpeakerContactPicker(load:{ await content.contactProfiles(search:$0) },selected:{ contact in
+                    save(contact); showSavedContacts=false
+                },cancelled:{ showSavedContacts=false })
+            }
+            .sheet(isPresented:$showManualContact) {
+                ManualSpeakerContactForm(save:{ name,organization,email,phone in
+                    guard let created=await content.saveManualContact(name:name,organization:organization,email:email,phone:phone),
+                          await content.setSpeakerContact(sourceID:request.sourceID,speakerID:request.speakerID,contact:created) else { return nil }
+                    return created
+                },onSaved:{ contact in
+                    linkedContact=contact; savedMessage="已关联到 \(contact.displayName)"; showManualContact=false
+                },cancel:{ showManualContact=false })
+            }
+            .confirmationDialog("解除联系人关联？",isPresented:$showUnlink,titleVisibility:.visible) {
+                Button("解除关联",role:.destructive) { save(nil) }
+                Button("取消",role:.cancel) {}
+            } message: { Text("之后会恢复为“\(request.label)”。") }
+        }
+        .presentationDetents([.medium,.large])
+    }
+
+    private func save(_ contact:SpeakerContactSnapshot?) {
+        saving=true; failure=nil
+        Task {
+            let saved=await content.setSpeakerContact(sourceID:request.sourceID,speakerID:request.speakerID,contact:contact)
+            saving=false
+            if saved {
+                linkedContact=contact
+                savedMessage=contact.map { "已关联到 \($0.displayName)" } ?? "已解除联系人关联"
+            }
+            else { failure=content.errorMessage ?? "保存失败，请刷新后重试。" }
+        }
     }
 }

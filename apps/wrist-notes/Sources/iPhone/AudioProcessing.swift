@@ -6,6 +6,7 @@ struct AudioSourceID: Hashable, Codable, Sendable {
     let id: UUID
     var key: String { "\(kind.rawValue):\(id.uuidString)" }
 }
+enum AudioSourceCompletionReason: String, Codable, Sendable { case explicitFinal, idleAssumed }
 enum AudioProcessingError: Error { case invalidInput, staleJob, deletedSource, resourceUnavailable }
 enum AudioJobState: String, Codable, Sendable { case pending, running, completed, missingResource, cancelled, failed }
 enum AudioActivityKind: String, Codable, Sendable { case speech, noSpeech, uncertain }
@@ -92,18 +93,23 @@ struct AudioSourceSnapshot: Codable, Equatable, Sendable {
     let location: CaptureLocation?
     let ranges: [AudioSourceRange]
     let complete: Bool
+    var completionReason: AudioSourceCompletionReason? = nil
+    /// Elapsed source time from recording offset zero. Unlike playable duration,
+    /// this includes missing-file and capture gaps so long recordings stay on the
+    /// long-recording pipeline when an interval is unavailable.
+    var timelineDuration: Double { ranges.map(\.end).max() ?? 0 }
     var fingerprint: String { AudioStableID.make(ranges.map(\.contentIdentity)) }
     var contentIdentity: String {
         struct Identity: Encodable {
             let id: AudioSourceID; let recordingGroupID: UUID?; let capturedAt: Date; let title: String
             let origin: AudioSourceOrigin?; let location: CaptureLocation?
-            let ranges: [AudioSourceRange.ContentIdentity]; let complete: Bool
+            let ranges: [AudioSourceRange.ContentIdentity]; let complete: Bool; let completionReason: AudioSourceCompletionReason?
         }
-        return AudioStableID.make(Identity(id:id,recordingGroupID:recordingGroupID,capturedAt:capturedAt,title:title,origin:origin,location:location,ranges:ranges.map(\.contentIdentity),complete:complete))
+        return AudioStableID.make(Identity(id:id,recordingGroupID:recordingGroupID,capturedAt:capturedAt,title:title,origin:origin,location:location,ranges:ranges.map(\.contentIdentity),complete:complete,completionReason:completionReason))
     }
-    init(id: AudioSourceID, recordingGroupID: UUID? = nil, capturedAt: Date, title: String, origin: AudioSourceOrigin? = nil, location: CaptureLocation? = nil, ranges: [AudioSourceRange], complete: Bool) throws {
+    init(id: AudioSourceID, recordingGroupID: UUID? = nil, capturedAt: Date, title: String, origin: AudioSourceOrigin? = nil, location: CaptureLocation? = nil, ranges: [AudioSourceRange], complete: Bool, completionReason: AudioSourceCompletionReason? = nil) throws {
         self.id = id; self.recordingGroupID = recordingGroupID; self.capturedAt = capturedAt; self.title = title; self.origin = origin; self.location = location
-        self.ranges = ranges; self.complete = complete
+        self.ranges = ranges; self.complete = complete; self.completionReason = completionReason
         try validate()
     }
     func validate() throws {
@@ -144,7 +150,7 @@ struct AudioProcessingWindow: Codable, Equatable, Sendable {
 
 /// Shared only to bridge pre-relocation derivation signatures before source/job locators change.
 enum AudioContentSnapshotIdentity {
-    static let algorithmVersion = "asr-blank-180-chapters-1800-cap-2400-v2"
+    static let algorithmVersion = "asr-blank-600-chapters-1800-cap-2400-v3"
     static func make(source: AudioSourceSnapshot, key: String, jobs: [(AudioProcessingWindow, String)], legacy: Bool = false) -> String {
         AudioStableID.make([legacy ? AudioStableID.make(source) : source.contentIdentity,key,algorithmVersion,
             AudioStableID.make(jobs.map { [legacy ? $0.0.id : $0.0.contentIdentity,$0.1] })])

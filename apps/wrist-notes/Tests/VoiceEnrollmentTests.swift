@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class VoiceEnrollmentTests: XCTestCase {
     func testWhisperOnlyAcceptsTranscriptWithSpeechCharacters() {

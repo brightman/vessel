@@ -9,6 +9,7 @@ struct ActionSource: Codable, Equatable, Hashable, Sendable {
     var recordingKind: String? = nil
     var timeZoneKnown = false
     var offset: TimeInterval? = nil
+    var device: String? = nil
 }
 
 struct ActionItem: Codable, Equatable, Identifiable, Sendable {
@@ -45,6 +46,8 @@ struct ActionItem: Codable, Equatable, Identifiable, Sendable {
     var updatedAt = Date.now
     var revision = 0
     var dedupKey: String? = nil
+    var flashCalendarDestinationChosen: Bool? = nil
+    var isFlashCommand: Bool { dedupKey?.hasPrefix("flash|") == true }
 
     func timeLabel(_ date: Date) -> String {
         let formatter = DateFormatter(); formatter.locale = .current
@@ -56,6 +59,11 @@ struct ActionItem: Codable, Equatable, Identifiable, Sendable {
         if status == .suggested { return "待确认" }
         if status == .cancelled { return "已取消" }
         if status == .completed { return "已完成" }
+        if isFlashCommand {
+            if sync == .pending { return "待执行" }
+            if sync == .failed { return (try? validate()) == nil ? "待补充" : "执行失败" }
+            if sync == .missing { return "系统项目已移除" }
+        }
         if kind == .event, let end, end < .now { return "已结束" }
         if kind == .todo, let start, start < .now { return "已逾期" }
         return "已加入"

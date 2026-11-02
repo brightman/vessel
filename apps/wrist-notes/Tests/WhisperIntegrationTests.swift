@@ -1,6 +1,6 @@
 import XCTest
 import WhisperKit
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class WhisperIntegrationTests: XCTestCase {
     func testBaseModelTranscribesKnownSpeechThroughAppPipeline() async throws {

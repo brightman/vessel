@@ -44,6 +44,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private var capturedLocation: CaptureLocation?
     private var timer: Timer?
     private var startedAt: Date?
+    private var thoughtOrigin: RecordingOrigin?
     private var currentID: UUID?
     private var currentKind: RecordingKind?
     private var queuedIDs: Set<UUID> = []
@@ -79,13 +80,15 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         if item.uploaded { return "iPhone 已保存" }
         if item.transferFailed { return "传输失败" }
         if FileManager.default.fileExists(atPath: audioFile(for: item).path) == false { return "Watch 文件缺失" }
+        // didFinish(success) is a stronger signal than a lagging outstanding-file
+        // snapshot. Once the system reports delivery, show the phone-save wait state.
+        if item.awaitingPhoneSaveConfirmation { return "等待手机回执" }
         if WCSession.isSupported(), let transfer = WCSession.default.outstandingFileTransfers.first(where: {
             $0.file.metadata?["id"] as? String == item.id.uuidString
         }) {
             return transfer.isTransferring ? "系统传输中" : "系统排队"
         }
         if queuedIDs.contains(item.id) { return "系统传输中" }
-        if item.awaitingPhoneSaveConfirmation { return "等待手机回执" }
         return "Watch 待发送"
     }
     var diagnosticLastSyncAt: Date? {
@@ -146,10 +149,10 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         }
     }
 
-    func stop() {
+    func stop(finalizeGroup: Bool = true) {
         guard isRecording, !isFinishingSession, let id = currentID, let kind = currentKind, let startedAt else { return }
         if let capture = continuousCapture {
-            finishContinuousCapture(capture, sessionID: id)
+            finishContinuousCapture(capture, sessionID: id, finalizeGroup: finalizeGroup)
             return
         }
         captureLocation.cancel()
@@ -167,7 +170,8 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         self.startedAt = nil
         thoughtPressActive = false
         WKInterfaceDevice.current().play(.stop)
-        let item = PendingRecording(id: id, kind: kind, capturedAt: startedAt, duration: duration, location: capturedLocation)
+        let item = PendingRecording(id: id, kind: kind, capturedAt: startedAt, duration: duration, location: capturedLocation, recordingOrigin: thoughtOrigin)
+        thoughtOrigin = nil
         pending.append(item)
         do {
             try persistPending()
@@ -300,12 +304,16 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             currentID = id
             currentKind = kind
             startedAt = .now
+            thoughtOrigin = RecordingOrigin(device: WKInterfaceDevice.current().model,
+                deviceID: UserDefaults.standard.string(forKey: "WiseLifeRecordingDeviceID") ?? "",
+                fileName: destination.lastPathComponent, recordingTimeIsEstimated: false, timeZoneIdentifier: TimeZone.current.identifier)
+            try? writeCaptureItem(PendingRecording(id: id, kind: kind, capturedAt: startedAt!, duration: 0, recordingOrigin: thoughtOrigin), id: id)
             isRecording = true
             capturedLocation = nil
             captureLocation.begin(at: startedAt!, source: .watchRecording) { [weak self] point in
                 guard let self, self.currentID == id, self.isRecording else { return }
                 self.capturedLocation = point
-                let item = PendingRecording(id: id, kind: kind, capturedAt: self.startedAt ?? .now, duration: 0, location: point)
+                let item = PendingRecording(id: id, kind: kind, capturedAt: self.startedAt ?? .now, duration: 0, location: point, recordingOrigin: self.thoughtOrigin)
                 try? self.writeCaptureItem(item, id: id)
             }
             WKInterfaceDevice.current().play(.start)
@@ -324,7 +332,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         let origin = RecordingOrigin(device: WKInterfaceDevice.current().model, deviceID: deviceID,
                                      fileName: "hourly-recording", recordingTimeIsEstimated: false)
         let captureRoot = directory.appendingPathComponent("HourlyCapture", isDirectory: true).appendingPathComponent(groupID.uuidString, isDirectory: true)
-        let capture = SegmentedAudioCapture(root: captureRoot, origin: origin) { [weak self] chunk, temporaryURL in
+        let capture = SegmentedAudioCapture(root: captureRoot, origin: origin) { [weak self] chunk, temporaryURL, isFinal in
             guard let self else { throw RecordingTransportError.unavailable }
             let fileURL = self.directory.appendingPathComponent(chunk.audioFilename)
             let fileOrigin = RecordingOrigin(device: chunk.origin.device, deviceID: chunk.origin.deviceID,
@@ -332,7 +340,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             let item = PendingRecording(id: chunk.id, kind: .long, capturedAt: chunk.capturedAt,
                 duration: chunk.duration, location: chunk.location, recordingGroupID: groupID,
                 recordingGroupOrdinal: chunk.ordinal, recordingGroupOffset: chunk.sessionStartOffset,
-                recordingOrigin: fileOrigin)
+                recordingOrigin: fileOrigin, recordingGroupFinalOrdinal: isFinal ? chunk.ordinal : nil)
             guard !FileManager.default.fileExists(atPath: fileURL.path) else { throw RecordingTransportError.invalidStorage }
             try FileManager.default.moveItem(at: temporaryURL, to: fileURL)
             DispatchQueue.main.async { [weak self] in
@@ -352,7 +360,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         capture.onFailure = { [weak self] error in
             guard let self else { return }
             self.recordingError = error.localizedDescription
-            self.stop()
+            self.stop(finalizeGroup: false)
         }
         capture.onStorageWarning = { [weak self] in
             self?.message = "手表存储空间偏低；空间继续减少时将自动停止并保存录音"
@@ -381,14 +389,14 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         }
     }
 
-    private func finishContinuousCapture(_ capture: SegmentedAudioCapture, sessionID: UUID) {
+    private func finishContinuousCapture(_ capture: SegmentedAudioCapture, sessionID: UUID, finalizeGroup: Bool) {
         isFinishingSession = true
         captureLocation.cancel()
         timer?.invalidate(); timer = nil
         WKInterfaceDevice.current().play(.stop)
         Task { @MainActor in
             var failure: Error?
-            do { try await capture.stop() } catch { failure = error }
+            do { try await capture.stop(finalizeGroup: finalizeGroup) } catch { failure = error }
             continuousCapture = nil; isRecording = false; isFinishingSession = false
             currentID = nil; currentKind = nil; startedAt = nil; elapsed = 0
             if let failure { recordingError = failure.localizedDescription; message = "录音已中断，已封存的录音文件保留在手表" }
@@ -609,6 +617,8 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         metadata["recordingGroupID"] = item.recordingGroupID?.uuidString
         metadata["recordingGroupOrdinal"] = item.recordingGroupOrdinal
         metadata["recordingGroupOffset"] = item.recordingGroupOffset
+        metadata["recordingGroupFinalOrdinal"] = item.recordingGroupFinalOrdinal
+        metadata["isGroupFinal"] = item.recordingGroupFinalOrdinal != nil
         metadata["recordingOrigin"] = item.recordingOrigin.flatMap { try? JSONEncoder().encode($0) }
         return metadata
     }

@@ -1,6 +1,9 @@
 import AVFAudio
 import Combine
 import Foundation
+#if DEBUG
+import UIKit
+#endif
 
 /// Process-wide, read-only capture snapshot; attempt tokens reject duplicate/late release.
 /// Foundation-only bookkeeping is also used by isolated tests without opening the microphone.
@@ -46,6 +49,29 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     private var measuresCompletedFile = false
     private var currentChunkStartedAt = Date.now
     private var configuredBuiltInMicrophoneOnly = false
+#if DEBUG
+    private var diagnosticID: String?
+    private var diagnosticStartedAt: TimeInterval = 0
+    private var diagnosticMeterSecond = -1
+    private var diagnosticObservers: [NSObjectProtocol] = []
+#endif
+
+    /// Enabled on demand for the short voice-input waveform; other recordings do not meter.
+    var inputLevel: Float {
+        guard let recorder, isRecording else { return 0 }
+        if !recorder.isMeteringEnabled { recorder.isMeteringEnabled = true }
+        recorder.updateMeters()
+        let power = recorder.averagePower(forChannel: 0)
+#if DEBUG
+        let second = Int(ProcessInfo.processInfo.systemUptime - diagnosticStartedAt)
+        if diagnosticID != nil, second != diagnosticMeterSecond {
+            diagnosticMeterSecond = second
+            captureDiagnostic("meter clock=\(recorder.currentTime) power=\(power) recording=\(recorder.isRecording)")
+        }
+#endif
+        guard power.isFinite else { return 0 }
+        return min(1, max(0, (power + 50) / 50))
+    }
 
     init(draftStore: PhoneRecordingDraftStore = PhoneRecordingDraftStore()) {
         self.draftStore = draftStore
@@ -61,10 +87,25 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                     self.onRecordingEnded?()
                 }
             }
+#if DEBUG
+        for name in [AVAudioSession.routeChangeNotification, AVAudioSession.interruptionNotification,
+                     AVAudioSession.mediaServicesWereLostNotification, AVAudioSession.mediaServicesWereResetNotification] {
+            diagnosticObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+                let interruption = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+                Task { @MainActor [weak self] in
+                    self?.captureDiagnostic("event=\(name.rawValue) reason=\(reason.map(String.init) ?? "-") interruption=\(interruption.map(String.init) ?? "-")")
+                }
+            })
+        }
+#endif
     }
 
     deinit {
         if let interruption { NotificationCenter.default.removeObserver(interruption) }
+#if DEBUG
+        diagnosticObservers.forEach(NotificationCenter.default.removeObserver)
+#endif
         timer?.invalidate()
         if let captureActivityID { AudioCaptureActivity.end(captureActivityID) }
     }
@@ -75,6 +116,12 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             errorMessage = "麦克风正在用于另一段录音，请先完成它。"; return
         }
         Self.microphoneOwner = self
+#if DEBUG
+        diagnosticID = String(UUID().uuidString.prefix(8))
+        diagnosticStartedAt = ProcessInfo.processInfo.systemUptime
+        diagnosticMeterSecond = -1
+#endif
+        captureDiagnostic("start builtin=\(builtInMicrophoneOnly)")
         let activityID = AudioCaptureActivity.begin()
         captureActivityID = activityID
         version += 1; let request = version
@@ -82,6 +129,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         let allowed = await withTaskCancellationHandler {
             await AVAudioApplication.requestRecordPermission()
         } onCancel: { AudioCaptureActivity.end(activityID) }
+        captureDiagnostic("permission allowed=\(allowed)")
         guard request == version else { return }
         requestingPermission = false
         guard !Task.isCancelled else { releaseMicrophone(); return }
@@ -91,8 +139,15 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         let url = stagedDraft?.fileURL ?? FileManager.default.temporaryDirectory.appendingPathComponent("phone-recording-\(UUID().uuidString).m4a")
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: builtInMicrophoneOnly ? [.defaultToSpeaker] : [.defaultToSpeaker, .allowBluetoothHFP])
+            if builtInMicrophoneOnly {
+                // Voice input/enrollment only capture; no speaker playback route is needed.
+                try session.setCategory(.record, mode: .measurement, options: [])
+            } else {
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
+            }
+            captureDiagnostic("category.ready")
             try session.setActive(true)
+            captureDiagnostic("session.active")
             if !builtInMicrophoneOnly { try session.setAllowHapticsAndSystemSoundsDuringRecording(true) }
             if builtInMicrophoneOnly {
                 guard let microphone = session.availableInputs?.first(where: { $0.portType == .builtInMic }) else {
@@ -102,9 +157,11 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             } else {
                 try session.setPreferredInput(nil)
             }
+            captureDiagnostic("input.ready")
             if chunked { try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true) }
             let limit = chunked ? Self.maximumChunkDuration : maximumDuration
             let audio = try makeRecorder(at: url, chunked: chunked, builtInMicrophoneOnly: builtInMicrophoneOnly, maximumDuration: limit)
+            captureDiagnostic("recorder.started recording=\(audio.isRecording)")
             recorder = audio
             measuresCompletedFile = true
             capturedAt = stagedDraft?.capturedAt ?? .now
@@ -112,7 +169,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             if let staged = stagedDraft {
                 let updated = PhoneRecordingDraft(id: staged.id, fileURL: staged.fileURL, duration: staged.duration, capturedAt: capturedAt,
                     location: staged.location, chunks: staged.chunks, activeChunkOrdinal: staged.activeChunkOrdinal,
-                    isChunked: staged.isChunked, timeZoneIdentifier: staged.timeZoneIdentifier)
+                    isChunked: staged.isChunked, timeZoneIdentifier: staged.timeZoneIdentifier, isThought: staged.isThought)
                 stagedDraft = updated
                 onDraftUpdated?(updated)
             }
@@ -137,6 +194,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                 }
             }
         } catch {
+            captureDiagnostic("start.error domain=\((error as NSError).domain) code=\((error as NSError).code)")
             recorder?.stop(); recorder = nil
             try? FileManager.default.removeItem(at: url)
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -150,10 +208,13 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         guard let recorder, isRecording else { return }
         captureLocation.cancel()
         duration = (stagedDraft?.duration ?? 0) + recorder.currentTime
+        let measuredDuration = duration
+        captureDiagnostic("stop.begin clock=\(measuredDuration) recording=\(recorder.isRecording)")
         let url = recorder.url
         self.recorder = nil; isRecording = false
         timer?.invalidate(); timer = nil; recorder.stop()
         if measuresCompletedFile { duration = Self.completedFileDuration(url: url, fallback: duration) }
+        captureDiagnostic("stop.finalized clock=\(measuredDuration) fileSeconds=\(duration)")
         measuresCompletedFile = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         releaseMicrophone()
@@ -170,8 +231,14 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                 errorMessage = "录音片段尚未完成封存，已保留原始文件，请重试保存。"
                 if let staged = stagedDraft { draft = staged }
             }
-        } else if duration > 0.2 { draft = PhoneRecordingDraft(id: stagedDraft?.id ?? UUID(), fileURL: url, duration: duration, capturedAt: capturedAt, location: capturedLocation) }
-        else { try? FileManager.default.removeItem(at: url); errorMessage = "录音太短，请再说一句。" }
+        } else if duration > 0.2 { draft = PhoneRecordingDraft(id: stagedDraft?.id ?? UUID(), fileURL: url, duration: duration, capturedAt: capturedAt, location: capturedLocation,
+            timeZoneIdentifier: stagedDraft?.timeZoneIdentifier ?? TimeZone.current.identifier, isThought: stagedDraft?.isThought == true) }
+        else {
+            try? FileManager.default.removeItem(at: url)
+            errorMessage = measuredDuration > 1
+                ? "麦克风未采集到有效音频，请重新录制。"
+                : "录音太短，请再说一句。"
+        }
     }
 
     /// Read finalized frames, since currentTime can reset before the automatic-stop delegate runs.
@@ -182,6 +249,10 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     }
 
     func discard() {
+        captureDiagnostic("discard")
+#if DEBUG
+        diagnosticID = nil
+#endif
         captureLocation.cancel(); capturedLocation = nil
         version += 1; requestingPermission = false
         let ownedMicrophone = Self.microphoneOwner === self
@@ -235,8 +306,10 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             AVEncoderBitRateKey: chunked ? 32_000 : 64_000
         ]
         let audio = try AVAudioRecorder(url:url,settings:settings)
+        captureDiagnostic("recorder.created rate=\(chunked ? 16_000 : 44_100)")
         audio.delegate = self
         guard audio.prepareToRecord() else { throw CocoaError(.fileWriteUnknown) }
+        captureDiagnostic("recorder.prepared")
         if builtInMicrophoneOnly {
             try FileManager.default.setAttributes([.protectionKey:FileProtectionType.complete],ofItemAtPath:url.path)
             var protectedURL=url; var values=URLResourceValues(); values.isExcludedFromBackup=true
@@ -295,7 +368,8 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 
     func recoverDraft(_ draft:PhoneRecordingDraft) throws -> PhoneRecordingDraft {
         guard draft.isChunked else {
-            return PhoneRecordingDraft(id:draft.id,fileURL:draft.fileURL,duration:recoveredDuration(for:draft),capturedAt:draft.capturedAt,location:draft.location)
+            return PhoneRecordingDraft(id:draft.id,fileURL:draft.fileURL,duration:recoveredDuration(for:draft),capturedAt:draft.capturedAt,location:draft.location,
+                timeZoneIdentifier:draft.timeZoneIdentifier,isThought:draft.isThought)
         }
         guard let ordinal=draft.activeChunkOrdinal,FileManager.default.fileExists(atPath:draft.fileURL.path) else {
             return try draft.activeChunkOrdinal == nil ? draft : draftStore.close(draft)
@@ -326,4 +400,38 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
     func recordingWasSaved() { didSave(); stagedDraft = nil }
     func recoveredDuration(at url: URL) -> TimeInterval { Self.completedFileDuration(url: url, fallback: 0) }
 
+    /// Debug builds only: bounded, local metadata; never speech, paths, location or device names.
+    private func captureDiagnostic(_ event: @autoclosure () -> String) {
+#if DEBUG
+        guard let diagnosticID else { return }
+        let session = AVAudioSession.sharedInstance()
+        let input = session.currentRoute.inputs.map { $0.portType.rawValue }.joined(separator: ",")
+        let elapsed = ProcessInfo.processInfo.systemUptime - diagnosticStartedAt
+        let line = "\(Date().timeIntervalSince1970) \(diagnosticID) +\(String(format: "%.3f", elapsed)) \(event()) category=\(session.category.rawValue) mode=\(session.mode.rawValue) rate=\(session.sampleRate) input=\(input) muted=\(AVAudioApplication.shared.isInputMuted) protected=\(UIApplication.shared.isProtectedDataAvailable) app=\(UIApplication.shared.applicationState.rawValue)\n"
+        PhoneCaptureDiagnosticLog.append(line)
+#endif
+    }
+
 }
+
+#if DEBUG
+private enum PhoneCaptureDiagnosticLog {
+    private static let queue = DispatchQueue(label: "WiseLife.microphone-diagnostics", qos: .utility)
+    static func append(_ line: String) {
+        queue.async {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("wiselife-microphone-diagnostics.log")
+            guard let data = line.data(using: .utf8) else { return }
+            do {
+                let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                if !FileManager.default.fileExists(atPath: url.path) || size > 131_072 {
+                    try data.write(to: url, options: [.atomic, .completeFileProtection])
+                } else {
+                    let file = try FileHandle(forWritingTo: url)
+                    defer { try? file.close() }
+                    try file.seekToEnd(); try file.write(contentsOf: data)
+                }
+            } catch { /* Diagnostics must not change capture behavior. */ }
+        }
+    }
+}
+#endif

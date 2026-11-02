@@ -1,6 +1,6 @@
 # WiseLife iPhone 与 Apple Watch 数据生命周期及本地结构
 
-更新：2026-10-25。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
+更新：2026-11-01。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
 
 ## 数据分为三部分
 
@@ -52,6 +52,7 @@ flowchart LR
 - `content_segments` 是跨阶段表：其中既可能有尚未 final 的候选片段，也可能有已确认的最终主题片段。必须按 payload 内状态识别，不能把整张表一概当作临时数据或最终数据。
 - 按已确认的产品语义，`isFinal == true` 要求音频范围有完整成功的 ASR/VAD 覆盖、边界已关闭且话题边界已作出终态决定。长录音通常由 AI 统一话题；短录音则由直接入时间轴策略确定完整来源范围是唯一边界，不需要 AI 主题切分或内容分类。标题/摘要可后续生成。原音到期前的“处理完成”按 ASR/VAD、话题边界和转写文字已安全保存判断，不因标题/摘要仍待生成而延长原音保留。
 - **录音直入与主题拆分规则（已同步代码）：**所有闪念（包括 Watch 按住说话）继续走直接笔记流程，不做内容主题拆分；Watch/iPhone 录制的普通录音，有效时长 `<=30` 分钟时保留为单条内容记录，不做 AI 主题切分。直入项在 ASR/VAD 覆盖完整且有可展示转写后即可置为最终记录，标题/摘要允许后续生成；AI 的 `meaningful` 分类不得阻止直入项显示。只有有效录音时长严格 `>30` 分钟的录音才进入 AI 内容主题拆分流程；完整分片数不再触发拆分。有效时长按真实音频范围计算，不把传输等待或缺口时间算作录音时长。录音仍在进行且时长 `<=30` 分钟时暂不生成最终内容；超过 30 分钟后可以先生成 provisional 主题片段。
+- **长录音时间轴展示：**片段必须 `isFinal == true` 且有转写文字；分类为 `lowInformation` 时隐藏。其他分类（包括 `pendingConfirmation`、未知分类）及尚未写入分类的片段均展示，不等待标题或摘要。
 - `audio_transcript_spans` 是处理任务生成的带时间戳 ASR spans；`content_segment_presentations.transcript` 是片段展示所读的持久化文字快照。同步到 Mac 时应导出稳定的最终记录格式，而不是照搬这些处理表。
 - 临时重采样/分析文件只服务于单次窗口处理，不是片段音频副本。全文和向量索引是可重建索引，不是权威内容，也不应作为 Mac 备份的输入。
 - 目前没有确认 ASR/VAD 原始结果、说话人特征、任务日志、草稿片段和编辑历史的统一过期时间；在定义和实现该策略前，文档不承诺它们会随 7 天原音一起删除。
@@ -122,12 +123,12 @@ WiseLife 没有自有云端存储。iPhone 与 Watch 分别写入各自 App 沙�
 
 ## SQLite 基本类型与版本
 
-- 当前主库 `PRAGMA user_version = 13`；应用拒绝打开高于 13 的数据库。v1–v13 是递增迁移，不是 13 个独立数据库。
+- 当前主库 `PRAGMA user_version = 16`；应用拒绝打开高于 16 的数据库。v1–v16 是递增迁移，不是 16 个独立数据库。
 - `TEXT` 保存 UUID 字符串、枚举、文本与日期键；`INTEGER` 保存序号、布尔标志、版本和计数；`REAL` 保存日期、时间偏移、时长与度量；`BLOB` 保存 Codable 快照、JSON 编码、二进制向量或特征。
 - SQLite 日期字段统一为自 Swift reference date（2001-01-01 00:00:00 UTC）起的秒数。每日回顾使用 `YYYY-MM-DD` 文本日期键。
 - `payload` / `descriptor` / `origin` 等 BLOB 通常由 `JSONEncoder` 编码对应 Codable 类型；`semantic_chunks.vector` 是向量二进制，不能按 JSON 文本读取。
 - 主表主键多为 UUID 字符串。外键启用；删除相关父记录时按定义级联。时间索引和内容索引是存储实现的一部分，见表定义。
-- v1 建立生活数据/对话/洞察；v2 增加录音笔记、图片和提醒；v3 增加图片捕获元数据；v4 增加 Apple 提醒关联；v5 增加长录音 session/chunk/receipt；v6–v7 增加音频处理、ASR/VAD 与说话人数据；v8–v10 增加主题片段、编辑/补全缓存和语义签名；v11–v12 增加录音位置与地址；v13 将处理后的片段转写单独持久化。同步、回顾、行动和检索表由对应 Store/Index 首次使用时按领域迁移创建。
+- v1 建立生活数据/对话/洞察；v2 增加录音笔记、图片和提醒；v3 增加图片捕获元数据；v4 增加 Apple 提醒关联；v5 增加长录音 session/chunk/receipt；v6–v7 增加音频处理、ASR/VAD 与说话人数据；v8–v10 增加主题片段、编辑/补全缓存和语义签名；v11–v12 增加录音位置与地址；v13 将处理后的片段转写单独持久化；v14 增加音频窗口重试计数；v15 增加旧版 source-scoped speaker 联系人快照；v16 建立规范化联系人及录音内 speaker 关联，并增加按 speaker/时间查找的索引。同步、回顾、行动和检索表由对应 Store/Index 首次使用时按领域迁移创建。
 
 ## SQLite 表结构
 
@@ -138,7 +139,7 @@ WiseLife 没有自有云端存储。iPhone 与 Watch 分别写入各自 App 沙�
 | 1. 原始长录音 | Watch/iPhone：`recording_sessions`、`recording_chunks` + `RecordingSessions/Audio/*.m4a`；Watch 另有 `recording_gaps`、`recording_receipts`、`recording_end_receipts`；iPhone 录制中草稿：`Application Support/WiseLife/RecordingDrafts/<session>/chunk-NNNN.m4a` + manifest | 新 iPhone 本机长录音在封口后登记为 session/chunk；Watch 传输回执仍仅属于 Watch 路径。`voice_notes(kind=long)` 与 `VoiceNotes/Audio/<UUID>.m4a` 保留旧版本/兼容数据，不是新长录音的目标存储。 |
 | 2. 中间加工 | `audio_processing_*`、`audio_transcript_spans`、`audio_activity_intervals`、`audio_speaker_mappings`、`content_segment_sources`、`content_segment_suppression`、`content_topic_decisions`、`content_enrichment_checkpoints`；`content_segments` 中 `isFinal != true` 的行 | 任务输入/状态、ASR/VAD/说话人证据、话题协调过程和草稿片段。它们支持处理恢复/重试，当前没有统一过期策略。 |
 | 3. 最终持久化 | 闪念短录音的 `voice_notes` + 独立音频文件；长录音 `content_segments` 中的 final 片段 + `content_segment_presentations` 中的片段全文；`photo_moments` / `photo_attachments` + JPEG；行动、回顾、洞察等业务表 | 这是用户长期查看、编辑和检索的内容。闪念短录音不进入主题切分流水线。Mac 知识库未来只接收用户允许的稳定内容格式，不复制 iPhone 数据库表；AI 对话历史除外。 |
-| 跨层支持 / 操作记录 / 可重建派生 | `storage_migrations`、删除 tombstones、Watch 同步账本、`content_segment_edits`、`fulltext_*`、`semantic_*` | 迁移/可靠删除/传输状态、最终数据编辑的撤销依据或可重建索引；这些支持记录不取代最终内容本身。 |
+| 跨层支持 / 操作记录 / 可重建派生 | `storage_migrations`、删除 tombstones、Watch 同步账本、`content_segment_edits`、`contacts`、`recording_speaker_contacts`、`fulltext_*`、`semantic_*` | 迁移/可靠删除/传输状态、最终数据编辑的撤销依据、用户保存的联系人快照与录音内 speaker 关系，或可重建索引；这些支持记录不取代录音/逐字稿。 |
 
 `?` 表示可空；未标 `?` 的列在创建语句中为 NOT NULL。`PK` 是主键，`FK` 是外键。表名保留代码中的拼写。
 
@@ -160,6 +161,9 @@ WiseLife 没有自有云端存储。iPhone 与 Watch 分别写入各自 App 沙�
 | `audio_processing_sources` | `source_key TEXT PK`, `kind TEXT`, `source_id TEXT`, `session_id TEXT FK?`, `note_id TEXT FK?`, `descriptor BLOB`, `fingerprint TEXT`, `configuration_key TEXT`, `revision INTEGER`, `cancelled INTEGER` | ASR/VAD/说话人/切分任务的来源、输入指纹、处理配置和修订号。kind 为 `session` 或 `legacyNote`，且只能关联对应来源。 |
 | `audio_processing_jobs` | `id TEXT PK`, `source_key TEXT FK`, `configuration_key TEXT`, `core_start REAL`, `core_end REAL`, `window BLOB`, `state TEXT`, `active INTEGER`, `lease TEXT?`, `message TEXT?`, `result BLOB?`, `result_hash TEXT?` | 按音频时间范围划分的处理作业、窗口及状态；state 约束为 pending/running/completed/missingResource/cancelled/failed。 |
 | `audio_transcript_spans` | `job_id TEXT FK`, `position INTEGER`, `start REAL`, `end REAL`, `text TEXT`, `speaker_id TEXT?`; PK `(job_id,position)` | ASR 识别文本及时间范围、说话人标识。 |
+| `contacts` | `id TEXT PK`, `origin_type TEXT`, `system_contact_identifier TEXT?`, `display_name TEXT`, `organization TEXT?`, `emails_json TEXT`, `phone_numbers_json TEXT`, `avatar_thumbnail BLOB?`, `sync_state TEXT`, `created_at REAL`, `updated_at REAL`, `last_synced_at REAL?` | WiseLife 本地联系人资料快照，可来自 iOS 通讯录或手工录入。`id` 是本机稳定主键；邮箱/号码以带 label 的 JSON 数组保存；头像为压缩缩略图。不会写入 iOS 通讯录，也不会把电话、邮箱、头像或系统联系人标识发给 AI。 |
+| `recording_speaker_contacts` | `source_key TEXT FK`, `speaker_id TEXT`, `contact_id TEXT FK`, `linked_at REAL`, `speaker_revision TEXT`; PK `(source_key,speaker_id)` | **当前录音内的 speaker 联系人关联。**一个来源中的一个 speaker 关联一个联系人；同一联系人可在不同录音分别关联。`linked_at` 是最近一次建立/确认换绑的时间；`speaker_revision` 用于发现逐字稿或 speaker 结果变化并要求用户复核。关联不跨录音推断身份。 |
+| `content_speaker_contacts` | `source_key TEXT FK`, `speaker_id TEXT`, `payload BLOB`; PK `(source_key,speaker_id)` | **v15 旧快照兼容表。**v16 迁移导入 `contacts` 与 `recording_speaker_contacts`；旧表暂保留为兼容/回滚副本，运行时关联以规范化两表为准。 |
 | `audio_activity_intervals` | `job_id TEXT FK`, `position INTEGER`, `start REAL`, `end REAL`, `kind TEXT`; PK `(job_id,position)` | VAD 语音/无语音/不确定区间，kind 为 speech/noSpeech/uncertain。 |
 | `audio_speaker_mappings` | `job_id TEXT FK`, `local_id TEXT`, `canonical_id TEXT?`, `feature BLOB`; PK `(job_id,local_id)` | 分段说话人本地 ID 到规范 ID 映射及声学特征。 |
 | `audio_processing_stage_requests` | `job_id TEXT PK/FK`, `stages INTEGER` | 任务要求执行的处理阶段位掩码。 |
@@ -266,6 +270,7 @@ Watch 生成的传输描述不直接包含文件路径；iPhone 仅按已校验�
 - `VoiceNote`：短录音或 iPhone 本地录音条目，包含 id、类型、时间、时长、音频文件名、标题、全文、摘要、转写/摘要状态、源设备、位置、ASR 时间片段、说话人映射、合并来源和标题修订信息。
 - `RecordingChunkDescriptor` / `RecordingSessionEnd`：Watch 长录音的原始文件身份/校验信息和会话结束状态。
 - `ContentSegment`：一个源录音中的主题片段，包含边界 ranges、标题/摘要、修订、isFinal、boundaryReady、是否有文字、算法/配置来源及 editorial 分类；保存在 content_segments.payload。展示用转写快照另存到 content_segment_presentations，原始识别时间片段在 audio_transcript_spans。
+- `SpeakerContactSnapshot`：联系人资料的界面/迁移快照。运行时规范化资料与关联分别保存在 `contacts` 和 `recording_speaker_contacts`；`.thought` 闪念在 Ask 检索时投影为虚拟 `self`，不创建联系人行或 speaker 关联。
 - `ActionItem`：待办、提醒、日程的类型、标题、备注、状态、时间/时区、来源录音、Apple 链接及本地同步状态；存于 daybook_actions.payload。
 - `PhotoMoment` / `PhotoAttachment`：图片记录、时间、说明、JPEG 文件名、OCR、捕获元数据和识别错误；二进制图片不在 SQLite。
 - `DaybookRecapEntry`、对话轮次和洞察对象：保留来源引用、范围、模型提供方/语言或状态；密钥不写入这些对象。
@@ -287,3 +292,34 @@ Watch 生成的传输描述不直接包含文件路径；iPhone 仅按已校验�
 - 旧录音、照片、行动、回顾、同步和索引：对应 `Sources/iPhone/NoteRepository.swift`、`PhotoRepository.swift`、`ActionItem.swift`、`DaybookRecapStore.swift`、`WatchSyncStore.swift`、`DaybookFullTextIndex.swift`、`DaybookSemanticIndex.swift`
 - Watch 文件与传输：`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift`、`WatchChunkTransferQueue.swift`
 - 两端分片协议：`Sources/Shared/RecordingChunkProtocol.swift`
+
+## 闪念整理与记事本（2026-10-31）
+
+独立想法/账目保存在 `Application Support/WristNotes/Database/daybook.sqlite3`。音频继续由 `voice_notes` 和文件管理，删除来源不删除独立资产。详见[当前产品设计](../prototype/flash-assets-design.md)。
+
+| 表/标记 | 索引与字段 | 用途 |
+| --- | --- | --- |
+| `flash_batches` | `source_id` 主键，`payload` 含状态、错误、是否允许自动行动 | 历史、等待、处理中、待发送确认、失败、完成；完成批次不自动重建 |
+| `flash_assets` | `id`、`source_id`、`kind`、`captured_at`、`revision`、`revoked`、`ready`、`currency`、`direction`、`amount_minor`、`payload` | 按来源和类型/录制日期索引；payload保留原话、设备、录制时区、标题、内容、账目日期类别 |
+| `daybook_actions` | 原有唯一 `dedup_key`，闪念使用 `flash|来源|类型|原话` | 行动与批次同事务写入；保存 pending 后才执行通知/EventKit；ownership ID 支持重试 |
+| `storage_migrations` | `flash-notebook-v1`、`flash-notebook-history-v1` | 事务增量安装表及历史种子；启用时间之前录制的旧命令不自动执行 |
+
+金额以 Int64 最小货币单位保存；缺字段用 NULL，汇总 SQL 仅纳入 ready=1 且 revoked=0 的账目，按 currency 分组并分 income/expense。撤销为软状态；编辑用 revision 检测旧界面覆盖。无源录音外键级联删除。
+
+新 iPhone 闪念草稿保存 recordingMode 和 timeZoneIdentifier；新 Watch 单文件 RecordingOrigin 增加可选 timeZoneIdentifier。旧 JSON 可解码，未知时区不推定行动时间。此次不升级 user_version；沿用现有 domain migration 标记，不删除旧表。
+
+结果时间轴使用 `FlashTimelineGroup` 按来源 ID 汇合 `flash_assets` 和 `daybook_actions` 的只读投影，不另存一套时间轴数据。`ActionStore.flashTimelineItems` 包含闪念行动的已删除墓碑，常规 `items` 仍排除已删除项；取消／删除操作及其成功、失败状态分别展示。每次持久化重载后首页、我的记录与详情同步更新，重启从同一 SQLite 恢复。编辑完成的闪念待办保持 completed。当前整理内容补充本地字面匹配；无新增 FTS／向量索引或 schema 迁移。
+
+## Ask AI 运行附属表（2026-11-01）
+
+关联：[会话与工具编排](ask-ai-session-orchestration.md)、[本期验证](../verification/ask-ai-runtime-2026-11-01.md)。通过 `AskAIRuntimeStore` 的 `ask-ai-runtime-v1` 领域迁移增量创建，不改变主 schema v16，不另建用户数据库。
+
+| 表 | 用途与生命周期 |
+| --- | --- |
+| `ask_ai_runs` | turn 的 attempt/state/counters/错误码，turn 外键级联；成功结果仅存来源 UUID 列表，正文仍在 `conversation_turns` |
+| `ask_ai_tool_calls` | call ID 和参数摘要、状态、来源引用与耗时；运行时不落完整模型参数，随 run 删除 |
+| `ask_ai_evidence` | run 的来源身份/版本/范围/权限摘要与≤200 字摘录；不存完整逐字稿 |
+| `ask_ai_memory` | assistant-default 的用户问题意图记忆、覆盖游标与输入/依赖摘要；完成 turn 锚点外键级联 |
+| `ask_ai_checkpoints` | 可删除的 Apple Transcript≤64KiB；仅匹配完整输入、模型、系统、指令、工具、来源和权限时复用；完成 turn 锚点外键级联 |
+
+`storage_migrations` 的 `ask-ai-runtime-cache-generation` 领域记录持久缓存代次。清空或权限清理在事务内增加代次、终止未完成运行并删除缓存；旧 worker 写入必须携带计算前捕获的代次和有效取消 fence。资料异步复核开始时立即暂停发布许可，只有最新未变化的复核可恢复，事务提交仍校验该许可；完成答案与成功 run 同事务发布；重复保存相同结果幂等，旧 attempt 或不同结果拒绝覆盖。启动时未完成运行转 interrupted，原 pending 问题保留为 cancelled。尚未实现工具诊断 30 天定时清理。

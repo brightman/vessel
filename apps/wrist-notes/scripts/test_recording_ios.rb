@@ -16,7 +16,7 @@ app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(
 File.write(File.join(output, 'VerificationApp.swift'), "import SwiftUI\n@main struct RecordingVerificationApp: App { var body: some Scene { WindowGroup { Text(\"Recording verification\") } } }\n")
 app.source_build_phase.add_file_reference(project.main_group.new_file(File.join(output, 'VerificationApp.swift')))
 app.build_configurations.each do |config|
-  config.build_settings.merge!('PRODUCT_BUNDLE_IDENTIFIER' => 'cloud.karama.wiselife.recording-verification', 'PRODUCT_NAME' => 'RecordingVerification', 'PRODUCT_MODULE_NAME' => 'WiseNote', 'SWIFT_VERSION' => '5.0', 'GENERATE_INFOPLIST_FILE' => 'YES', 'INFOPLIST_KEY_UILaunchScreen_Generation' => 'YES', 'TARGETED_DEVICE_FAMILY' => '1', 'CODE_SIGN_IDENTITY' => '-')
+  config.build_settings.merge!('PRODUCT_BUNDLE_IDENTIFIER' => 'cloud.karama.wiselife.recording-verification', 'PRODUCT_NAME' => 'RecordingVerification', 'PRODUCT_MODULE_NAME' => 'WiseLife', 'SWIFT_VERSION' => '5.0', 'GENERATE_INFOPLIST_FILE' => 'YES', 'INFOPLIST_KEY_UILaunchScreen_Generation' => 'YES', 'TARGETED_DEVICE_FAMILY' => '1', 'CODE_SIGN_IDENTITY' => '-')
 end
 tests = project.new_target(:unit_test_bundle, 'RecordingTests', :ios, '26.0')
 %w[PhoneRecorderEnrollmentTests.swift PhoneRecordingPersistenceTests.swift].each do |file|

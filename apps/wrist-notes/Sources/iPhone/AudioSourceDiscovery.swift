@@ -63,27 +63,83 @@ final class AudioSourceDiscovery {
                 result.append(try .init(id:id,capturedAt:note.capturedAt,title:note.title,origin:note.origin.map(AudioSourceOrigin.init),location:note.location,ranges:[range],complete:true))
             } catch { unavailableSources.append(id) }
         }
-        // A logical long recording is a virtual, ordered set of ordinary files.
-        // Wait for ordinal zero so the first durable note remains a stable source key.
+        // A logical long recording is one virtual source over ordered ordinary files.
+        // While receiving, expose only the readable contiguous prefix from ordinal zero.
         for (groupID, members) in groupedNotes {
             guard let first = members.first(where: { $0.recordingGroupOrdinal == 0 }) else { continue }
             let id = AudioSourceID(kind:.legacyNote,id:first.id)
             do {
-                var ranges: [AudioSourceRange] = []
-                for note in members.sorted(by: {
+                let ordered = members.sorted(by: {
                     let left = $0.recordingGroupOrdinal ?? Int.max
                     let right = $1.recordingGroupOrdinal ?? Int.max
                     return left == right ? $0.id.uuidString < $1.id.uuidString : left < right
-                }) {
+                })
+                let ordinalGroups = Dictionary(grouping:ordered.compactMap { note -> (Int,VoiceNote)? in
+                    guard let ordinal=note.recordingGroupOrdinal else { return nil }
+                    return (ordinal,note)
+                },by:{ $0.0 })
+                let ordinals = Set(ordinalGroups.keys)
+                // Duplicate ordinals cannot be given a safe time ownership. Keep the files
+                // intact and surface the source as unavailable until metadata is repaired.
+                guard ordinalGroups.values.allSatisfy({ $0.count == 1 }) else {
+                    unavailableSources.append(id)
+                    continue
+                }
+                let explicitFinalOrdinals = Set(members.compactMap(\.recordingGroupFinalOrdinal))
+                let explicitFinal = explicitFinalOrdinals.count == 1 && explicitFinalOrdinals.first.map { final in
+                    final >= 0 && final <= RecordingSessionFileLimits.maximumOrdinal &&
+                    ordinals.count == final + 1 && ordinals == Set(0...final)
+                } == true
+                let lastReceived = members.compactMap(\.recordingGroupReceivedAt).max() ?? members.map(\.capturedAt).max()
+                let newerGroupExists = groupedNotes.contains { entry in
+                    entry.key != groupID && entry.value.map(\.capturedAt).min().map { $0 > first.capturedAt } == true
+                }
+                let idleAssumedFinal = lastReceived.map { Date.now.timeIntervalSince($0) >= 24 * 60 * 60 } == true && newerGroupExists
+                let complete = explicitFinal || idleAssumedFinal
+
+                let selected: [VoiceNote]
+                if complete {
+                    // Closing the receive period permits processing every readable run.
+                    // Missing ordinals remain hard boundaries; they are never synthesized.
+                    selected = ordered
+                } else {
+                    var prefix: [VoiceNote] = []
+                    var ordinal = 0
+                    while let note = ordinalGroups[ordinal]?.first?.1 {
+                        prefix.append(note)
+                        ordinal += 1
+                    }
+                    selected = prefix
+                }
+
+                var ranges: [AudioSourceRange] = []
+                var previousOrdinal: Int?
+                for note in selected {
+                    guard let ordinal = note.recordingGroupOrdinal else { continue }
                     let url = root.appendingPathComponent("Audio",isDirectory:true).appendingPathComponent(note.audioFilename)
-                    let info = try inspect(url)
-                    let offset = note.recordingGroupOffset ?? ranges.last.map(\.end) ?? 0
-                    let range = try AudioSourceRange(range:.init(chunkID:note.id,url:url,startFrame:0,endFrame:info.frameCount,
-                        sampleRate:info.sampleRate,sessionStartOffset:offset),contentHash:info.sha256)
-                    ranges.append(range)
+                    do {
+                        let info = try inspect(url)
+                        let offset = note.recordingGroupOffset ?? Double(ordinal) * RecordingSessionFileLimits.fileDuration
+                        let discontinuity: String? = if let previousOrdinal, ordinal != previousOrdinal + 1 {
+                            "missing-group-ordinals-\(previousOrdinal + 1)-\(ordinal - 1)"
+                        } else { nil }
+                        let range = try AudioSourceRange(range:.init(chunkID:note.id,url:url,startFrame:0,endFrame:info.frameCount,
+                            sampleRate:info.sampleRate,sessionStartOffset:offset,discontinuityBefore:discontinuity),contentHash:info.sha256)
+                        ranges.append(range)
+                        previousOrdinal = ordinal
+                    } catch {
+                        unavailableSources.append(id)
+                        if !complete { break }
+                        // A closed group continues with later readable files as an isolated run.
+                    }
+                }
+                guard !ranges.isEmpty else {
+                    unavailableSources.append(id)
+                    continue
                 }
                 result.append(try .init(id:id,recordingGroupID:groupID,capturedAt:first.capturedAt,title:"长录音",
-                    origin:first.origin.map(AudioSourceOrigin.init),location:first.location,ranges:ranges,complete:true))
+                    origin:first.origin.map(AudioSourceOrigin.init),location:first.location,ranges:ranges,complete:complete,
+                    completionReason:explicitFinal ? .explicitFinal : (idleAssumedFinal ? .idleAssumed : nil)))
             } catch { unavailableSources.append(id) }
         }
         let repository: RecordingSessionRepository

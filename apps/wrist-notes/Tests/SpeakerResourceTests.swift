@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 import XCTest
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class SpeakerResourceTests: XCTestCase {
     func testExistingDownloadBundlesBothModelsAndResumesOnlyMissingAssets() async throws {

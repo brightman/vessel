@@ -40,6 +40,19 @@ import Foundation
                   "a recording beyond thirty minutes displays topic processing")
 
         let input=fixture(), plan=try V.prepare(input), ids=plan.blocks.map(\.id)
+        var openInput=input
+        openInput.sourceComplete=false
+        let openPlan=try V.prepare(openInput)
+        try check(openPlan.chapters.last?.provisional == true,
+                  "fully processed received audio still leaves an open recording tail provisional")
+        openInput.sourceComplete=true
+        let closedPlan=try V.prepare(openInput)
+        try check(closedPlan.chapters.last?.provisional == false,
+                  "the final marker permits the fully covered recording tail to close")
+        openInput.finalizationLimit=50
+        let unsettledPlan=try V.prepare(openInput)
+        try check(unsettledPlan.chapters.allSatisfy(\.provisional),
+                  "later successful regions cannot finalize past an earlier unsettled ASR core")
         let chapter=V.ChapterReply(chapterID:plan.chapters[0].id,segments:[
             .init(firstBlockID:ids[0],lastBlockID:ids[0],topic:"产品定价",rationale:"第一句明确讨论产品价格",contentKind:.discussion,confidence:.high,evidenceBlockIDs:[ids[0]]),
             .init(firstBlockID:ids[1],lastBlockID:ids[1],topic:"复诊安排",rationale:"第二句是独立安排",contentKind:.discussion,confidence:.high,evidenceBlockIDs:[ids[1]])])
@@ -61,6 +74,34 @@ import Foundation
             loadCheckpoint:{ memory.load($0) },saveCheckpoint:{ memory.save($0,$1) },publish:{ value in memory.publish(value) })
         try check(resumed.segments==output.segments && resumed.metrics.checkpointHits==4,"production retry reuses exact completed model checkpoints")
         let failed=Memory()
+        let partial=Memory(), partialReplies=ResponseState(Array(replies.prefix(3)))
+        do {
+            _ = try await ContentSegmentationV2Production.run(input:input,modelIdentity:"partial-model",maximumConcurrentFinalRequests:1,publishIncrementally:true,
+                model:{ _,_ in try partialReplies.next() },loadCheckpoint:{ partial.load($0) },
+                saveCheckpoint:{ partial.save($0,$1) },publish:{ partial.publish($0) })
+            throw NSError(domain:"expectedPartialFailure",code:1)
+        } catch V.Failure.stage {
+            try check(partial.publicationCount()==1,"an earlier completed segment must publish before a later classification fails")
+        }
+        let remainingReplies=ResponseState([replies.last!])
+        _ = try await ContentSegmentationV2Production.run(input:input,modelIdentity:"partial-model",maximumConcurrentFinalRequests:1,publishIncrementally:true,
+            model:{ _,_ in try remainingReplies.next() },loadCheckpoint:{ partial.load($0) },
+            saveCheckpoint:{ partial.save($0,$1) },publish:{ partial.publish($0) })
+        try check(remainingReplies.callCount==1,"resume calls the model only for the failed unit")
+        let later=Memory()
+        do {
+            _ = try await ContentSegmentationV2Production.run(input:input,modelIdentity:"later-model",maximumConcurrentFinalRequests:1,publishIncrementally:true,
+                model:{ _,content in
+                    let object=try JSONSerialization.jsonObject(with:Data(content.utf8)) as! [String:Any]
+                    if object["chapterID"] != nil { return replies[0] }
+                    if object["left"] != nil { return replies[1] }
+                    if let blocks=object["blocks"] as? [[String:Any]],blocks.first?["id"] as? String == ids[0] { throw NSError(domain:"firstUnitFailure",code:1) }
+                    return replies.last!
+                },loadCheckpoint:{ later.load($0) },saveCheckpoint:{ later.save($0,$1) },publish:{ later.publish($0) })
+            throw NSError(domain:"expectedIndependentFailure",code:1)
+        } catch V.Failure.stage {
+            try check(later.publicationCount()==1,"an earlier failure cannot prevent a later independent unit from publishing")
+        }
         do {
             _ = try await ContentSegmentationV2Production.run(input:input,modelIdentity:"failed-model",maximumConcurrentFinalRequests:1,
                 model:{ _,_ in throw NSError(domain:"transport",code:1) },loadCheckpoint:{ failed.load($0) },
@@ -77,14 +118,23 @@ import Foundation
         let pendingMetadata=Memory(), pendingMetadataReplies=ResponseState([
             try response(singleChapter),
             try response(V.FinalReply(title:"",summary:"",shortSummary:"",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[singleBlock.id])),
-            try response(V.FinalReply(title:"",summary:"",shortSummary:"",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[singleBlock.id]))])
+            try response(V.DisplayFieldsReply(title:"产品定价讨论",summary:"讨论一个具体的产品定价问题。"))])
         let pendingMetadataOutput=try await ContentSegmentationV2Production.run(input:singleInput,modelIdentity:"metadata-pending-model",
             model:{ _,_ in try pendingMetadataReplies.next() },loadCheckpoint:{ pendingMetadata.load($0) },saveCheckpoint:{ pendingMetadata.save($0,$1) },
             publish:{ value in pendingMetadata.publish(value) })
-        try check(pendingMetadataOutput.segments.count==1 && pendingMetadataOutput.segments[0].classification == .meaningful && pendingMetadataOutput.segments[0].title.isEmpty && pendingMetadataOutput.segments[0].summary.isEmpty,"classification finalizes independently while title and summary can remain pending")
+        try check(pendingMetadataOutput.segments.count==1 && pendingMetadataOutput.segments[0].classification == .meaningful && !pendingMetadataOutput.segments[0].title.isEmpty && !pendingMetadataOutput.segments[0].summary.isEmpty && pendingMetadataOutput.metrics.fieldRepairRequests==1 && pendingMetadataOutput.metrics.repairRequests==0,"meaningful segment repairs missing title and summary in a field-only request")
+        let failedMetadata=Memory(), failedMetadataReplies=ResponseState([
+            try response(singleChapter),
+            try response(V.FinalReply(title:"",summary:"",shortSummary:"",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[singleBlock.id])),
+            "{}","{}"])
+        let failedMetadataOutput=try await ContentSegmentationV2Production.run(input:singleInput,modelIdentity:"metadata-repair-failure-model",
+            model:{ _,_ in try failedMetadataReplies.next() },loadCheckpoint:{ failedMetadata.load($0) },saveCheckpoint:{ failedMetadata.save($0,$1) },
+            publish:{ value in failedMetadata.publish(value) })
+        try check(failedMetadataOutput.segments.count==1 && failedMetadataOutput.segments[0].title.isEmpty && failedMetadata.publicationCount()==1,
+                  "failed field-only retry still publishes the finalized segment boundary")
 
         let wholeMemory=Memory(), wholeReplies=ResponseState([
-            try response(V.FinalReply(title:"",summary:"",shortSummary:"",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[ids[0]]))])
+            try response(V.FinalReply(title:"产品定价讨论",summary:"讨论了产品定价与目标客户。",shortSummary:"产品定价",keyPoints:[],classification:.meaningful,contentKind:.discussion,confidence:.high,uncertainty:"",evidenceBlockIDs:[ids[0]]))])
         let wholeOutput=try await ContentSegmentationV2Production.run(input:input,modelIdentity:"whole-recording-model",topicSplitting:false,
             model:{ _,_ in try wholeReplies.next() },loadCheckpoint:{ wholeMemory.load($0) },saveCheckpoint:{ wholeMemory.save($0,$1) },publish:{ value in wholeMemory.publish(value) })
         try check(wholeOutput.segments.count==1 && wholeReplies.callCount==1,

@@ -7,6 +7,7 @@ window.createDaybookAI = function (app) {
   const apple=window.createDaybookAppleReminders(app);
   const clock={minutes:990}; // The entire prototype uses 2026-10-19, 16:30.
   let pending=null,sequence=0,draft=null,snoozedUntil=0,dismissed=false,remotePreview=null;
+  let voice=null,voiceClockTimer=null,voiceResultTimer=null,voiceHold=null,composerNotice='';
   const scopeNames={audio:'语音与闪念',photo:'图片与补充说明',health:'睡眠与活动'};
   const scopeOf=r=>r.kind==='image'?'photo':r.kind==='sleep'||r.kind==='activity'?'health':r.kind==='journal'?'journal':'audio';
   const allowed=r=>prefs[scopeOf(r)];
@@ -58,14 +59,15 @@ window.createDaybookAI = function (app) {
     $('homeAI').hidden=!nudge;
   }
   function answerMarkup(turn){
-    if(turn.pending)return `<div class="ai-thinking">${icon('AudioLines')}${esc(turn.searchStatus)}</div>`;
+    if(turn.pending)return `<div class="ai-thinking" role="status" aria-live="polite">${icon('AudioLines')}${esc(turn.searchStatus)}</div>${turn.previousAnswer?`<div class="ai-answer ai-previous-answer"><p class="source-footnote">上次回答 · 新回答完成后更新</p><h3>${esc(turn.previousAnswer.title)}</h3>${turn.previousAnswer.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}</div>`:''}`;
     const a=turn.answer;
     if(a.evidence.some(id=>{const r=Array.from({length:today},(_,i)=>getRecords(i+1)).flat().find(row=>row.id===id);return !r||!allowed(r);})){
-      return `<div class="ai-answer"><p>这条回答使用的数据已被你关闭，内容已收起。</p><button class="text-button" data-ai-ask="${esc(turn.question)}">使用当前允许的数据重新回答 ${icon('RotateCcw')}</button></div>`;
+      return `<div class="ai-answer"><p>这条回答使用的数据已被你关闭，内容已收起。</p><button class="text-button" data-ai-retry="${turn.id}">使用当前允许的数据重新回答 ${icon('RotateCcw')}</button></div>`;
     }
-    return `<div class="ai-answer"><div class="ai-answer-label">${icon('MessageCircle')}WiseLife AI<span>${esc(a.context)} · 示例回答</span></div><div class="ai-provider-provenance"><span>${esc(turn.provider.label)}</span>${turn.provider.id==='chatgpt'?`<span>·</span><span>${esc(turn.provider.model)}</span>`:''}</div><h3>${esc(a.title)}</h3>${a.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}${a.search?`<p class="ai-answer-note">查找范围：${esc(a.search)}<br>引用记录：${esc(a.coverage)}</p>`:''}${sourcesMarkup(a.evidence)}${a.note?`<p class="ai-answer-note">${esc(a.note)}</p>`:''}<div class="ai-answer-actions">${a.remind?`<button class="secondary-button" data-ai-remind="${a.remind}">${icon('Bell')}设一个提醒</button>`:''}${a.followup?`<button class="text-button" data-ai-ask="${esc(a.followup)}">继续：${esc(a.followup)} ${icon('ArrowRight')}</button>`:''}${a.retry?`<button class="secondary-button" data-ai-ask="${esc(turn.question)}">${icon('RotateCcw')}重新回答</button>`:''}</div></div>`;
+    return `<div class="ai-answer"><div class="ai-answer-label">${icon('MessageCircle')}WiseLife AI<span>${esc(a.context)} · 示例回答</span></div><div class="ai-provider-provenance"><span>${esc(turn.provider.label)}</span>${turn.provider.id==='chatgpt'?`<span>·</span><span>${esc(turn.provider.model)}</span>`:''}</div><h3>${esc(a.title)}</h3>${a.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}${a.search?`<p class="ai-answer-note">查找范围：${esc(a.search)}<br>引用记录：${esc(a.coverage)}</p>`:''}${sourcesMarkup(a.evidence)}${a.note?`<p class="ai-answer-note">${esc(a.note)}</p>`:''}<div class="ai-answer-actions">${a.remind?`<button class="secondary-button" data-ai-remind="${a.remind}">${icon('Bell')}设一个提醒</button>`:''}${a.followup?`<button class="text-button" data-ai-ask="${esc(a.followup)}">继续：${esc(a.followup)} ${icon('ArrowRight')}</button>`:''}${a.retry?`<button class="secondary-button" data-ai-retry="${turn.id}">${icon('RotateCcw')}重新回答</button>`:''}</div></div>`;
   }
   function render(){
+    if(getView()!=='ai'&&(voice||voiceHold))clearVoice();
     const list=allRecords(),thread=currentThread();
     const provider=getProvider();
     $('aiProvider').innerHTML=`<button class="ai-provider-button" data-ai-action="models">${icon(provider.remote?'MessageCircle':'ShieldCheck')}<span><span>${esc(provider.label)}</span><small>${!provider.ready?'模型暂不可用':provider.id==='chatgpt'?'使用 ChatGPT 套餐':provider.remote?'通过自定义服务处理':'在本机处理'}</small></span>${icon('ChevronDown')}</button>${provider.id==='chatgpt'?usageLink():''}`;
@@ -79,10 +81,83 @@ window.createDaybookAI = function (app) {
     $('aiPrompts').innerHTML=prompts.map(p=>`<button data-ai-ask="${p}">${p}${icon('ArrowUpRight')}</button>`).join('');
     $('aiConversation').innerHTML=thread.map(turn=>`<article class="ai-turn"><p class="ai-user-message" translate="no">${esc(turn.question)}</p>${answerMarkup(turn)}</article>`).join('');
     $('aiConversation').setAttribute('aria-busy',String(!!pending));
+    renderComposer();
+  }
+  function renderComposer(){
+    const busy=!!voice,transcribing=voice?.phase==='transcribing';
     $('aiSend').hidden=!!pending;$('aiStop').hidden=!pending;
-    $('aiSend').disabled=!$('aiQuestion').value.trim();
-    $('aiComposerHint').textContent=pending?'正在演示回答过程，可随时停止':'仅使用你允许的记录 · 示例回答';
-    document.querySelectorAll('[data-ai-ask]').forEach(b=>b.disabled=!!pending);
+    $('aiSend').disabled=busy||!$('aiQuestion').value.trim();
+    $('aiQuestion').readOnly=busy;
+    $('aiVoice').disabled=!!pending||transcribing;
+    $('aiVoice').setAttribute('aria-expanded',String(busy&&!transcribing));
+    $('aiVoice').setAttribute('aria-label','按住说话');
+    $('aiVoice').setAttribute('title','按住说话，松开转写');
+    $('aiVoicePanel').hidden=!busy||transcribing;
+    $('aiVoiceTranscribing').hidden=!transcribing;
+    $('aiVoicePanel').dataset.state=voice?.phase||'idle';
+    $('aiVoiceStatus').textContent=transcribing?'正在转成文字…':'正在聆听…';
+    $('aiComposerHint').textContent=busy?'语音交互演示 · 未启用麦克风':pending?'正在演示回答过程，可随时停止':composerNotice||'仅使用你允许的记录 · 示例回答';
+    document.querySelectorAll('[data-ai-ask],[data-ai-retry]').forEach(b=>b.disabled=!!pending||busy);
+    document.querySelector('#aiProvider button')?.toggleAttribute('disabled',busy);
+  }
+  function resizeQuestion(){
+    $('aiQuestion').style.height='auto';
+    $('aiQuestion').style.height=`${Math.min(104,Math.max(29,$('aiQuestion').scrollHeight))}px`;
+  }
+  function clearVoice(){
+    clearVoiceHold();
+    clearInterval(voiceClockTimer);clearTimeout(voiceResultTimer);
+    voiceClockTimer=null;voiceResultTimer=null;voice=null;
+  }
+  function cancelVoice(){
+    if(!voice)return;
+    clearVoice();composerNotice='已取消语音输入，原有文字已保留。';renderComposer();$('aiVoice').focus();
+  }
+  function startVoice(){
+    if(voice)return;
+    if(pending||remotePreview||getView()!=='ai')return;
+    const input=$('aiQuestion');
+    if(input.value.length-(input.selectionEnd-input.selectionStart)>=input.maxLength){toast('问题最多 300 字，请先删减再使用语音输入。');return;}
+    // Interaction demo only, like the Capture prototype. No microphone or ASR service is used.
+    voice={phase:'listening',startedAt:Date.now(),text:input.value,start:input.selectionStart,end:input.selectionEnd};
+    composerNotice='';$('aiVoiceClock').textContent='00:00';renderComposer();
+    voiceClockTimer=setInterval(()=>{
+      const seconds=Math.floor((Date.now()-voice.startedAt)/1000);
+      $('aiVoiceClock').textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+      if(seconds>=60)finishVoice();
+    },1000);
+  }
+  function finishVoice(){
+    if(voice?.phase!=='listening')return;
+    clearVoiceHold();
+    clearInterval(voiceClockTimer);voiceClockTimer=null;voice.phase='transcribing';renderComposer();
+    voiceResultTimer=setTimeout(()=>{
+      const capture=voice;
+      if(!capture||getView()!=='ai'){clearVoice();renderComposer();return;}
+      const input=$('aiQuestion'),language=$('interfaceLanguage')?.value;
+      const sample=language==='en'?'What should I follow up on from yesterday?':language==='ja'?'昨日のことで、フォローすべきことは？':'昨天有哪些值得跟进的事？';
+      const before=capture.text.slice(0,capture.start),after=capture.text.slice(capture.end);
+      const insert=(before&&!/\s$/.test(before)?' ':'')+sample+(after&&!/^\s/.test(after)?' ':'');
+      const available=input.maxLength-before.length-after.length;
+      const accepted=insert.slice(0,available);
+      input.value=before+accepted+after;
+      clearVoice();composerNotice=accepted.length<insert.length?'已填入示例文字，达到 300 字上限，请检查后发送。':'示例文字已填入，可编辑后发送。';
+      resizeQuestion();renderComposer();input.focus();input.setSelectionRange(before.length+accepted.length,before.length+accepted.length);
+    },600);
+  }
+  function clearVoiceHold(){
+    if(!voiceHold)return;
+    const hold=voiceHold;voiceHold=null;clearTimeout(hold.timer);
+    if(hold.pointerId!==undefined&&$('aiVoice').hasPointerCapture(hold.pointerId))$('aiVoice').releasePointerCapture(hold.pointerId);
+  }
+  function beginVoiceHold(source,pointerId){
+    if(voiceHold||voice||$('aiVoice').disabled)return;
+    voiceHold={source,pointerId,timer:setTimeout(startVoice,200)};
+  }
+  function endVoiceHold(cancelled=false){
+    if(!voiceHold)return;
+    clearVoiceHold();
+    if(cancelled)cancelVoice();else finishVoice();
   }
   function resolveDay(question,fallback){
     const match=question.match(/10\s*月\s*(\d{1,2})\s*[日号]/);
@@ -151,8 +226,9 @@ window.createDaybookAI = function (app) {
   function scrollToConversation(){
     if(getView()==='ai')$('screenScroll').scrollTop=$('screenScroll').scrollHeight;
   }
-  function ask(question){
-    question=question.trim().slice(0,600);if(!question||pending||remotePreview)return;
+  function ask(question,retryTurn=null){
+    question=question.trim().slice(0,300);if(!question||pending||remotePreview||voice)return;
+    composerNotice='';
     showView('ai');
     const provider=getProvider();
     if(!provider.ready){
@@ -174,43 +250,73 @@ window.createDaybookAI = function (app) {
     answer.search=search;
     answer.coverage=dates.length?`${dateLabel(dates[0])}${dates.length>1?'–'+dateLabel(dates.at(-1)):''} · ${used.length} 条`:'未引用记录';
     answer.context=dates.length?answer.coverage:'未找到可引用记录';
+    const acceptedTurn=retryTurn||{id:++sequence,question,pending:true,searchStatus:'等待确认发送文字…',provider:{...provider}};
+    if(!retryTurn){currentThread().push(acceptedTurn);$('aiQuestion').value='';$('aiQuestion').style.height='';render();}
     if(provider.remote&&provider.requiresConfirmation!==false){
-      $('aiQuestion').value=question;
       const available=rangeRecords();
       // Only text and safe metadata for the evidence used by this deterministic answer.
       // Never copy a full record object: it can contain image/audio blobs or local URLs.
-      const texts=answer.evidence.map(id=>available.find(r=>r.id===id)).filter(Boolean).map(r=>({
+      const allTexts=answer.evidence.map(id=>available.find(r=>r.id===id)).filter(Boolean).map(r=>({
         id:r.id,title:r.title,day:r.day,time:r.time,
         text:[r.source,`${r.duration||0} s`,r.kind==='image'?`${r.images?.length||0} images`:'',r.summary,r.preview,r.text,r.caption,r.ocr].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join('\n\n')
       }));
-      remotePreview={question,day,provider,answer,rangeKey:rangeKey(),scope:JSON.stringify(prefs)};
-      openSheet('发送前，确认这次使用的文字',`<p class="sheet-intro"><span>处理服务</span> · <strong>${esc(provider.destination)}</strong></p><p class="source-footnote">${provider.id==='chatgpt'?'使用 ChatGPT 套餐':'通过自定义服务处理'}</p><div class="ai-remote-preview"><p class="source-footnote">自动查找范围：${esc(answer.search)}</p><h3>你的问题</h3><p id="aiOutgoingQuestion" translate="no">${esc(question)}</p></div><div class="ai-remote-records"><h3><span>本次引用的记录</span> · ${texts.length}</h3>${texts.length?texts.map(r=>`<details data-outgoing-record="${esc(r.id)}"><summary translate="no">${dateLabel(r.day)} ${esc(r.time)} · ${esc(r.title)}</summary><pre translate="no">${esc(r.text)}</pre></details>`).join(''):'<p class="source-footnote">没有引用记录，仅使用你的问题。</p>'}</div><p class="source-footnote">录音、图片文件和“我的声音”档案不会发送。原型仅模拟，不进行网络请求。</p><label class="ai-send-preference"><input id="aiDoNotAskAgain" type="checkbox"><span>下次不再提示</span></label><p class="source-footnote">适用于外部 AI 问答、总结与长录音标题。开启免提示后，长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。</p><div class="model-actions chatgpt-preview-actions"><button class="secondary-button" data-ai-action="cancel-send">取消并保留问题</button><button class="primary-button" data-ai-action="confirm-send">确认并模拟发送</button></div>`);
+      const texts=provider.id==='custom'?allTexts.slice(0,1):allTexts;
+      const additionalTexts=provider.id==='custom'?allTexts.slice(1):[];
+      remotePreview={question,day,provider,answer,retryTurn,acceptedTurn,additionalTexts,rangeKey:rangeKey(),scope:JSON.stringify(prefs)};
+      openSheet('发送前，确认这次使用的文字',`<p class="sheet-intro"><span>处理服务</span> · <strong>${esc(provider.destination)}</strong></p><p class="source-footnote">${provider.id==='chatgpt'?'使用 ChatGPT 套餐':'通过自定义服务处理'}</p><div class="ai-remote-preview"><p class="source-footnote">自动查找范围：${esc(answer.search)}</p><h3>你的问题</h3><p id="aiOutgoingQuestion" translate="no">${esc(question)}</p></div><div class="ai-remote-records"><h3><span>本次引用的记录</span> · ${texts.length}</h3>${texts.length?texts.map(r=>`<details data-outgoing-record="${esc(r.id)}"><summary translate="no">${dateLabel(r.day)} ${esc(r.time)} · ${esc(r.title)}</summary><pre translate="no">${esc(r.text)}</pre></details>`).join(''):'<p class="source-footnote">没有引用记录，仅使用你的问题。</p>'}</div><p class="source-footnote">录音、图片文件和“我的声音”档案不会发送。原型仅模拟，不进行网络请求。</p><label class="ai-send-preference"><input id="aiDoNotAskAgain" type="checkbox"><span>下次不再提示</span></label><p class="source-footnote">适用于外部 AI 问答、总结与长录音标题。开启免提示后，长录音标题会自动生成；可在「设置 → AI 模型」中恢复确认。</p><div class="model-actions chatgpt-preview-actions"><button class="secondary-button" data-ai-action="cancel-send">取消发送</button><button class="primary-button" data-ai-action="confirm-send">确认并模拟发送</button></div>`);
       return;
     }
-    startAnswer({question,day,provider,answer});
+    startAnswer({question,day,provider,answer,retryTurn,acceptedTurn});
   }
-  function startAnswer({question,day,provider,answer}){
-    const turn={id:++sequence,question,pending:true,searchStatus:`正在查找相关记录 · ${answer.search}…`,provider:{...provider}};
-    currentThread().push(turn);$('aiQuestion').value='';$('aiQuestion').style.height='';
-    pending={turn,day,context:answer.context,timer:setTimeout(()=>{
-      turn.answer=answer;
-      turn.pending=false;pending=null;render();scrollToConversation();
-    },650)};
+  function startAnswer({question,day,provider,answer,retryTurn=null,acceptedTurn=null,additionalTexts=[]}){
+    const turn=retryTurn||acceptedTurn||{id:++sequence,question};
+    if(retryTurn)turn.previousAnswer=turn.answer;else if(!acceptedTurn)currentThread().push(turn);
+    Object.assign(turn,{pending:true,searchStatus:'正在查找相关记录…',provider:{...provider},attempt:(turn.attempt||0)+1});
+    // Retrying a stored turn never clears the next question being composed.
+    if(!retryTurn&&!acceptedTurn){$('aiQuestion').value='';$('aiQuestion').style.height='';}
+    const stages=['正在阅读相关原文…','正在整理回答…','正在核对来源…'];
+    pending={turn,day,context:answer.context,timer:null};
+    const request=pending;
+    const advance=()=>{
+      if(pending!==request)return;
+      if(stages.length===2&&additionalTexts.length&&getProvider().requiresConfirmation!==false){
+        turn.searchStatus='等待你确认新增资料';
+        const extra=additionalTexts;additionalTexts=[];
+        remotePreview={provider,scope:JSON.stringify(prefs),rangeKey:rangeKey(),supplement:true,resume:()=>{if(pending===request)request.timer=setTimeout(advance,0);}};
+        openSheet('继续回答需要补充这些文字',`<p class="sheet-intro">AI 找到更多相关原文。确认后，将以下新增文字发送到 ${esc(provider.destination)}。</p><div class="ai-remote-records">${extra.map(r=>`<details open><summary>${esc(r.title)}</summary><pre translate="no">${esc(r.text)}</pre></details>`).join('')}</div><p class="source-footnote">原型演示，不发送网络请求。等待确认期间暂停处理。</p><label class="ai-send-preference"><input id="aiDoNotAskAgain" type="checkbox"><span>下次不再提示</span></label><div class="sheet-actions"><button class="secondary-button" data-ai-action="cancel-send">停止这次回答</button><button class="primary-button" data-ai-action="confirm-send">确认并继续</button></div>`);
+        render();return;
+      }
+      if(stages.length){turn.searchStatus=stages.shift();render();request.timer=setTimeout(advance,450);return;}
+      turn.answer=answer;turn.previousAnswer=null;turn.pending=false;pending=null;render();scrollToConversation();
+    };
+    request.timer=setTimeout(advance,450);
     render();scrollToConversation();
   }
   function confirmSend(){
     if(!remotePreview)return;
     const request=remotePreview,provider=getProvider();remotePreview=null;
     if(provider.revision!==request.provider.revision||!provider.ready||JSON.stringify(prefs)!==request.scope||rangeKey()!==request.rangeKey){
-      closeSheet();toast('模型或数据范围已变化，请重新预览后再发送。');return;
+      remotePreview=request;cancelSend();closeSheet();toast('模型或数据范围已变化，请重新预览后再发送。');return;
     }
     if($('aiDoNotAskAgain')?.checked)setRemoteConfirmationRequired(false);
-    closeSheet();startAnswer(request);
+    closeSheet();if(request.supplement)request.resume();else startAnswer(request);
+  }
+  function cancelSend(){
+    const request=remotePreview;if(!request)return;
+    remotePreview=null;
+    if(request.supplement){stop();return;}
+    if(request.acceptedTurn&&!request.retryTurn){
+      request.acceptedTurn.pending=false;
+      request.acceptedTurn.answer={title:'已取消发送。',paragraphs:['问题已保留在历史中，可以重新回答。'],evidence:[],context:'未发送',retry:true};
+    }
+    render();
   }
   function stop(){
     if(!pending)return;
+    if(remotePreview?.supplement){remotePreview=null;closeSheet();}
     clearTimeout(pending.timer);pending.turn.pending=false;
-    pending.turn.answer={title:'已停止这次回答。',paragraphs:['想继续时，可以重新回答。'],evidence:[],context:pending.context,retry:true};
+    pending.turn.answer=pending.turn.previousAnswer||{title:'已停止这次回答。',paragraphs:['想继续时，可以重新回答。'],evidence:[],context:pending.context,retry:true};
+    pending.turn.previousAnswer=null;
     pending=null;render();
   }
   function openNudgeWhy(){
@@ -294,6 +400,7 @@ window.createDaybookAI = function (app) {
       if(action==='settings')apple.settings();
       return;
     }
+    if(button.dataset.aiRetry){const turn=currentThread().find(t=>String(t.id)===button.dataset.aiRetry);if(turn)ask(turn.question,turn);return;}
     if(button.dataset.aiAsk){if($('sheet').open)closeSheet();ask(button.dataset.aiAsk);return;}
     if(button.dataset.aiRemind){createDraft(button.dataset.aiRemind);return;}
     if(button.dataset.aiEdit){createDraft(null,button.dataset.aiEdit);return;}
@@ -309,8 +416,8 @@ window.createDaybookAI = function (app) {
     if(button.dataset.aiClock){clock.minutes=Number(button.dataset.aiClock);render();preferences();document.querySelector(`[data-ai-clock="${clock.minutes}"]`)?.focus();return;}
     const actions={
       preferences,reminders:openReminders,stop,
-      models:()=>{remotePreview=null;openModelSettings();},
-      'cancel-send':()=>{remotePreview=null;closeSheet();},'confirm-send':confirmSend,
+      models:()=>{cancelSend();openModelSettings();},
+      'cancel-send':()=>{cancelSend();closeSheet();},'confirm-send':confirmSend,
       'nudge-why':openNudgeWhy,'nudge-options':openNudgeOptions,
       snooze:()=>{snoozedUntil=Math.min(1439,clock.minutes+60);render();closeSheet();toast(`已稍后再看，可在 AI 偏好中预览 ${hhmm(snoozedUntil)} 的状态。`);},
       dismiss:()=>{dismissed=true;render();closeSheet();toast('今天不再展示这条建议。');},
@@ -329,13 +436,47 @@ window.createDaybookAI = function (app) {
       prefs.quietStart=start;prefs.quietEnd=end;render();preferences();toast('已更新免打扰时段。');
     }
   });
-  $('aiQuestion').addEventListener('input',()=>{$('aiSend').disabled=!$('aiQuestion').value.trim();$('aiQuestion').style.height='auto';$('aiQuestion').style.height=`${Math.min(104,Math.max(29,$('aiQuestion').scrollHeight))}px`;});
+  $('aiQuestion').addEventListener('input',()=>{composerNotice='';resizeQuestion();renderComposer();});
+  $('aiVoiceCancel').addEventListener('click',cancelVoice);
+  $('aiVoice').addEventListener('pointerdown',event=>{
+    if(!event.isPrimary||event.button!==0||$('aiVoice').disabled)return;
+    event.preventDefault();beginVoiceHold('pointer',event.pointerId);
+    if(voiceHold?.pointerId===event.pointerId)$('aiVoice').setPointerCapture(event.pointerId);
+  });
+  $('aiVoice').addEventListener('pointerup',event=>{if(voiceHold?.pointerId===event.pointerId)endVoiceHold();});
+  for(const name of ['pointercancel','lostpointercapture'])$('aiVoice').addEventListener(name,event=>{
+    if(voiceHold?.pointerId===event.pointerId)endVoiceHold(true);
+  });
+  $('aiVoice').addEventListener('keydown',event=>{
+    if(event.key!==' '&&event.key!=='Enter')return;
+    event.preventDefault();if(!event.repeat)beginVoiceHold('keyboard');
+  });
+  $('aiVoice').addEventListener('keyup',event=>{
+    if((event.key===' '||event.key==='Enter')&&voiceHold?.source==='keyboard'){event.preventDefault();endVoiceHold();}
+  });
+  $('aiVoice').addEventListener('blur',()=>{if(voiceHold?.source==='keyboard')endVoiceHold(true);});
+  $('aiVoice').addEventListener('click',event=>{
+    // Screen readers can activate without a pointer or keyboard hold.
+    if(event.detail===0&&!voiceHold&&!$('aiVoice').disabled){if(voice)finishVoice();else startVoice();}
+  });
+  $('aiVoice').addEventListener('contextmenu',event=>event.preventDefault());
   $('aiQuestion').addEventListener('keydown',event=>{
     if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();ask($('aiQuestion').value);}
   });
-  window.addEventListener('pagehide',()=>{clearTimeout(pending?.timer);});
-  $('sheet').addEventListener('close',()=>{if(!$('sheet').open)remotePreview=null;});
+  $('aiComposerDock').addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&(voice||voiceHold)){event.preventDefault();clearVoiceHold();cancelVoice();}
+  });
+  window.addEventListener('blur',()=>{if(voice||voiceHold){clearVoice();renderComposer();}});
+  window.addEventListener('pagehide',()=>{clearTimeout(pending?.timer);clearVoice();renderComposer();});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden&&(voice||voiceHold)){clearVoice();renderComposer();}
+  });
+  new MutationObserver(()=>{
+    if($('sheet').open&&(voice||voiceHold)){clearVoice();renderComposer();}
+  }).observe($('sheet'),{attributes:true,attributeFilter:['open']});
+  $('sheet').addEventListener('close',()=>{if(!$('sheet').open)cancelSend();});
   document.addEventListener('daybook-provider-change',()=>{
+    if(remotePreview&&remotePreview.provider.revision!==getProvider().revision)cancelSend();
     if(pending&&pending.turn.provider.revision!==getProvider().revision){stop();toast('服务或授权已变化，请重新提问。');}
     render();
   });

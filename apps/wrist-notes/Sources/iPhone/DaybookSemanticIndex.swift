@@ -11,7 +11,8 @@ struct DaybookEmbeddingSpace: Equatable, Sendable {
     let pooling: String
     var key: String { "\(model)|\(revision)|\(dimension)|\(language)|\(pooling)" }
 }
-/// Implementations are owned exclusively by the index worker. No generated text is embedded.
+/// Implementations are owned exclusively by the index worker. Corpus vectors
+/// contain original records, never AI summaries; query vectors may use translations.
 protocol DaybookEmbedding: Sendable {
     var space: DaybookEmbeddingSpace { get }
     var partialCoverage: Bool { get }
@@ -24,10 +25,9 @@ private final class SemanticGeneration: @unchecked Sendable {
     private let lock = NSLock()
     private var generation: UInt64 = 0
     private var resources: UInt64 = 0
-    private var scope: String?
-    func begin(scope: String) -> UInt64 {
+    func begin() -> UInt64 {
         lock.lock(); defer { lock.unlock() }
-        if self.scope != scope { self.scope = scope; generation &+= 1 }
+        // Query scopes do not invalidate unrelated callers or durable cache entries.
         return generation
     }
     func resourceRevision() -> UInt64 { lock.lock(); defer { lock.unlock() }; return resources }
@@ -55,8 +55,9 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
     private let generation = SemanticGeneration()
     private let worker: Worker
     private var deletionObservation: NSObjectProtocol?
-    init(database: DaybookDatabase? = nil, embedding: (any DaybookEmbedding)? = nil) {
-        worker = Worker(database: database, embedding: embedding)
+    init(database: DaybookDatabase? = nil, embedding: (any DaybookEmbedding)? = nil,
+         translator: (any LocalQueryTranslating)? = nil) {
+        worker = Worker(database: database, embedding: embedding, translator: translator)
         _ = LegacyAudioDeletionLedger.shared
         deletionObservation = NotificationCenter.default.addObserver(forName:LegacyAudioDeletionLedger.notification,object:nil,queue:nil) { [weak self] note in
             if let id = note.userInfo?["legacyNoteID"] as? UUID { LegacyAudioDeletionLedger.shared.record(id) }
@@ -69,7 +70,7 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
                 allowedKinds: Set<DayRecord.Kind>, limit: Int = 20) async -> DaybookSemanticMatches {
         let records = LegacyAudioDeletionLedger.shared.filter(records)
         let evidence = DaybookEvidenceSnapshot(records: records, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
-        let token = generation.begin(scope:"\(dayStart.timeIntervalSinceReferenceDate)|\(dayEnd.timeIntervalSinceReferenceDate)|\(evidence.fingerprint)")
+        let token = generation.begin()
         do {
             let result = try await worker.search(query: query, records: records, dayStart: dayStart, dayEnd: dayEnd,
                                                  allowedKinds: allowedKinds, limit: limit, gate: generation, token: token)
@@ -81,11 +82,16 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
     }
     func invalidateResources() { generation.invalidateResources() }
     func isCurrent(_ result: DaybookSemanticMatches) -> Bool { result.generation == generation.current() }
-    /// Call synchronously when source/date/permissions change, before enqueueing reconciliation.
-    func invalidate(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>) {
+    /// Fence changed source/permission work synchronously. Partial snapshots must pass authoritative:false.
+    func invalidate(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>, authoritative: Bool = true) {
         let records = LegacyAudioDeletionLedger.shared.filter(records)
         let token = generation.invalidate()
-        Task { try? await worker.reconcile(records: records, allowedKinds: allowedKinds, gate: generation, token: token) }
+        Task { try? await worker.reconcile(records: records, allowedKinds: allowedKinds, gate: generation, token: token, authoritative: authoritative, purgeDisallowedKinds: true) }
+    }
+    /// Awaitable authoritative maintenance for complete corpus/permission snapshots.
+    func reconcile(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>) async throws {
+        let token = generation.invalidate()
+        try await worker.reconcile(records: LegacyAudioDeletionLedger.shared.filter(records), allowedKinds: allowedKinds, gate: generation, token: token)
     }
     func clear() async throws {
         let token = generation.invalidate()
@@ -95,7 +101,21 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
     private actor Worker {
         private var database: DaybookDatabase?
         private let injected: (any DaybookEmbedding)?
-        init(database: DaybookDatabase?, embedding: (any DaybookEmbedding)?) { self.database = database; injected = embedding }
+        private let translator: (any LocalQueryTranslating)?
+        private struct CachedExpansion {
+            let token: UInt64
+            let revision: UInt64
+            let value: DaybookExpandedQuery
+        }
+        private var cachedExpansion: CachedExpansion?
+        init(database: DaybookDatabase?, embedding: (any DaybookEmbedding)?, translator: (any LocalQueryTranslating)?) {
+            self.database = database; injected = embedding
+            // Injected model spaces use an injected translator; deterministic tests
+            // must not start a real Apple model or depend on installed assets.
+            if let translator { self.translator = translator }
+            else if embedding == nil, #available(iOS 26.0, macOS 26.0, *) { self.translator = AppleQueryTranslator() }
+            else { self.translator = nil }
+        }
         private func db() throws -> DaybookDatabase {
             if let database { return database }
             let database = try DaybookDatabase(); self.database = database; return database
@@ -116,16 +136,18 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
             let data = try! JSONEncoder().encode([DaybookTextChunks.version, record.id.uuidString, String(record.capturedAt.timeIntervalSinceReferenceDate), record.kind.rawValue, record.title, record.text, record.indexScopeIdentity])
             return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         }
-        func reconcile(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>, gate: SemanticGeneration, token: UInt64) throws {
+        func reconcile(records: [DayRecord], allowedKinds: Set<DayRecord.Kind>, gate: SemanticGeneration, token: UInt64, authoritative: Bool = true, purgeDisallowedKinds: Bool = false) throws {
             let db = try db()
             try gate.write(token) { try schema(db) }
-            try gate.write(token) { try db.transaction { try DaybookFullTextIndex(database:db).synchronize(records) } }
+            try gate.write(token) { try db.transaction { try DaybookFullTextIndex(database:db).synchronize(records, authoritative: authoritative) } }
             let current = Dictionary(records.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
             var removed: [String] = []
-            for row in try db.query("SELECT id,fingerprint FROM semantic_records") {
+            for row in try db.query("SELECT id,kind,fingerprint FROM semantic_records") {
                 try gate.check(token)
                 let id = try row.requiredString("id")
-                guard let record = current[id], allowedKinds.contains(record.kind) else { removed.append(id); continue }
+                if purgeDisallowedKinds, let kind = row["kind"]?.string.flatMap(DayRecord.Kind.init(rawValue:)), !allowedKinds.contains(kind) { removed.append(id); continue }
+                guard let record = current[id] else { if authoritative { removed.append(id) }; continue }
+                guard allowedKinds.contains(record.kind) else { if authoritative { removed.append(id) }; continue }
                 if fingerprint(record) != row["fingerprint"]?.string { removed.append(id) }
             }
             try gate.write(token) {
@@ -136,6 +158,7 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
             }
         }
         func clear(gate: SemanticGeneration, token: UInt64) throws {
+            cachedExpansion = nil
             let db = try db()
             try gate.write(token) {
                 try db.transaction {
@@ -153,18 +176,18 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
             var coverage: DaybookSemanticMatches.Coverage?
         }
         func search(query: String, records: [DayRecord], dayStart: Date, dayEnd: Date, allowedKinds: Set<DayRecord.Kind>,
-                    limit: Int, gate: SemanticGeneration, token: UInt64) throws -> Result {
+                    limit: Int, gate: SemanticGeneration, token: UInt64) async throws -> Result {
             try gate.check(token)
             let db = try db()
             var result = Result()
             let records = DayRecord.evidenceRecords(records, scope: DateInterval(start:dayStart,end:dayEnd))
             let fulltext = try gate.write(token) { try DaybookFullTextIndex(database: db) }
-            try gate.write(token) { try db.transaction { try fulltext.synchronize(records); try Task.checkCancellation() } }
+            try gate.write(token) { try db.transaction { try fulltext.synchronize(records, authoritative: false); try Task.checkCancellation() } }
             result.keywords = try fulltext.search(query: query, records: records, start: dayStart, end: dayEnd, allowed: allowedKinds)
             let lexicalStatus = fulltext.usesFTS ? "SQL 全文关键词" : "SQL 全文关键词（子串模式）"
             result.status = lexicalStatus
             do {
-                try reconcile(records: records, allowedKinds: allowedKinds, gate: gate, token: token)
+                try reconcile(records: records, allowedKinds: allowedKinds, gate: gate, token: token, authoritative: false)
                 guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return result }
                 let embedding = injected ?? AppleDaybookEmbedding.make()
                 guard let embedding else { result.status += "；本机语言资源未就绪"; return result }
@@ -185,6 +208,29 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
                 guard !kinds.isEmpty else { result.status += "；没有允许 AI 读取的来源"; return result }
                 let eligible = records.filter { kinds.contains($0.kind) && $0.capturedAt >= dayStart && $0.capturedAt < dayEnd }
                     .sorted { $0.id.uuidString < $1.id.uuidString }
+                var semanticQuery = String(query.prefix(300))
+                if !eligible.isEmpty, let translator, let target = QueryTranslationLanguage(rawValue: space.language) {
+                    let expanded: DaybookExpandedQuery
+                    if let cached = cachedExpansion, cached.token == token, cached.revision == revision,
+                       cached.value.original == query, cached.value.target == target {
+                        expanded = cached.value
+                    } else {
+                        // Never await inside a SQLite transaction or generation lock.
+                        expanded = try await DaybookQueryExpansion.expand(query, to: target, using: translator)
+                        try gate.check(token)
+                        if expanded.status == .translated || expanded.status == .sameLanguage {
+                            cachedExpansion = .init(token: token, revision: revision, value: expanded)
+                        }
+                    }
+                    try gate.check(token)
+                    semanticQuery = String(expanded.semanticText.prefix(expanded.translation == nil ? 300 : 1200))
+                    if let status = expanded.retrievalStatus { result.status += "；" + status }
+                }
+                try gate.check(token)
+                // Translation suspends this actor. A concurrent date-range query may replace
+                // the same record UUID with a different transcript projection while we await.
+                // Revalidate fingerprints after the last suspension before reading its vectors.
+                try reconcile(records: records, allowedKinds: allowedKinds, gate: gate, token: token, authoritative: false)
                 let indexed = Set(try db.query("SELECT id FROM semantic_records").compactMap { $0["id"]?.string })
                 for record in eligible where !indexed.contains(record.id.uuidString) {
                     try gate.check(token)
@@ -202,7 +248,12 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
                     }
                 }
                 let placeholders = kinds.map { _ in "?" }.joined(separator: ",")
-                let scope = "r.model_key=? AND r.captured_at>=? AND r.captured_at<? AND r.kind IN (\(placeholders))"
+                try gate.write(token) {
+                    try db.execute("CREATE TEMP TABLE IF NOT EXISTS semantic_active_scope(id TEXT PRIMARY KEY)")
+                    try db.execute("DELETE FROM semantic_active_scope")
+                    for record in eligible { try db.execute("INSERT OR IGNORE INTO semantic_active_scope VALUES(?)", [.text(record.id.uuidString)]) }
+                }
+                let scope = "r.id IN (SELECT id FROM semantic_active_scope) AND r.model_key=? AND r.captured_at>=? AND r.captured_at<? AND r.kind IN (\(placeholders))"
                 let values: [DaybookDatabase.Value] = [.text(space.key), .real(dayStart.timeIntervalSinceReferenceDate), .real(dayEnd.timeIntervalSinceReferenceDate)] + kinds.map(\.rawValue).sorted().map { .text($0) }
                 func coverage(attempted: Int, resources: Bool) throws -> DaybookSemanticMatches.Coverage {
                     let row = try db.query("SELECT count(*) AS total,coalesce(sum(c.state='ready'),0) AS finished,coalesce(sum(c.state='unavailable'),0) AS unavailable FROM semantic_chunks c JOIN semantic_records r ON r.id=c.record_id WHERE " + scope, values)[0]
@@ -210,7 +261,7 @@ final class DaybookSemanticIndex: DaybookSemanticSearching, @unchecked Sendable 
                 }
                 result.coverage = try coverage(attempted: 0, resources: false)
                 try gate.check(token)
-                guard let rawQuery = try embedding.vector(String(query.prefix(300))) else {
+                guard let rawQuery = try embedding.vector(String(semanticQuery.prefix(1200))) else {
                     try gate.check(token)
                     result.coverage = try coverage(attempted: 0, resources: false)
                     result.status += "；查询语言或资源不可用；" + coverageStatus(result.coverage!)

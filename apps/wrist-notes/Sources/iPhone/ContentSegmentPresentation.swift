@@ -23,16 +23,17 @@ enum ContentSegmentPresentation {
 
     /// Raw long audio is a library asset, not a timeline event. Empty/no-speech
     /// segments remain in storage for provenance and playback but are not events.
-    /// Direct recordings up to 30 minutes need final ASR/VAD and readable text, but
-    /// do not need an AI meaningful classification to appear on the timeline.
+    /// Derived segments need final boundaries and readable text. Classification
+    /// only hides a segment when it explicitly says low-information.
     static func timelineRecords(_ records: [DayRecord]) -> [DayRecord] {
         records.filter { record in
             guard record.kind == .voice else { return true }
             guard !record.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { return false }
             guard let provenance = record.contentProvenance else { return record.duration <= 30 * 60 }
             guard provenance.isFinal == true else { return false }
-            if let duration=provenance.sourceEffectiveDuration,duration <= 30 * 60 { return true }
-            return provenance.classification == "meaningful"
+            // Classification excludes a segment only when explicitly low-information.
+            // Pending, unknown, and not-yet-saved classifications remain visible.
+            return provenance.classification != ContentSegmentClassification.lowInformation.rawValue
         }
     }
     /// Requested-date inputs are assembled before any selected-day parent replacement.
@@ -53,7 +54,7 @@ enum ContentSegmentPresentation {
             ranges:segment.ranges.map { .init(chunkID:$0.chunkID,startFrame:$0.startFrame,endFrame:$0.endFrame,sampleRate:$0.sampleRate,sourceOffset:$0.sessionStartOffset) },
             transcript:spans.map { .init(start:$0.start,end:$0.end,text:$0.text) },
             classification:segment.editorial?.classification,isFinal:segment.isFinal,
-            sourceEffectiveDuration:source.ranges.reduce(0) { $0 + $1.duration })
+            sourceEffectiveDuration:source.timelineDuration)
         return value
     }
     static func sourceTime(at compact: Double, ranges: [DayRecord.ContentProvenance.AudioRange]) -> Double? {

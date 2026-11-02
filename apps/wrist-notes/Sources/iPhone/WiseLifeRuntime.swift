@@ -51,9 +51,11 @@ private final class PhoneNativeRecordingCommitter {
 final class WiseLifeRuntime {
     static let shared = WiseLifeRuntime()
 
-    enum Command: Equatable { case start, toggle, stop, retry }
+    enum Command: Equatable { case start, startThought, toggle, stop, retry }
     enum Outcome { case recording, saved, unchanged }
 
+    // Must precede every store initializer: fresh installs also create database files.
+    let onboarding = OnboardingStore()
     let life = LifeSourceModel()
     let sessions = RecordingSessionModel()
     let notes: NotesModel
@@ -61,6 +63,9 @@ final class WiseLifeRuntime {
     let processing: AudioProcessingModel
     let recorder: PhoneRecorder
     let recording: PhoneRecordingSession
+    let reminders = DaybookReminderStore()
+    let actions = ActionStore()
+    let flash = FlashCaptureModel()
     private let activities: RecordingActivityManager
     private var preparation: Task<Void, Never>?
     private var lifecycleObservation: AnyCancellable?
@@ -86,7 +91,7 @@ final class WiseLifeRuntime {
                 return
             }
             guard notes.savePhoneRecording(id: draft.id, fileURL: draft.fileURL,
-                capturedAt: draft.capturedAt, duration: draft.duration, location: draft.location) else {
+                capturedAt: draft.capturedAt, duration: draft.duration, location: draft.location, isThought: draft.isThought, timeZoneIdentifier: draft.timeZoneIdentifier) else {
                 throw NSError(domain: "WiseLife.Recording.Save", code: 1,
                               userInfo: [NSLocalizedDescriptionKey: notes.errorMessage ?? "录音保存未完成，请重试。"])
             }
@@ -101,6 +106,9 @@ final class WiseLifeRuntime {
         processing.onGroupedTranscripts = { [weak notes] groupID,outputs in
             notes?.applyGroupedTranscriptions(groupID,outputs:outputs) ?? false
         }
+        actions.attach(reminders)
+        flash.attach(notes: notes, actions: actions)
+        notes.handlesFlashOrganization = true
         foregroundObservation = NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in Task { @MainActor [weak self] in self?.foreground() } }
         lifecycleObservation = NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)
@@ -136,6 +144,7 @@ final class WiseLifeRuntime {
         processing.foreground()
         notes.refreshWatchStatus()
         sessions.refresh(recover: true)
+        flash.resume()
     }
 
     @discardableResult
@@ -145,10 +154,11 @@ final class WiseLifeRuntime {
         try Task.checkCancellation()
         let priorSaved = recording.lastSaved?.id
         let wasRecording = recorder.isRecording
-        if !wasRecording && (command == .start || command == .toggle) { await processing.suspendForCapture() }
+        if !wasRecording && (command == .start || command == .startThought || command == .toggle) { await processing.suspendForCapture() }
         defer { processing.resumeAfterCapture() }
         switch command {
         case .start: try await recording.start(requireLiveActivity: requireLiveActivity)
+        case .startThought: try await recording.start(requireLiveActivity: false, isThought: true)
         case .toggle: try await recording.toggle()
         case .stop: try await recording.stopAndSave(expectedSessionID: expectedSessionID)
         case .retry:

@@ -19,7 +19,7 @@ final class AISettingsModel: ObservableObject {
     private var testedCustom: AIConfiguration?
     private var testedKey: String?
 
-    init(settings: AppSettings, test: @escaping (AIConfiguration, String) async throws -> Void = {
+    init(settings: AppSettings, requiresFreshTest: Bool = false, test: @escaping (AIConfiguration, String) async throws -> Void = {
         try await CustomAISummarizer().testConnection(configuration: $0, apiKey: $1)
     }) {
         self.settings = settings
@@ -28,7 +28,7 @@ final class AISettingsModel: ObservableObject {
         do {
             apiKey = try settings.apiKey()
             let custom = settings.configuration(for: .custom)
-            if let valid = try? custom.validated(apiKey: apiKey) {
+            if !requiresFreshTest, let valid = try? custom.validated(apiKey: apiKey) {
                 testedCustom = valid; testedKey = apiKey
                 if configuration.mode == .custom { state = .success }
             }

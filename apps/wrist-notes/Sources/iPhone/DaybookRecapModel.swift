@@ -27,23 +27,27 @@ import Foundation
     @Published private(set) var isGenerating = false
     @Published private(set) var storageError: String?
     @Published private(set) var message: String?
+    @Published private(set) var generationProgress: String?
     var scopeLoader: (@MainActor (DateInterval) async throws -> [DayRecord])?
     private let store: DaybookRecapStore
     private let service: any DaybookRecapGenerating
+    private let generationTimeout: Duration
     private var context: Context?
     private var settings: AppSettings?
     private var inputs: [String: DaybookRecapInput] = [:]
     private var sourceRecords: [String: [UUID: DayRecord]] = [:]
     private var task: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
+    private var deadlineTask: Task<Void, Never>?
     private var epoch = UUID()
     private var generation = UUID()
     private var activeAttempt: DaybookRecapEntry?
     private var archiveRevision = 0
     private var visibleRecords: [DayRecord] = []
 
-    init(store: DaybookRecapStore = DaybookRecapStore(), service: (any DaybookRecapGenerating)? = nil) {
+    init(store: DaybookRecapStore = DaybookRecapStore(), service: (any DaybookRecapGenerating)? = nil, generationTimeout: Duration = .seconds(300)) {
         self.store = store; self.service = service ?? DaybookRecapService()
+        self.generationTimeout = generationTimeout
     }
     var current: DaybookRecapEntry? { entries.first { $0.dayKey == dayKey } }
     var dayKey: String { context.map { DaybookRecapInput.key($0.day) } ?? "" }
@@ -180,8 +184,10 @@ import Foundation
     }
     private func cancelGeneration(persistAttempt: Bool) {
         generation = UUID(); generationTask?.cancel(); generationTask = nil; isGenerating = false
+        deadlineTask?.cancel(); deadlineTask = nil; generationProgress = nil
         if persistAttempt, var entry = activeAttempt {
             entry.message = "生成已取消，可手动重试。"
+            message = entry.message
             do { try store.save(entry); publish(entry) }
             catch { storageError = DaybookRecapFailure.storage.localizedDescription; entries = [] }
         }
@@ -197,6 +203,7 @@ import Foundation
         guard canGenerate, let input, let context, let settings else { return }
         guard !automatic || !context.configuration.isRemote || !settings.requiresRemoteAIConfirmation else { return }
         let token = UUID(); generation = token; isGenerating = true; message = nil
+        generationProgress = "正在核对当天资料…"
         var initialAttempt = current ?? DaybookRecapEntry(input: input)
         initialAttempt.attemptKey = attemptKey(input, context: context)
         initialAttempt.message = "上次生成未完成，可手动重试。"
@@ -204,18 +211,36 @@ import Foundation
             // Persist before any suspension. A records/configuration update during generation
             // must see that this date has already had its automatic attempt.
             guard try store.beginAttempt(initialAttempt, automatic: automatic) else {
-                isGenerating = false; generationTask = nil
+                isGenerating = false; generationTask = nil; generationProgress = nil
                 message = "该日期已自动尝试过，可手动生成或更新回顾。"
                 return
             }
             activeAttempt = initialAttempt; publish(initialAttempt)
         } catch {
-            isGenerating = false; generationTask = nil
+            isGenerating = false; generationTask = nil; generationProgress = nil
             storageError = DaybookRecapFailure.storage.localizedDescription
             return
         }
-        generationTask = Task { [weak self] in
+        deadlineTask?.cancel()
+        deadlineTask = Task { [weak self, generationTimeout] in
+            do { try await Task.sleep(for: generationTimeout) } catch { return }
+            guard let self, self.generation == token, self.isGenerating else { return }
+            let pending = self.activeAttempt
+            self.cancelGeneration(persistAttempt: false)
+            self.message = DaybookRecapFailure.timedOut.localizedDescription
+            if var entry = pending {
+                entry.message = self.message
+                do { try self.store.save(entry); self.publish(entry) }
+                catch { self.storageError = DaybookRecapFailure.storage.localizedDescription; self.entries = [] }
+            }
+        }
+        generationTask = Task { [weak self, settings] in
             guard let self else { return }
+            defer {
+                if generation == token {
+                    deadlineTask?.cancel(); deadlineTask = nil; generationProgress = nil
+                }
+            }
             let attempt: DaybookRecapEntry? = initialAttempt
             do {
                 let latest = try await readRecords(input.scope)
@@ -239,8 +264,12 @@ import Foundation
                         && settings.interfaceLanguage.rawValue == context.language && settings.requiresRemoteAIConfirmation == consentAtSend
                 }
                 let apiKey = context.configuration.mode == .custom ? try settings.apiKey() : nil
-                let text = try await service.generate(input, configuration: context.configuration, apiKey: apiKey, language: context.language, isCurrent: current)
+                let text = try await service.generate(input, configuration: context.configuration, apiKey: apiKey, language: context.language, isCurrent: current) { [weak self] progress in
+                    guard let self, self.generation == token else { return }
+                    self.generationProgress = progress
+                }
                 try Task.checkCancellation(); guard current() else { throw CancellationError() }
+                generationProgress = "正在核对来源并保存回顾…"
                 let fresh = try await readRecords(input.scope)
                 try Task.checkCancellation(); guard current(), DaybookRecapInput.prepare(records: fresh, day: context.day, allowedKinds: context.allowedKinds).fingerprint == input.fingerprint else { throw DaybookRecapFailure.changed }
                 try DaybookRecapInput.validate(text, sourceNumbers: Set(input.sources.map(\.number)))
@@ -262,8 +291,9 @@ import Foundation
                     storageError = DaybookRecapFailure.storage.localizedDescription
                     activeAttempt = nil; generationTask = nil; isGenerating = false; return
                 }
-                if !(error is CancellationError) {
-                    let safe = (error as? DaybookRecapFailure)?.localizedDescription ?? (error as? AIServiceError)?.localizedDescription ?? DaybookRecapFailure.generation.localizedDescription
+                do {
+                    let safe = error is CancellationError ? "生成已中断，可手动重试。" :
+                        (error as? DaybookRecapFailure)?.localizedDescription ?? (error as? AIServiceError)?.localizedDescription ?? DaybookRecapFailure.generation.localizedDescription
                     message = safe
                     if var entry = attempt {
                         entry.message = safe

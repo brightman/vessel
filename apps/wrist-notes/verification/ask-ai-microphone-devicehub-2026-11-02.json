@@ -1,0 +1,151 @@
+{
+  "type": "physical-device-capture-experiment",
+  "date": "2026-11-02",
+  "device": "iPhone 16 Pro",
+  "os": "iOS 27.2",
+  "appBuiltAt": "2026-11-02T07:48:32Z",
+  "method": "Same app process; serial 3-second AVAudioRecorder probes; record/measurement/built-in microphone. AAC 44.1kHz alternates with PCM 48kHz. Audio immediately removed; metadata only. App was not rebuilt between rounds.",
+  "rounds": [
+    {
+      "deviceHubScreenSharing": "on",
+      "completeProtectionAnd60sLimit": false,
+      "samples": [
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.0785714285714287,
+          "decibels": -120.0,
+          "frames": 960,
+          "fileSeconds": 0.021768707482993196
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.169791666666667,
+          "decibels": -120.0,
+          "frames": 0,
+          "fileSeconds": 0.0
+        },
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.1772562358276644,
+          "decibels": -120.0,
+          "frames": 960,
+          "fileSeconds": 0.021768707482993196
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.2236041666666666,
+          "decibels": -120.0,
+          "frames": 0,
+          "fileSeconds": 0.0
+        }
+      ]
+    },
+    {
+      "deviceHubScreenSharing": "off",
+      "completeProtectionAnd60sLimit": false,
+      "samples": [
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.0413378684807255,
+          "decibels": -52.80661,
+          "frames": 134080,
+          "fileSeconds": 3.040362811791383
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.1683125,
+          "decibels": -50.98233,
+          "frames": 151248,
+          "fileSeconds": 3.151
+        },
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.1284580498866212,
+          "decibels": -56.187,
+          "frames": 137152,
+          "fileSeconds": 3.1100226757369613
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.1327291666666666,
+          "decibels": -47.292645,
+          "frames": 150144,
+          "fileSeconds": 3.128
+        }
+      ]
+    },
+    {
+      "deviceHubScreenSharing": "on",
+      "completeProtectionAnd60sLimit": false,
+      "samples": [
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.1560997732426306,
+          "decibels": -120.0,
+          "frames": 960,
+          "fileSeconds": 0.021768707482993196
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.1792291666666666,
+          "decibels": -120.0,
+          "frames": 0,
+          "fileSeconds": 0.0
+        }
+      ]
+    },
+    {
+      "deviceHubScreenSharing": "off",
+      "completeProtectionAnd60sLimit": true,
+      "samples": [
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.0968480725623584,
+          "decibels": -55.453793,
+          "frames": 136128,
+          "fileSeconds": 3.0868027210884352
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.0492291666666667,
+          "decibels": -57.383842,
+          "frames": 145728,
+          "fileSeconds": 3.036
+        },
+        {
+          "format": "AAC",
+          "recorderStarted": true,
+          "clockSeconds": 3.0927437641723357,
+          "decibels": -56.436073,
+          "frames": 136128,
+          "fileSeconds": 3.0868027210884352
+        },
+        {
+          "format": "PCM",
+          "recorderStarted": true,
+          "clockSeconds": 3.1495,
+          "decibels": -54.6577,
+          "frames": 150144,
+          "fileSeconds": 3.128
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Not an end-to-end Ask AI gesture, transcription or draft test.",
+    "Only current Device Hub and device OS combination tested.",
+    "Last off round also enabled complete file protection and record(forDuration:60); stopped at 3 seconds."
+  ]
+}

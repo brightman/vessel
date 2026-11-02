@@ -55,9 +55,10 @@ window.createDaybookChatGPT=function(app){
 };
 
 window.daybookChatGPTCopy=[
+  ['自定义 AI 模型','Bring Your Own Model','カスタム AI モデル'],
   ['用于笔记总结、跨记录洞察与 AI 对话。','For note summaries, insights across records and AI conversations.','ノートの要約、記録からの洞察、AI との対話に使用します。'],
-  ['由 Apple Intelligence 提供，在 iPhone 上处理文本，无需 API Key。','Powered by Apple Intelligence. Process text on iPhone without an API key.','Apple Intelligence が iPhone 上でテキストを処理します。API キーは不要です。'],
-  ['使用自己的服务与 Key，支持 OpenAI 或 Anthropic 兼容接口。','Use your own service and key with an OpenAI- or Anthropic-compatible API.','独自のサービスとキーを使用。OpenAI または Anthropic 互換 API に対応。'],
+  ['无需 API Key，在 iPhone 上理解文字。WiseLife 端上 AI 要求 iOS 27.3 及以上、iPhone 15 Pro／Pro Max 或更新的支持机型。','No API key needed. Understand text on iPhone. WiseLife on-device AI requires iOS 27.3 or later and iPhone 15 Pro / Pro Max or a newer supported model.','API キー不要で、iPhone 上でテキストを理解します。WiseLife のオンデバイス AI は iOS 27.3 以降と iPhone 15 Pro / Pro Max または対応する後継機種が必要です。'],
+  ['使用自己的模型地址与 API Key。选择云端服务时，允许的文字会发送给该服务。','Use your own model endpoint and API key. If you choose a cloud service, only the text you allow will be sent to it.','独自のモデルのアドレスと API キーを使用します。クラウドサービスを選ぶと、許可したテキストがそのサービスに送信されます。'],
   ['需要 Apple Intelligence 可用','Requires Apple Intelligence','Apple Intelligence が必要です'],
   ['在系统设置中启用并下载。可用性取决于设备、语言和地区；不可用时不自动切换远程服务。','Enable and download in system settings. Availability depends on device, language and region. No automatic switch to a remote service.','システム設定で有効化しダウンロードします。対応は端末・言語・地域によります。リモートサービスには自動で切り替えません。'],
   ['配置仅保留在本页，刷新后清空。保存不连接真实 AI，示例对话仍使用预设回答。','Settings stay on this page and reset on refresh. Saving does not connect a real AI; conversations use preset examples.','設定はこのページ内のみで保持し、再読み込みで消去します。保存しても実際の AI には接続せず、会話は用意したサンプルです。'],

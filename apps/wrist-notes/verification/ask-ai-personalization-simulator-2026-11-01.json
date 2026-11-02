@@ -1,0 +1,505 @@
+{
+  "date": "2026-11-01",
+  "scope": "Synthetic simulator acceptance; one run per scenario, not a model reliability benchmark",
+  "simulator": "WiseLife Ask AI Acceptance",
+  "udid": "E466E1BC-BA3C-4AC6-9802-6B6C901D8BF6",
+  "runtime": "iOS 26.3",
+  "xcode": "26.3 (17C529)",
+  "model": "doubao-seed-2.0-mini",
+  "protocol": "OpenAI Chat Completions",
+  "fixtures": [
+    {
+      "id": "A11CE000-0000-4000-8000-000000000001",
+      "kind": "thought",
+      "capturedAt": 815184000.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000001.m4a",
+      "title": "晨风生活",
+      "transcript": "我喜欢晚饭后轻松散步，不喜欢跑步。今天工作很累，晚饭后只有15分钟空闲，想稍微活动一下。",
+      "summary": "我喜欢晚饭后轻松散步，不喜欢跑步。今天工作很累，晚饭后只有15分钟空闲，想稍微活动一下。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000001.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000002",
+      "kind": "thought",
+      "capturedAt": 815187600.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000002.m4a",
+      "title": "星桥学习",
+      "transcript": "我正在准备英语面试，希望能清楚介绍自己的项目。我更喜欢开口练习，不喜欢抄单词。今晚只有20分钟，明早9点有面试。",
+      "summary": "我正在准备英语面试，希望能清楚介绍自己的项目。我更喜欢开口练习，不喜欢抄单词。今晚只有20分钟，明早9点有面试。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000002.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000003",
+      "kind": "thought",
+      "capturedAt": 815191200.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000003.m4a",
+      "title": "青竹工作",
+      "transcript": "明天下午要给团队讲项目方案，我习惯先写提纲再做幻灯片。今天还有40分钟，已经很累了，最担心讲不清方案取舍。",
+      "summary": "明天下午要给团队讲项目方案，我习惯先写提纲再做幻灯片。今天还有40分钟，已经很累了，最担心讲不清方案取舍。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000003.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000004",
+      "kind": "thought",
+      "capturedAt": 815194800.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000004.m4a",
+      "title": "海盐运动",
+      "transcript": "我过去常在晚上跑步，也说过喜欢跑步。今天腿很累，今晚明确不想跑步，只想在家轻松休息。",
+      "summary": "我过去常在晚上跑步，也说过喜欢跑步。今天腿很累，今晚明确不想跑步，只想在家轻松休息。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000004.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000005",
+      "kind": "thought",
+      "capturedAt": 815198400.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000005.m4a",
+      "title": "松果咖啡",
+      "transcript": "今天是我第一次为了临时赶报告在晚上喝咖啡。平时是否喝咖啡没有记录。这次报告已经交完了。",
+      "summary": "今天是我第一次为了临时赶报告在晚上喝咖啡。平时是否喝咖啡没有记录。这次报告已经交完了。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000005.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000006",
+      "kind": "thought",
+      "capturedAt": 815202000.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000006.m4a",
+      "title": "白鹭对话",
+      "transcript": "同事林星说：“我每天五点起床跑步，我最喜欢跑步。”我回应：“我不喜欢早起，也不喜欢跑步；我更喜欢晚饭后散步。”",
+      "summary": "同事林星说：“我每天五点起床跑步，我最喜欢跑步。”我回应：“我不喜欢早起，也不喜欢跑步；我更喜欢晚饭后散步。”",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000006.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000007",
+      "kind": "thought",
+      "capturedAt": 815205600.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000007.m4a",
+      "title": "琥珀午餐",
+      "transcript": "我想给明天准备一份简单的午餐，还没有决定吃什么。",
+      "summary": "我想给明天准备一份简单的午餐，还没有决定吃什么。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000007.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000008",
+      "kind": "thought",
+      "capturedAt": 815209200.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000008.m4a",
+      "title": "晴窗心情",
+      "transcript": "今天项目演示不顺利，我很沮丧，觉得自己什么都做不好。今晚精力很低，不想再排满学习任务。",
+      "summary": "今天项目演示不顺利，我很沮丧，觉得自己什么都做不好。今晚精力很低，不想再排满学习任务。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000008.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    },
+    {
+      "id": "A11CE000-0000-4000-8000-000000000009",
+      "kind": "thought",
+      "capturedAt": 815212800.0,
+      "duration": 30,
+      "audioFilename": "A11CE000-0000-4000-8000-000000000009.m4a",
+      "title": "蒲公英复盘",
+      "transcript": "我打算明天晚上八点复盘今天的项目，预计用十分钟，重点看方案取舍。",
+      "summary": "我打算明天晚上八点复盘今天的项目，预计用十分钟，重点看方案取舍。",
+      "transcriptionState": "ready",
+      "summaryState": "ready",
+      "titleManuallyEdited": true,
+      "origin": {
+        "device": "iPhone",
+        "deviceID": "synthetic-acceptance",
+        "fileName": "A11CE000-0000-4000-8000-000000000009.m4a",
+        "recordingTimeIsEstimated": false,
+        "timeZoneIdentifier": "Asia/Singapore"
+      }
+    }
+  ],
+  "turns": [
+    {
+      "id": "2DBDF71B-6EC9-4CB6-B78B-7101623ED469",
+      "question": "晨风生活：今晚怎么活动适合我？",
+      "text": "根据你记录的情况，给你两个贴合需求的小建议：\n1. 晚饭后用15分钟做轻松散步——符合你喜欢的轻松活动类型，时间刚好，能缓解工作后的疲劳感[1]；\n2. 用20分钟练英语口语——匹配你准备英语面试的需求，而且你更偏好开口练习，比抄单词效率更高[2]。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000001",
+          "title": "晨风生活",
+          "truncated": false,
+          "capturedAt": 815184000,
+          "number": 1,
+          "snippet": "我喜欢晚饭后轻松散步，不喜欢跑步。今天工作很累，晚饭后只有15分钟空闲，想稍微活动一下。"
+        },
+        {
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000002",
+          "title": "星桥学习",
+          "truncated": false,
+          "capturedAt": 815187600,
+          "number": 2,
+          "snippet": "我正在准备英语面试，希望能清楚介绍自己的项目。我更喜欢开口练习，不喜欢抄单词。今晚只有20分钟，明早9点有面试。"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236046.127507
+    },
+    {
+      "id": "ECEC2013-691D-4C69-A656-42BB47BED256",
+      "question": "星桥学习：今晚怎样准备面试？",
+      "text": "我懂你今天项目演示不顺利的沮丧，也感受到你今晚精力有限[1]，结合你想准备明早9点英语面试、偏好开口练习不爱抄单词的想法[2]，给你20分钟的准备小步骤：\n1. 花2分钟快速梳理项目核心逻辑（比如你负责的部分），不用抄记，避开会让你觉得有负担的内容[2]，也不额外消耗精力[1]。\n2. 用15分钟开口练项目表达，小声顺一遍就行，贴合你喜欢开口练习的习惯[2]，不会像抄单词那样枯燥费神。\n3. 最后3分钟想1个面试里可能的项目相关问题，简单顺一遍回应，不用多准备，适配你今晚的状态[1]。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "snippet": "今天项目演示不顺利，我很沮丧，觉得自己什么都做不好。今晚精力很低，不想再排满学习任务。",
+          "capturedAt": 815209200,
+          "id": "A11CE000-0000-4000-8000-000000000008",
+          "title": "晴窗心情",
+          "truncated": false,
+          "number": 1,
+          "kind": "thought"
+        },
+        {
+          "snippet": "我正在准备英语面试，希望能清楚介绍自己的项目。我更喜欢开口练习，不喜欢抄单词。今晚只有20分钟，明早9点有面试。",
+          "capturedAt": 815187600,
+          "id": "A11CE000-0000-4000-8000-000000000002",
+          "title": "星桥学习",
+          "truncated": false,
+          "number": 2,
+          "kind": "thought"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236344.453013
+    },
+    {
+      "id": "B272BD40-3046-4671-88A9-4957717F7B72",
+      "question": "青竹工作：今晚如何准备项目方案？",
+      "text": "根据你[1]的记录，你习惯先写提纲再做幻灯片，今晚还有40分钟且已感到疲惫，还担心方案取舍讲不清，试试这2步：\n1. 抽10分钟梳理方案核心取舍（比如2个关键选择的理由），针对性缓解你担心讲不清的顾虑；\n2. 用25分钟把这部分作为提纲核心框架，最后5分钟标记幻灯片里要突出的内容。\n这样贴合你的习惯，也能在有限时间里聚焦重点，减轻当前的疲惫感。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "capturedAt": 815191200,
+          "truncated": false,
+          "number": 1,
+          "id": "A11CE000-0000-4000-8000-000000000003",
+          "kind": "thought",
+          "title": "青竹工作",
+          "snippet": "明天下午要给团队讲项目方案，我习惯先写提纲再做幻灯片。今天还有40分钟，已经很累了，最担心讲不清方案取舍。"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236450.849545
+    },
+    {
+      "id": "4EFAC9AD-BD6F-4D01-BAD2-C647B5BD98EE",
+      "question": "海盐运动：今晚我不想跑步，怎么安排？",
+      "text": "在 全部获准记录 允许读取的 9 条记录中，没有找到可用于回答的文字摘录。目前按日期和关键词检索，可换一个更具体的关键词。",
+      "generated": 0,
+      "provider": "本地检索与统计",
+      "sources": [],
+      "state": "completed",
+      "created_at": 815236547.093198
+    },
+    {
+      "id": "4B94EE2F-3895-459D-AFAF-2F1C38B1A5B8",
+      "question": "海盐闪念：今晚我不想跑步，怎么安排？",
+      "text": "从你今天腿累明确不想跑步，还因为项目演示不顺利有点沮丧的状态来看，今晚可以这样安排：\n1. 先泡个温热水脚放松腿部，缓解疲惫（结合你今天腿累的情况[1]）；\n2. 在家选个轻松的小事打发时间，比如翻几页喜欢的书、看个短剧集，慢慢舒缓情绪；\n3. 晚饭后要是状态还可以，再试试慢走一小段——这也是你之前说更喜欢的放松方式[2]，不用勉强自己。\n\n这样的安排贴合当下的身体和情绪，不会给你增加额外负担~",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "capturedAt": 815194800,
+          "snippet": "我过去常在晚上跑步，也说过喜欢跑步。今天腿很累，今晚明确不想跑步，只想在家轻松休息。",
+          "number": 1,
+          "title": "海盐运动",
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000004",
+          "truncated": false
+        },
+        {
+          "capturedAt": 815202000,
+          "snippet": "同事林星说：“我每天五点起床跑步，我最喜欢跑步。”我回应：“我不喜欢早起，也不喜欢跑步；我更喜欢晚饭后散步。”",
+          "number": 2,
+          "title": "白鹭对话",
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000006",
+          "truncated": false
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236622.038458
+    },
+    {
+      "id": "6CFC2E91-C2C5-48A9-B3BE-80FD00F441F8",
+      "question": "松果咖啡：我是不是习惯晚上喝咖啡？",
+      "text": "目前你的记录里，只有2026年11月1日第一次为赶临时报告在晚上喝咖啡的情况，平时喝咖啡没有相关记录 [1]，暂无法判断你习惯晚上喝咖啡哦。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "kind": "thought",
+          "snippet": "今天是我第一次为了临时赶报告在晚上喝咖啡。平时是否喝咖啡没有记录。这次报告已经交完了。",
+          "truncated": false,
+          "capturedAt": 815198400,
+          "id": "A11CE000-0000-4000-8000-000000000005",
+          "number": 1,
+          "title": "松果咖啡"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236675.622231
+    },
+    {
+      "id": "3D55D376-F959-4906-B18E-91A06903BC31",
+      "question": "白鹭闪念：我喜欢早起跑步吗？",
+      "text": "根据你的记录，你在对话中明确表示“我不喜欢早起，也不喜欢跑步；我更喜欢晚饭后散步”[1]，还提到“不喜欢跑步”[2]，因此目前来看你暂时并不喜欢早起跑步，更偏好晚饭后轻松散步的方式。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000006",
+          "snippet": "同事林星说：“我每天五点起床跑步，我最喜欢跑步。”我回应：“我不喜欢早起，也不喜欢跑步；我更喜欢晚饭后散步。”",
+          "capturedAt": 815202000,
+          "title": "白鹭对话",
+          "number": 1,
+          "truncated": false
+        },
+        {
+          "kind": "thought",
+          "id": "A11CE000-0000-4000-8000-000000000001",
+          "snippet": "我喜欢晚饭后轻松散步，不喜欢跑步。今天工作很累，晚饭后只有15分钟空闲，想稍微活动一下。",
+          "capturedAt": 815184000,
+          "title": "晨风生活",
+          "number": 2,
+          "truncated": false
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236743.559598
+    },
+    {
+      "id": "2F50334F-D43F-4BF2-A616-C62D54852407",
+      "question": "琥珀午餐：按我的口味推荐午餐？",
+      "text": "根据你想为明天准备简单午餐的想法[1]，给你两个简单易做的午餐小推荐：\n1. 全麦三明治：用全麦面包夹煎蛋、生菜、番茄片，5分钟就能做好，方便管饱；\n2. 杂粮饭配清炒时蔬+卤鸡腿：提前煮好杂粮饭，晚上简单炒个菜（或用现成时蔬）、准备小块卤鸡腿，明天加热即可，省时不复杂。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "capturedAt": 815205600,
+          "id": "A11CE000-0000-4000-8000-000000000007",
+          "truncated": false,
+          "number": 1,
+          "title": "琥珀午餐",
+          "kind": "thought",
+          "snippet": "我想给明天准备一份简单的午餐，还没有决定吃什么。"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236806.40526
+    },
+    {
+      "id": "028CD0E9-670A-4696-8FC7-43F71E570039",
+      "question": "晴窗心情：我觉得自己什么都做不好，怎么办？",
+      "text": "我能感受到项目演示不顺利带来的沮丧感，这种状态下很容易觉得自己什么都做不好，真的会很辛苦[1]。你今晚精力很低，不用硬排满学习任务，先给自己留些放松的空间会更舒服[1]。另外，准备英语面试你更喜欢开口练习而非抄单词，明早9点有面试，今晚可以试着用20分钟左右开口说说项目，贴合你的偏好，也不会有太大压力[2]。",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "snippet": "今天项目演示不顺利，我很沮丧，觉得自己什么都做不好。今晚精力很低，不想再排满学习任务。",
+          "kind": "thought",
+          "title": "晴窗心情",
+          "id": "A11CE000-0000-4000-8000-000000000008",
+          "number": 1,
+          "capturedAt": 815209200,
+          "truncated": false
+        },
+        {
+          "snippet": "我正在准备英语面试，希望能清楚介绍自己的项目。我更喜欢开口练习，不喜欢抄单词。今晚只有20分钟，明早9点有面试。",
+          "kind": "thought",
+          "title": "星桥学习",
+          "id": "A11CE000-0000-4000-8000-000000000002",
+          "number": 2,
+          "capturedAt": 815187600,
+          "truncated": false
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236930.008774
+    },
+    {
+      "id": "21BBBD37-C79E-4AB9-99FF-2D6F07BD91EA",
+      "question": "蒲公英复盘：帮我创建明晚八点的提醒。",
+      "text": "根据你记录的计划：明天晚上八点复盘今天的项目，预计用十分钟，重点看方案取舍[1]，你可以创建明晚八点的提醒，建议在提醒中备注“蒲公英复盘（重点看方案取舍，预计10分钟）”，这样能帮你更有针对性地按时完成复盘～",
+      "generated": 1,
+      "provider": "doubao-seed-2.0-mini · OpenAI",
+      "sources": [
+        {
+          "truncated": false,
+          "capturedAt": 815212800,
+          "id": "A11CE000-0000-4000-8000-000000000009",
+          "snippet": "我打算明天晚上八点复盘今天的项目，预计用十分钟，重点看方案取舍。",
+          "number": 1,
+          "kind": "thought",
+          "title": "蒲公英复盘"
+        }
+      ],
+      "state": "completed",
+      "created_at": 815236990.770804
+    }
+  ],
+  "runs": [
+    {
+      "state": "interrupted",
+      "provider_requests": 0,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 2,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 3,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 2,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 2,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 3,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 2,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 4,
+      "tool_calls": 1
+    },
+    {
+      "state": "completed",
+      "provider_requests": 3,
+      "tool_calls": 0
+    },
+    {
+      "state": "completed",
+      "provider_requests": 3,
+      "tool_calls": 0
+    }
+  ],
+  "counts": {
+    "voice_notes": 9,
+    "conversation_turns": 10,
+    "daybook_actions": 0,
+    "daybook_reminders": 0
+  },
+  "all_citation_numbers_valid": true,
+  "source_sha256": {
+    "Sources/iPhone/CustomAISummarizer.swift": "99cb8fe9310c5b02553ce9c0d4e49127ef43021f2893095e119df0ab8f634b4a",
+    "Sources/iPhone/AskAIRuntime.swift": "b1dc7b25a5a4f4806d23aafcbeedb73dd83f31df6ebeca807297975b3ce970e6",
+    "Sources/iPhone/DaybookRetrieval.swift": "56db33a6296a5d998af3ec2d2e4e2c9ba3ae2252dc4a3ec8d79eebdd094d6e04",
+    "Sources/iPhone/AskAIContext.swift": "aa8e36ada0f50115868eac4b81e6536e846f9636155ef09b50c5b7b8fc05c09b"
+  },
+  "environment_issue": "Initial unsigned simulator build failed to read Keychain (-34018). Rebuilt with CODE_SIGN_IDENTITY=- and project simulator entitlements; same-turn retry completed. No credential was read or changed by test scripts.",
+  "persistence_after_relaunch": {
+    "turn_count": 10,
+    "same_ids_questions_answers_states": true,
+    "ui_history_reopened": true
+  },
+  "ui_checks": {
+    "composer_empty_while_generating": true,
+    "source_link_opened_title": "蒲公英复盘",
+    "source_transcript_matches": true
+  }
+}

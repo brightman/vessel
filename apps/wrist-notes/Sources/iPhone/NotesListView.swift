@@ -103,8 +103,10 @@ struct NotesListView: View {
                 case .settings:
                     SettingsView { showImporter = true }
                 case .transcription: TranscriptionSettingsView(settings: settings)
+                case .quickRecording: QuickRecordingSettingsView()
                 case .myVoice: MyVoiceEnrollmentView(profile: model.voiceProfile)
                 case .ai: AISettingsView(settings: settings)
+                case .aiRetrieval: AIRetrievalSettingsView()
                 case .about: AboutView()
                 }
             }

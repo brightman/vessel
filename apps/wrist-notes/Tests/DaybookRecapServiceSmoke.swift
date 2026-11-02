@@ -20,6 +20,7 @@ private final class RecapTransport: URLProtocol {
             }
             let body = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
             precondition(body["model"] as? String == "recap-fixture")
+            precondition(body["max_tokens"] as? Int == 750, "provider output limit must match reserved context")
             let messages = body["messages"] as! [[String: String]]
             let text = messages.last!["content"]!
             Self.instructions.append(messages.first!["content"]!)
@@ -47,6 +48,21 @@ private final class RecapTransport: URLProtocol {
         }
         let input = DaybookRecapInput.prepare(records: records, day: day, allowedKinds: [.thought])
         precondition(input.sources.count == 14 && input.excerptedCount == 14)
+        // A full day on a configured large-context model must not inherit Apple's
+        // small, character-based chunks. All sources still reach the actual request.
+        let fullDayRecords = (0..<90).map { index in
+            DayRecord(id: UUID(), capturedAt: day.addingTimeInterval(Double(index * 60)), kind: .voice,
+                title: "测试片段", text: "BEGIN\(index) " + String(repeating: "测试证据 abc ", count: 90) + " END\(index)")
+        }
+        let fullDay = DaybookRecapInput.prepare(records: fullDayRecords, day: day, allowedKinds: [.voice])
+        let large = AIConfiguration(mode: .custom, model: "recap-fixture", baseURL: "https://example.invalid/v1", contextWindowTokens: 262_000)
+        _ = try await service.generate(fullDay, configuration: large, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true })
+        precondition(RecapTransport.content.count == 1, "configured large window must process this 90-source day in one request")
+        for index in 0..<90 {
+            precondition(RecapTransport.content[0].contains("BEGIN\(index) ") && RecapTransport.content[0].contains(" END\(index)"), "large-window generation must retain every source excerpt")
+        }
+        precondition(!RecapTransport.instructions[0].contains("Produce compact evidence notes"), "one request must produce the final recap")
+        RecapTransport.content = []; RecapTransport.instructions = []
         let provider = AIConfiguration(mode: .custom, model: "recap-fixture", baseURL: "https://example.invalid/v1")
         let result = try await service.generate(input, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true })
         precondition(result.contains("[1]"))
@@ -70,10 +86,28 @@ private final class RecapTransport: URLProtocol {
         precondition(RecapTransport.content.count == beforeCitationRepair + 2, "citation repair makes exactly one bounded correction request")
         precondition(RecapTransport.instructions.last!.contains("source markers") || RecapTransport.instructions.last!.contains("来源编号"),
                      "the correction request explicitly constrains citations to source markers")
+        RecapTransport.queuedResponses = ["You spent the morning working in the garden and discussed a plan for planting herbs tomorrow.[1]", "昨天你整理了花园，也聊到了接下来种罗勒的想法。[1]"]
+        let languageCalls = RecapTransport.content.count
+        let localized = try await service.generate(single,configuration:provider,apiKey:"fixture-only",language:"zh-Hans",isCurrent:{true})
+        precondition(localized.hasPrefix("昨天") && RecapTransport.content.count == languageCalls+2,
+                     "an English response to the Chinese UI must be repaired before saving")
+        RecapTransport.queuedResponses = ["Yesterday you worked in the garden and discussed planting herbs.[1]"]
+        let english = try await service.generate(single,configuration:provider,apiKey:"fixture-only",language:"en",isCurrent:{true})
+        precondition(english.hasPrefix("Yesterday"), "English interface must accept an English recap")
+        RecapTransport.queuedResponses = ["昨日は庭の手入れをして、これからバジルを育てることについて話しました。[1]"]
+        let japanese = try await service.generate(single,configuration:provider,apiKey:"fixture-only",language:"ja",isCurrent:{true})
+        precondition(japanese.hasPrefix("昨日"), "Japanese interface must accept a Japanese recap")
+        RecapTransport.queuedResponses = Array(repeating:"Yesterday you worked in the garden and discussed planting herbs.[1]",count:2)
+        do { _ = try await service.generate(single,configuration:provider,apiKey:"fixture-only",language:"zh-Hans",isCurrent:{true}); fatalError("wrong-language repair accepted") }
+        catch DaybookRecapFailure.languageMismatch {}
         RecapTransport.invalid = true
         do { _ = try await service.generate(input, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true }); fatalError("invalid provider citation accepted") }
         catch DaybookRecapFailure.invalid {}
         let calls = RecapTransport.content.count
+        let tooSmall = AIConfiguration(mode: .custom, model: "recap-fixture", baseURL: "https://example.invalid/v1", contextWindowTokens: 1024)
+        do { _ = try await service.generate(single, configuration: tooSmall, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { true }); fatalError("impossible context accepted") }
+        catch DaybookRecapFailure.contextBudget {}
+        precondition(RecapTransport.content.count == calls, "insufficient configured context must fail before sending or dropping sources")
         do { _ = try await service.generate(input, configuration: provider, apiKey: "fixture-only", language: "zh-Hans", isCurrent: { false }); fatalError("stale send accepted") }
         catch is CancellationError {}
         precondition(RecapTransport.content.count == calls, "stale request must stop before network transport")

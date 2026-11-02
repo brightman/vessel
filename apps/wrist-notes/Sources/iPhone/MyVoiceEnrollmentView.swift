@@ -180,18 +180,10 @@ struct MyVoiceSettingsEntry: View {
     var body: some View {
         Group {
             if let open {
-                Button(action: open) { DaybookOptionRow(icon: "AudioLines", title: "我的声音", subtitle: profile.label) }
+                Button(action: open) { SettingsMenuRow(icon: "Mic", title: "我的声音", subtitle: profile.label) }
             } else {
                 NavigationLink(value: SettingsRoute.myVoice) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "person.wave.2").frame(width: 21)
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("我的声音").font(.system(size: 12, weight: .medium))
-                            Text(LocalizedStringKey(profile.label)).font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption)
-                    }.foregroundStyle(DaybookStyle.ink).padding(16)
+                    SettingsMenuRow(icon: "Mic", title: "我的声音", subtitle: profile.label)
                 }
             }
         }.onAppear { profile.reload() }

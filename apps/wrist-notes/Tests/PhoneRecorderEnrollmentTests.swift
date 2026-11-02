@@ -1,6 +1,6 @@
 import AVFAudio
 import XCTest
-@testable import WiseNote
+@testable import WiseLife
 
 @MainActor final class PhoneRecorderEnrollmentTests: XCTestCase {
     func testCaptureActivityTracksOverlappingAttemptsAndLateRelease() {

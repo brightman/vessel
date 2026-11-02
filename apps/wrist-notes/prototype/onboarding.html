@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fafbfc">
+  <title>WiseLife · AI 与数据准备</title>
+  <link rel="icon" href="assets/brand/favicon-32.png">
+  <link rel="stylesheet" href="daybook.css">
+  <link rel="stylesheet" href="daybook-theme.css">
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body class="onboarding-review">
+  <main class="setup-stage">
+    <aside class="setup-review-copy">
+      <a class="wordmark" href="iphone-day.html#product"><img src="assets/brand/app-icon.png" width="32" height="32" alt="">WiseLife</a>
+      <p class="review-eyebrow">FIRST RUN / 首次使用</p>
+      <h1>开始记录前，<br>先准备好<br><span>懂你的能力。</span></h1>
+      <p class="review-intro">语音转写 · AI 能力 · 数据授权 · 使用说明<br>每一步，都说清用途与数据去向。</p>
+      <ol class="review-principles">
+        <li><span>01</span><div><strong>数据与 AI，默认在设备上</strong><p>端上转写、理解、检索与存储。</p></div></li>
+        <li><span>02</span><div><strong>让 AI 更懂你，由你决定</strong><p>健康、日历、地点与提醒逐项授权。</p></div></li>
+        <li><span>03</span><div><strong>不完整，也能开始记录</strong><p>说清能力影响，随时继续准备。</p></div></li>
+      </ol>
+      <a class="review-back" href="iphone-day.html#product">← 返回完整产品原型</a>
+    </aside>
+
+    <section class="phone-shell" aria-label="WiseLife 首次使用交互原型">
+      <div class="phone-screen">
+        <div class="statusbar" aria-hidden="true"><span>9:41</span><div class="dynamic-island"></div><span class="setup-system">▮▮▮ &nbsp; ◒ &nbsp; ▰</span></div>
+        <div id="setupApp" class="setup-app"></div>
+        <div id="setupDialogLayer" class="setup-dialog-layer" hidden></div>
+        <div class="home-indicator" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <aside class="setup-review-controls" aria-label="原型演示控制">
+      <p class="review-eyebrow">交互原型 / 待评审</p>
+      <h2>查看关键状态</h2>
+      <p>点手机内的按钮走完整流程，<br>或直接切换下面的演示场景。</p>
+      <div class="review-scenarios">
+        <button data-scenario="fresh" aria-pressed="true"><span>01</span>首次打开</button>
+        <button data-scenario="downloading" aria-pressed="false"><span>02</span>下载与校验</button>
+        <button data-scenario="failed" aria-pressed="false"><span>03</span>下载失败</button>
+        <button data-scenario="unsupported" aria-pressed="false"><span>04</span>本机 AI 不可用</button>
+        <button data-scenario="partial" aria-pressed="false"><span>05</span>未完成，可先使用</button>
+        <button data-scenario="ready" aria-pressed="false"><span>06</span>全部准备就绪</button>
+        <button data-scenario="data" aria-pressed="false"><span>07</span>选择数据授权</button>
+        <button data-scenario="usage" aria-pressed="false"><span>08</span>使用说明 · 录音与拍照</button>
+      </div>
+      <label class="review-field">资源下载结果<select id="demoOutcome"><option value="success">成功</option><option value="network">网络失败</option><option value="storage">存储不足</option></select></label>
+      <label class="review-field">Apple Intelligence 状态<select id="demoApple"><option value="available">本机可用</option><option value="not-enabled">系统尚未开启</option><option value="preparing">系统模型准备中</option><option value="unsupported">设备不支持</option><option value="language">当前语言不支持</option></select></label>
+      <label class="review-field">自定义 AI 连接结果<select id="demoConnection"><option value="success">成功</option><option value="auth">Key 无效</option><option value="network">网络失败</option></select></label>
+      <button class="review-theme" data-action="fill-example">填入虚构 AI 配置</button><br><button class="review-theme" id="demoTheme" aria-pressed="false">切换深色外观</button>
+      <p class="review-disclosure">所有检查、下载、连接与授权均为模拟。<br>完成后进入现有主界面（含示例记录）。<br>不读取真实数据、不联网、不保存 Key。<br>刷新页面重置本次演示。</p>
+    </aside>
+  </main>
+  <div class="setup-announcement" id="setupAnnouncement" role="status" aria-live="polite"></div>
+  <script src="daybook-model-catalog.js"></script>
+  <script src="onboarding.js"></script>
+</body>
+</html>

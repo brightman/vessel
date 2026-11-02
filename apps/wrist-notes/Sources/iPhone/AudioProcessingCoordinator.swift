@@ -59,8 +59,9 @@ actor AudioProcessingCoordinator {
     private var repository: AudioProcessingRepository?
     private var configuration: TranscriptionConfiguration
     private var pump: Task<Void,Never>?
-    private var inference: Task<AudioInferenceDelta,Error>?
-    private var current: AudioProcessingJob?
+    private var inferenceTasks: [AudioSourceID:Task<AudioInferenceDelta,Error>] = [:]
+    private var activeJobs: [AudioSourceID:AudioProcessingJob] = [:]
+    private let maximumConcurrentSources = 2
     private var requested = false
     private var explicitSources = Set<AudioSourceID>()
     private var pauseReasons = Set<AudioProcessingPauseReason>()
@@ -97,8 +98,10 @@ actor AudioProcessingCoordinator {
         if let newConfiguration, newConfiguration != configuration {
             configuration = newConfiguration
             // Revoke first: an adapter ignoring cancellation cannot publish old settings.
-            if let current { try? repository?.fail(job:current,state:.missingResource) }
-            inference?.cancel()
+            for job in activeJobs.values {
+                try? repository?.fail(job:job,state:.missingResource)
+                inferenceTasks[job.window.sourceID]?.cancel()
+            }
         }
         requested = true
         startPump()
@@ -107,7 +110,12 @@ actor AudioProcessingCoordinator {
         guard pump == nil, !stopped else { return }
         pump = Task { await self.run() }
     }
-    func waitUntilIdle() async { await pump?.value }
+    func waitUntilIdle() async {
+        while pump != nil || !activeJobs.isEmpty {
+            if let pump { await pump.value }
+            else { try? await Task.sleep(for:.milliseconds(20)) }
+        }
+    }
     func retry(_ sourceID: AudioSourceID) {
         guard !stopped else { return }
         do {
@@ -161,18 +169,21 @@ actor AudioProcessingCoordinator {
     func cancel(_ sourceID: AudioSourceID) {
         do { try storage().cancel(sourceID:sourceID); try publish(sourceID,committed:false) }
         catch { storageUnavailable = true }
-        if current?.window.sourceID == sourceID { inference?.cancel() }
+        inferenceTasks[sourceID]?.cancel()
     }
     func delete(_ sourceID: AudioSourceID) {
         do { try storage().delete(sourceID:sourceID) } catch { storageUnavailable = true }
         explicitSources.remove(sourceID)
-        if current?.window.sourceID == sourceID { inference?.cancel() }
+        inferenceTasks[sourceID]?.cancel()
     }
     /// Suspension does not change user cancellation and never starts its own timed retry.
     func suspend(_ reason: AudioProcessingPauseReason = .manual) {
         pauseReasons.insert(reason)
-        if let current { try? repository?.fail(job:current,state:.missingResource); try? publish(current.window.sourceID,committed:false) }
-        inference?.cancel()
+        for job in activeJobs.values {
+            try? repository?.fail(job:job,state:.missingResource)
+            try? publish(job.window.sourceID,committed:false)
+        }
+        inferenceTasks.values.forEach { $0.cancel() }
     }
     func memoryPressure() { maximumCoreDuration = max(30,maximumCoreDuration / 2); suspend(.memoryPressure) }
     func resume(_ reason: AudioProcessingPauseReason = .manual) {
@@ -182,8 +193,8 @@ actor AudioProcessingCoordinator {
     }
     func shutdown() {
         stopped = true
-        if let current { try? repository?.deferInterrupted(job:current) }
-        inference?.cancel()
+        for job in activeJobs.values { try? repository?.deferInterrupted(job:job) }
+        inferenceTasks.values.forEach { $0.cancel() }
     }
 
     func status(_ sourceID: AudioSourceID) throws -> AudioProcessingStatus {
@@ -233,51 +244,72 @@ actor AudioProcessingCoordinator {
         storageUnavailable = false
     }
     private func run() async {
-        defer { pump = nil }
+        defer {
+            pump = nil
+            if !stopped && !suspended && requested { startPump() }
+        }
         do {
             let repository = try storage()
-            while !stopped {
+            while !stopped && !suspended && activeJobs.count < maximumConcurrentSources {
                 if requested { requested = false; try registerDiscovered() }
-                guard !suspended else { break }
-                guard let job = try repository.claimNext() else {
+                guard let job = try repository.claimNext(excluding:Set(activeJobs.keys)) else {
                     if requested { continue }
                     break
                 }
-                current = job
-                try publish(job.window.sourceID,committed:false)
-                let stages = try repository.stages(for:job)
-                var prior: [AudioTranscriptSpan] = [], offset = 0
-                if !stages.contains(.asr) {
-                    while true {
-                        let page = try repository.spans(sourceID:job.window.sourceID,overlapping:.init(start:job.window.inputStart,end:job.window.inputEnd),limit:1000,offset:offset)
-                        prior += page; offset += page.count
-                        if page.count < 1000 { break }
-                    }
-                }
-                let snapshot = try repository.currentSource(job.window.sourceID)
-                // A receiving tail is not the full eventual recording extent.
-                let duration = snapshot?.complete == true ? snapshot?.ranges.last?.end : nil
-                let config = configuration, budget = maximumCoreDuration, infer = self.infer
-                let task = Task { try await infer(job.window,config,stages,duration,prior,budget) }
-                inference = task
-                do {
-                    let delta = try await task.value
-                    try Task.checkCancellation()
-                    // Commit verifies the active input, version and lease even when native calls ignored cancellation.
-                    try repository.commit(job:job,delta:delta)
-                    try publish(job.window.sourceID,committed:true)
-                    storageUnavailable = false
-                } catch {
-                    let state: AudioJobState
-                    switch error {
-                    case is CancellationError, AudioProcessingError.resourceUnavailable: state = .missingResource
-                    default: state = suspended ? .missingResource : .failed
-                    }
-                    try? repository.fail(job:job,state:state)
-                    try? publish(job.window.sourceID,committed:false)
-                }
-                inference = nil; current = nil
+                activeJobs[job.window.sourceID] = job
+                Task { await self.process(job) }
             }
         } catch { storageUnavailable = true }
+    }
+
+    private func process(_ job:AudioProcessingJob) async {
+        let sourceID=job.window.sourceID
+        do {
+            let repository=try storage()
+            try publish(sourceID,committed:false)
+            let stages=try repository.stages(for:job)
+            guard !stopped, !suspended,
+                  job.window.configurationKey.hasPrefix(Self.configurationKey(configuration)) else {
+                try? repository.fail(job:job,state:.missingResource)
+                inferenceTasks.removeValue(forKey:sourceID)
+                activeJobs.removeValue(forKey:sourceID)
+                startPump()
+                return
+            }
+            var prior:[AudioTranscriptSpan]=[],offset=0
+            if !stages.contains(.asr) {
+                while true {
+                    let page=try repository.spans(sourceID:sourceID,overlapping:.init(start:job.window.inputStart,end:job.window.inputEnd),limit:1000,offset:offset)
+                    prior += page; offset += page.count
+                    if page.count < 1000 { break }
+                }
+            }
+            let snapshot=try repository.currentSource(sourceID)
+            let duration=snapshot?.complete == true ? snapshot?.ranges.last?.end : nil
+            let config=configuration,budget=maximumCoreDuration,infer=self.infer
+            let task=Task { try await infer(job.window,config,stages,duration,prior,budget) }
+            inferenceTasks[sourceID]=task
+            do {
+                let delta=try await task.value
+                try Task.checkCancellation()
+                try repository.commit(job:job,delta:delta)
+                try publish(sourceID,committed:true)
+                storageUnavailable=false
+            } catch {
+                let state:AudioJobState
+                switch error {
+                case is CancellationError,AudioProcessingError.resourceUnavailable: state = .missingResource
+                default: state = suspended ? .missingResource : .failed
+                }
+                try? repository.fail(job:job,state:state)
+                try? publish(sourceID,committed:false)
+            }
+        } catch {
+            try? storage().fail(job:job,state:suspended ? .missingResource : .failed)
+            storageUnavailable=true
+        }
+        inferenceTasks.removeValue(forKey:sourceID)
+        activeJobs.removeValue(forKey:sourceID)
+        startPump()
     }
 }

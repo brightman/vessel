@@ -24,8 +24,8 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         let input = DaybookRecapInput.prepare(records: records + [secret, blank], day: day, allowedKinds: [.thought, .voice], calendar: calendar)
         expect(input.references.count == 13 && input.sources.count == 12, "all permitted records included beyond retrieval top five; blank audio waits for ASR")
         expect(input.pendingCount == 1 && !input.preview.contains("健康信息"), "pending coverage disclosed and denied health never sent")
-        expect(!input.coverage.contains("输入元信息") && !input.coverage.contains("不要写入") && input.preview.contains("输入元信息"),
-               "display coverage must not expose model-only instructions; send preview must show actual metadata")
+        expect(input.coverage.contains("1 条文字待就绪") && !input.preview.contains("1 条文字待就绪"),
+               "processing counts belong in UI coverage, not in model evidence or advice")
         expect(input.batches.allSatisfy { $0.count <= 2400 }, "requests stay bounded")
         expect(input.sources.last?.number == 12 && input.preview.contains("种植罗勒 11"), "last record must not disappear")
         let single = DaybookRecapInput.prepare(records: [records[0]], day: day, allowedKinds: [.thought], calendar: calendar)
@@ -54,6 +54,36 @@ private func expect(_ value: Bool, _ message: String) { if !value { fatalError(m
         segment.title = "AI changed title"; segment.summary = "AI changed summary"
         let progressed = DaybookRecapInput.prepare(records:[segment],day:day,allowedKinds:[.voice],calendar:calendar)
         expect(stable.fingerprint == progressed.fingerprint && DaybookRecapEntry(input:stable).relationship(to:progressed) == .current,"processing/source/title revisions are not changed recap facts")
+        var attributed = voice
+        attributed.text = "明天我去出差。你能帮我看看方案吗？"
+        attributed.attributedTranscript = [.init(start:0,end:2,text:"明天我去出差。",speaker:"已关联联系人：Kate"),
+                                          .init(start:2,end:4,text:"你能帮我看看方案吗？",speaker:"用户本人（声纹匹配）")]
+        let speakerInput = DaybookRecapInput.prepare(records:[attributed],day:day,allowedKinds:[.voice],calendar:calendar)
+        expect(speakerInput.preview.contains("【已关联联系人：Kate】明天我去出差。") && speakerInput.preview.contains("【用户本人（声纹匹配）】你能帮我看看方案吗？"),
+               "recap evidence must bind each utterance to its own speaker, not attribute a mixed transcript to the user")
+        attributed.attributedTranscript = nil
+        let revokedSpeaker = DaybookRecapInput.prepare(records:[attributed],day:day,allowedKinds:[.voice],calendar:calendar)
+        expect(speakerInput.fingerprint != revokedSpeaker.fingerprint, "revoked speaker identities invalidate prior attribution")
+        do { try revokedSpeaker.validateNarrative("你聊到下周三的出行安排。[1]"); fatalError("unknown speech attributed to the user") }
+        catch DaybookRecapFailure.invalid {}
+        try revokedSpeaker.validateNarrative("录音里聊到了出行安排。[1]")
+        try speakerInput.validateNarrative("你提到了希望对方看看方案。[1]")
+        let pendingThought = DayRecord(id:UUID(),capturedAt:day,kind:.thought,title:"待转写闪念",text:"")
+        let pendingOwnership = DaybookRecapInput.prepare(records:[voice,pendingThought],day:day,allowedKinds:[.voice,.thought],calendar:calendar)
+        expect(!pendingOwnership.hasUserSpeech,"an empty flash capture is not evidence of the user's speech")
+        attributed.attributedTranscript = [.init(start:0,end:4,text:"已经失效的旧转写",speaker:"用户本人（声纹匹配）")]
+        let mismatchedOwnership = DaybookRecapInput.prepare(records:[attributed],day:day,allowedKinds:[.voice],calendar:calendar)
+        expect(!mismatchedOwnership.hasUserSpeech,"speaker labels must match the included transcript before allowing user attribution")
+        do { try revokedSpeaker.validateNarrative("因为你下周三要出行，不妨提前准备午餐。[1]"); fatalError("unknown travel assigned as user's plan") }
+        catch DaybookRecapFailure.invalid {}
+        attributed.text = String(repeating:"这是一段很长的本人发言。",count:100)
+        attributed.attributedTranscript = [.init(start:0,end:100,text:attributed.text,speaker:"用户本人（声纹匹配）")]
+        let longSpeech = DaybookRecapInput.prepare(records:[attributed],day:day,allowedKinds:[.voice],calendar:calendar)
+        expect(longSpeech.sources[0].content.components(separatedBy:"【用户本人（声纹匹配）】").count == 4,
+               "beginning, middle and end excerpts must each retain the speaker when cutting a long utterance")
+        do { try DaybookRecapInput.validate("活动记录。[1] 其他事实。[1,999]",sourceNumbers:[1]); fatalError("combined numeric markers must not bypass citation validation") }
+        catch DaybookRecapFailure.invalid {}
+        try DaybookRecapInput.validate("旧回顾中的合并引用。[1,2]",sourceNumbers:[1,2])
         var legacy = DaybookRecapEntry(input:stable)
         let reference = stable.references[0]
         legacy.references = [.init(id:reference.id,number:reference.number,title:reference.title,kind:reference.kind,capturedAt:reference.capturedAt,digest:reference.legacyDigest!)]

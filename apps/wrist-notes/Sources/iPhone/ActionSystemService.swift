@@ -10,11 +10,24 @@ struct ActionSystemList: Identifiable, Equatable {
     func save(_ item: ActionItem) async throws -> ActionItem
     func remove(_ item: ActionItem) async throws
     func read(_ item: ActionItem) async throws -> ActionItem?
+    func defaultCalendar() async throws -> ActionSystemList
+}
+
+extension ActionSystemServing {
+    func defaultCalendar() async throws -> ActionSystemList {
+        guard let value = try await lists(kind: .event, request: true).first else { throw ActionFailure.invalid("没有可写日历，请添加日历后重试。") }
+        return value
+    }
 }
 
 /// Operates exclusively on items carrying this action's stable ownership URL.
 @MainActor final class ActionSystemService: ActionSystemServing {
     private let store = EKEventStore()
+    func defaultCalendar() async throws -> ActionSystemList {
+        _ = try await lists(kind: .event, request: true)
+        guard let calendar = store.defaultCalendarForNewEvents, calendar.allowsContentModifications else { throw ActionFailure.invalid("没有可写的默认日历，请设置日历后重试。") }
+        return .init(id: calendar.calendarIdentifier, title: calendar.title)
+    }
     private func entity(_ kind: ActionItem.Kind) -> EKEntityType { kind == .event ? .event : .reminder }
     private func access(_ kind: ActionItem.Kind) throws {
         guard EKEventStore.authorizationStatus(for:entity(kind)) == .fullAccess else {

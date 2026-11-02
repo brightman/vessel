@@ -1,6 +1,8 @@
 # WiseLife TestFlight 发布记录
 
-日期：2026-10-19。
+类型：发布记录。首发日期：2026-10-19；更新：2026-11-02。
+
+最新发布进度见 [2026-11-02 构建 11](#build11-20261102)；下方 10 月 19 日内容为当时记录，不代表当前线上构建状态。
 
 ## 当前结果
 
@@ -126,3 +128,24 @@ xcodebuild -exportArchive \
 - 校验记录：`/private/tmp/wiselife-testflight-20261019/release-verification-build3.json`。
 - 日志：`/private/tmp/wiselife-testflight-{archive,export,upload}-build3.log`。
 - 首次上传因网络错误失败：`RETRIEVE UPLOAD OPERATIONS (ASSET_UPLOAD)`，状态 `-19235`，`The HTTP request did not return a response`。已确认 App Store Connect 重新可达（HTTP 200），重试已成功，日志 `/private/tmp/wiselife-testflight-upload-build3-retry.log`。2026-10-19 23:24:38（UTC+8）返回 `Upload succeeded` / `EXPORT SUCCEEDED`，退出码 0；明细确认版本 `1.0 (3)` 和 `processingState=PROCESSING`。上传后刷新网页，应用选择器显示新名称，TestFlight 仍显示 `No Builds`，尚不能关联测试组或生成安装邀请。
+
+<a id="build11-20261102"></a>
+
+## 2026-11-02：1.0.2（11）
+
+状态：已发布至 TestFlight。Apple 处理完成，构建 11 已关联内部与外部测试组，外部组明确显示“正在测试”。用户明确要求把当前最新版发布到 TestFlight，沿用现有 App、账号及测试组。
+
+- App Store Connect 实时核对：Apple ID `6824527456`，团队 `YONG FENG`，最新已完成版本为 `1.0.2 (10)`。内部 `WiseLife Internal` 与外部 `WiseLife External Beta` 已存在，外部公开链接为 <https://testflight.apple.com/join/HjdCdWJu>。
+- 八处构建配置统一递增至 `11`，包含 iPhone、Watch、iPhone Live Activity 和 Watch 快捷录音组件。版本号维持 `1.0.2`。
+- 发布使用当前本地源码（基于 `99b203c`，含未提交改动）；没有执行 Git 提交／推送。源文件哈希清单、测试日志与归档放在私有目录 `/Users/karama/Documents/WiseLife-Reports/TestFlight/2026-11-02-build11/`，不将用户资料或凭据写入仓库。
+- 包含每日回顾按界面语言生成、模型窗口预算、进度及截止时间、自然表达与发言人规则，以及此前首次引导、Ask AI、录音处理等当前代码。回顾中文真机生成已验证；最后的日期／归属修正未重新生成验收，英文／日文仅有 stub 回归。详见[回顾验证](../verification/2026-10-23-persisted-timeline-recap-refresh.md#recap-budget-20261102)。
+- 发布前检查通过：项目源码成员、版本元信息、首次引导、按住语音输入、Ask AI runtime 与 driver、Watch 同步、小时录音、内容分段 v2。`test_watch_sync.sh` 与 `test_hourly_recording.sh` 先因测试脚本遗漏当前数据库依赖编译失败；补齐 `AudioProcessing`／`AudioWindowPlanner`，并移除小时测试未使用的 `NoteRepository` 后重跑通过。没有修改对应生产代码或测试断言。
+- 归档环境：Xcode 27.2，`WristNotes.xcworkspace` / `WristNotes` / Release / generic iOS；依赖使用已有锁定下载，`IPHONEOS_DEPLOYMENT_TARGET=26.0` 兼容当前 Pods。归档先不签名，导出由 Xcode 自动管理 App Store 签名。
+- 真机屏幕共享已关闭，避免影响后续麦克风使用。本次没有卸载或重置设备数据。
+- `archive.log` 为 `ARCHIVE SUCCEEDED`、退出码 0。核验四个包均为 `1.0.2 (11)`，iPhone 最低 iOS 26.0、Watch 最低 watchOS 10.0，主包及 Watch 隐私清单存在。构建期间生产源码和配置哈希没有变化（只修正上述两个测试脚本）。
+- 20:19 第一次 `-exportArchive` 退出码 70，`EXPORT FAILED`。报错 `DVTDeveloperAccountCredentialsError Code=0`、`missing Xcode-Username`、`exportArchive No Accounts`，并无法找到团队的 `iOS Distribution` 签名。Chrome 会话已由用户恢复，但 Xcode 账户独立；已打开该账户的 Sign In，等待用户重新登录后重试同一归档。没有修改／撤销证书，没有导出凭据。
+- 用户重新登录 Xcode 后，同一归档签名导出成功（`export-retry.log`，退出码 0，`EXPORT SUCCEEDED`）。IPA 为 `export/WiseLife.ipa`，15,499,369 字节，SHA-256 `9a16ad142983fe4c2475091974789c31dace7713482512af4bfd6055cb79fb5f`。解包后四个组件均通过 `codesign --verify --deep --strict`，均为团队 `S56V68L4NP` 的发布签名、`1.0.2 (11)`。
+- 上传复用同一归档和自动签名，`manageAppVersionAndBuildNumber=false` 保留构建号 11。上传日志为私有目录 `upload.log`；尚未将上传请求本身记作 Apple 处理或测试可用。
+- 20:28:50（UTC+8）Apple 返回 `Uploaded package is processing`、`Upload succeeded`、`Uploaded WristNotes`，最终 `EXPORT SUCCEEDED`，退出码 0。此时已上传但尚不能宣称构建 11 可安装。
+- 后续 App Store Connect 页面确认：构建 UUID `93cae6fa-e266-48ed-b3b3-f7f6c9648d55`，上传状态“完成”，构建状态“正在测试”，关联 `WiseLife Internal` 与 `WiseLife External Beta`，邀请数 5。现场页面操作后已完成分组／提交，没有重复提交或覆盖已填写的测试说明。
+- 独立打开外部组的“构建版本”页，`1.0.2 (11)` 明确为“正在测试”，90 天后过期；公开入口 <https://testflight.apple.com/join/HjdCdWJu> 正常展示 WiseLife 与“在 TestFlight 中查看”。发布状态已核验，尚未验证测试员实际下载并运行构建 11。

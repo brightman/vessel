@@ -1,0 +1,218 @@
+[
+  {
+    "id": "budget_cut",
+    "docZh": "凯特建议削减项目预算，停止付费广告，把资金留给核心产品研发。",
+    "docEn": "Kate recommended reducing the project budget, stopping paid advertising, and preserving funds for core product development.",
+    "docMixed": "Kate Bell 建议削减 project budget，停止 paid advertising，把钱留给核心产品研发。",
+    "queryZh": "谁提出减少项目开支并暂停广告投放？",
+    "queryEn": "What was the proposal to cut project spending and halt advertising?",
+    "queryMixed": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？"
+  },
+  {
+    "id": "budget_increase",
+    "docZh": "凯特建议增加项目预算，扩大线上广告投放，以便在新市场获取更多客户。",
+    "docEn": "Kate recommended increasing the project budget and expanding online advertising to acquire more customers in new markets.",
+    "docMixed": "Kate Bell 建议增加 project budget，扩大 online advertising，在新市场获取更多客户。",
+    "queryZh": "为了拓展新市场，谁建议提高广告投入？",
+    "queryEn": "What was the suggestion to spend more on advertising for market expansion?",
+    "queryMixed": "Kate Bell 对增加 advertising spend 和拓展新市场有什么建议？"
+  },
+  {
+    "id": "launch_delay",
+    "docZh": "团队决定推迟产品发布，因为支付功能还有故障，需要先完成修复和测试。",
+    "docEn": "The team postponed the product launch because checkout still had defects that needed fixing and testing.",
+    "docMixed": "团队决定推迟 product launch，因为 checkout 还有故障，需要先修复和测试。",
+    "queryZh": "哪项发布安排因为支付故障而延期？",
+    "queryEn": "Why was the release delayed due to payment problems?",
+    "queryMixed": "为什么 product release 因为支付问题被推迟？"
+  },
+  {
+    "id": "launch_on_time",
+    "docZh": "支付功能已经通过测试，团队确认产品按原定日期上线，不需要延期。",
+    "docEn": "Checkout passed all tests, so the team confirmed the product would launch on schedule without a delay.",
+    "docMixed": "Checkout 已经通过测试，团队确认 product launch 按原计划进行，不延期。",
+    "queryZh": "产品能否在测试通过后按时上线？",
+    "queryEn": "Was the launch kept on schedule after checkout passed testing?",
+    "queryMixed": "测试通过后，product launch 是否仍然 on schedule？"
+  },
+  {
+    "id": "supplier_switch",
+    "docZh": "现有供应商交货延迟且质量不稳定，采购部门准备寻找替代厂家。",
+    "docEn": "The current supplier delivers late and has inconsistent quality, so procurement is looking for an alternative manufacturer.",
+    "docMixed": "目前 supplier 交货延迟且质量不稳定，采购准备寻找 alternative manufacturer。",
+    "queryZh": "为何采购计划更换合作厂家？",
+    "queryEn": "Why does procurement want to replace the vendor?",
+    "queryMixed": "采购为什么要 replace supplier？"
+  },
+  {
+    "id": "invoice_overdue",
+    "docZh": "客户的发票已经逾期两周，财务准备联系对方催收未支付的款项。",
+    "docEn": "The customer's invoice is two weeks overdue, and finance will contact them to collect the outstanding payment.",
+    "docMixed": "客户 invoice 已逾期两周，财务准备联系对方收回 outstanding payment。",
+    "queryZh": "哪笔款项到期未付，需要财务催收？",
+    "queryEn": "Which unpaid bill needs a collection follow-up from finance?",
+    "queryMixed": "Finance 需要催收哪笔 overdue invoice？"
+  },
+  {
+    "id": "airport_office",
+    "docZh": "飞机落地后，我在机场叫了一辆出租车，直接赶往公司参加下午的工作会议。",
+    "docEn": "After landing, I took a taxi from the airport straight to the office for an afternoon work meeting.",
+    "docMixed": "飞机落地后，我从 airport 打车直奔 office，参加下午的工作会议。",
+    "queryZh": "我下飞机后如何去公司开会？",
+    "queryEn": "How did I get to work for a meeting after my flight?",
+    "queryMixed": "Landing 之后，我怎样从 airport 去公司开会？"
+  },
+  {
+    "id": "airport_home",
+    "docZh": "晚上航班抵达后，我坐地铁从机场回家，打算洗澡后早点休息。",
+    "docEn": "After the evening flight arrived, I took the subway from the airport home and planned to shower and rest early.",
+    "docMixed": "晚班飞机到达后，我坐 subway 从 airport 回家，准备洗澡早点休息。",
+    "queryZh": "晚班飞机到达后，我乘什么交通工具回家休息？",
+    "queryEn": "How did I travel home to rest after my evening flight?",
+    "queryMixed": "Evening flight 之后，我怎么从 airport 回家休息？"
+  },
+  {
+    "id": "airport_pickup",
+    "docZh": "朋友明天上午的飞机到达，我计划开车去机场接他，并一起吃午饭。",
+    "docEn": "My friend's flight arrives tomorrow morning, and I plan to drive to the airport to pick him up and have lunch together.",
+    "docMixed": "朋友明早的 flight 到达，我计划开车去 airport 接他并一起吃午饭。",
+    "queryZh": "明天去机场接朋友的安排是什么？",
+    "queryEn": "What are my plans for collecting my friend from the airport?",
+    "queryMixed": "明天去 airport pick up 朋友有什么安排？"
+  },
+  {
+    "id": "reschedule_meeting",
+    "docZh": "由于客户周一出差，我们把讨论合同的会议改到周三下午。",
+    "docEn": "Because the client is traveling on Monday, we moved the contract discussion to Wednesday afternoon.",
+    "docMixed": "客户周一出差，我们把 contract meeting 改到 Wednesday afternoon。",
+    "queryZh": "和客户讨论合同的会议改到了什么时候？",
+    "queryEn": "When was the client contract meeting rescheduled?",
+    "queryMixed": "Client contract meeting 改到哪天？"
+  },
+  {
+    "id": "recruitment",
+    "docZh": "研发团队缺少移动端工程师，人事本周会安排三位候选人参加技术面试。",
+    "docEn": "The engineering team needs a mobile developer, and HR will arrange technical interviews with three candidates this week.",
+    "docMixed": "研发缺 mobile developer，HR 本周安排三位候选人参加 technical interview。",
+    "queryZh": "招聘移动应用开发人员有什么进展？",
+    "queryEn": "What is the hiring plan for the mobile engineering position?",
+    "queryMixed": "Mobile engineer 招聘和 interview 进展如何？"
+  },
+  {
+    "id": "sales_followup",
+    "docZh": "潜在客户看过产品演示后很感兴趣，销售计划明天发送报价单并确认采购时间。",
+    "docEn": "The prospect liked the product demo, and sales plans to send a quotation tomorrow and confirm the purchasing timeline.",
+    "docMixed": "Prospect 看完 demo 很感兴趣，sales 明天发 quotation 并确认采购时间。",
+    "queryZh": "演示之后销售如何推进客户购买？",
+    "queryEn": "What follow-up is planned after the prospect's product demonstration?",
+    "queryMixed": "Product demo 后 sales 下一步如何跟进客户？"
+  },
+  {
+    "id": "sleep",
+    "docZh": "昨晚只睡了四个小时，今天注意力难以集中，决定晚上不喝咖啡并提前上床。",
+    "docEn": "I slept only four hours last night and could not focus today, so I decided to avoid evening coffee and go to bed earlier.",
+    "docMixed": "昨晚只睡四小时，今天难以 focus，决定晚上不喝 coffee 并提前睡觉。",
+    "queryZh": "睡眠不足影响精神后，我准备做什么调整？",
+    "queryEn": "What changes did I plan after poor sleep affected my concentration?",
+    "queryMixed": "Poor sleep 影响 concentration 后，我准备如何调整？"
+  },
+  {
+    "id": "hypertension",
+    "docZh": "体检发现血压偏高，医生建议减少盐分摄入，并每天早晚测量血压。",
+    "docEn": "A checkup found elevated blood pressure, and the doctor advised reducing salt intake and measuring pressure every morning and evening.",
+    "docMixed": "体检发现 blood pressure 偏高，医生建议少吃 salt，并早晚测量。",
+    "queryZh": "医生针对高血压提出了哪些生活建议？",
+    "queryEn": "What advice did the doctor give for managing hypertension?",
+    "queryMixed": "Doctor 针对 high blood pressure 给了什么建议？"
+  },
+  {
+    "id": "exercise",
+    "docZh": "我准备每周进行三次力量训练，并在其余日子快走半小时，逐步提高体能。",
+    "docEn": "I plan to do strength training three times a week and walk briskly for half an hour on the other days to improve fitness.",
+    "docMixed": "我计划每周三次 strength training，其余日子 brisk walking 半小时，提高体能。",
+    "queryZh": "我安排了怎样的每周锻炼计划？",
+    "queryEn": "What is my weekly workout routine to get fitter?",
+    "queryMixed": "我的 weekly workout 和力量训练怎么安排？"
+  },
+  {
+    "id": "groceries",
+    "docZh": "下班回家前需要去超市买鸡蛋、牛奶和蔬菜，冰箱里的食材已经用完了。",
+    "docEn": "Before going home from work, I need to buy eggs, milk, and vegetables because the refrigerator is empty.",
+    "docMixed": "下班回家前要去 supermarket 买 eggs、milk 和蔬菜，冰箱已经空了。",
+    "queryZh": "今天需要补充哪些日常食材？",
+    "queryEn": "Which groceries do I need to pick up on my way home?",
+    "queryMixed": "下班要买哪些 groceries 补充冰箱？"
+  },
+  {
+    "id": "birthday",
+    "docZh": "母亲下周生日，我想订一束鲜花和一个蛋糕，周末带家人一起庆祝。",
+    "docEn": "My mother's birthday is next week, and I want to order flowers and a cake and celebrate with the family this weekend.",
+    "docMixed": "妈妈下周 birthday，我想订 flowers 和 cake，周末全家一起庆祝。",
+    "queryZh": "我打算怎么为妈妈庆生？",
+    "queryEn": "How am I planning to celebrate my mom's birthday?",
+    "queryMixed": "Mom 的 birthday 我准备怎么庆祝？"
+  },
+  {
+    "id": "car_service",
+    "docZh": "汽车仪表盘提示需要保养，我预约周六去维修店更换机油并检查刹车。",
+    "docEn": "The car dashboard showed a service warning, so I booked a garage visit on Saturday to change the oil and check the brakes.",
+    "docMixed": "汽车出现 service warning，我约周六去 garage 换机油并检查 brakes。",
+    "queryZh": "周末车辆维修保养要做哪些项目？",
+    "queryEn": "What maintenance is scheduled for my car this weekend?",
+    "queryMixed": "这周末 car maintenance 要检查哪些项目？"
+  },
+  {
+    "id": "privacy_local",
+    "docZh": "为了保护隐私，录音和转写文字只保存在手机本地，未经授权不会上传到服务器。",
+    "docEn": "To protect privacy, recordings and transcripts stay on the phone and are not uploaded to a server without authorization.",
+    "docMixed": "为保护 privacy，recordings 和 transcript 仅保存在本地，未经授权不上传 server。",
+    "queryZh": "语音数据如何通过本地保存来保障隐私？",
+    "queryEn": "How does keeping audio and text on the device protect my privacy?",
+    "queryMixed": "Recordings 本地存储如何保护我的 privacy？"
+  },
+  {
+    "id": "data_backup",
+    "docZh": "我计划每周把手机里的照片和文档复制到自己的加密硬盘，以防设备损坏导致丢失。",
+    "docEn": "I plan to copy my phone's photos and documents to my own encrypted drive each week to avoid losing them if the device breaks.",
+    "docMixed": "每周把 photos 和 documents 备份到自己的 encrypted drive，避免手机损坏后丢失。",
+    "queryZh": "为了防止手机故障丢资料，我准备怎样备份？",
+    "queryEn": "How will I back up my files in case my phone fails?",
+    "queryMixed": "Phone 坏掉前，我怎么 backup 照片和文件？"
+  },
+  {
+    "id": "refund",
+    "docZh": "网上购买的耳机无法充电，我联系商家申请退货退款，并保留了购买凭证。",
+    "docEn": "The headphones I bought online will not charge, so I contacted the seller for a return and refund and kept the receipt.",
+    "docMixed": "网购 headphones 无法 charge，我联系 seller 申请 return and refund，并保留小票。",
+    "queryZh": "耳机出现故障后，我如何处理这笔订单？",
+    "queryEn": "What did I do about the defective headphones I ordered?",
+    "queryMixed": "Headphones 不能充电，我怎么申请 refund？"
+  },
+  {
+    "id": "rent",
+    "docZh": "房东通知下个月续租时提高租金，我准备比较周边房源，再商量是否能维持原价。",
+    "docEn": "The landlord wants to raise the rent at next month's renewal, so I will compare nearby homes and negotiate to keep the current price.",
+    "docMixed": "Landlord 要在下月 renewal 时涨 rent，我准备比较附近房源并协商维持原价。",
+    "queryZh": "面对房租上涨，我准备怎样协商续租？",
+    "queryEn": "How will I respond to the proposed rent increase at renewal?",
+    "queryMixed": "Lease renewal 涨租，我打算怎么 negotiate？"
+  },
+  {
+    "id": "school",
+    "docZh": "老师提醒周五下午召开家长会，讨论孩子的学习进度，我需要提前请假参加。",
+    "docEn": "The teacher announced a parent meeting on Friday afternoon to discuss my child's learning progress, so I need to take time off work.",
+    "docMixed": "Teacher 提醒周五下午有 parent meeting，讨论孩子学习进度，我需要请假参加。",
+    "queryZh": "我为何需要周五请假去学校？",
+    "queryEn": "Why do I need time off on Friday to visit my child's school?",
+    "queryMixed": "Friday 为什么要请假去 school 开会？"
+  },
+  {
+    "id": "restaurant",
+    "docZh": "我们预订了周六晚上的意大利餐厅，朋友对坚果过敏，需要提前告知厨师。",
+    "docEn": "We booked an Italian restaurant for Saturday evening, and we need to tell the chef that our friend has a nut allergy.",
+    "docMixed": "我们订了周六晚的 Italian restaurant，朋友有 nut allergy，需要提前告诉 chef。",
+    "queryZh": "聚餐预订时需要向餐厅说明什么过敏情况？",
+    "queryEn": "What dietary allergy should we mention for our dinner reservation?",
+    "queryMixed": "Dinner reservation 时，需要告诉 chef 什么 allergy？"
+  }
+]

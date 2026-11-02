@@ -18,6 +18,7 @@ final class NotesModel: ObservableObject {
     /// Installed by WiseLifeRuntime synchronously before startup recovery Tasks run.
     var durableTranscription: ((VoiceNote, Bool) async -> Bool)?
     var durableAudioDeleted: ((UUID) -> Void)?
+    var handlesFlashOrganization = false
 
     private var repository: NoteRepository?
     var storageIsAvailable: Bool { repository != nil }
@@ -131,7 +132,7 @@ final class NotesModel: ObservableObject {
             if note.recordingGroupID != nil { continue }
             let needsTranscription = note.transcriptionState == .pending || note.transcriptionState == .running
             let needsDiarization = note.transcriptionState == .ready && note.diarizationState == .running
-            let needsSummary = note.usesLocalThoughtAI && note.transcriptionState == .ready &&
+            let needsSummary = !handlesFlashOrganization && note.usesLocalThoughtAI && note.transcriptionState == .ready &&
                 (note.summaryState == .pending || note.summaryState == .running)
             guard needsTranscription || needsDiarization || needsSummary, queuedRecovery.insert(note.id).inserted else { continue }
             Task { [weak self] in
@@ -140,7 +141,7 @@ final class NotesModel: ObservableObject {
                 guard let current = self.repository?.notes.first(where: { $0.id == note.id }) else { return }
                 if current.transcriptionState == .pending || current.transcriptionState == .running { await self.transcribe(note.id, automatic:true) }
                 else if current.transcriptionState == .ready && current.diarizationState == .running { await self.identifySpeakers(note.id) }
-                if let current = self.repository?.notes.first(where: { $0.id == note.id }), current.usesLocalThoughtAI && current.transcriptionState == .ready &&
+                if !self.handlesFlashOrganization, let current = self.repository?.notes.first(where: { $0.id == note.id }), current.usesLocalThoughtAI && current.transcriptionState == .ready &&
                     (current.summaryState == .pending || current.summaryState == .running) { await self.summarize(note.id) }
             }
         }
@@ -178,11 +179,36 @@ final class NotesModel: ObservableObject {
     @discardableResult
     func setSpeakerContact(noteID: UUID, speakerID: String, contact: SpeakerContactSnapshot?, expectedRevision: UUID?, expectedSegments: [TranscriptSegment]) -> Bool {
         guard !activeTranscriptions.contains(noteID), let current = note(noteID),
+              current.kind != .thought,
               current.canEditSpeaker(speakerID, expectedRevision: expectedRevision, expectedSegments: expectedSegments) else {
             errorMessage = "说话人信息已更新，请处理完成后再编辑。"
             return false
         }
-        return edit(noteID) { _ = $0.setSpeakerContact(speakerID, contact: contact, expectedRevision: expectedRevision, expectedSegments: expectedSegments) }
+        do {
+            guard let repository,try repository.setSpeakerContact(noteID:noteID,speakerID:speakerID,contact:contact,expectedRevision:expectedRevision,expectedSegments:expectedSegments) else {
+                errorMessage=contact == nil ? "说话人信息已更新，请处理完成后再编辑。" : "该录音尚无可检索的说话人转写数据，请先完成转写后再关联联系人。"
+                return false
+            }
+            errorMessage=nil; refresh(); return true
+        } catch { errorMessage=error.localizedDescription; return false }
+    }
+
+    func createManualContact(name:String,organization:String?,email:String?,phone:String?) -> SpeakerContactSnapshot? {
+        do {
+            guard let repository else { errorMessage="本机联系人暂不可用，请解锁后重试。"; return nil }
+            let contact=try repository.saveManualContact(name:name,organization:organization,email:email,phone:phone)
+            errorMessage=nil
+            return contact
+        } catch { errorMessage=error.localizedDescription; return nil }
+    }
+
+    func contactProfiles(search:String = "") -> [SpeakerContactSnapshot] {
+        do {
+            guard let repository else { errorMessage="本机联系人暂不可用，请解锁后重试。"; return [] }
+            let contacts=try repository.contactProfiles(search:search)
+            errorMessage=nil
+            return contacts
+        } catch { errorMessage=error.localizedDescription; return [] }
     }
 
     @discardableResult
@@ -198,6 +224,20 @@ final class NotesModel: ObservableObject {
         do {
             try repository?.delete(id: id)
             durableAudioDeleted?(id)
+            refresh()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func deleteRecordingGroup(_ groupID: UUID) {
+        guard let repository else {
+            errorMessage = "本地笔记暂不可用，请解锁设备后重试。"
+            return
+        }
+        let ids = notes.filter { $0.recordingGroupID == groupID }.map(\.id)
+        guard !ids.isEmpty else { return }
+        do {
+            try repository.delete(ids: ids)
+            for id in ids { durableAudioDeleted?(id) }
             refresh()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -330,12 +370,12 @@ final class NotesModel: ObservableObject {
 
     /// Commits audio before starting ASR so a failed transcription never loses the recording.
     @discardableResult
-    func savePhoneRecording(id: UUID, fileURL: URL, capturedAt: Date, duration: TimeInterval, location: CaptureLocation? = nil) -> Bool {
+    func savePhoneRecording(id: UUID, fileURL: URL, capturedAt: Date, duration: TimeInterval, location: CaptureLocation? = nil, isThought: Bool = false, timeZoneIdentifier: String? = nil) -> Bool {
         guard let repository else { errorMessage = "本地笔记暂不可用，请解锁设备后重试。"; return false }
         do {
-            let note = try repository.importRecording(id: id, from: fileURL, kind: .long,
+            let note = try repository.importRecording(id: id, from: fileURL, kind: isThought ? .thought : .long,
                                                        capturedAt: capturedAt, duration: duration,
-                origin: RecordingOrigin(device: "iPhone", deviceID: "", fileName: fileURL.lastPathComponent, recordingTimeIsEstimated: false), location: location)
+                origin: RecordingOrigin(device: "iPhone", deviceID: "", fileName: fileURL.lastPathComponent, recordingTimeIsEstimated: false, timeZoneIdentifier: timeZoneIdentifier), location: location)
             refresh()
             Task { await self.transcribe(note.id, automatic:true) }
             return true
@@ -366,7 +406,7 @@ final class NotesModel: ObservableObject {
             }
             guard committed else { return }
             if applied { await runDiarization(id, file: file) }
-            if note(id)?.usesLocalThoughtAI == true, note(id)?.summary.isEmpty == true { await summarize(id) }
+            if !handlesFlashOrganization, note(id)?.usesLocalThoughtAI == true, note(id)?.summary.isEmpty == true { await summarize(id) }
         } catch {
             edit(id) {
                 $0.transcriptionState = error is TranscriptionFailure ? .unavailable : .failed
@@ -538,7 +578,9 @@ final class NotesModel: ObservableObject {
                 capturedAt: metadata.capturedAt, duration: metadata.duration,
                 origin: metadata.recordingOrigin ?? RecordingOrigin(device: "Apple Watch", deviceID: "", fileName: audio.lastPathComponent, recordingTimeIsEstimated: false),
                 location: metadata.location, recordingGroupID: metadata.recordingGroupID,
-                recordingGroupOrdinal: metadata.recordingGroupOrdinal, recordingGroupOffset: metadata.recordingGroupOffset
+                recordingGroupOrdinal: metadata.recordingGroupOrdinal, recordingGroupOffset: metadata.recordingGroupOffset,
+                recordingGroupFinalOrdinal: metadata.recordingGroupFinalOrdinal,
+                recordingGroupReceivedAt: metadata.receivedAt
             )
             // A duplicate transfer leaves its inbox copy untouched; the durable copy is already indexed.
             if FileManager.default.fileExists(atPath: audio.path) {

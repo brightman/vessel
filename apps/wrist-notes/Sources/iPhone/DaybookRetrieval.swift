@@ -82,6 +82,10 @@ struct DaybookRetrieval {
         let snippet: String
         let truncated: Bool
         var provenance: DayRecord.ContentProvenance? = nil
+        var sourceKey: String? = nil
+        var speakerID: String? = nil
+        var speakerOffset: TimeInterval? = nil
+        var speakerEndOffset: TimeInterval? = nil
     }
 
     struct Prepared: Sendable {
@@ -101,12 +105,31 @@ struct DaybookRetrieval {
 
         fileprivate init(question: String, providerQuestion: String, questionReferenceIDs: [Int: UUID], dayStart: Date, dayEnd: Date, dateLabel: String, statistics: Statistics,
                          matchedCount: Int, sources: [Source], context: String, directResponse: String?,
-                         scopeDescription: String, snapshots: [DayRecord], allowedKinds: Set<DayRecord.Kind>) {
+                         scopeDescription: String, snapshots: [DayRecord], allowedKinds: Set<DayRecord.Kind>,
+                         speakerContactID:String? = nil,speakerFingerprint:String? = nil) {
             self.question = question; self.providerQuestion = providerQuestion; self.questionReferenceIDs = questionReferenceIDs
             self.dayStart = dayStart; self.dayEnd = dayEnd; self.dateLabel = dateLabel
             self.statistics = statistics; self.matchedCount = matchedCount; self.sources = sources
             self.context = context; self.directResponse = directResponse; self.scopeDescription = scopeDescription
-            self.evidence = DaybookEvidenceSnapshot(records: snapshots, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds)
+            self.evidence = DaybookEvidenceSnapshot(records: snapshots, dayStart: dayStart, dayEnd: dayEnd, allowedKinds: allowedKinds,
+                speakerContactID:speakerContactID,speakerFingerprint:speakerFingerprint)
+        }
+
+        /// Rebuild the final citation view without broadening or reconstructing its evidence snapshot.
+        func projecting(sources: [Source], context: String) -> Prepared {
+            Prepared(question: question, providerQuestion: providerQuestion, questionReferenceIDs: questionReferenceIDs,
+                     dayStart: dayStart, dayEnd: dayEnd, dateLabel: dateLabel, statistics: statistics,
+                     matchedCount: matchedCount, sources: sources, context: context, directResponse: directResponse,
+                     scopeDescription: scopeDescription, evidence: evidence)
+        }
+
+        private init(question: String, providerQuestion: String, questionReferenceIDs: [Int: UUID], dayStart: Date,
+                     dayEnd: Date, dateLabel: String, statistics: Statistics, matchedCount: Int, sources: [Source],
+                     context: String, directResponse: String?, scopeDescription: String, evidence: DaybookEvidenceSnapshot) {
+            self.question = question; self.providerQuestion = providerQuestion; self.questionReferenceIDs = questionReferenceIDs
+            self.dayStart = dayStart; self.dayEnd = dayEnd; self.dateLabel = dateLabel; self.statistics = statistics
+            self.matchedCount = matchedCount; self.sources = sources; self.context = context
+            self.directResponse = directResponse; self.scopeDescription = scopeDescription; self.evidence = evidence
         }
 
         /// Includes every allowed record on the day: edits outside top-k can also invalidate aggregate facts.
@@ -247,6 +270,97 @@ struct DaybookRetrieval {
                         directResponse: direct, scopeDescription: scope, snapshots: day, allowedKinds: allowedKinds)
     }
 
+    func prepareSpeaker(question:String,items:[SpeakerAskEvidence],records:[DayRecord],contactID:String,contactName:String? = nil,fingerprint:String,selectedDate:Date,now:Date = .now,directResponse:String? = nil) throws -> Prepared {
+        let question=question.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !question.isEmpty else { throw Failure.emptyQuestion }
+        guard question.count<=300 else { throw Failure.questionTooLong }
+        var scopedItems=items
+        var requestedScope: DateInterval?
+        if Self.hasExplicitDate(question) {
+            let resolved=try resolveDate(question,selectedDate:selectedDate,now:now)
+            let day=calendar.startOfDay(for:resolved.date),tomorrow=calendar.date(byAdding:.day,value:1,to:day)!
+            requestedScope=DateInterval(start:day,end:tomorrow)
+            scopedItems=items.filter{$0.capturedAt>=day && $0.capturedAt<tomorrow}
+        } else if ["过去一周","最近一周","最近七天","最近7天"].contains(where:question.contains) {
+            let today=calendar.startOfDay(for:now),end=calendar.date(byAdding:.day,value:1,to:today)!,start=calendar.date(byAdding:.day,value:-6,to:today)!
+            requestedScope=DateInterval(start:start,end:end)
+            scopedItems=items.filter{$0.capturedAt>=start && $0.capturedAt<end}
+        }
+        let ordered=scopedItems.sorted { $0.capturedAt == $1.capturedAt ? ($0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start < $1.start) : $0.capturedAt < $1.capturedAt }
+        let days=ordered.map { calendar.startOfDay(for:$0.capturedAt) }
+        let start=requestedScope?.start ?? days.min() ?? calendar.startOfDay(for:selectedDate)
+        let last=days.max() ?? start
+        let end=requestedScope?.end ?? calendar.date(byAdding:.day,value:1,to:last) ?? last.addingTimeInterval(86_400)
+        let terms=Self.keywords(question)
+        let buckets = Dictionary(grouping: ordered) { item in item.id }
+        var grouped: [(UUID, [SpeakerAskEvidence], Int)] = []
+        grouped.reserveCapacity(buckets.count)
+        for (id, spans) in buckets {
+            let sorted = spans.sorted { left, right in left.start < right.start }
+            let score=sorted.reduce(0) { sum,item in
+                let record=DayRecord(id:id,capturedAt:item.capturedAt,kind:item.kind,title:item.title,text:item.text)
+                return sum+Self.keywordScore(record,terms:terms)
+            }
+            grouped.append((id, sorted, score))
+        }
+        grouped.sort { left, right in
+            if left.2 == right.2 { return left.1[0].capturedAt > right.1[0].capturedAt }
+            return left.2 > right.2
+        }
+        let byID=Dictionary(records.map { ($0.id,$0) },uniquingKeysWith:{ first,_ in first })
+        var sources:[Source]=[]
+        let displayName=contactName?.trimmingCharacters(in:.whitespacesAndNewlines) ?? ""
+        let identity=displayName.isEmpty ? "" : "当前检索对象是联系人「\(displayName)」。以下逐字稿来自本机已关联到该联系人的说话人，可据此回答其在录音中说了什么；关联本身不构成现实身份或会议出席的独立证明。\n"
+        let transcriptSpeakerLabel=displayName.isEmpty ? nil : displayName
+        var context=String((identity+"以下内容只来自已关联说话人的逐字稿片段，保留录音日期和发言时间。只根据逐字稿复述或概括发言，不推断未记录的事实。引用来源使用 [序号]。\n").prefix(limits.maxContextCharacters))
+        for (index,group) in grouped.prefix(max(0,limits.maxSources)).enumerated() {
+            let first=group.1[0]
+            let runs=Self.speakerTranscriptRuns(group.1)
+            let transcript=runs.map { run in
+                "[\(Int(run.first.start/60))分\(Int(run.first.start)%60)秒] \(transcriptSpeakerLabel ?? run.first.speakerLabel)：\(run.text)"
+            }.joined(separator:"\n")
+            let snippet=String(transcript.prefix(max(0,limits.maxSnippetCharacters)))
+            sources.append(Source(id:group.0,number:index+1,title:first.title,capturedAt:first.capturedAt,kind:first.kind,
+                snippet:snippet,truncated:transcript.count>snippet.count,provenance:byID[group.0]?.contentProvenance,
+                sourceKey:first.sourceKey,speakerID:first.speakerID,speakerOffset:first.start,speakerEndOffset:group.1.map { span in span.end }.max()))
+            // A segment title may summarize other speakers too. Keep it on the
+            // navigable citation, but only the associated speech enters AI context.
+            let block="\n[\(index+1)] \(first.capturedAt.formatted(date:.abbreviated,time:.shortened)) · 已关联说话人的发言\n\(transcript)\n"
+            if context.count<limits.maxContextCharacters { context+=String(block.prefix(limits.maxContextCharacters-context.count)) }
+        }
+        let stats=Statistics(totalCount:grouped.count,voiceCount:grouped.filter{$0.1.first?.kind == .voice}.count,
+            thoughtCount:grouped.filter{$0.1.first?.kind == .thought}.count,imageCount:0,lifeCount:0,audioDuration:0)
+        let direct=directResponse ?? (ordered.isEmpty ? "没有找到当前范围内的关联发言。请检查录音中的说话人关联，或等待转写处理完成。" : nil)
+        let allowed: Set<DayRecord.Kind> = contactID == "self" ? [.thought] : [.voice]
+        let dateLabel=requestedScope.map { _ in
+            let lastDay=calendar.date(byAdding:.day,value:-1,to:end)!
+            return format(start,pattern:"yyyy-MM-dd") + (calendar.isDate(start,inSameDayAs:lastDay) ? "" : " 至 " + format(lastDay,pattern:"yyyy-MM-dd"))
+        } ?? "已关联说话人记录"
+        return Prepared(question:question,providerQuestion:question,questionReferenceIDs:[:],dayStart:start,dayEnd:end,dateLabel:dateLabel,
+            statistics:stats,matchedCount:grouped.count,sources:sources,context:context,directResponse:direct,
+            scopeDescription:"仅检索已关联说话人的录音片段 · \(dateLabel) · \(grouped.count) 条记录",snapshots:records,
+            allowedKinds:allowed,speakerContactID:contactID,speakerFingerprint:fingerprint)
+    }
+
+    /// Compact word-timed ASR for context only. Durable rows, speaker assignments,
+    /// and citation offsets stay unchanged; gaps and source changes start new runs.
+    private static func speakerTranscriptRuns(_ items:[SpeakerAskEvidence]) -> [(first:SpeakerAskEvidence,end:Double,text:String)] {
+        var runs:[(first:SpeakerAskEvidence,end:Double,text:String)]=[]
+        for item in items {
+            if let last=runs.last,last.first.sourceKey == item.sourceKey,last.first.speakerID == item.speakerID,
+               item.start-last.end <= 1,item.end-last.first.start <= 30,last.text.count+item.text.count <= 400 {
+                // Most engines preserve separators. For word-only Latin spans,
+                // retain a word boundary without adding spaces inside Chinese.
+                let latinEdge=#"[\p{Latin}]"#
+                let needsSpace=last.text.last.map { String($0).range(of:latinEdge,options:.regularExpression) != nil } == true
+                    && item.text.first.map { String($0).range(of:latinEdge,options:.regularExpression) != nil } == true
+                runs[runs.count-1].text += (needsSpace ? " " : "")+item.text
+                runs[runs.count-1].end=max(last.end,item.end)
+            } else { runs.append((item,item.end,item.text)) }
+        }
+        return runs
+    }
+
     struct AutomaticScope {
         let start: Date
         let end: Date // exclusive, in the device timezone
@@ -276,10 +390,9 @@ struct DaybookRetrieval {
             dates.append(try resolveDate(token, selectedDate: now, now: now).date)
             topic = topic.replacingOccurrences(of: token, with: " ")
         }
-        for (word, offset) in [("今天",0),("今日",0),("昨天",-1),("昨日",-1),("前天",-2),("明天",1)] where topic.contains(word) {
-            dates.append(calendar.date(byAdding: .day, value: offset, to: today)!)
-            topic = topic.replacingOccurrences(of: word, with: " ")
-        }
+        let relativeDays = Self.extractRelativeDays(topic)
+        dates += relativeDays.offsets.map { calendar.date(byAdding:.day,value:$0,to:today)! }
+        topic = relativeDays.remaining
         let unique = Array(Set(dates)).sorted()
         if !unique.isEmpty {
             guard unique.count <= 2 else { throw Failure.ambiguousDate }
@@ -414,8 +527,28 @@ struct DaybookRetrieval {
     }
 
     static func hasExplicitDate(_ question: String) -> Bool {
-        if ["今天", "今日", "昨天", "昨日", "前天", "明天"].contains(where: question.contains) { return true }
+        if !extractRelativeDays(question).offsets.isEmpty { return true }
         return question.range(of: #"(?:\d{4}[-/年])?\d{1,2}[-/月]\d{1,2}"#, options: .regularExpression) != nil
+    }
+
+    // Shared by general and speaker retrieval so a hard date cannot disappear
+    // when the question takes a different route. Consume the longer phrase first.
+    private static let relativeDayTokens: [(expression:NSRegularExpression,offset:Int)] = [
+        (#"前天|\b(?:the\s+)?day\s+before\s+yesterday\b(?:['’]s\b)?"#, -2),
+        (#"今天|今日|\btoday\b(?:['’]s\b)?"#, 0),
+        (#"昨天|昨日|\byesterday\b(?:['’]s\b)?"#, -1),
+        (#"明天|\btomorrow\b(?:['’]s\b)?"#, 1)
+    ].map { (try! NSRegularExpression(pattern:$0.0,options:.caseInsensitive),$0.1) }
+
+    private static func extractRelativeDays(_ question:String) -> (offsets:[Int],remaining:String) {
+        var remaining=question,offsets:[Int]=[]
+        for (expression,offset) in relativeDayTokens {
+            let range=NSRange(remaining.startIndex...,in:remaining)
+            guard expression.firstMatch(in:remaining,range:range) != nil else { continue }
+            offsets.append(offset)
+            remaining=expression.stringByReplacingMatches(in:remaining,range:range,withTemplate:" ")
+        }
+        return (offsets,remaining)
     }
 
     private func resolveDate(_ question: String, selectedDate: Date, now: Date) throws -> (date: Date, remaining: String, unsupportedRange: Bool) {
@@ -438,12 +571,9 @@ struct DaybookRetrieval {
             dates.append(date)
             if let range = Range(match.range, in: remaining) { remaining.replaceSubrange(range, with: " ") }
         }
-        for (word, offset) in [("今天", 0), ("今日", 0), ("昨天", -1), ("昨日", -1), ("前天", -2), ("明天", 1)] {
-            if remaining.contains(word) {
-                dates.append(calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now))!)
-                remaining = remaining.replacingOccurrences(of: word, with: " ")
-            }
-        }
+        let relativeDays=Self.extractRelativeDays(remaining)
+        dates += relativeDays.offsets.map { calendar.date(byAdding:.day,value:$0,to:calendar.startOfDay(for:now))! }
+        remaining=relativeDays.remaining
         let unique = Set(dates.map { calendar.startOfDay(for: $0) })
         guard unique.count <= 1 else { throw Failure.ambiguousDate }
         return (unique.first ?? selectedDate, remaining, unsupported)
@@ -496,5 +626,183 @@ struct DaybookRetrieval {
         let budget = max(0, limit - 2)
         let end = text.index(start, offsetBy: budget, limitedBy: text.endIndex) ?? text.endIndex
         return (start == text.startIndex ? "" : "…") + String(text[start..<end]) + (end == text.endIndex ? "" : "…")
+    }
+}
+
+struct SpeakerAskEvidence: Sendable {
+    let id:UUID
+    let sourceKey:String
+    let speakerID:String?
+    let speakerLabel:String
+    let title:String
+    let capturedAt:Date
+    let kind:DayRecord.Kind
+    let start:TimeInterval
+    let end:TimeInterval
+    let text:String
+}
+
+/// Resolves contacts before reading transcript evidence. No contact fields except the display
+/// name enter AI context; phone numbers, email addresses and photos stay local.
+struct DaybookSpeakerAskRepository: @unchecked Sendable {
+    enum Resolution:Sendable {
+        case unrelated
+        case contact(id:String,name:String)
+        case selfThoughts
+        case ambiguous([String])
+        case unlinked(String)
+        var contactID:String? {
+            switch self {
+            case .contact(let id,_): id
+            case .selfThoughts: "self"
+            case .ambiguous(let names): "ambiguous:"+names.joined(separator:"|")
+            case .unlinked(let name): "unlinked:"+name
+            case .unrelated: nil
+            }
+        }
+        var contactName:String? {
+            switch self {
+            case .contact(_,let name): name
+            case .selfThoughts: nil
+            case .ambiguous,.unlinked,.unrelated: nil
+            }
+        }
+        var directResponse:String? {
+            switch self {
+            case .ambiguous(let names): "找到多个同名联系人：\(names.joined(separator:"、"))。请在录音中查看并关联对应的说话人后再提问。"
+            case .unlinked(let name): "\(name) 还没有关联到录音中的说话人。请先打开录音全文，选择说话人并关联联系人。"
+            default: nil
+            }
+        }
+        var requiredKind:DayRecord.Kind? {
+            switch self { case .contact,.ambiguous,.unlinked: .voice; case .selfThoughts: .thought; case .unrelated: nil }
+        }
+    }
+    struct Snapshot:Sendable { let items:[SpeakerAskEvidence]; let fingerprint:String }
+    private let db:DaybookDatabase
+    init(database:DaybookDatabase? = nil) throws { db=try database ?? DaybookDatabase() }
+
+    func resolve(question:String,priorTurns:[DaybookConversationTurn]) throws -> Resolution {
+        let question=DaybookRetrieval.normalize(question)
+        let cues=["说了什么","说过什么","提到","谈到","参与过哪些会议","参加过哪些会议","参与的会议","哪些会议","说过","原话","发言","聊过","观点","看法","意见","建议"]
+        let explicit=cues.contains(where:question.contains) || question.range(
+            of:#"\b(?:say|said|says|saying|speak|spoke|speaking|spoken|mention(?:ed|s)?|discuss(?:ed|es|ion)?|opinion(?:s)?|view(?:s)?|think|thinks|thoughts?|recommend(?:ed|s|ation|ations)?|suggest(?:ed|s|ion|ions)?|recording(?:s)?|meeting(?:s)?|transcript(?:s)?)\b"#,
+            options:.regularExpression) != nil
+        let names=try db.query("SELECT id,display_name FROM contacts ORDER BY length(display_name) DESC,display_name COLLATE NOCASE")
+            .compactMap { row -> (String,String)? in guard let id=row["id"]?.string,let name=row["display_name"]?.string,!name.isEmpty else{return nil};return(id,name) }
+        let matches=names.filter { _,name in
+            // English possessives are valid name boundaries; Kate Bella is not Kate Bell.
+            let escaped=NSRegularExpression.escapedPattern(for:DaybookRetrieval.normalize(name))
+            return question.range(of:"(?<![\\p{Latin}\\p{N}_])"+escaped+"(?![\\p{Latin}\\p{N}_])",options:.regularExpression) != nil
+        }
+        let nameOnly=matches.contains { question.trimmingCharacters(in:.whitespacesAndNewlines.union(.punctuationCharacters)) == DaybookRetrieval.normalize($0.1) }
+        if explicit || nameOnly, !matches.isEmpty {
+            let unique=Dictionary(matches.map { ($0.0,$0.1) },uniquingKeysWith:{ first,_ in first }).sorted { $0.value < $1.value }
+            if unique.count>1 { return .ambiguous(unique.map(\.value)) }
+            let (id,name)=unique[0]
+            let linked=try !db.query("SELECT 1 FROM recording_speaker_contacts WHERE contact_id=? LIMIT 1",[.text(id)]).isEmpty
+            return linked ? .contact(id:id,name:name) : .unlinked(name)
+        }
+        if ["我说过","我提到过","我讲过","我记录过","我之前说","我的闪念","我在闪念","我说了什么"].contains(where:question.contains) { return .selfThoughts }
+        let refersToPrior=["他","她","他们","她们","这个人"].contains(where:question.contains)
+            || question.range(of:#"\b(?:he|she|they|him|her|them|his|their)\b"#,options:.regularExpression) != nil
+        if explicit,refersToPrior,let id=priorTurns.reversed().first(where:{$0.completionState == .completed})?.evidence.speakerContactID {
+            if id == "self" { return .selfThoughts }
+            if let row=try db.query("SELECT id,display_name FROM contacts WHERE id=?",[.text(id)]).first,
+               let name=row["display_name"]?.string { return .contact(id:id,name:name) }
+        }
+        return .unrelated
+    }
+
+    func snapshot(contactID:String) throws -> Snapshot {
+        if contactID == "self" { return try thoughtSnapshot() }
+        var items:[SpeakerAskEvidence]=[]
+        var fingerprintParts:[String]=[contactID]
+        let links=try db.query("SELECT l.source_key,l.speaker_id,l.speaker_revision,s.kind,s.source_id,s.descriptor,c.display_name FROM recording_speaker_contacts l JOIN audio_processing_sources s ON s.source_key=l.source_key JOIN contacts c ON c.id=l.contact_id WHERE l.contact_id=? ORDER BY l.source_key,l.speaker_id",[.text(contactID)])
+        for link in links {
+            guard let key=link["source_key"]?.string,let speaker=link["speaker_id"]?.string else { continue }
+            let current=try currentSpeakerRevision(sourceKey:key,speakerID:speaker)
+            guard link["speaker_revision"]?.string == current else { continue }
+            let descriptor=try DaybookDatabase.decode(AudioSourceSnapshot.self,link["descriptor"])
+            let kind=descriptor.id.kind == .legacyNote ? DayRecord.Kind.voice : .voice
+            let rows=try db.query("SELECT t.start,t.end,t.text FROM audio_transcript_spans t JOIN audio_processing_jobs j ON j.id=t.job_id JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.source_key=? AND j.active=1 AND j.configuration_key=s.configuration_key AND j.result IS NOT NULL AND t.speaker_id=? AND j.core_start<t.end AND j.core_end>t.start ORDER BY t.start,t.end,j.id,t.position",[.text(key),.text(speaker)])
+            let sourceUUID=descriptor.id.id
+            var seen=Set<String>()
+            let label=String(descriptor.title.isEmpty ? "录音" : descriptor.title.prefix(100))
+            for row in rows {
+                let start=try row.requiredDouble("start"),end=try row.requiredDouble("end"),text=try row.requiredString("text")
+                guard !text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { continue }
+                let signature="\(Int((start*1000).rounded()))|\(Int((end*1000).rounded()))|\(DaybookRetrieval.normalize(text))"
+                guard seen.insert(signature).inserted else { continue }
+                let destination=try segmentDestination(sourceKey:key,sourceID:sourceUUID,at:start,fallbackTitle:label)
+                items.append(.init(id:destination.id,sourceKey:key,speakerID:speaker,speakerLabel:labelForSpeaker(speaker),title:destination.title,
+                    capturedAt:descriptor.capturedAt,kind:kind,start:start,end:end,text:text))
+                // Keep cached citations fresh when the source date/title or the destination
+                // segment title changes, even if the underlying transcript spans do not.
+                fingerprintParts.append(contentsOf:[key,speaker,current,String(start),String(end),text,
+                    String(descriptor.capturedAt.timeIntervalSinceReferenceDate),label,destination.id.uuidString,destination.title])
+            }
+        }
+        if let name=try db.query("SELECT display_name FROM contacts WHERE id=?",[.text(contactID)]).first?["display_name"]?.string { fingerprintParts.append(name) }
+        return Snapshot(items:items,fingerprint:AudioStableID.make(fingerprintParts))
+    }
+
+    func currentFingerprint(contactID:String) throws -> String { try snapshot(contactID:contactID).fingerprint }
+
+    private func thoughtSnapshot() throws -> Snapshot {
+        let rows=try db.query("SELECT id,captured_at,title,transcript,summary,duration FROM voice_notes WHERE kind='thought' ORDER BY captured_at,id")
+        var items:[SpeakerAskEvidence]=[],parts:[String]=["self"]
+        for row in rows {
+            guard let idText=row["id"]?.string,let id=UUID(uuidString:idText) else { continue }
+            let captured=Date(timeIntervalSinceReferenceDate:try row.requiredDouble("captured_at"))
+            let title=row["title"]?.string ?? "闪念",text=(row["transcript"]?.string ?? row["summary"]?.string ?? "").trimmingCharacters(in:.whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            let duration=max(0,row["duration"]?.double ?? 0)
+            items.append(.init(id:id,sourceKey:"thought:\(idText)",speakerID:nil,speakerLabel:"我",title:title,capturedAt:captured,kind:.thought,start:0,end:duration,text:text))
+            parts += [idText,String(captured.timeIntervalSinceReferenceDate),title,text]
+        }
+        return Snapshot(items:items,fingerprint:AudioStableID.make(parts))
+    }
+
+    private func currentSpeakerRevision(sourceKey:String,speakerID:String) throws -> String {
+        let rows=try db.query("SELECT j.id,j.result_hash,t.position,t.start,t.end,t.text FROM audio_transcript_spans t JOIN audio_processing_jobs j ON j.id=t.job_id JOIN audio_processing_sources s ON s.source_key=j.source_key WHERE j.source_key=? AND j.active=1 AND j.configuration_key=s.configuration_key AND j.result IS NOT NULL AND t.speaker_id=? ORDER BY t.start,t.end,j.id,t.position",[.text(sourceKey),.text(speakerID)])
+        var parts: [String] = []
+        parts.reserveCapacity(rows.count * 6)
+        for row in rows {
+            parts.append(row["id"]?.string ?? "")
+            parts.append(row["result_hash"]?.string ?? "")
+            parts.append(String(row["position"]?.double ?? 0))
+            parts.append(String(row["start"]?.double ?? 0))
+            parts.append(String(row["end"]?.double ?? 0))
+            parts.append(row["text"]?.string ?? "")
+        }
+        return AudioStableID.make(parts)
+    }
+
+    private func segmentDestination(sourceKey:String,sourceID:UUID,at offset:Double,fallbackTitle:String) throws -> (id:UUID,title:String) {
+        let rows=try db.query("SELECT c.payload FROM content_segments c JOIN content_segment_ranges r ON r.segment_id=c.id WHERE c.source_key=? AND c.deleted=0 AND r.start<=? AND r.end>? ORDER BY c.start DESC LIMIT 1",[.text(sourceKey),.real(offset),.real(offset)])
+        if let data=rows.first?["payload"],let segment=try? DaybookDatabase.decode(ContentSegment.self,data) { return (segment.id,segment.title) }
+        if let uuid=UUID(uuidString:String(sourceKey.split(separator:":").last ?? "")),sourceKey.hasPrefix("legacyNote:") {
+            let title=try db.query("SELECT title FROM voice_notes WHERE id=?",[.text(uuid.uuidString)]).first?["title"]?.string ?? fallbackTitle
+            return (uuid,title)
+        }
+        return (sourceID,fallbackTitle)
+    }
+
+    private func labelForSpeaker(_ id:String) -> String { "说话人 \(id.replacingOccurrences(of:"speaker-",with:""))" }
+}
+
+/// Siri uses the same bounded, source-grounded retrieval as Ask AI, but only local voice and
+/// thought records are eligible. The caller chooses the local model explicitly.
+enum WiseLifeSiriQuery {
+    static func prepare(question: String, records: [DayRecord], now: Date = .now,
+                        calendar: Calendar = .current,
+                        allowedKinds: Set<DayRecord.Kind> = [.voice, .thought]) throws -> DaybookRetrieval.Prepared {
+        var retrieval = DaybookRetrieval(calendar: calendar)
+        retrieval.limits.maxSources = 4
+        retrieval.limits.maxSnippetCharacters = 220
+        retrieval.limits.maxContextCharacters = 1_200
+        return try retrieval.prepare(question: question, records: records, selectedDate: now, now: now,
+                                     allowedKinds: allowedKinds.intersection([.voice, .thought]), automatic: true)
     }
 }

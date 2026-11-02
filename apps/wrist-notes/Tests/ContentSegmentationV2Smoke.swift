@@ -7,17 +7,37 @@ import Foundation
         guard condition() else { throw NSError(domain: "ContentV2", code: 1, userInfo: [NSLocalizedDescriptionKey: name]) }
         checks += 1
     }
-    static func fixture(duration: Double = 600, spans: [V.Span]? = nil, activities: [V.Activity]? = nil, vad: [V.Interval]? = nil, boundaries: [V.Boundary] = []) -> V.Input {
+    static func fixture(duration: Double = 900, spans: [V.Span]? = nil, activities: [V.Activity]? = nil, vad: [V.Interval]? = nil, boundaries: [V.Boundary] = []) -> V.Input {
         V.Input(sourceID: "fixture-source", sourceRevision: "asr-1-vad-1", duration: duration,
-                spans: spans ?? [.init(id: "row-a", start: 10, end: 20, text: "首句。"), .init(id: "row-b", start: 400, end: 420, text: "末句。")],
+                spans: spans ?? [.init(id: "row-a", start: 10, end: 20, text: "首句。"), .init(id: "row-b", start: 650, end: 670, text: "末句。")],
                 asrCoverage: [.init(start: 0, end: duration)], vadCoverage: vad ?? [.init(start: 0, end: duration)],
                 activities: activities ?? [.init(start: 0, end: duration, kind: .noSpeech)], boundaries: boundaries)
     }
+    static func tenMinuteGapTests() throws {
+        for gap in [180.0, 380, 599, 600, 601] {
+            let duration = gap + 200
+            let rows: [V.Span] = [.init(id: "before", start: 10, end: 20, text: "前段内容"),
+                                  .init(id: "after", start: 20 + gap, end: 40 + gap, text: "后段内容")]
+            var input = fixture(duration: duration, spans: rows)
+            // Successful adjacent model windows form one continuous evidence range.
+            input.asrCoverage = [.init(start: 0, end: 300), .init(start: 300, end: duration)]
+            input.vadCoverage = input.asrCoverage
+            let plan = try V.prepare(input)
+            try check(plan.gaps.count == (gap >= 600 ? 1 : 0), "\(Int(gap))s ASR blank only becomes a candidate at ten minutes")
+            try check(Set(plan.blocks.map(\.regionID)).count == (gap >= 600 ? 2 : 1), "\(Int(gap))s verified blank controls content regions across model windows")
+            try check(plan.blocks.flatMap(\.spanIDs) == ["before", "after"], "threshold changes preserve both original transcript rows")
+            for leading in [true, false] {
+                let span = V.Span(id: "edge", start: leading ? gap : 0, end: leading ? gap + 20 : 20, text: "边缘内容")
+                let edgePlan = try V.prepare(fixture(duration: gap + 20, spans: [span]))
+                try check(edgePlan.gaps.count == (gap >= 600 ? 1 : 0), "leading and trailing blanks use the same ten-minute threshold")
+            }
+        }
+    }
     static func preparationTests() throws {
         let accepted = try V.prepare(fixture())
-        try check(accepted.gaps.contains { $0.start == 20 && $0.end == 400 && $0.status == .verified }, "fully covered 380s blank is verified")
+        try check(accepted.gaps.contains { $0.start == 20 && $0.end == 650 && $0.status == .verified }, "fully covered 630s blank is verified")
         try check(accepted.chapters.count == 2, "verified gap separates chapters")
-        let speech = try V.prepare(fixture(activities: [.init(start: 0, end: 600, kind: .noSpeech), .init(start: 20, end: 200, kind: .speech)]))
+        let speech = try V.prepare(fixture(activities: [.init(start: 0, end: 900, kind: .noSpeech), .init(start: 20, end: 320, kind: .speech)]))
         try check(speech.gaps.contains { $0.start == 20 && $0.status == .speechPresent && $0.speechRatio > 0.47 }, "overlapping speech outranks noSpeech and blocks silence inference")
         try check(speech.chapters.count == 1, "speech-filled ASR blank stays in one content region")
         let missing = try V.prepare(fixture(vad: [.init(start: 0, end: 100)]))
@@ -58,7 +78,13 @@ import Foundation
         .init(firstBlockID: first, lastBlockID: last, topic: "具体议题", rationale: "完整原文支持", contentKind: .discussion, confidence: .medium, evidenceBlockIDs: [first])
     }
     static func final(_ id: String, classification: V.Classification = .meaningful) -> V.FinalReply {
-        .init(title: "有依据的内容", summary: "依据全部原文生成的摘要。", shortSummary: "简要概括。", keyPoints: [], classification: classification, contentKind: classification == .lowInformation ? .fragment : .discussion, confidence: .medium, uncertainty: "", evidenceBlockIDs: [id])
+        .init(title: "有依据的内容", summary: "依据全部原文生成的摘要。", shortSummary: "简要概括。", keyPoints: [], classification: classification, contentKind: classification == .lowInformation ? .fragment : .discussion, confidence: .medium, uncertainty: "", evidenceBlockIDs: [id], suggestions: [])
+    }
+    static func finalWithoutFields(_ id: String) -> V.FinalReply {
+        var value=final(id)
+        value.title=""
+        value.summary=""
+        return value
     }
     static func modelTests() async throws {
         let input = fixture(duration: 300, spans: [.init(id: "first-row", start: 0, end: 80, text: "FIRST 全文。"), .init(id: "last-row", start: 82, end: 150, text: "LAST 全文。")])
@@ -99,6 +125,23 @@ import Foundation
         let one = fixture(duration: 100, spans: [.init(id: "only-row", start: 5, end: 20, text: "一个完整想法。")])
         let onePlan = try V.prepare(one), oneID = onePlan.blocks[0].id
         let oneChapter = try V.canonical(V.ChapterReply(chapterID: onePlan.chapters[0].id, segments: [draft(oneID, oneID)]))
+        let incompleteFields=Replies([oneChapter,try V.canonical(finalWithoutFields(oneID)),try V.canonical(V.DisplayFieldsReply(title:"有依据的内容",summary:"依据完整想法生成的摘要。"))])
+        let completedFields=try await engine(incompleteFields).run(one)
+        try check(completedFields.metrics.fieldRepairRequests==1 && completedFields.metrics.repairRequests==0 && completedFields.segments[0].title=="有依据的内容" && !completedFields.segments[0].summary.isEmpty,
+            "meaningful segment repairs only missing display fields before publishing")
+        try check(incompleteFields.calls[2].0.contains("补生成该片段的标题和总结") && incompleteFields.calls[2].1.contains("一个完整想法。"),"field repair receives the segment transcript without reopening topic boundaries")
+        let failedFields=Replies([oneChapter,try V.canonical(finalWithoutFields(oneID)),"{}","{}"])
+        let boundaryWithoutFields=try await engine(failedFields).run(one)
+        try check(boundaryWithoutFields.segments.count==1 && boundaryWithoutFields.segments[0].title.isEmpty && boundaryWithoutFields.metrics.fieldRepairRequests==1,
+            "display-field failure keeps the finalized segment boundary publishable")
+        var unsupportedAction=final(oneID)
+        unsupportedAction.suggestions=[.init(kind:.todo,title:"跟进事项",quote:"不在转写中的内容")]
+        var groundedAction=final(oneID)
+        groundedAction.suggestions=[.init(kind:.todo,title:"跟进想法",quote:"完整想法")]
+        let actionReplies=Replies([oneChapter,try V.canonical(unsupportedAction),try V.canonical(groundedAction)])
+        let actionOutput=try await engine(actionReplies).run(one)
+        try check(actionOutput.metrics.repairRequests==1 && actionOutput.segments[0].suggestions==groundedAction.suggestions,
+            "suggested actions are returned with final fields and must quote the segment transcript")
         let partialCache = MemoryCheckpoints()
         var badEvidence = final("unowned-evidence")
         badEvidence.classification = .pendingConfirmation
@@ -282,6 +325,7 @@ import Foundation
         try check(schemaOutput.segments[0].evidenceBlockIDs == [blockID] && schemaOutput.metrics.repairRequests == 1, "missing evidence field can recover within one repair")
     }
     static func main() async throws {
+        try tenMinuteGapTests()
         try preparationTests()
         try await modelTests()
         try await evidenceAndCancellationTests()

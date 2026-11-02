@@ -4,7 +4,9 @@ import EventKit
 import UIKit
 
 @MainActor final class ActionStore: ObservableObject {
+    static let itemsDidChange = Notification.Name("WiseLife.ActionItemsDidChange")
     @Published private(set) var items: [ActionItem] = []
+    @Published private(set) var flashTimelineItems: [ActionItem] = []
     @Published private(set) var busy = false
     @Published var error: String?
     @Published private(set) var available = false
@@ -22,6 +24,13 @@ import UIKit
             .merge(with:NotificationCenter.default.publisher(for:UIApplication.didBecomeActiveNotification))
             .merge(with:NotificationCenter.default.publisher(for:UIApplication.protectedDataDidBecomeAvailableNotification))
             .sink { [weak self] _ in Task { @MainActor in await self?.refresh() } }.store(in:&observations)
+        NotificationCenter.default.publisher(for:Self.itemsDidChange)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    do { try self.reload() } catch { self.error=error.localizedDescription }
+                }
+            }.store(in:&observations)
     }
     func attach(_ reminders: DaybookReminderStore) {
         guard self.reminders == nil else { return }
@@ -34,7 +43,9 @@ import UIKit
     private func reload() throws {
         if repository == nil { repository = try ActionRepository(database:DaybookDatabase()) }
         guard let repository else { throw ActionFailure.invalid("本机行动存储不可用，请重新打开 App。") }
-        items = try repository.load().filter { !$0.deleted }.sorted { $0.createdAt > $1.createdAt }; available = true
+        let persisted = try repository.load()
+        flashTimelineItems = persisted.filter(\.isFlashCommand)
+        items = persisted.filter { !$0.deleted }.sorted { $0.createdAt > $1.createdAt }; available = true
     }
     @discardableResult private func persist(_ item: ActionItem) throws -> ActionItem {
         guard let repository else { throw ActionFailure.invalid("本机行动存储不可用。") }
@@ -78,7 +89,8 @@ import UIKit
             let old = items.first { $0.id == item.id }
             if let old, old.kind != item.kind, old.legacyReminderID != nil || old.link != nil { throw ActionFailure.invalid("已关联系统的行动不能更换类型，请另建一项。") }
             item.title = item.title.trimmingCharacters(in:.whitespacesAndNewlines)
-            item.status = .active; item.deleted = false
+            item.status = old?.isFlashCommand == true && old?.status == .completed ? .completed : .active
+            item.deleted = false
             if item.kind == .event && item.allDay {
                 var calendar = Calendar(identifier:.gregorian)
                 calendar.timeZone = TimeZone(identifier:item.timeZoneID) ?? .current
@@ -119,6 +131,22 @@ import UIKit
         defer { busy = false }
         return await execute(item)
     }
+    func resumeFlashCommands() async {
+        // An extraction can commit while an editor or EventKit refresh is suspended.
+        // Keep its durable outbox wake instead of silently losing it behind `busy`.
+        while busy {
+            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        guard !Task.isCancelled else { return }
+        busy = true; defer { busy = false }
+        do {
+            try reload()
+            for item in items where item.isFlashCommand && item.status == .active && item.sync == .pending {
+                _ = await execute(item)
+            }
+        } catch { self.error = error.localizedDescription }
+    }
     private func execute(_ input: ActionItem) async -> Bool {
         guard !Self.executingIDs.contains(input.id) else { error = "该行动正在更新，请稍后重试。"; return false }
         Self.executingIDs.insert(input.id)
@@ -126,6 +154,16 @@ import UIKit
         var item = input
         do {
             guard let current = try repository?.load().first(where:{$0.id == input.id}), current.revision == input.revision, !current.deleted else { throw ActionFailure.changed }
+            if item.isFlashCommand && item.status == .active && item.operation == .save {
+                try item.validate()
+                if item.kind == .event && item.link == nil && item.flashCalendarDestinationChosen != true {
+                    guard let start = item.start, start > .now else { throw ActionFailure.invalid("日程时间已过，请编辑后重试。") }
+                    let calendar = try await system.defaultCalendar()
+                    item.link = .init(listID: calendar.id, listTitle: calendar.title)
+                    item.flashCalendarDestinationChosen = true
+                    item = try persist(item)
+                }
+            }
             if item.operation == .refresh {
                 if let current = try await system.read(item) { item = current }
                 else { item.sync = .missing }

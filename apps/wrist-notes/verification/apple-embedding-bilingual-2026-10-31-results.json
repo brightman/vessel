@@ -1,0 +1,3620 @@
+{
+  "experiment": "Apple embedding Chinese/English retrieval, 2026-10-31",
+  "fixture_sha256": "5956aee9115bf579a044e7116377de1cffe5d29fedaec02cf0a32b027672d90e",
+  "source_sha256": {
+    "Sources/iPhone/AppleDaybookEmbedding.swift": "fc6154c33a222b5a42c0207f8c72cb2ec18817b49f717eb7b64a164b37106936",
+    "Tests/AppleEmbeddingBilingualBenchmark.swift": "60d26323592f4852d88f866ce8f7c019af6f6cdaa42d8b3e30b1f7d4ab7f3501",
+    "scripts/benchmark_apple_embedding.sh": "7e6f363ef0264cbf977e34fef764da1e5dd4762a1282d491d5b7af9edf098c04"
+  },
+  "platforms": {
+    "simulator": {
+      "startedAt": "2026-10-31T03:11:36Z",
+      "os": "Version 26.3.1 (Build 23D8133)",
+      "platform": "iOS Simulator",
+      "sqlite": "3.51.0",
+      "topics": 24,
+      "resources": [
+        {
+          "api": "NLEmbedding.sentenceEmbedding",
+          "available": "true",
+          "dimension": "640",
+          "language": "zh-Hans",
+          "revision": "1"
+        },
+        {
+          "api": "NLContextualEmbedding",
+          "available": "false",
+          "dimension": "512",
+          "identifier": "12784592-5D67-4F4C-83D6-A346519146AE",
+          "language": "zh-Hans",
+          "languages": "ja,ko,zh-Hans,zh-Hant",
+          "pooling": "mean-token-l2-v1",
+          "revision": "1"
+        },
+        {
+          "api": "NLEmbedding.sentenceEmbedding",
+          "available": "true",
+          "dimension": "512",
+          "language": "en",
+          "revision": "1"
+        },
+        {
+          "api": "NLContextualEmbedding",
+          "available": "false",
+          "dimension": "512",
+          "identifier": "5C45D94E-BAB4-4927-94B6-8B5745C46289",
+          "language": "en",
+          "languages": "cs,da,de,en,es,fi,fr,hr,hu,id,it,nb,nl,pl,pt,ro,sk,sv,tr,vi",
+          "pooling": "mean-token-l2-v1",
+          "revision": "1"
+        }
+      ],
+      "raw_result_sha256": "00b976531b590a942522cc49dd5a1ee5691601fcf53611d3b071f85a05d446b4",
+      "raw_result_path": "/tmp/wiselife-embedding-20261031/simulator-verified/results.json",
+      "results": [
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15834477711475795,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.14401711102078749,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 3
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 640,
+          "documentIndexSeconds": 1.0778839588165283,
+          "errors": [],
+          "id": "sentence-raw-zh-Hans",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 72,
+          "maxCosineDistanceError": 1.3549131760992594e-07,
+          "metadata": {
+            "api": "NLEmbedding.sentenceEmbedding",
+            "available": "true",
+            "dimension": "640",
+            "language": "zh-Hans",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.34166098092728525,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 4,
+              "top3": 10
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.34166098092728525,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 4,
+              "top3": 10
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.17043029448341404,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 1,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.1176544477337821,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.46562132890257885,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 9,
+              "top3": 11
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.19483066884382674,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.46957854946985367,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 9,
+              "top3": 11
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27093149595147675,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 3,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.25322983726587844,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 4,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16235189752634063,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.173107947121105,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.2763662263662264,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 4,
+              "top3": 7
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.622596025466919,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 15,
+              "top": [
+                {
+                  "distance": 0.18926405906677246,
+                  "id": "school/zh",
+                  "language": "zh",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.19020038843154907,
+                  "id": "restaurant/zh",
+                  "language": "zh",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 0.19308578968048096,
+                  "id": "exercise/zh",
+                  "language": "zh",
+                  "topic": "exercise"
+                },
+                {
+                  "distance": 0.19318240880966187,
+                  "id": "car_service/zh",
+                  "language": "zh",
+                  "topic": "car_service"
+                },
+                {
+                  "distance": 0.19446289539337158,
+                  "id": "budget_increase/zh",
+                  "language": "zh",
+                  "topic": "budget_increase"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 3,
+              "top": [
+                {
+                  "distance": 0.03513824939727783,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.03888428211212158,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.039981305599212646,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.04045891761779785,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.041202425956726074,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 14,
+              "top": [
+                {
+                  "distance": 0.1855483055114746,
+                  "id": "budget_increase/en",
+                  "language": "en",
+                  "topic": "budget_increase"
+                },
+                {
+                  "distance": 0.18720436096191406,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.19071674346923828,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.19806241989135742,
+                  "id": "recruitment/en",
+                  "language": "en",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.202112078666687,
+                  "id": "reschedule_meeting/en",
+                  "language": "en",
+                  "topic": "reschedule_meeting"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 1,
+              "top": [
+                {
+                  "distance": 0.054778337478637695,
+                  "id": "sleep/en",
+                  "language": "en",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 0.05560648441314697,
+                  "id": "school/en",
+                  "language": "en",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.059205055236816406,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.05984807014465332,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.059987664222717285,
+                  "id": "refund/en",
+                  "language": "en",
+                  "topic": "refund"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.024961769580841064,
+                  "id": "launch_delay/zh",
+                  "language": "zh",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.02538609504699707,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.026941657066345215,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.02732253074645996,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.028673291206359863,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "cosineDistanceChecks": 884,
+          "dimension": 640,
+          "documentIndexSeconds": 0.4273899793624878,
+          "errors": [],
+          "id": "app-current-zh-Hans",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 34,
+          "identityQueries": 34,
+          "identitySelfHits": 34,
+          "maxCosineDistanceError": 1.3549131760992594e-07,
+          "metadata": {
+            "api": "AppleDaybookEmbedding",
+            "languageGate": "unchanged production implementation",
+            "spaceKey": "apple-sentence|1|640|zh-Hans|sentence-v1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->all",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->mixed",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.04340277777777778,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->all",
+              "top1": 1,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0.041666666666666664,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->mixed",
+              "top1": 1,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.013020833333333334,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.25413200913941253,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 4,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0.12308201058201057,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.2763662263662264,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 4,
+              "top3": 7
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 0.9967650175094604,
+          "unicodeRoundTrips": 34,
+          "vectorCount": 34,
+          "rejectedDocuments": [
+            "budget_cut/en",
+            "budget_cut/mixed",
+            "budget_increase/en",
+            "budget_increase/mixed",
+            "launch_delay/en",
+            "launch_on_time/en",
+            "supplier_switch/en",
+            "supplier_switch/mixed",
+            "invoice_overdue/en",
+            "invoice_overdue/mixed",
+            "airport_office/en",
+            "airport_home/en",
+            "airport_pickup/en",
+            "reschedule_meeting/en",
+            "reschedule_meeting/mixed",
+            "recruitment/en",
+            "recruitment/mixed",
+            "sales_followup/en",
+            "sales_followup/mixed",
+            "sleep/en",
+            "hypertension/en",
+            "exercise/en",
+            "exercise/mixed",
+            "groceries/en",
+            "birthday/en",
+            "birthday/mixed",
+            "car_service/en",
+            "car_service/mixed",
+            "privacy_local/en",
+            "privacy_local/mixed",
+            "data_backup/en",
+            "data_backup/mixed",
+            "refund/en",
+            "refund/mixed",
+            "rent/en",
+            "school/en",
+            "restaurant/en",
+            "restaurant/mixed"
+          ],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": false,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": false,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": false,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": false,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.024961769580841064,
+                  "id": "launch_delay/zh",
+                  "language": "zh",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.02538609504699707,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.026941657066345215,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.02732253074645996,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.028673291206359863,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27016332230148016,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 4,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16156861528925395,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 512,
+          "documentIndexSeconds": 0.6165950298309326,
+          "errors": [],
+          "id": "sentence-raw-en",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 72,
+          "maxCosineDistanceError": 1.1735021832048886e-07,
+          "metadata": {
+            "api": "NLEmbedding.sentenceEmbedding",
+            "available": "true",
+            "dimension": "512",
+            "language": "en",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5769961519961521,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5795278795278794,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.24201448091313818,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 2,
+              "top3": 6
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.19651301117114986,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 3,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.45002134780901554,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 6,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27341015466015467,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 9
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.45574328814460396,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 6,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.23613741582491588,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 2,
+              "top3": 7
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.3026655593073936,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 5,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16361119387435177,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.20206634855014513,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 2,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.3026655593073936,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 5,
+              "top3": 5
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.366368055343628,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 12,
+              "top": [
+                {
+                  "distance": 1.0107518434524536,
+                  "id": "restaurant/zh",
+                  "language": "zh",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 1.0156649351119995,
+                  "id": "invoice_overdue/zh",
+                  "language": "zh",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 1.0163863897323608,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 1.0197523832321167,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                },
+                {
+                  "distance": 1.020606517791748,
+                  "id": "reschedule_meeting/zh",
+                  "language": "zh",
+                  "topic": "reschedule_meeting"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.10061407089233398,
+                  "id": "airport_home/zh",
+                  "language": "zh",
+                  "topic": "airport_home"
+                },
+                {
+                  "distance": 0.10309106111526489,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                },
+                {
+                  "distance": 0.10416662693023682,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.10889029502868652,
+                  "id": "launch_on_time/zh",
+                  "language": "zh",
+                  "topic": "launch_on_time"
+                },
+                {
+                  "distance": 0.11188805103302002,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 21,
+              "top": [
+                {
+                  "distance": 0.8718915581703186,
+                  "id": "privacy_local/en",
+                  "language": "en",
+                  "topic": "privacy_local"
+                },
+                {
+                  "distance": 1.0329523086547852,
+                  "id": "sleep/en",
+                  "language": "en",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 1.0383305549621582,
+                  "id": "groceries/en",
+                  "language": "en",
+                  "topic": "groceries"
+                },
+                {
+                  "distance": 1.0536073446273804,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 1.0561943054199219,
+                  "id": "supplier_switch/en",
+                  "language": "en",
+                  "topic": "supplier_switch"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 13,
+              "top": [
+                {
+                  "distance": 0.6659771203994751,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.7008415460586548,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.7742961645126343,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.7911633253097534,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.7921764850616455,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 4,
+              "top": [
+                {
+                  "distance": 0.03478783369064331,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 0.038317203521728516,
+                  "id": "invoice_overdue/zh",
+                  "language": "zh",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.040654540061950684,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.041283488273620605,
+                  "id": "car_service/zh",
+                  "language": "zh",
+                  "topic": "car_service"
+                },
+                {
+                  "distance": 0.04259181022644043,
+                  "id": "groceries/zh",
+                  "language": "zh",
+                  "topic": "groceries"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "cosineDistanceChecks": 1710,
+          "dimension": 512,
+          "documentIndexSeconds": 0.42760396003723145,
+          "errors": [],
+          "id": "app-current-en",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 38,
+          "identityQueries": 38,
+          "identitySelfHits": 38,
+          "maxCosineDistanceError": 8.41922189742661e-08,
+          "metadata": {
+            "api": "AppleDaybookEmbedding",
+            "languageGate": "unchanged production implementation",
+            "spaceKey": "apple-sentence|1|512|en|sentence-v1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5771855459355459,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5795278795278794,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0.20148809523809522,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 2,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.29017108371791034,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->all",
+              "top1": 4,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.24937169312169313,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0.2711670274170274,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->mixed",
+              "top1": 4,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->all",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->mixed",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->zh",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.1535760164260864,
+          "unicodeRoundTrips": 38,
+          "vectorCount": 38,
+          "rejectedDocuments": [
+            "budget_cut/zh",
+            "budget_increase/zh",
+            "launch_delay/zh",
+            "launch_delay/mixed",
+            "launch_on_time/zh",
+            "launch_on_time/mixed",
+            "supplier_switch/zh",
+            "invoice_overdue/zh",
+            "airport_office/zh",
+            "airport_office/mixed",
+            "airport_home/zh",
+            "airport_home/mixed",
+            "airport_pickup/zh",
+            "airport_pickup/mixed",
+            "reschedule_meeting/zh",
+            "recruitment/zh",
+            "sales_followup/zh",
+            "sleep/zh",
+            "sleep/mixed",
+            "hypertension/zh",
+            "hypertension/mixed",
+            "exercise/zh",
+            "groceries/zh",
+            "groceries/mixed",
+            "birthday/zh",
+            "car_service/zh",
+            "privacy_local/zh",
+            "data_backup/zh",
+            "refund/zh",
+            "rent/zh",
+            "rent/mixed",
+            "school/zh",
+            "school/mixed",
+            "restaurant/zh"
+          ],
+          "exampleCases": [
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": false,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 13,
+              "top": [
+                {
+                  "distance": 0.6659771203994751,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.7008415460586548,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.7742961645126343,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.7911633253097534,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.7921764850616455,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                }
+              ]
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": false,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": false,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "top": []
+            }
+          ]
+        }
+      ]
+    },
+    "macos": {
+      "startedAt": "2026-10-31T03:11:36Z",
+      "os": "Version 26.5.1 (Build 25F80)",
+      "platform": "macOS",
+      "sqlite": "3.51.0",
+      "topics": 24,
+      "resources": [
+        {
+          "api": "NLEmbedding.sentenceEmbedding",
+          "available": "true",
+          "dimension": "640",
+          "language": "zh-Hans",
+          "revision": "1"
+        },
+        {
+          "api": "NLContextualEmbedding",
+          "available": "true",
+          "dimension": "512",
+          "identifier": "12784592-5D67-4F4C-83D6-A346519146AE",
+          "language": "zh-Hans",
+          "languages": "ja,ko,zh-Hans,zh-Hant",
+          "pooling": "mean-token-l2-v1",
+          "revision": "1"
+        },
+        {
+          "api": "NLEmbedding.sentenceEmbedding",
+          "available": "true",
+          "dimension": "512",
+          "language": "en",
+          "revision": "1"
+        },
+        {
+          "api": "NLContextualEmbedding",
+          "available": "true",
+          "dimension": "512",
+          "identifier": "5C45D94E-BAB4-4927-94B6-8B5745C46289",
+          "language": "en",
+          "languages": "cs,da,de,en,es,fi,fr,hr,hu,id,it,nb,nl,pl,pt,ro,sk,sv,tr,vi",
+          "pooling": "mean-token-l2-v1",
+          "revision": "1"
+        }
+      ],
+      "raw_result_sha256": "81c510b4f255179231b8014544cfa0e74df2de3aaeb490c8bffcd72f2569d29d",
+      "raw_result_path": "/tmp/wiselife-embedding-20261031/macos-verified/results.json",
+      "results": [
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15834477711475795,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.14401711102078749,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 3
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 640,
+          "documentIndexSeconds": 0.907162070274353,
+          "errors": [],
+          "id": "sentence-raw-zh-Hans",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 72,
+          "maxCosineDistanceError": 1.3253546993219345e-07,
+          "metadata": {
+            "api": "NLEmbedding.sentenceEmbedding",
+            "available": "true",
+            "dimension": "640",
+            "language": "zh-Hans",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.34166098092728525,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 4,
+              "top3": 10
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.34166098092728525,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 4,
+              "top3": 10
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.17043029448341404,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 1,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.1176544477337821,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.46562132890257885,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 9,
+              "top3": 11
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.19483066884382674,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.46957854946985367,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 9,
+              "top3": 11
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27093149595147675,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 3,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.25322983726587844,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 4,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16235189752634063,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.173107947121105,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.2763662263662264,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 4,
+              "top3": 7
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.355673909187317,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 15,
+              "top": [
+                {
+                  "distance": 0.18926405906677246,
+                  "id": "school/zh",
+                  "language": "zh",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.19020038843154907,
+                  "id": "restaurant/zh",
+                  "language": "zh",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 0.19308578968048096,
+                  "id": "exercise/zh",
+                  "language": "zh",
+                  "topic": "exercise"
+                },
+                {
+                  "distance": 0.19318240880966187,
+                  "id": "car_service/zh",
+                  "language": "zh",
+                  "topic": "car_service"
+                },
+                {
+                  "distance": 0.19446289539337158,
+                  "id": "budget_increase/zh",
+                  "language": "zh",
+                  "topic": "budget_increase"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 3,
+              "top": [
+                {
+                  "distance": 0.035138726234436035,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.03888428211212158,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.039981305599212646,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.0404587984085083,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.041202425956726074,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 14,
+              "top": [
+                {
+                  "distance": 0.18561899662017822,
+                  "id": "budget_increase/en",
+                  "language": "en",
+                  "topic": "budget_increase"
+                },
+                {
+                  "distance": 0.18720436096191406,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.19071674346923828,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.19806253910064697,
+                  "id": "recruitment/en",
+                  "language": "en",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.202112078666687,
+                  "id": "reschedule_meeting/en",
+                  "language": "en",
+                  "topic": "reschedule_meeting"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 1,
+              "top": [
+                {
+                  "distance": 0.054778337478637695,
+                  "id": "sleep/en",
+                  "language": "en",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 0.05560648441314697,
+                  "id": "school/en",
+                  "language": "en",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.05914735794067383,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.05984807014465332,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.059987664222717285,
+                  "id": "refund/en",
+                  "language": "en",
+                  "topic": "refund"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.024961769580841064,
+                  "id": "launch_delay/zh",
+                  "language": "zh",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.02538609504699707,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.026941657066345215,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.02732253074645996,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.028673529624938965,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "cosineDistanceChecks": 884,
+          "dimension": 640,
+          "documentIndexSeconds": 0.38172805309295654,
+          "errors": [],
+          "id": "app-current-zh-Hans",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 34,
+          "identityQueries": 34,
+          "identitySelfHits": 34,
+          "maxCosineDistanceError": 1.3253546993219345e-07,
+          "metadata": {
+            "api": "AppleDaybookEmbedding",
+            "languageGate": "unchanged production implementation",
+            "spaceKey": "apple-sentence|1|640|zh-Hans|sentence-v1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->all",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->mixed",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.04340277777777778,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->all",
+              "top1": 1,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0.041666666666666664,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->mixed",
+              "top1": 1,
+              "top3": 1
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.013020833333333334,
+              "queries": 24,
+              "queryVectors": 2,
+              "scenario": "mixed->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.25413200913941253,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 4,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 10,
+              "mrr": 0.12308201058201057,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.2763662263662264,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 4,
+              "top3": 7
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 0.8389619588851929,
+          "unicodeRoundTrips": 34,
+          "vectorCount": 34,
+          "rejectedDocuments": [
+            "budget_cut/en",
+            "budget_cut/mixed",
+            "budget_increase/en",
+            "budget_increase/mixed",
+            "launch_delay/en",
+            "launch_on_time/en",
+            "supplier_switch/en",
+            "supplier_switch/mixed",
+            "invoice_overdue/en",
+            "invoice_overdue/mixed",
+            "airport_office/en",
+            "airport_home/en",
+            "airport_pickup/en",
+            "reschedule_meeting/en",
+            "reschedule_meeting/mixed",
+            "recruitment/en",
+            "recruitment/mixed",
+            "sales_followup/en",
+            "sales_followup/mixed",
+            "sleep/en",
+            "hypertension/en",
+            "exercise/en",
+            "exercise/mixed",
+            "groceries/en",
+            "birthday/en",
+            "birthday/mixed",
+            "car_service/en",
+            "car_service/mixed",
+            "privacy_local/en",
+            "privacy_local/mixed",
+            "data_backup/en",
+            "data_backup/mixed",
+            "refund/en",
+            "refund/mixed",
+            "rent/en",
+            "school/en",
+            "restaurant/en",
+            "restaurant/mixed"
+          ],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": false,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": false,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": false,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": false,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.024961769580841064,
+                  "id": "launch_delay/zh",
+                  "language": "zh",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.02538609504699707,
+                  "id": "hypertension/zh",
+                  "language": "zh",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.026941657066345215,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.02732253074645996,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                },
+                {
+                  "distance": 0.028673529624938965,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.21872834940332245,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 2,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.23420878268624432,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 2,
+              "top3": 7
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 512,
+          "documentIndexSeconds": 1.04511296749115,
+          "errors": [],
+          "id": "contextual-mean-zh-Hans",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 72,
+          "maxCosineDistanceError": 1.095757639069106e-07,
+          "metadata": {
+            "api": "NLContextualEmbedding",
+            "available": "true",
+            "dimension": "512",
+            "identifier": "12784592-5D67-4F4C-83D6-A346519146AE",
+            "language": "zh-Hans",
+            "languages": "ja,ko,zh-Hans,zh-Hant",
+            "pooling": "mean-token-l2-v1",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5758572446072446,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 11,
+              "top3": 15
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5758572446072446,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 11,
+              "top3": 15
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.17828288179971616,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 1,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.22945453239570882,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 3,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.7563301282051281,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 16,
+              "top3": 19
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.4475669006919006,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 7,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.7201073232323232,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 15,
+              "top3": 18
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.45681939588189585,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 6,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.7625496031746032,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 15,
+              "top3": 21
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.25282618389236033,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 3,
+              "top3": 6
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.4313549297924298,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 6,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.767361111111111,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 15,
+              "top3": 21
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.8529789447784424,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 22,
+              "top": [
+                {
+                  "distance": 0.5191916227340698,
+                  "id": "data_backup/zh",
+                  "language": "zh",
+                  "topic": "data_backup"
+                },
+                {
+                  "distance": 0.5325981378555298,
+                  "id": "school/zh",
+                  "language": "zh",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.5373930931091309,
+                  "id": "sleep/zh",
+                  "language": "zh",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 0.5391932129859924,
+                  "id": "restaurant/zh",
+                  "language": "zh",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 0.5396214723587036,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 3,
+              "top": [
+                {
+                  "distance": 0.28165900707244873,
+                  "id": "data_backup/zh",
+                  "language": "zh",
+                  "topic": "data_backup"
+                },
+                {
+                  "distance": 0.30950117111206055,
+                  "id": "launch_delay/zh",
+                  "language": "zh",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.31478041410446167,
+                  "id": "budget_cut/zh",
+                  "language": "zh",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.3211383819580078,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.32892119884490967,
+                  "id": "launch_on_time/zh",
+                  "language": "zh",
+                  "topic": "launch_on_time"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 1,
+              "top": [
+                {
+                  "distance": 0.5575615167617798,
+                  "id": "airport_office/en",
+                  "language": "en",
+                  "topic": "airport_office"
+                },
+                {
+                  "distance": 0.563806414604187,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.5651799440383911,
+                  "id": "groceries/en",
+                  "language": "en",
+                  "topic": "groceries"
+                },
+                {
+                  "distance": 0.569860577583313,
+                  "id": "privacy_local/en",
+                  "language": "en",
+                  "topic": "privacy_local"
+                },
+                {
+                  "distance": 0.5718601942062378,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 21,
+              "top": [
+                {
+                  "distance": 0.04969453811645508,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.054513394832611084,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.054657697677612305,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                },
+                {
+                  "distance": 0.05540943145751953,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.055977821350097656,
+                  "id": "refund/en",
+                  "language": "en",
+                  "topic": "refund"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 1,
+              "top": [
+                {
+                  "distance": 0.1863722801208496,
+                  "id": "car_service/zh",
+                  "language": "zh",
+                  "topic": "car_service"
+                },
+                {
+                  "distance": 0.2478090524673462,
+                  "id": "rent/zh",
+                  "language": "zh",
+                  "topic": "rent"
+                },
+                {
+                  "distance": 0.27720534801483154,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 0.27757036685943604,
+                  "id": "school/zh",
+                  "language": "zh",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.28030824661254883,
+                  "id": "invoice_overdue/zh",
+                  "language": "zh",
+                  "topic": "invoice_overdue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27016332230148016,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 4,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16156861528925395,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 512,
+          "documentIndexSeconds": 0.5453770160675049,
+          "errors": [],
+          "id": "sentence-raw-en",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 72,
+          "maxCosineDistanceError": 1.299281254807383e-07,
+          "metadata": {
+            "api": "NLEmbedding.sentenceEmbedding",
+            "available": "true",
+            "dimension": "512",
+            "language": "en",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5769961519961521,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5795278795278794,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.24201448091313818,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 2,
+              "top3": 6
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.19651301117114986,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 3,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.45002134780901554,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 6,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.27341015466015467,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 9
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.45574328814460396,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 6,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.23613741582491588,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 2,
+              "top3": 7
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.3024851841270184,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 5,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16361119387435177,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.20206634855014513,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 2,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.3024851841270184,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 5,
+              "top3": 5
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 1.1629300117492676,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 12,
+              "top": [
+                {
+                  "distance": 1.0107518434524536,
+                  "id": "restaurant/zh",
+                  "language": "zh",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 1.0156649351119995,
+                  "id": "invoice_overdue/zh",
+                  "language": "zh",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 1.0163863897323608,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 1.0197502374649048,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                },
+                {
+                  "distance": 1.020606517791748,
+                  "id": "reschedule_meeting/zh",
+                  "language": "zh",
+                  "topic": "reschedule_meeting"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 24,
+              "top": [
+                {
+                  "distance": 0.10061407089233398,
+                  "id": "airport_home/zh",
+                  "language": "zh",
+                  "topic": "airport_home"
+                },
+                {
+                  "distance": 0.10309052467346191,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                },
+                {
+                  "distance": 0.10416662693023682,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.10889023542404175,
+                  "id": "launch_on_time/zh",
+                  "language": "zh",
+                  "topic": "launch_on_time"
+                },
+                {
+                  "distance": 0.11188793182373047,
+                  "id": "recruitment/zh",
+                  "language": "zh",
+                  "topic": "recruitment"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 21,
+              "top": [
+                {
+                  "distance": 0.8718916177749634,
+                  "id": "privacy_local/en",
+                  "language": "en",
+                  "topic": "privacy_local"
+                },
+                {
+                  "distance": 1.0329523086547852,
+                  "id": "sleep/en",
+                  "language": "en",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 1.0383305549621582,
+                  "id": "groceries/en",
+                  "language": "en",
+                  "topic": "groceries"
+                },
+                {
+                  "distance": 1.0536073446273804,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 1.0561943054199219,
+                  "id": "supplier_switch/en",
+                  "language": "en",
+                  "topic": "supplier_switch"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 13,
+              "top": [
+                {
+                  "distance": 0.6659770607948303,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.7008416056632996,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.7742961049079895,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.7911632657051086,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.7921765446662903,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 4,
+              "top": [
+                {
+                  "distance": 0.03478783369064331,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 0.03831726312637329,
+                  "id": "invoice_overdue/zh",
+                  "language": "zh",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.04065448045730591,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.041283488273620605,
+                  "id": "car_service/zh",
+                  "language": "zh",
+                  "topic": "car_service"
+                },
+                {
+                  "distance": 0.042591750621795654,
+                  "id": "groceries/zh",
+                  "language": "zh",
+                  "topic": "groceries"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "cosineDistanceChecks": 1710,
+          "dimension": 512,
+          "documentIndexSeconds": 0.2901790142059326,
+          "errors": [],
+          "id": "app-current-en",
+          "identityCollisions": [],
+          "identityNearestIncludingTies": 38,
+          "identityQueries": 38,
+          "identitySelfHits": 38,
+          "maxCosineDistanceError": 1.1020097301361886e-07,
+          "metadata": {
+            "api": "AppleDaybookEmbedding",
+            "languageGate": "unchanged production implementation",
+            "spaceKey": "apple-sentence|1|512|en|sentence-v1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5771855459355459,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5795278795278794,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 10,
+              "top3": 16
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0.20148809523809522,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 2,
+              "top3": 5
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.29017108371791034,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->all",
+              "top1": 4,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.24937169312169313,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->en",
+              "top1": 1,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0.2711670274170274,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->mixed",
+              "top1": 4,
+              "top3": 8
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 21,
+              "scenario": "mixed->zh",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->all",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->en",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 14,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->mixed",
+              "top1": 0,
+              "top3": 0
+            },
+            {
+              "goldAvailable": 0,
+              "mrr": 0,
+              "queries": 24,
+              "queryVectors": 0,
+              "scenario": "zh->zh",
+              "top1": 0,
+              "top3": 0
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 0.7504010200500488,
+          "unicodeRoundTrips": 38,
+          "vectorCount": 38,
+          "rejectedDocuments": [
+            "budget_cut/zh",
+            "budget_increase/zh",
+            "launch_delay/zh",
+            "launch_delay/mixed",
+            "launch_on_time/zh",
+            "launch_on_time/mixed",
+            "supplier_switch/zh",
+            "invoice_overdue/zh",
+            "airport_office/zh",
+            "airport_office/mixed",
+            "airport_home/zh",
+            "airport_home/mixed",
+            "airport_pickup/zh",
+            "airport_pickup/mixed",
+            "reschedule_meeting/zh",
+            "recruitment/zh",
+            "sales_followup/zh",
+            "sleep/zh",
+            "sleep/mixed",
+            "hypertension/zh",
+            "hypertension/mixed",
+            "exercise/zh",
+            "groceries/zh",
+            "groceries/mixed",
+            "birthday/zh",
+            "car_service/zh",
+            "privacy_local/zh",
+            "data_backup/zh",
+            "refund/zh",
+            "rent/zh",
+            "rent/mixed",
+            "school/zh",
+            "school/mixed",
+            "restaurant/zh"
+          ],
+          "exampleCases": [
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "top": []
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": false,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": false,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "top": []
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 13,
+              "top": [
+                {
+                  "distance": 0.6659770607948303,
+                  "id": "launch_delay/en",
+                  "language": "en",
+                  "topic": "launch_delay"
+                },
+                {
+                  "distance": 0.7008416056632996,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.7742961049079895,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.7911632657051086,
+                  "id": "invoice_overdue/en",
+                  "language": "en",
+                  "topic": "invoice_overdue"
+                },
+                {
+                  "distance": 0.7921765446662903,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                }
+              ]
+            },
+            {
+              "candidateCount": 0,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": false,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": false,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "top": []
+            }
+          ]
+        },
+        {
+          "alignedTranslationMetrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.16738286503732727,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15750520185084058,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            }
+          ],
+          "cosineDistanceChecks": 5184,
+          "dimension": 512,
+          "documentIndexSeconds": 1.020570993423462,
+          "errors": [],
+          "id": "contextual-mean-en",
+          "identityCollisions": [
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "budget_cut/zh",
+              "ownDistance": 0,
+              "rank": 2,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_pickup/zh",
+              "id": "budget_increase/zh",
+              "ownDistance": 0,
+              "rank": 2,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "launch_delay/zh",
+              "ownDistance": 0,
+              "rank": 5,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "launch_on_time/zh",
+              "id": "supplier_switch/zh",
+              "ownDistance": 0,
+              "rank": 2,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "invoice_overdue/zh",
+              "ownDistance": 0,
+              "rank": 4,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "recruitment/zh",
+              "ownDistance": 0,
+              "rank": 6,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "groceries/zh",
+              "id": "sales_followup/zh",
+              "ownDistance": 0,
+              "rank": 3,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "groceries/zh",
+              "id": "sleep/zh",
+              "ownDistance": 0,
+              "rank": 4,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "hypertension/zh",
+              "ownDistance": 0,
+              "rank": 3,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_pickup/zh",
+              "id": "exercise/zh",
+              "ownDistance": 0,
+              "rank": 4,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_pickup/zh",
+              "id": "car_service/zh",
+              "ownDistance": 0,
+              "rank": 3,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "groceries/zh",
+              "id": "refund/zh",
+              "ownDistance": 0,
+              "rank": 2,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "privacy_local/zh",
+              "id": "rent/zh",
+              "ownDistance": 0,
+              "rank": 2,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_pickup/zh",
+              "id": "school/zh",
+              "ownDistance": 0,
+              "rank": 5,
+              "recomputedDistance": 0
+            },
+            {
+              "closestDistance": 0,
+              "closestID": "airport_home/zh",
+              "id": "restaurant/zh",
+              "ownDistance": 0,
+              "rank": 7,
+              "recomputedDistance": 0
+            }
+          ],
+          "identityNearestIncludingTies": 72,
+          "identityQueries": 72,
+          "identitySelfHits": 57,
+          "maxCosineDistanceError": 1.5371741057812471e-07,
+          "metadata": {
+            "api": "NLContextualEmbedding",
+            "available": "true",
+            "dimension": "512",
+            "identifier": "5C45D94E-BAB4-4927-94B6-8B5745C46289",
+            "language": "en",
+            "languages": "cs,da,de,en,es,fi,fr,hr,hu,id,it,nb,nl,pl,pt,ro,sk,sv,tr,vi",
+            "pooling": "mean-token-l2-v1",
+            "revision": "1"
+          },
+          "metrics": [
+            {
+              "goldAvailable": 24,
+              "mrr": 0.7976190476190478,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->all",
+              "top1": 16,
+              "top3": 23
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.7976190476190478,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->en",
+              "top1": 16,
+              "top3": 23
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.23151007858888292,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->mixed",
+              "top1": 3,
+              "top3": 4
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15166434132248002,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "en->zh",
+              "top1": 1,
+              "top3": 2
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.4602422010752118,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->all",
+              "top1": 8,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.5057659141540721,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->en",
+              "top1": 10,
+              "top3": 11
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.4602422010752118,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->mixed",
+              "top1": 8,
+              "top3": 12
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.14092299933113803,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "mixed->zh",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.1487001401829833,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->all",
+              "top1": 1,
+              "top3": 2
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15790775069088941,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->en",
+              "top1": 1,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.13873695259207275,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->mixed",
+              "top1": 0,
+              "top3": 3
+            },
+            {
+              "goldAvailable": 24,
+              "mrr": 0.15733159073972944,
+              "queries": 24,
+              "queryVectors": 24,
+              "scenario": "zh->zh",
+              "top1": 1,
+              "top3": 3
+            }
+          ],
+          "mixedFullText": {
+            "\"Kate Bell\" AND \"项目预算\"": "correct unique row",
+            "\"paid advertising\"": "correct unique row",
+            "\"项目预算\"": "correct unique row",
+            "available": "true"
+          },
+          "queryAndSearchSeconds": 2.192173957824707,
+          "unicodeRoundTrips": 72,
+          "vectorCount": 72,
+          "rejectedDocuments": [],
+          "exampleCases": [
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What was the proposal to cut project spending and halt advertising?",
+              "queryAvailable": true,
+              "queryID": "budget_cut/en",
+              "queryLanguage": "en",
+              "rank": 11,
+              "top": [
+                {
+                  "distance": 0.4668666124343872,
+                  "id": "reschedule_meeting/zh",
+                  "language": "zh",
+                  "topic": "reschedule_meeting"
+                },
+                {
+                  "distance": 0.4680185317993164,
+                  "id": "launch_on_time/zh",
+                  "language": "zh",
+                  "topic": "launch_on_time"
+                },
+                {
+                  "distance": 0.4680185317993164,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 0.468593955039978,
+                  "id": "birthday/zh",
+                  "language": "zh",
+                  "topic": "birthday"
+                },
+                {
+                  "distance": 0.46890681982040405,
+                  "id": "airport_pickup/zh",
+                  "language": "zh",
+                  "topic": "airport_pickup"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+              "queryAvailable": true,
+              "queryID": "budget_cut/mixed",
+              "queryLanguage": "mixed",
+              "rank": 15,
+              "top": [
+                {
+                  "distance": 0.1225387454032898,
+                  "id": "airport_office/zh",
+                  "language": "zh",
+                  "topic": "airport_office"
+                },
+                {
+                  "distance": 0.12282627820968628,
+                  "id": "groceries/zh",
+                  "language": "zh",
+                  "topic": "groceries"
+                },
+                {
+                  "distance": 0.12282627820968628,
+                  "id": "refund/zh",
+                  "language": "zh",
+                  "topic": "refund"
+                },
+                {
+                  "distance": 0.12282627820968628,
+                  "id": "sales_followup/zh",
+                  "language": "zh",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.12282627820968628,
+                  "id": "sleep/zh",
+                  "language": "zh",
+                  "topic": "sleep"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "我下飞机后如何去公司开会？",
+              "queryAvailable": true,
+              "queryID": "airport_office/zh",
+              "queryLanguage": "zh",
+              "rank": 16,
+              "top": [
+                {
+                  "distance": 0.4107876420021057,
+                  "id": "sales_followup/en",
+                  "language": "en",
+                  "topic": "sales_followup"
+                },
+                {
+                  "distance": 0.4172036647796631,
+                  "id": "budget_cut/en",
+                  "language": "en",
+                  "topic": "budget_cut"
+                },
+                {
+                  "distance": 0.41742002964019775,
+                  "id": "restaurant/en",
+                  "language": "en",
+                  "topic": "restaurant"
+                },
+                {
+                  "distance": 0.418609619140625,
+                  "id": "school/en",
+                  "language": "en",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.4219202399253845,
+                  "id": "birthday/en",
+                  "language": "en",
+                  "topic": "birthday"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "en",
+              "detected": "en",
+              "goldAvailable": true,
+              "query": "What changes did I plan after poor sleep affected my concentration?",
+              "queryAvailable": true,
+              "queryID": "sleep/en",
+              "queryLanguage": "en",
+              "rank": 3,
+              "top": [
+                {
+                  "distance": 0.11063635349273682,
+                  "id": "hypertension/en",
+                  "language": "en",
+                  "topic": "hypertension"
+                },
+                {
+                  "distance": 0.11170899868011475,
+                  "id": "school/en",
+                  "language": "en",
+                  "topic": "school"
+                },
+                {
+                  "distance": 0.11989951133728027,
+                  "id": "sleep/en",
+                  "language": "en",
+                  "topic": "sleep"
+                },
+                {
+                  "distance": 0.12086188793182373,
+                  "id": "exercise/en",
+                  "language": "en",
+                  "topic": "exercise"
+                },
+                {
+                  "distance": 0.12263154983520508,
+                  "id": "airport_home/en",
+                  "language": "en",
+                  "topic": "airport_home"
+                }
+              ]
+            },
+            {
+              "candidateCount": 24,
+              "corpusLanguage": "zh",
+              "detected": "zh-Hans",
+              "goldAvailable": true,
+              "query": "周末车辆维修保养要做哪些项目？",
+              "queryAvailable": true,
+              "queryID": "car_service/zh",
+              "queryLanguage": "zh",
+              "rank": 14,
+              "top": [
+                {
+                  "distance": 0.017315685749053955,
+                  "id": "reschedule_meeting/zh",
+                  "language": "zh",
+                  "topic": "reschedule_meeting"
+                },
+                {
+                  "distance": 0.024044036865234375,
+                  "id": "launch_on_time/zh",
+                  "language": "zh",
+                  "topic": "launch_on_time"
+                },
+                {
+                  "distance": 0.024044036865234375,
+                  "id": "supplier_switch/zh",
+                  "language": "zh",
+                  "topic": "supplier_switch"
+                },
+                {
+                  "distance": 0.02667856216430664,
+                  "id": "birthday/zh",
+                  "language": "zh",
+                  "topic": "birthday"
+                },
+                {
+                  "distance": 0.02949965000152588,
+                  "id": "airport_home/zh",
+                  "language": "zh",
+                  "topic": "airport_home"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

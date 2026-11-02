@@ -5,6 +5,8 @@ cd "$(dirname "$0")/.."
 output=$(mktemp -d /private/tmp/wristnotes-checks.XXXXXX)
 trap 'rm -rf "$output"' EXIT
 sh scripts/test_phone_recording.sh
+sh scripts/test_flash_capture.sh
+sh scripts/test_assistant_voice.sh
 sh scripts/test_watch_sync.sh
 sh scripts/test_watch_recording_launcher.sh
 swiftc -module-cache-path "$output/cache" Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Tests/RecordMergeSelectionSmoke.swift -o "$output/merge-selection"
@@ -63,7 +65,7 @@ swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" S
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookReminderPersistence.swift Sources/iPhone/DaybookPreferences.swift Tests/DaybookReminderSmoke.swift -o "$output/reminders"
 "$output/reminders"
 
-swiftc Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/iPhone/NoteRepository.swift $chatgpt_sources -D DAYBOOK_ASSISTANT_MODEL_TESTS -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/DaybookAssistantModel.swift Sources/iPhone/DaybookAnswerService.swift Sources/iPhone/AIConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionConfiguration.swift Tests/DaybookRetrievalSmoke.swift -o "$output/daybook-ai"
+swiftc Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/iPhone/NoteRepository.swift $chatgpt_sources -D DAYBOOK_ASSISTANT_MODEL_TESTS -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Sources/iPhone/AskAIContext.swift Sources/iPhone/AskAIRuntimeStore.swift Sources/iPhone/AskAIReadTools.swift Sources/iPhone/AskAIRuntime.swift Sources/iPhone/AskAIAppleDriver.swift Sources/iPhone/AskAICustomDriver.swift Sources/iPhone/DaybookAssistantModel.swift Sources/iPhone/DaybookAnswerService.swift Sources/iPhone/AIConfiguration.swift Sources/iPhone/AppSettings.swift Sources/iPhone/CustomAISummarizer.swift Sources/iPhone/NearbyMacClient.swift Sources/iPhone/KeychainSecretStore.swift Sources/iPhone/TranscriptionConfiguration.swift Tests/DaybookRetrievalSmoke.swift -o "$output/daybook-ai"
 "$output/daybook-ai"
 
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookSuggestionStore.swift Tests/DaybookSuggestionSmoke.swift -o "$output/suggestions"

@@ -207,6 +207,7 @@ struct DaybookRecordRow: View {
                 }.padding(.bottom, 5)
                 Group {
                     if isCompleteRecording { Text(LocalizedStringKey(status ?? "")) }
+                    else if record.recordingGroupID != nil { Text(status ?? "录音组") }
                     else if record.kind.isAudio, !record.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(record.summary).accessibilityIdentifier("daybook.record.summary.\(record.id.uuidString)")
                     }
@@ -230,6 +231,9 @@ struct DaybookRecordRow: View {
                     if record.kind == .thought { Text("闪念") }
                     if isCompleteRecording { Text(LocalizedStringKey(record.recordingContinuation == true ? "续段 · 当日范围" : "当日范围")) }
                 }.font(.system(size: 9)).foregroundStyle(DaybookStyle.secondary).padding(.top, 8)
+                if record.kind == .thought, let status, !status.isEmpty {
+                    Text(status).font(.system(size: 10)).foregroundStyle(DaybookStyle.accent).padding(.top, 7)
+                }
                 if let point = record.location, record.kind != .location {
                     CapturePlaceRow(point: point).padding(.top, 9)
                 }
@@ -350,6 +354,7 @@ struct DaybookThumbnail: View {
 struct DaybookCaptureMenu: View {
     let voice: () -> Void
     let image: () -> Void
+    var thought: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         DaybookSheetLayout(title: "记此刻", onClose: { dismiss() }) {
@@ -357,6 +362,11 @@ struct DaybookCaptureMenu: View {
                 Text("说出一个想法，或留住眼前的画面。")
                     .font(.system(size: 12)).foregroundStyle(DaybookStyle.secondary).padding(.top, 6).padding(.bottom, 20)
                 Button(action: voice) { DaybookOptionRow(icon: "Mic", title: "语音", subtitle: "记下闪念、对话和此刻的感受。") }
+                if let thought {
+                    Button("记一条闪念 →") { thought() }
+                        .font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.accent)
+                        .padding(.leading, 39).padding(.vertical, 10)
+                }
                 Button(action: image) { DaybookOptionRow(icon: "Images", title: "图片", subtitle: "拍一张照片，或从相册选择。") }
                 Text("录音与图片保存在本机，转写和文字识别在设备上完成。")
                     .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary).lineSpacing(6).padding(.top, 18)

@@ -1,0 +1,1548 @@
+{
+  "fixtureSHA256" : "5956aee9115bf579a044e7116377de1cffe5d29fedaec02cf0a32b027672d90e",
+  "os" : "Version 26.5.1 (Build 25F80)",
+  "provider" : "Apple Translation / installedSource / on-device",
+  "records" : [
+    {
+      "expansion" : {
+        "original" : "谁提出减少项目开支并暂停广告投放？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "budget_cut/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 3.3020973205566406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "谁提出减少项目开支并暂停广告投放？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Who proposed to reduce project expenses and suspend advertising?"
+      },
+      "queryID" : "budget_cut/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.44034695625305176
+    },
+    {
+      "expansion" : {
+        "original" : "What was the proposal to cut project spending and halt advertising?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "削减项目支出和停止广告的建议是什么？"
+      },
+      "queryID" : "budget_cut/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.2212810516357422
+    },
+    {
+      "expansion" : {
+        "original" : "What was the proposal to cut project spending and halt advertising?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "budget_cut/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.4066696166992188e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "Kate Bell 今天对削减项目预算和广告费用有什么建议？"
+      },
+      "queryID" : "budget_cut/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.06930196285247803
+    },
+    {
+      "expansion" : {
+        "original" : "Kate Bell 今天对削减 project budget 和广告费用有什么建议？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What suggestions does Kate Bell have today to cut project budget and advertising costs?"
+      },
+      "queryID" : "budget_cut/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.050498008728027344
+    },
+    {
+      "expansion" : {
+        "original" : "为了拓展新市场，谁建议提高广告投入？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "budget_increase/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.4066696166992188e-05
+    },
+    {
+      "expansion" : {
+        "original" : "为了拓展新市场，谁建议提高广告投入？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "In order to expand new markets, who suggests increasing advertising investment?"
+      },
+      "queryID" : "budget_increase/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.04136300086975098
+    },
+    {
+      "expansion" : {
+        "original" : "What was the suggestion to spend more on advertising for market expansion?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "为了扩大市场，在广告上花费更多的建议是什么？"
+      },
+      "queryID" : "budget_increase/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.05308997631072998
+    },
+    {
+      "expansion" : {
+        "original" : "What was the suggestion to spend more on advertising for market expansion?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "budget_increase/en",
+      "queryLanguage" : "en",
+      "seconds" : 8.940696716308594e-06
+    },
+    {
+      "expansion" : {
+        "original" : "Kate Bell 对增加 advertising spend 和拓展新市场有什么建议？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "Kate Bell对增加广告支出和拓展新市场有什么建议？"
+      },
+      "queryID" : "budget_increase/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.04233694076538086
+    },
+    {
+      "expansion" : {
+        "original" : "Kate Bell 对增加 advertising spend 和拓展新市场有什么建议？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What suggestions does Kate Bell have for increasing advertising spending and expanding new markets?"
+      },
+      "queryID" : "budget_increase/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.034942030906677246
+    },
+    {
+      "expansion" : {
+        "original" : "哪项发布安排因为支付故障而延期？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "launch_delay/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.800060272216797e-05
+    },
+    {
+      "expansion" : {
+        "original" : "哪项发布安排因为支付故障而延期？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Which release arrangement was postponed due to payment failure?"
+      },
+      "queryID" : "launch_delay/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.036054015159606934
+    },
+    {
+      "expansion" : {
+        "original" : "Why was the release delayed due to payment problems?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "为什么因为付款问题而延迟发布？"
+      },
+      "queryID" : "launch_delay/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.04250895977020264
+    },
+    {
+      "expansion" : {
+        "original" : "Why was the release delayed due to payment problems?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "launch_delay/en",
+      "queryLanguage" : "en",
+      "seconds" : 8.940696716308594e-06
+    },
+    {
+      "expansion" : {
+        "original" : "为什么 product release 因为支付问题被推迟？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "为什么产品发布 因为支付问题被推迟？"
+      },
+      "queryID" : "launch_delay/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.0369420051574707
+    },
+    {
+      "expansion" : {
+        "original" : "为什么 product release 因为支付问题被推迟？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Why was the product release postponed because of the payment problem?"
+      },
+      "queryID" : "launch_delay/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02800607681274414
+    },
+    {
+      "expansion" : {
+        "original" : "产品能否在测试通过后按时上线？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "launch_on_time/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "产品能否在测试通过后按时上线？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Can the product be launched on time after passing the test?"
+      },
+      "queryID" : "launch_on_time/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.031993985176086426
+    },
+    {
+      "expansion" : {
+        "original" : "Was the launch kept on schedule after checkout passed testing?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "结账通过测试后，发布会是否按计划进行？"
+      },
+      "queryID" : "launch_on_time/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.05074894428253174
+    },
+    {
+      "expansion" : {
+        "original" : "Was the launch kept on schedule after checkout passed testing?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "launch_on_time/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.0013580322265625e-05
+    },
+    {
+      "expansion" : {
+        "original" : "测试通过后，product launch 是否仍然 on schedule？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "测试通过后，产品发布是否仍然如期？"
+      },
+      "queryID" : "launch_on_time/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.04451298713684082
+    },
+    {
+      "expansion" : {
+        "original" : "测试通过后，product launch 是否仍然 on schedule？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "After passing the test, is the product launch still on schedule?"
+      },
+      "queryID" : "launch_on_time/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02962195873260498
+    },
+    {
+      "expansion" : {
+        "original" : "为何采购计划更换合作厂家？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "supplier_switch/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.800060272216797e-05
+    },
+    {
+      "expansion" : {
+        "original" : "为何采购计划更换合作厂家？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Why does the procurement plan to change the partner manufacturer?"
+      },
+      "queryID" : "supplier_switch/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03142404556274414
+    },
+    {
+      "expansion" : {
+        "original" : "Why does procurement want to replace the vendor?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "为什么采购部门想要更换供应商？"
+      },
+      "queryID" : "supplier_switch/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03530395030975342
+    },
+    {
+      "expansion" : {
+        "original" : "Why does procurement want to replace the vendor?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "supplier_switch/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.0013580322265625e-05
+    },
+    {
+      "expansion" : {
+        "original" : "采购为什么要 replace supplier？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "采购为什么要更换供应商？"
+      },
+      "queryID" : "supplier_switch/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.027525901794433594
+    },
+    {
+      "expansion" : {
+        "original" : "采购为什么要 replace supplier？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Why should the procurement replace the supplier?"
+      },
+      "queryID" : "supplier_switch/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024997949600219727
+    },
+    {
+      "expansion" : {
+        "original" : "哪笔款项到期未付，需要财务催收？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "invoice_overdue/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.4901161193847656e-05
+    },
+    {
+      "expansion" : {
+        "original" : "哪笔款项到期未付，需要财务催收？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Which amount is due and unpaid and needs financial collection?"
+      },
+      "queryID" : "invoice_overdue/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.0363849401473999
+    },
+    {
+      "expansion" : {
+        "original" : "Which unpaid bill needs a collection follow-up from finance?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "哪些未付账单需要财务部门的收款跟进？"
+      },
+      "queryID" : "invoice_overdue/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03843796253204346
+    },
+    {
+      "expansion" : {
+        "original" : "Which unpaid bill needs a collection follow-up from finance?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "invoice_overdue/en",
+      "queryLanguage" : "en",
+      "seconds" : 8.940696716308594e-06
+    },
+    {
+      "expansion" : {
+        "original" : "Finance 需要催收哪笔 overdue invoice？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "财务需要催收哪笔逾期发票？"
+      },
+      "queryID" : "invoice_overdue/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.033280014991760254
+    },
+    {
+      "expansion" : {
+        "original" : "Finance 需要催收哪笔 overdue invoice？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Which overdue invoice does Finance need to collect?"
+      },
+      "queryID" : "invoice_overdue/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.023840904235839844
+    },
+    {
+      "expansion" : {
+        "original" : "我下飞机后如何去公司开会？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "airport_office/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 2.5033950805664062e-05
+    },
+    {
+      "expansion" : {
+        "original" : "我下飞机后如何去公司开会？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How can I go to the company for a meeting after I get off the plane?"
+      },
+      "queryID" : "airport_office/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.031700968742370605
+    },
+    {
+      "expansion" : {
+        "original" : "How did I get to work for a meeting after my flight?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "飞机起飞后，我是怎么去上班开会的？"
+      },
+      "queryID" : "airport_office/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.04187500476837158
+    },
+    {
+      "expansion" : {
+        "original" : "How did I get to work for a meeting after my flight?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "airport_office/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.5020370483398438e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Landing 之后，我怎样从 airport 去公司开会？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "着陆后，我如何从机场去公司开会？"
+      },
+      "queryID" : "airport_office/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.040220022201538086
+    },
+    {
+      "expansion" : {
+        "original" : "Landing 之后，我怎样从 airport 去公司开会？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "After Landing, how can I go to the company for a meeting from the airport?"
+      },
+      "queryID" : "airport_office/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03422999382019043
+    },
+    {
+      "expansion" : {
+        "original" : "晚班飞机到达后，我乘什么交通工具回家休息？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "airport_home/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.895427703857422e-05
+    },
+    {
+      "expansion" : {
+        "original" : "晚班飞机到达后，我乘什么交通工具回家休息？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "After the late flight arrives, what kind of transportation should I take to go home to rest?"
+      },
+      "queryID" : "airport_home/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.035897016525268555
+    },
+    {
+      "expansion" : {
+        "original" : "How did I travel home to rest after my evening flight?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "晚上坐飞机后，我是怎么回家休息的？"
+      },
+      "queryID" : "airport_home/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03671598434448242
+    },
+    {
+      "expansion" : {
+        "original" : "How did I travel home to rest after my evening flight?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "airport_home/en",
+      "queryLanguage" : "en",
+      "seconds" : 8.940696716308594e-06
+    },
+    {
+      "expansion" : {
+        "original" : "Evening flight 之后，我怎么从 airport 回家休息？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "晚上的航班之后，我怎么从机场回家休息？"
+      },
+      "queryID" : "airport_home/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03794097900390625
+    },
+    {
+      "expansion" : {
+        "original" : "Evening flight 之后，我怎么从 airport 回家休息？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How can I go home from the airport to rest after the evening flight?"
+      },
+      "queryID" : "airport_home/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.026411056518554688
+    },
+    {
+      "expansion" : {
+        "original" : "明天去机场接朋友的安排是什么？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "airport_pickup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "明天去机场接朋友的安排是什么？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What's the schedule to pick up my friend at the airport tomorrow?"
+      },
+      "queryID" : "airport_pickup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.0294649600982666
+    },
+    {
+      "expansion" : {
+        "original" : "What are my plans for collecting my friend from the airport?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我有什么计划从机场接我的朋友？"
+      },
+      "queryID" : "airport_pickup/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.030956029891967773
+    },
+    {
+      "expansion" : {
+        "original" : "What are my plans for collecting my friend from the airport?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "airport_pickup/en",
+      "queryLanguage" : "en",
+      "seconds" : 8.940696716308594e-06
+    },
+    {
+      "expansion" : {
+        "original" : "明天去 airport pick up 朋友有什么安排？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "明天去机场接朋友有什么安排？"
+      },
+      "queryID" : "airport_pickup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.031231045722961426
+    },
+    {
+      "expansion" : {
+        "original" : "明天去 airport pick up 朋友有什么安排？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What's the plan for my friend to pick up at the airport tomorrow?"
+      },
+      "queryID" : "airport_pickup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.030758976936340332
+    },
+    {
+      "expansion" : {
+        "original" : "和客户讨论合同的会议改到了什么时候？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "reschedule_meeting/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "和客户讨论合同的会议改到了什么时候？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "When is the meeting with the customer to discuss the contract?"
+      },
+      "queryID" : "reschedule_meeting/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03374302387237549
+    },
+    {
+      "expansion" : {
+        "original" : "When was the client contract meeting rescheduled?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "客户合同会议何时重新安排？"
+      },
+      "queryID" : "reschedule_meeting/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03027200698852539
+    },
+    {
+      "expansion" : {
+        "original" : "When was the client contract meeting rescheduled?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "reschedule_meeting/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Client contract meeting 改到哪天？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "客户合同会议改到哪天？"
+      },
+      "queryID" : "reschedule_meeting/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03146398067474365
+    },
+    {
+      "expansion" : {
+        "original" : "Client contract meeting 改到哪天？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "When will the client contract meeting be changed to?"
+      },
+      "queryID" : "reschedule_meeting/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024183988571166992
+    },
+    {
+      "expansion" : {
+        "original" : "招聘移动应用开发人员有什么进展？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "recruitment/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.2040138244628906e-05
+    },
+    {
+      "expansion" : {
+        "original" : "招聘移动应用开发人员有什么进展？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What's the progress in recruiting mobile application developers?"
+      },
+      "queryID" : "recruitment/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.024348974227905273
+    },
+    {
+      "expansion" : {
+        "original" : "What is the hiring plan for the mobile engineering position?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "移动工程职位的招聘计划是什么？"
+      },
+      "queryID" : "recruitment/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.0351330041885376
+    },
+    {
+      "expansion" : {
+        "original" : "What is the hiring plan for the mobile engineering position?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "recruitment/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Mobile engineer 招聘和 interview 进展如何？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "移动工程师招聘和面试进展如何？"
+      },
+      "queryID" : "recruitment/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.028918981552124023
+    },
+    {
+      "expansion" : {
+        "original" : "Mobile engineer 招聘和 interview 进展如何？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How is the mobile engineer recruitment and interview going?"
+      },
+      "queryID" : "recruitment/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.023077011108398438
+    },
+    {
+      "expansion" : {
+        "original" : "演示之后销售如何推进客户购买？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "sales_followup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.1920928955078125e-05
+    },
+    {
+      "expansion" : {
+        "original" : "演示之后销售如何推进客户购买？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How can sales promote customer purchases after demonstration?"
+      },
+      "queryID" : "sales_followup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.024104952812194824
+    },
+    {
+      "expansion" : {
+        "original" : "What follow-up is planned after the prospect's product demonstration?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "在潜在客户的产品演示后，计划进行哪些后续行动？"
+      },
+      "queryID" : "sales_followup/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.037858009338378906
+    },
+    {
+      "expansion" : {
+        "original" : "What follow-up is planned after the prospect's product demonstration?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "sales_followup/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.1920928955078125e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Product demo 后 sales 下一步如何跟进客户？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "产品演示后销售下一步如何跟进客户？"
+      },
+      "queryID" : "sales_followup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03156602382659912
+    },
+    {
+      "expansion" : {
+        "original" : "Product demo 后 sales 下一步如何跟进客户？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How to follow up with customers after the product demo?"
+      },
+      "queryID" : "sales_followup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02978205680847168
+    },
+    {
+      "expansion" : {
+        "original" : "睡眠不足影响精神后，我准备做什么调整？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "sleep/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "睡眠不足影响精神后，我准备做什么调整？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What adjustments am I going to make after lack of sleep affects my spirit?"
+      },
+      "queryID" : "sleep/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03586292266845703
+    },
+    {
+      "expansion" : {
+        "original" : "What changes did I plan after poor sleep affected my concentration?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "在睡眠不足影响了我的注意力后，我计划了哪些改变？"
+      },
+      "queryID" : "sleep/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.0421450138092041
+    },
+    {
+      "expansion" : {
+        "original" : "What changes did I plan after poor sleep affected my concentration?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "sleep/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Poor sleep 影响 concentration 后，我准备如何调整？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "睡眠不好影响注意力后，我准备如何调整？"
+      },
+      "queryID" : "sleep/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.044850945472717285
+    },
+    {
+      "expansion" : {
+        "original" : "Poor sleep 影响 concentration 后，我准备如何调整？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How am I going to adjust after poor sleep affects concentration?"
+      },
+      "queryID" : "sleep/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.031167030334472656
+    },
+    {
+      "expansion" : {
+        "original" : "医生针对高血压提出了哪些生活建议？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "hypertension/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.0967254638671875e-05
+    },
+    {
+      "expansion" : {
+        "original" : "医生针对高血压提出了哪些生活建议？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What life advice did the doctor put forward for high blood pressure?"
+      },
+      "queryID" : "hypertension/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.039901018142700195
+    },
+    {
+      "expansion" : {
+        "original" : "What advice did the doctor give for managing hypertension?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "医生对控制高血压有什么建议？"
+      },
+      "queryID" : "hypertension/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.04461205005645752
+    },
+    {
+      "expansion" : {
+        "original" : "What advice did the doctor give for managing hypertension?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "hypertension/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.1920928955078125e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Doctor 针对 high blood pressure 给了什么建议？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "医生针对高血压，建议什么？"
+      },
+      "queryID" : "hypertension/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03307795524597168
+    },
+    {
+      "expansion" : {
+        "original" : "Doctor 针对 high blood pressure 给了什么建议？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What advice did Doctor give for high blood pressure?"
+      },
+      "queryID" : "hypertension/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.028282999992370605
+    },
+    {
+      "expansion" : {
+        "original" : "我安排了怎样的每周锻炼计划？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "exercise/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.4066696166992188e-05
+    },
+    {
+      "expansion" : {
+        "original" : "我安排了怎样的每周锻炼计划？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What kind of weekly exercise plan do I have?"
+      },
+      "queryID" : "exercise/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.024208903312683105
+    },
+    {
+      "expansion" : {
+        "original" : "What is my weekly workout routine to get fitter?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我每周的锻炼程序是什么，才能变得更健康？"
+      },
+      "queryID" : "exercise/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03534400463104248
+    },
+    {
+      "expansion" : {
+        "original" : "What is my weekly workout routine to get fitter?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "exercise/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.5020370483398438e-05
+    },
+    {
+      "expansion" : {
+        "original" : "我的 weekly workout 和力量训练怎么安排？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我的每周锻炼和力量训练怎么安排？"
+      },
+      "queryID" : "exercise/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03205311298370361
+    },
+    {
+      "expansion" : {
+        "original" : "我的 weekly workout 和力量训练怎么安排？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How do I arrange my weekly workout and strength training?"
+      },
+      "queryID" : "exercise/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.027109980583190918
+    },
+    {
+      "expansion" : {
+        "original" : "今天需要补充哪些日常食材？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "groceries/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.0967254638671875e-05
+    },
+    {
+      "expansion" : {
+        "original" : "今天需要补充哪些日常食材？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What daily ingredients need to be replenished today?"
+      },
+      "queryID" : "groceries/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.025050044059753418
+    },
+    {
+      "expansion" : {
+        "original" : "Which groceries do I need to pick up on my way home?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我在回家的路上需要买哪些杂货？"
+      },
+      "queryID" : "groceries/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.0321040153503418
+    },
+    {
+      "expansion" : {
+        "original" : "Which groceries do I need to pick up on my way home?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "groceries/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.0013580322265625e-05
+    },
+    {
+      "expansion" : {
+        "original" : "下班要买哪些 groceries 补充冰箱？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "下班要买哪些杂货 补充冰箱？"
+      },
+      "queryID" : "groceries/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.029380083084106445
+    },
+    {
+      "expansion" : {
+        "original" : "下班要买哪些 groceries 补充冰箱？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What groceries should I buy to supplement the refrigerator after work?"
+      },
+      "queryID" : "groceries/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.026268959045410156
+    },
+    {
+      "expansion" : {
+        "original" : "我打算怎么为妈妈庆生？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "birthday/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.5974044799804688e-05
+    },
+    {
+      "expansion" : {
+        "original" : "我打算怎么为妈妈庆生？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How am I going to celebrate my mother's birthday?"
+      },
+      "queryID" : "birthday/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.02481698989868164
+    },
+    {
+      "expansion" : {
+        "original" : "How am I planning to celebrate my mom's birthday?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我打算怎么庆祝我妈妈的生日？"
+      },
+      "queryID" : "birthday/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.030151009559631348
+    },
+    {
+      "expansion" : {
+        "original" : "How am I planning to celebrate my mom's birthday?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "birthday/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Mom 的 birthday 我准备怎么庆祝？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "妈妈的生日，我准备怎么庆祝？"
+      },
+      "queryID" : "birthday/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02823507785797119
+    },
+    {
+      "expansion" : {
+        "original" : "Mom 的 birthday 我准备怎么庆祝？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How am I going to celebrate Mom's birthday?"
+      },
+      "queryID" : "birthday/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024479985237121582
+    },
+    {
+      "expansion" : {
+        "original" : "周末车辆维修保养要做哪些项目？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "car_service/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "周末车辆维修保养要做哪些项目？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What items should be done for vehicle maintenance on weekends?"
+      },
+      "queryID" : "car_service/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.024893999099731445
+    },
+    {
+      "expansion" : {
+        "original" : "What maintenance is scheduled for my car this weekend?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "这个周末我的车要做什么保养？"
+      },
+      "queryID" : "car_service/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.02958393096923828
+    },
+    {
+      "expansion" : {
+        "original" : "What maintenance is scheduled for my car this weekend?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "car_service/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "这周末 car maintenance 要检查哪些项目？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "这周末汽车维修要检查哪些项目？"
+      },
+      "queryID" : "car_service/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.029661059379577637
+    },
+    {
+      "expansion" : {
+        "original" : "这周末 car maintenance 要检查哪些项目？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What items should car maintenance check this weekend?"
+      },
+      "queryID" : "car_service/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024615049362182617
+    },
+    {
+      "expansion" : {
+        "original" : "语音数据如何通过本地保存来保障隐私？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "privacy_local/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.0013580322265625e-05
+    },
+    {
+      "expansion" : {
+        "original" : "语音数据如何通过本地保存来保障隐私？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How can voice data be saved locally to ensure privacy?"
+      },
+      "queryID" : "privacy_local/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.027679920196533203
+    },
+    {
+      "expansion" : {
+        "original" : "How does keeping audio and text on the device protect my privacy?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "在设备上保留音频和文本如何保护我的隐私？"
+      },
+      "queryID" : "privacy_local/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03592109680175781
+    },
+    {
+      "expansion" : {
+        "original" : "How does keeping audio and text on the device protect my privacy?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "privacy_local/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Recordings 本地存储如何保护我的 privacy？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "录音 本地存储如何保护我的隐私？"
+      },
+      "queryID" : "privacy_local/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03006899356842041
+    },
+    {
+      "expansion" : {
+        "original" : "Recordings 本地存储如何保护我的 privacy？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How does Recordings local storage protect my privacy?"
+      },
+      "queryID" : "privacy_local/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024603962898254395
+    },
+    {
+      "expansion" : {
+        "original" : "为了防止手机故障丢资料，我准备怎样备份？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "data_backup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.5974044799804688e-05
+    },
+    {
+      "expansion" : {
+        "original" : "为了防止手机故障丢资料，我准备怎样备份？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "In order to prevent the failure of the mobile phone and the loss of information, how am I going to back it up?"
+      },
+      "queryID" : "data_backup/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03776395320892334
+    },
+    {
+      "expansion" : {
+        "original" : "How will I back up my files in case my phone fails?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "如果我的手机出现故障，我该怎么备份我的文件？"
+      },
+      "queryID" : "data_backup/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03546297550201416
+    },
+    {
+      "expansion" : {
+        "original" : "How will I back up my files in case my phone fails?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "data_backup/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.0967254638671875e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Phone 坏掉前，我怎么 backup 照片和文件？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "手机坏掉前，我怎么备份照片和文件？"
+      },
+      "queryID" : "data_backup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03756392002105713
+    },
+    {
+      "expansion" : {
+        "original" : "Phone 坏掉前，我怎么 backup 照片和文件？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "How can I back up photos and files before the phone breaks down?"
+      },
+      "queryID" : "data_backup/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.028857946395874023
+    },
+    {
+      "expansion" : {
+        "original" : "耳机出现故障后，我如何处理这笔订单？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "refund/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.0967254638671875e-05
+    },
+    {
+      "expansion" : {
+        "original" : "耳机出现故障后，我如何处理这笔订单？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What should I do with this order after the headphones fail?"
+      },
+      "queryID" : "refund/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.029899954795837402
+    },
+    {
+      "expansion" : {
+        "original" : "What did I do about the defective headphones I ordered?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我订购的有缺陷的耳机我做了什么？"
+      },
+      "queryID" : "refund/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03209793567657471
+    },
+    {
+      "expansion" : {
+        "original" : "What did I do about the defective headphones I ordered?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "refund/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Headphones 不能充电，我怎么申请 refund？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "耳机不能充电，我怎么申请退款？"
+      },
+      "queryID" : "refund/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02975308895111084
+    },
+    {
+      "expansion" : {
+        "original" : "Headphones 不能充电，我怎么申请 refund？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Headphones can't be charged. How can I apply for a refund?"
+      },
+      "queryID" : "refund/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.024849891662597656
+    },
+    {
+      "expansion" : {
+        "original" : "面对房租上涨，我准备怎样协商续租？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "rent/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "面对房租上涨，我准备怎样协商续租？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "In the face of rising rent, how am I going to negotiate the lease renewal?"
+      },
+      "queryID" : "rent/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03223001956939697
+    },
+    {
+      "expansion" : {
+        "original" : "How will I respond to the proposed rent increase at renewal?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "我将如何回应续约时拟议的租金增长？"
+      },
+      "queryID" : "rent/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03305494785308838
+    },
+    {
+      "expansion" : {
+        "original" : "How will I respond to the proposed rent increase at renewal?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "rent/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.2993812561035156e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Lease renewal 涨租，我打算怎么 negotiate？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "续租涨租，我打算怎么谈判？"
+      },
+      "queryID" : "rent/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03058493137359619
+    },
+    {
+      "expansion" : {
+        "original" : "Lease renewal 涨租，我打算怎么 negotiate？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Lease renewal rent increase, how do I plan to negotiate?"
+      },
+      "queryID" : "rent/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.029182910919189453
+    },
+    {
+      "expansion" : {
+        "original" : "我为何需要周五请假去学校？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "school/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "我为何需要周五请假去学校？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Why do I need to ask for leave to go to school on Friday?"
+      },
+      "queryID" : "school/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.026690959930419922
+    },
+    {
+      "expansion" : {
+        "original" : "Why do I need time off on Friday to visit my child's school?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "為什麼我週五需要請假去看望我孩子的學校？"
+      },
+      "queryID" : "school/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03846597671508789
+    },
+    {
+      "expansion" : {
+        "original" : "Why do I need time off on Friday to visit my child's school?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "school/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.4901161193847656e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Friday 为什么要请假去 school 开会？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "星期五 为什么要请假去学校开会？"
+      },
+      "queryID" : "school/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02893209457397461
+    },
+    {
+      "expansion" : {
+        "original" : "Friday 为什么要请假去 school 开会？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "Why did you ask for leave to go to the school meeting on Friday?"
+      },
+      "queryID" : "school/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02526700496673584
+    },
+    {
+      "expansion" : {
+        "original" : "聚餐预订时需要向餐厅说明什么过敏情况？",
+        "status" : "sameLanguage",
+        "target" : "zh-Hans"
+      },
+      "queryID" : "restaurant/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 1.6927719116210938e-05
+    },
+    {
+      "expansion" : {
+        "original" : "聚餐预订时需要向餐厅说明什么过敏情况？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "What allergies do I need to tell the restaurant when booking dinner?"
+      },
+      "queryID" : "restaurant/zh",
+      "queryLanguage" : "zh",
+      "seconds" : 0.03039705753326416
+    },
+    {
+      "expansion" : {
+        "original" : "What dietary allergy should we mention for our dinner reservation?",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "在预订晚餐时，我们应该提到什么饮食过敏？"
+      },
+      "queryID" : "restaurant/en",
+      "queryLanguage" : "en",
+      "seconds" : 0.03626394271850586
+    },
+    {
+      "expansion" : {
+        "original" : "What dietary allergy should we mention for our dinner reservation?",
+        "status" : "sameLanguage",
+        "target" : "en"
+      },
+      "queryID" : "restaurant/en",
+      "queryLanguage" : "en",
+      "seconds" : 1.3947486877441406e-05
+    },
+    {
+      "expansion" : {
+        "original" : "Dinner reservation 时，需要告诉 chef 什么 allergy？",
+        "status" : "translated",
+        "target" : "zh-Hans",
+        "translation" : "晚餐预订时，需要告诉厨师什么过敏？"
+      },
+      "queryID" : "restaurant/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.02979898452758789
+    },
+    {
+      "expansion" : {
+        "original" : "Dinner reservation 时，需要告诉 chef 什么 allergy？",
+        "status" : "translated",
+        "target" : "en",
+        "translation" : "When makinding dinner, what allergy do you need to tell the chef?"
+      },
+      "queryID" : "restaurant/mixed",
+      "queryLanguage" : "mixed",
+      "seconds" : 0.03231191635131836
+    }
+  ],
+  "resourceStatus" : {
+    "en->zh-Hans" : "installed",
+    "zh-Hans->en" : "installed"
+  },
+  "startedAt" : "2026-10-31T03:34:07Z"
+}
