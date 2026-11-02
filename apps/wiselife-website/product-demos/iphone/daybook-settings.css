@@ -1,0 +1,36 @@
+/* One hierarchy for every Settings group. Scoped to this page and its new sheets. */
+#dataView{--settings-heading-size:16px;--settings-row-size:14px;--settings-note-size:11px}
+#dataView .settings-group{margin:28px 0 0}
+#dataView .settings-group>h3{margin:0 0 12px;font-size:var(--settings-heading-size);font-weight:600;line-height:1.5;letter-spacing:0;color:var(--ink)}
+#dataView .settings-menu{border-top:1px solid var(--line)}
+#dataView .device-list{border-top:0}
+#dataView :is(.capture-option,.device-row,.source-row){display:flex;align-items:center;gap:12px;width:100%;min-height:72px;padding:15px 0;margin:0;border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);background:none}
+#dataView :is(.capture-option,.device-row,.source-row)>:is(div,.device-row-copy){flex:1;min-width:0}
+#dataView :is(.capture-option,.device-row,.source-row) strong{display:block;font-size:var(--settings-row-size);font-weight:500;line-height:1.5;letter-spacing:0;color:var(--ink)}
+#dataView :is(.capture-option,.source-row) p,#dataView .device-state{font-size:var(--settings-note-size);font-weight:400;line-height:1.65;margin:4px 0 0;color:var(--secondary);overflow-wrap:anywhere}
+#dataView :is(.capture-option,.source-row)>.icon,#dataView .device-avatar .icon{width:20px;height:20px;color:var(--accent);stroke-width:1.7}
+#dataView :is(.capture-option,.device-row)>.icon:last-child{width:16px;height:16px;color:var(--secondary)}
+#dataView .device-avatar{display:grid;place-items:center;width:20px;height:24px;border-radius:0;background:none}
+#dataView .device-row-copy{gap:0}
+#dataView .device-description{display:none}
+#dataView .device-state .status-dot{display:none}
+#dataView .settings-select select{flex:0 1 auto;width:auto;max-width:52%;min-width:0;min-height:44px;padding:8px 2px 8px 8px;border:0;border-radius:7px;background:transparent;color:var(--secondary);font:inherit;font-size:13px;text-align-last:right}
+#dataView .settings-toggle>.switch{flex-shrink:0}
+#dataView .place-settings-link{margin-top:5px;font-size:var(--settings-note-size);font-weight:400}
+#dataView .settings-footnote{font-size:var(--settings-note-size);line-height:1.8;color:var(--secondary);margin:12px 0 0}
+#dataView .about-release-info{border-top:0;margin:18px 0 4px;padding:0;font-size:var(--settings-note-size)}
+.settings-demo-tools{margin-top:20px}
+.settings-detail h3{margin:24px 0 10px;font-size:16px;font-weight:600;line-height:1.5}
+.settings-detail h3:first-child{margin-top:0}
+.settings-detail .capture-option{min-height:72px;padding:15px 0;gap:12px}
+.settings-detail .capture-option strong{font-size:14px;font-weight:500;line-height:1.5}
+.settings-detail .capture-option p,.settings-detail>p,.settings-detail li{font-size:11px;line-height:1.8;color:var(--secondary)}
+.settings-detail .capture-option>.icon{width:20px;height:20px}
+.settings-detail .capture-option>.icon:last-child{width:16px;height:16px}
+.settings-detail ol{margin:0;padding-left:18px}
+.settings-detail li{margin:8px 0}
+.settings-detail .settings-state{color:var(--green);font-size:11px}
+.settings-detail .settings-inline-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.settings-detail .settings-inline-actions button{font-size:11px}
+.settings-detail .model-resource{margin:14px 0;padding:15px}
+.settings-detail .model-resource strong{font-size:14px;font-weight:500}

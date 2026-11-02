@@ -1,0 +1,196 @@
+{
+  "iphoneSource": "/Users/karama/Documents/Vessel/apps/wrist-notes/prototype",
+  "macSource": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype",
+  "captureScale": 3,
+  "state": "Sample-data prototypes, no native device data",
+  "copies": {
+    "iphone": [
+      {
+        "source": "apps/wrist-notes/prototype/daybook-record-management.js",
+        "sha256": "04b228d6447d6e6d841c8c24c53c25cae67ceb3b9bc2c6c24ea45b92615da1fe"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-ai.js",
+        "sha256": "d31733fffff8ba7336dbf7442ce5912a1d2eed70e65717ab1d0283932b8c4d54"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-settings.css",
+        "sha256": "94e2d08c9be96e4fe162dc31055b0a9329d11c3750492e3e8ad9695f1dd316f7"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-apple-reminders.css",
+        "sha256": "636eb8c095de8609f3f3e30a4cfbe777015dbde8420005c7290a0578febeaa4e"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-record-merge.js",
+        "sha256": "198e5abd4f69101169ee2cef871ec5858c96dfc9ef130acfe326954908abe172"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-record-management.css",
+        "sha256": "84aa6dcddbfa737c9edc355b1ee54fa04b943cec6924bc5f834d40e1f2991645"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-flash-assets.css",
+        "sha256": "81624f358d4ab50732d4b881675b80fedc9da1d62b561dc01b23b7c30561f7af"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-life-moments.css",
+        "sha256": "aa3e985c3c09ddb9ebb8cad78cbb3211e930f9d5bbbc63626d703a6a9ee0c9a3"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-story-locales.js",
+        "sha256": "729a6dd2b448683b3a1c684d6da1e9822260e5be4f4c3947173d6dbfa24052b7"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-site-locales.js",
+        "sha256": "1a54c011a1bff80cfac5ac5f9a067cf52f10dff9482d22f1f060f0bacf6d3641"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-chatgpt.js",
+        "sha256": "3e2f6d4654cdacc9e488d8b73ef28acfa50d1b5c75953953a869128ee9397f44"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-model-settings.js",
+        "sha256": "b0cc03fa00ad0f5f4efce773b35d5b136cd02ab6faceaf82e0aa860969f80ebf"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-places.css",
+        "sha256": "46c71a991aa9c3fa1acf9ce79129474da5f66533c7d02c21dba89066e2a3d850"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-story.js",
+        "sha256": "ea45557d27d3e2054c72007c430cb8fbe503ff7f2f82e378e4dc6fe465480200"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-locales.js",
+        "sha256": "30b5f7f5b4da5656bc26ae83cf22faedd0bea7c5392225a054dbf408b12419a4"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-voice-profile.css",
+        "sha256": "9e211417306f875af4f581c376975c2e57c21981c18cce79a3e9730a984931b8"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-photos.js",
+        "sha256": "8f739f93ebb754c5e7103435550edcc69aa1db7c78e6a4cce44d8905bc9beacb"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-site.js",
+        "sha256": "507ba1befff3f37484bf4289f38a7215d94c15553e569331bcc7f544bf0f6c78"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-brand.css",
+        "sha256": "44ecd36c75bb2e8bc809a119a77603fd27ef3aa193a403ca6e8d62e553983c62"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-life-moments.js",
+        "sha256": "4e4a715eeb3128d36716dd8ee038502a50efe2397d756182d2becb7407887797"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-chatgpt.css",
+        "sha256": "93a49707177db056693e19d31e1b54a286e52b1351d001382a16fa57cde86f47"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-record-sources.js",
+        "sha256": "d8dbcade8ebe46e8848cd98a73bdfac2407a7cf5a02e4fe3bca972a35596ba2f"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/legal.css",
+        "sha256": "d07d7acff6f44dba630c686fd8b5d0ce5ca01f083270e97eda7c0464bd925180"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook.js",
+        "sha256": "0bcf506f31421f3c627b6f881480d7d2677550fb9711c6b76dceac3170d81066"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-story.css",
+        "sha256": "5537061bdd9c5a69dca375867a994485ba4389297b21e9c7a0a46d08039207d5"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-capture-settings.css",
+        "sha256": "1bb42389fcb2bdf15f045c40d0d8f7c92104d93e5beefa4f9c80e634f81feb05"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/wiselife-site.css",
+        "sha256": "7f5d9011d2243ccc4484e39ab7bf325e17885ac18045cea2ac6bb6b83934fca8"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-flash-assets.js",
+        "sha256": "8371eae839bfbe12c2379e419795f16636f4d3f3c88eb9a420f475c6b031f0f8"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-ai.css",
+        "sha256": "9c7b23d9274b0b3fc9d92cba9dad633e8fe3a435d5f0b4c13ad1a9c9d9d855ee"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-speaker-contacts.js",
+        "sha256": "7f2a04f07390f4ce10465627f7f1b5fd24318b23f6cb4337903f4a87f29cdc1f"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-voice-profile.js",
+        "sha256": "c2e3a3e2c9cb79a6dfa876f91c055f8dac689d73606e11c067f815c5f873e6d1"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-model-catalog.js",
+        "sha256": "d66decd7f9e4cc8aec8d87cd9a88aee14fbe3a527c6a27e6858bbcbacdf60b40"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-apple-reminders.js",
+        "sha256": "d55aa86bea0383d440b8d59ecf15dfd3a916935437e5e7cf425b8184744af564"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-hardware.js",
+        "sha256": "2018e0ce6e17999f00e147a95112187328a88323c87f892450d5fb5c5d07916c"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-settings.js",
+        "sha256": "bdfab7594e321bd5952222ea079e9173be350ae488a46ed7d5c93288e6702132"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-places.js",
+        "sha256": "46e9647f6e3c520478c0fc4e2999f73479c87766c839ad7d5670bbc2780e9dae"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-theme.css",
+        "sha256": "ad81262e5d7fc4336b81ecb5c324c71822a7c42ef875337eaa067ce118711583"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook.css",
+        "sha256": "a07b15d2a5a527224439dfa351d0f89aec474a26eadad3f7f1672183c6bdf50b"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-speaker-contacts.css",
+        "sha256": "93465300b9d60917eac7382d9c0eeed8037f1ea64d6fb8d137590c71d80ad56a"
+      },
+      {
+        "source": "apps/wrist-notes/prototype/daybook-hardware.css",
+        "sha256": "496c8704b67176cac84a90c9d8b5006338c481520c4647138f623dd4d4640612"
+      }
+    ],
+    "mac": [
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/index.html",
+        "sha256": "8748af211d419f5a7dea3870e7170694a97fa2ce58c3da71273048c890fe92cd"
+      },
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/catalog.js",
+        "sha256": "162634747f73e14f7f571ef8bc8fa88ef35432fba09a2faf80504dd590921829"
+      },
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/knowledge.css",
+        "sha256": "49616db80bb5ae1d124e70d52c569d2aee44d3aa3cbff1e6205f38150c64b352"
+      },
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/companion.css",
+        "sha256": "3cf6b579edc9ae5cba55e92814fb76f0e292d318fbf8ef2f5702746c85fc18de"
+      },
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/companion.js",
+        "sha256": "0c549cbf8724e1abb047a638b6fc89f5d7a24554ed7979306e44969f16d11741"
+      },
+      {
+        "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype/knowledge.js",
+        "sha256": "c0b775a8e6e78cf43aae4e37629fe0077ffab63b93fa3987934651a044a53594"
+      }
+    ]
+  }
+}

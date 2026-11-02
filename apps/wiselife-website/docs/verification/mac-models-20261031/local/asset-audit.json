@@ -1,0 +1,436 @@
+{
+  "time": "2026-10-31T13:50:39.601Z",
+  "imageDensity": [
+    {
+      "viewport": 390,
+      "file": "hero-reference.webp",
+      "pixels": [
+        1024,
+        369
+      ],
+      "rendered": [
+        390,
+        270
+      ],
+      "density": 1.37
+    },
+    {
+      "viewport": 390,
+      "file": "watch-recording.webp",
+      "pixels": [
+        1080,
+        1293
+      ],
+      "rendered": [
+        48,
+        58
+      ],
+      "density": 22.29
+    },
+    {
+      "viewport": 390,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        67,
+        146
+      ],
+      "density": 17.34
+    },
+    {
+      "viewport": 390,
+      "file": "mac-models.webp",
+      "pixels": [
+        3720,
+        2694
+      ],
+      "rendered": [
+        229,
+        166
+      ],
+      "density": 16.23
+    },
+    {
+      "viewport": 390,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        182,
+        393
+      ],
+      "density": 6.43
+    },
+    {
+      "viewport": 390,
+      "file": "iphone-ai.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        154,
+        334
+      ],
+      "density": 7.58
+    },
+    {
+      "viewport": 390,
+      "file": "work-800.webp",
+      "pixels": [
+        800,
+        533
+      ],
+      "rendered": [
+        340,
+        184
+      ],
+      "density": 2.35
+    },
+    {
+      "viewport": 390,
+      "file": "rhythm-800.webp",
+      "pixels": [
+        800,
+        533
+      ],
+      "rendered": [
+        340,
+        184
+      ],
+      "density": 2.35
+    },
+    {
+      "viewport": 390,
+      "file": "remember-800.webp",
+      "pixels": [
+        800,
+        450
+      ],
+      "rendered": [
+        340,
+        184
+      ],
+      "density": 2.35
+    },
+    {
+      "viewport": 390,
+      "file": "rhythm-3200.webp",
+      "pixels": [
+        3200,
+        2133
+      ],
+      "rendered": [
+        390,
+        343
+      ],
+      "density": 6.22
+    },
+    {
+      "viewport": 1440,
+      "file": "hero-reference.webp",
+      "pixels": [
+        1024,
+        369
+      ],
+      "rendered": [
+        1440,
+        627
+      ],
+      "density": 0.59
+    },
+    {
+      "viewport": 1440,
+      "file": "watch-recording.webp",
+      "pixels": [
+        1080,
+        1293
+      ],
+      "rendered": [
+        109,
+        131
+      ],
+      "density": 9.87
+    },
+    {
+      "viewport": 1440,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        160,
+        346
+      ],
+      "density": 7.31
+    },
+    {
+      "viewport": 1440,
+      "file": "mac-models.webp",
+      "pixels": [
+        3720,
+        2694
+      ],
+      "rendered": [
+        523,
+        379
+      ],
+      "density": 7.11
+    },
+    {
+      "viewport": 1440,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        213,
+        461
+      ],
+      "density": 5.49
+    },
+    {
+      "viewport": 1440,
+      "file": "iphone-ai.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        188,
+        407
+      ],
+      "density": 6.22
+    },
+    {
+      "viewport": 1440,
+      "file": "work-800.webp",
+      "pixels": [
+        800,
+        533
+      ],
+      "rendered": [
+        289,
+        209
+      ],
+      "density": 2.55
+    },
+    {
+      "viewport": 1440,
+      "file": "rhythm-800.webp",
+      "pixels": [
+        800,
+        533
+      ],
+      "rendered": [
+        289,
+        209
+      ],
+      "density": 2.55
+    },
+    {
+      "viewport": 1440,
+      "file": "remember-800.webp",
+      "pixels": [
+        800,
+        450
+      ],
+      "rendered": [
+        289,
+        209
+      ],
+      "density": 2.15
+    },
+    {
+      "viewport": 1440,
+      "file": "rhythm-3200.webp",
+      "pixels": [
+        3200,
+        2133
+      ],
+      "rendered": [
+        1440,
+        375
+      ],
+      "density": 2.22
+    },
+    {
+      "viewport": 1920,
+      "file": "hero-reference.webp",
+      "pixels": [
+        1024,
+        369
+      ],
+      "rendered": [
+        1600,
+        673
+      ],
+      "density": 0.55
+    },
+    {
+      "viewport": 1920,
+      "file": "watch-recording.webp",
+      "pixels": [
+        1080,
+        1293
+      ],
+      "rendered": [
+        121,
+        145
+      ],
+      "density": 8.92
+    },
+    {
+      "viewport": 1920,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        179,
+        387
+      ],
+      "density": 6.54
+    },
+    {
+      "viewport": 1920,
+      "file": "mac-models.webp",
+      "pixels": [
+        3720,
+        2694
+      ],
+      "rendered": [
+        583,
+        422
+      ],
+      "density": 6.38
+    },
+    {
+      "viewport": 1920,
+      "file": "iphone-day.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        233,
+        504
+      ],
+      "density": 5.02
+    },
+    {
+      "viewport": 1920,
+      "file": "iphone-ai.webp",
+      "pixels": [
+        1170,
+        2532
+      ],
+      "rendered": [
+        208,
+        450
+      ],
+      "density": 5.63
+    },
+    {
+      "viewport": 1920,
+      "file": "work-1600.webp",
+      "pixels": [
+        1600,
+        1067
+      ],
+      "rendered": [
+        323,
+        234
+      ],
+      "density": 4.56
+    },
+    {
+      "viewport": 1920,
+      "file": "rhythm-1600.webp",
+      "pixels": [
+        1600,
+        1067
+      ],
+      "rendered": [
+        323,
+        234
+      ],
+      "density": 4.56
+    },
+    {
+      "viewport": 1920,
+      "file": "remember-1600.webp",
+      "pixels": [
+        1600,
+        900
+      ],
+      "rendered": [
+        323,
+        234
+      ],
+      "density": 3.85
+    },
+    {
+      "viewport": 1920,
+      "file": "rhythm-3200.webp",
+      "pixels": [
+        3200,
+        2133
+      ],
+      "rendered": [
+        1600,
+        375
+      ],
+      "density": 2
+    }
+  ],
+  "sourceResolutionExceptions": [
+    {
+      "viewport": 390,
+      "file": "hero-reference.webp",
+      "density": 1.37,
+      "reason": "User selected the existing V1 hero; its source is 1024 x 369, reused without pretending to add detail."
+    },
+    {
+      "viewport": 1440,
+      "file": "hero-reference.webp",
+      "density": 0.59,
+      "reason": "User selected the existing V1 hero; its source is 1024 x 369, reused without pretending to add detail."
+    },
+    {
+      "viewport": 1920,
+      "file": "hero-reference.webp",
+      "density": 0.55,
+      "reason": "User selected the existing V1 hero; its source is 1024 x 369, reused without pretending to add detail."
+    }
+  ],
+  "prototypes": [
+    {
+      "route": "/product-demos/iphone/",
+      "visible": ".phone-screen"
+    },
+    {
+      "route": "/product-demos/watch/",
+      "visible": ".watch"
+    },
+    {
+      "route": "/product-demos/mac/#models",
+      "visible": ".model-card:has([data-action=unload])"
+    },
+    {
+      "route": "/product-demos/mac/#knowledge",
+      "visible": ".kb-layout"
+    }
+  ],
+  "errors": [],
+  "bad": [],
+  "status": "PASS"
+}

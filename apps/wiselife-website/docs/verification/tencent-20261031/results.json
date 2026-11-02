@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "origin": "https://wiselife.karama.cloud",
+  "release": "20261031T060113Z",
+  "checkedAt": "2026-10-31T06:02:46.721Z",
+  "fileHashChecks": 70,
+  "httpsCertificateValidation": true,
+  "httpRedirect": 308,
+  "videoRange": 206,
+  "viewports": [
+    1440,
+    390
+  ],
+  "pageErrors": [],
+  "failedAssets": [],
+  "previousRelease": "/opt/wiselife-site/releases/1.0.1-20261022"
+}

@@ -1,5 +1,7 @@
 # WiseLife alternate homepage
 
+> 2026-10-31: current website source is maintained in [`../../wiselife-website/`](../../wiselife-website/README.md). The files remaining beside this historical App prototype are not a second website release source.
+
 Date: 2026-10-24. Scope: an independent `index-next.html` comparison page; original homepage and deployment unchanged.
 
 ## Design

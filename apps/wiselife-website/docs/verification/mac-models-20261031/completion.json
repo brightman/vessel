@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "release": "20261031T135119Z-hd-v2",
+  "liveUrl": "https://wiselife.karama.cloud",
+  "publicFiles": 244,
+  "rootEntriesMatch": true,
+  "sourceStillMatchesDeployedManifest": true,
+  "documentationLinks": "PASS",
+  "legalChecks": 4,
+  "viewportWidths": [
+    320,
+    390,
+    768,
+    900,
+    1024,
+    1440,
+    1920
+  ],
+  "note": "Website rendering and prototype sample states verified; no native runtime or physical hardware testing claimed."
+}

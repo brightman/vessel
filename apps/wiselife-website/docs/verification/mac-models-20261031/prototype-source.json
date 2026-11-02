@@ -1,0 +1,52 @@
+{
+  "source": "/Users/karama/Documents/wiselife-mac-source/apps/wiselife-mac/prototype",
+  "websiteCopy": "product-demos/mac",
+  "files": {
+    "index.html": {
+      "sourceSHA256": "8748af211d419f5a7dea3870e7170694a97fa2ce58c3da71273048c890fe92cd",
+      "websiteSHA256": "b1c23f6be00fe80820f17c21dbbd1ed0ceb373a2ae2c4c065ed556e09b6165ad",
+      "identical": false
+    },
+    "companion.js": {
+      "sourceSHA256": "0c549cbf8724e1abb047a638b6fc89f5d7a24554ed7979306e44969f16d11741",
+      "websiteSHA256": "0c549cbf8724e1abb047a638b6fc89f5d7a24554ed7979306e44969f16d11741",
+      "identical": true
+    },
+    "companion.css": {
+      "sourceSHA256": "3cf6b579edc9ae5cba55e92814fb76f0e292d318fbf8ef2f5702746c85fc18de",
+      "websiteSHA256": "3cf6b579edc9ae5cba55e92814fb76f0e292d318fbf8ef2f5702746c85fc18de",
+      "identical": true
+    },
+    "catalog.js": {
+      "sourceSHA256": "162634747f73e14f7f571ef8bc8fa88ef35432fba09a2faf80504dd590921829",
+      "websiteSHA256": "162634747f73e14f7f571ef8bc8fa88ef35432fba09a2faf80504dd590921829",
+      "identical": true
+    },
+    "knowledge.js": {
+      "sourceSHA256": "c0b775a8e6e78cf43aae4e37629fe0077ffab63b93fa3987934651a044a53594",
+      "websiteSHA256": "c0b775a8e6e78cf43aae4e37629fe0077ffab63b93fa3987934651a044a53594",
+      "identical": true
+    },
+    "knowledge.css": {
+      "sourceSHA256": "49616db80bb5ae1d124e70d52c569d2aee44d3aa3cbff1e6205f38150c64b352",
+      "websiteSHA256": "49616db80bb5ae1d124e70d52c569d2aee44d3aa3cbff1e6205f38150c64b352",
+      "identical": true
+    }
+  },
+  "websiteOnlyChange": "index.html adds website-entry.js; #models clicks existing navigation and scrolls to the API service card. No change to source UI, model data, or native App.",
+  "screenshot": {
+    "file": "design-preview-v2/assets/hd/mac-models.webp",
+    "pixels": [
+      3720,
+      2694
+    ],
+    "scale": 3,
+    "viewport": [
+      1440,
+      1010
+    ],
+    "scrollTop": 188,
+    "state": "Qwen3-4B 4-bit loaded; LLM API available; local service enabled. Actual prototype sample state, not native runtime or benchmark.",
+    "sha256": "03d401dec59e0baa94ccee01d9dfe8ec222be2d71622d011cfbd0db372b8ec28"
+  }
+}

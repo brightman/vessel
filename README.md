@@ -1,5 +1,7 @@
 # Memory on Cloud
 
+WiseLife projects: [iPhone / Apple Watch App](apps/wrist-notes/README.md) and its separate [website](apps/wiselife-website/README.md). Run `npm run dev:wiselife-website` to preview the website at http://localhost:8789/; [compare its two design versions](http://localhost:8789/compare-designs/).
+
 Coding agents can use the standalone [`vessel` CLI](tools/vessel-cli/README.md) for signed-in HTTP operations on spaces, Files, Pages, and Apps. It uses named environments, OS credential storage, and JSON output; it does not access Vessel's database directly.
 
 Memory on Cloud is the public brand for Vessel, a storage service for people using coding agents. It provides personal and team spaces for files, structured tables, and block-based Pages. File bytes live in private OSS/S3 storage; Vessel owns its accounts, metadata, authorization, and APIs. A small Web console is available for account, team, Pages, and Apps management.

@@ -1,0 +1,23 @@
+{
+  "app": "WiseLife design preview",
+  "mode": "local-only",
+  "dataObjects": {
+    "launchInterest": {
+      "fields": {
+        "email": "email",
+        "interests": "string[]",
+        "consent": "boolean"
+      },
+      "persistence": "none",
+      "operations": [
+        "validate",
+        "preview-confirmation"
+      ]
+    }
+  },
+  "externalDestinations": {
+    "testFlight": null,
+    "macDownload": null
+  },
+  "reference": "user-supplied 1024x1536 image"
+}

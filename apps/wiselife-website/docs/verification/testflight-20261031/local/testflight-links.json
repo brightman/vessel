@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "width": 320,
+      "homepageCTAs": 2,
+      "destination": "https://testflight.apple.com/join/HjdCdWJu",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "homepageCTAs": 2,
+      "destination": "https://testflight.apple.com/join/HjdCdWJu",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "homepageCTAs": 2,
+      "destination": "https://testflight.apple.com/join/HjdCdWJu",
+      "overflow": false
+    }
+  ]
+}

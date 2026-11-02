@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "release": "20261031T135119Z-hd-v2",
+  "files": 244,
+  "checks": [
+    "Packaged homepage loads all imagery",
+    "Mac enlargement has selected model screenshot",
+    "Packaged #models entry renders existing loaded model and available API"
+  ],
+  "errors": []
+}

@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "origin": "https://wiselife.karama.cloud",
+  "widths": [
+    320,
+    390,
+    1440
+  ],
+  "homepageLinks": 2,
+  "clickedDestination": "https://testflight.apple.com/join/HjdCdWJu",
+  "destinationTitle": "加入 Beta 版“WiseLife: Apple Watch Recorder” - TestFlight - Apple",
+  "newTab": true,
+  "errors": []
+}

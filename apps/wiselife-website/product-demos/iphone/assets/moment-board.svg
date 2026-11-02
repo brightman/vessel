@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="680" viewBox="0 0 900 680" role="img" aria-label="首版范围示例图">
+  <rect width="900" height="680" fill="#e7ecec"/>
+  <rect x="66" y="42" width="768" height="596" rx="9" fill="#fdfdfb" stroke="#d4dbd9" stroke-width="2"/>
+  <g font-family="-apple-system, 'PingFang SC', sans-serif">
+    <text x="116" y="111" font-size="17" fill="#6b7d7a" letter-spacing="3">MONDAY / 10.19</text>
+    <text x="116" y="185" font-size="45" fill="#263e3b" font-weight="600">首版范围</text>
+    <path d="M116 215 H782" stroke="#c3d0cc" stroke-width="2"/>
+    <text x="116" y="279" font-size="19" fill="#6d7d79">01　要做</text>
+    <text x="116" y="324" font-size="30" fill="#304c47">录音 → 转写 → 回顾</text>
+    <text x="116" y="393" font-size="19" fill="#6d7d79">02　暂缓</text>
+    <text x="116" y="438" font-size="30" fill="#304c47">扩展更多数据来源</text>
+    <text x="116" y="507" font-size="19" fill="#6d7d79">03　完成</text>
+    <text x="116" y="552" font-size="30" fill="#304c47">从洞察回到原始记录</text>
+    <text x="782" y="606" font-size="15" text-anchor="end" fill="#758781">示例图 · 非真实拍摄</text>
+  </g>
+</svg>

@@ -1,0 +1,69 @@
+/* Event locations share the existing daybook palette; points do not imply a route. */
+.places-track{display:block;width:100%;height:28px;margin-bottom:0;padding:0}
+.places-track::before{top:11px}
+.place-timepoint{position:absolute;top:0;transform:translateX(-50%);width:5px;height:24px;display:grid;place-items:center;padding:0;z-index:2}
+.place-timepoint span{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.places-track:hover .place-timepoint span{box-shadow:0 0 0 2px var(--blue-soft)}
+.day-places-summary,.day-places-empty{display:flex;width:100%;text-align:left;align-items:center;gap:9px;padding:13px 0 0;margin-top:12px;border-top:1px solid var(--line)}
+.day-places-summary>.icon,.day-places-empty>.icon{width:16px;height:16px;color:var(--green)}
+.day-places-summary>span:first-of-type{flex:1;min-width:0}
+.day-places-summary strong{display:block;font-size:11px;font-weight:550;color:var(--ink)}
+.day-places-summary small{display:block;font-size:10px;color:var(--secondary);line-height:1.7;margin-top:4px}
+.place-summary-count{display:flex;align-items:center;gap:3px;color:var(--secondary);font-size:9px;white-space:nowrap}
+.place-summary-count .icon,.day-places-empty>.icon:last-child{width:13px;height:13px}
+.day-places-empty{font-size:11px;color:var(--secondary);line-height:1.7}
+.day-places-empty>span{flex:1}
+.moment-place{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:10px;line-height:1.6;color:var(--green)}
+.moment-place>.icon{width:12px;height:12px}
+.place-origin{color:var(--secondary);font-size:9px;padding-left:5px;border-left:1px solid var(--line);margin-left:2px}
+.record-place-link{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 20px}
+.record-place-link>.icon{color:var(--green);width:18px;height:18px}
+.record-place-link>span{flex:1}
+.record-place-link strong{display:block;font-size:13px;font-weight:550}
+.record-place-link small{display:block;font-size:10px;color:var(--secondary);margin-top:5px}
+.record-place-link>.icon:last-child{width:14px;height:14px;color:var(--secondary)}
+.places-day-heading{display:flex;align-items:center;gap:13px;margin:8px 0 20px}
+.places-emblem{display:grid;place-items:center;width:46px;height:46px;flex-shrink:0;border-radius:15px;background:var(--blue-soft);color:var(--green)}
+.places-emblem .icon{width:22px;height:22px}
+.places-day-heading h3{font-size:19px;font-weight:550;margin:0}
+.places-day-heading p{font-size:11px;color:var(--secondary);margin:7px 0 0}
+.place-visit{display:flex;align-items:flex-start;width:100%;gap:15px;text-align:left;padding:17px 0;border-bottom:1px solid var(--line)}
+.place-visit time{font-size:11px;font-variant-numeric:tabular-nums;color:var(--secondary);padding-top:3px}
+.place-visit>span{flex:1;min-width:0}
+.place-visit strong{font-size:14px;font-weight:550}
+.place-visit small{display:flex;align-items:center;gap:5px;font-size:10px;line-height:1.6;color:var(--secondary);margin-top:7px}
+.place-visit small .icon{width:12px;height:12px}
+.place-visit>.icon{width:14px;height:14px;margin-top:3px;color:var(--secondary)}
+.place-detail-heading{padding:10px 0 22px;text-align:center}
+.place-detail-heading .places-emblem{margin:0 auto 15px;width:58px;height:58px;border-radius:19px}
+.place-detail-heading p{font-size:11px;color:var(--green);margin:0 0 8px}
+.place-detail-heading h3{font-size:26px;font-weight:550;letter-spacing:-.5px;margin:0 0 10px}
+.place-detail-heading>span:last-child{font-size:12px;color:var(--secondary)}
+.place-facts{margin:0}
+.place-facts>div{display:flex;justify-content:space-between;gap:20px;font-size:12px;padding:14px 0;border-bottom:1px solid var(--line);line-height:1.6}
+.place-facts dt{color:var(--secondary)}
+.place-facts dd{margin:0;text-align:right}
+.place-context-note{font-size:12px;line-height:1.9;color:var(--secondary);margin:17px 0 25px}
+.place-related-record{width:100%;display:flex;align-items:center;gap:11px;padding:15px;border-radius:14px;background:var(--blue-soft);text-align:left}
+.place-related-record>span{flex:1;min-width:0}
+.place-related-record .icon{width:18px;height:18px;color:var(--accent)}
+.place-related-record small{display:block;font-size:10px;color:var(--secondary);margin-bottom:6px}
+.place-related-record strong{display:block;font-size:12px;line-height:1.7;font-weight:550}
+.place-related-record>.icon:last-child{width:13px;height:13px}
+.place-methods>div{display:flex;gap:13px;padding:18px 0;border-bottom:1px solid var(--line)}
+.place-methods .icon{width:20px;height:20px;color:var(--accent)}
+.place-methods strong{font-size:13px;font-weight:550}
+.place-methods p{font-size:12px;line-height:1.9;color:var(--secondary);margin:7px 0 0}
+.source-copy .place-settings-link{display:inline-flex;gap:3px;align-items:center;margin-top:7px;padding:2px 0;min-height:28px;font-size:10px;color:var(--accent)}
+.place-settings-link .icon{width:12px;height:12px}
+.moment-meta{flex-wrap:wrap;row-gap:6px}
+.moment-meta .record-device-label{color:var(--accent);font-weight:500;gap:4px}
+.record-device-label .icon{width:13px;height:13px}
+.record-import-label{color:var(--secondary)}
+.record-provenance{display:flex;align-items:center;gap:10px;margin:0 0 17px}
+.record-provenance-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--blue-soft);color:var(--accent)}
+.record-provenance-icon .icon{width:18px;height:18px}
+.record-provenance small{display:block;font-size:10px;color:var(--secondary);margin-bottom:4px}
+.record-provenance strong{font-size:12px;font-weight:550;color:var(--ink)}
+.record-import-detail{margin-left:auto;text-align:right}
+.record-provenance-note{font-size:11px;color:var(--secondary);line-height:1.8;margin:-7px 0 18px}

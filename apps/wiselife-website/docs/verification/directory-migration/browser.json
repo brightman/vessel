@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "time": "2026-10-31T10:41:26.320Z",
+  "checks": [
+    "1024px desktop: all section boundaries match the 1024 × 1536 reference",
+    "Responsive 320 / 390 / 768 / 900 / 1024 / 1440 / 1920px; assets loaded; no horizontal overflow; mobile menu and anchor navigation",
+    "Every visible dialog trigger opens useful content; Escape closes and restores URL",
+    "Capture → Insight → Action, empty-title validation, editable date, in-page persistence, and source navigation",
+    "Privacy modes: local iPhone, local Mac, explicit external AI; accessible keyboard tabs",
+    "27-second video, captions, pause on close, and focus restoration",
+    "FAQ deep link, reload, disclosure, and outside-click dismissal",
+    "Sign In has honest account-free preview behavior; browser Back / Forward restores dialog state",
+    "Existing product prototypes and policy destinations return HTTP 200",
+    "Comparison: V1 / V2 and Reference / V2, accessible switch, reload, responsive bounds",
+    "All 35 previous-version files retain their exact SHA-256 hashes",
+    "No JavaScript errors, failed local resources, external requests, network mutations, or browser storage writes"
+  ],
+  "geometry": [
+    {
+      "id": "home",
+      "y": 0,
+      "height": 436
+    },
+    {
+      "id": "product",
+      "y": 436,
+      "height": 267
+    },
+    {
+      "id": "how-it-works",
+      "y": 703,
+      "height": 242
+    },
+    {
+      "id": "privacy",
+      "y": 945,
+      "height": 313
+    },
+    {
+      "id": "life",
+      "y": 1258,
+      "height": 156
+    },
+    {
+      "id": "get-wiselife",
+      "y": 1414,
+      "height": 122
+    }
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "networkMutations": 0,
+  "reference": "WiseLife：你的私人 AI 生活方式平台.png",
+  "intentionalDifferences": [
+    "Website text and controls are real HTML; browser glyph rendering may differ from the flattened image.",
+    "Mobile layouts reflow because only a desktop reference was supplied.",
+    "Download, sign-in and pricing controls open clearly labeled local previews; no store, identity or payment service is connected."
+  ],
+  "preservedPreviousVersionFiles": 35
+}

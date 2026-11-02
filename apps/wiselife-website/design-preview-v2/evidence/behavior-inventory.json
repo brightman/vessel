@@ -1,0 +1,28 @@
+{
+  "source": "User-supplied desktop design; interactions inferred for a useful local website preview",
+  "navigation": [
+    {"control": "WiseLife brand", "effect": "#home"},
+    {"control": "Product", "effect": "#product"},
+    {"control": "Privacy", "effect": "#privacy"},
+    {"control": "How It Works", "effect": "#how-it-works"},
+    {"control": "Devices", "effect": "#devices"},
+    {"control": "Pricing", "effect": "#pricing dialog"},
+    {"control": "FAQ", "effect": "#faq dialog with expandable answers"},
+    {"control": "Sign In", "effect": "#signin explains local usage without credentials"},
+    {"control": "Get WiseLife", "effect": "#get-wiselife"},
+    {"control": "Mobile menu", "effect": "Toggle navigation, aria-expanded, close on navigation/outside/Escape"}
+  ],
+  "content": [
+    {"control": "App Store buttons", "effect": "#download, availability explanation and working prototypes"},
+    {"control": "Watch the Video", "effect": "#video, native controls and captions; pause on close"},
+    {"control": "Trust items / privacy labels / privacy points", "effect": "#privacy-details, iPhone / Mac / External AI tabs"},
+    {"control": "iPhone / Apple Watch / Mac cards", "effect": "Navigate to existing local interactive prototypes"},
+    {"control": "Automatic Capture", "effect": "#capture, sample voice note and source"},
+    {"control": "Smart Insights", "effect": "#insights, suggested next step"},
+    {"control": "Helpful Actions", "effect": "#action, edit title/date, validate, confirm, retain in page memory, return to source"},
+    {"control": "A Clearer You / Today phone / lifestyle scenes", "effect": "Contextual dialogs with relevant product demo links"}
+  ],
+  "dialogContract": ["Visible title", "Native focus containment", "Close button", "Escape", "Outside dismissal", "Focus restoration", "URL state", "Deep link", "Reload", "Browser Back and Forward"],
+  "comparison": ["Live V1 / V2 iframes at equal 1024px layout width", "Reference / V2 switch", "Keyboard tab selection", "Hash state and reload", "Separate-version links"],
+  "dataBoundary": "Local sample state only. No microphone, account, purchase, API write, persistent storage, or external request."
+}

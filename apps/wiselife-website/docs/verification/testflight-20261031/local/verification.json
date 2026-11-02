@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "time": "2026-10-31T14:06:25.783Z",
+  "checks": [
+    "V2 section order preserved; responsive layout uses genuine product screens",
+    "Responsive 320 / 390 / 768 / 900 / 1024 / 1440 / 1920px; assets loaded; no horizontal overflow; mobile menu and anchor navigation",
+    "Every visible dialog trigger opens useful content; Escape closes and restores URL",
+    "Capture → Insight → Action, empty-title validation, editable date, in-page persistence, and source navigation",
+    "Privacy modes: local iPhone, local Mac, explicit external AI; accessible keyboard tabs",
+    "27-second video, captions, pause on close, and focus restoration",
+    "FAQ deep link, reload, disclosure, and outside-click dismissal",
+    "Genuine screenshot zoom, full-resolution image link, matching interactive prototype, deep link, reload and Back / Forward",
+    "Selected root homepage serves the same V2 layout and correctly resolved screen assets on desktop and mobile",
+    "Existing product prototypes and policy destinations return HTTP 200",
+    "Comparison: V1 / V2 and Reference / V2, accessible switch, reload, responsive bounds",
+    "All 35 previous-version files retain their exact SHA-256 hashes",
+    "No JavaScript errors, failed local resources, external requests, network mutations, or browser storage writes"
+  ],
+  "geometry": [
+    {
+      "id": "home",
+      "y": 0,
+      "height": 632.625
+    },
+    {
+      "id": "product",
+      "y": 632.625,
+      "height": 499.640625
+    },
+    {
+      "id": "how-it-works",
+      "y": 1132.265625,
+      "height": 590
+    },
+    {
+      "id": "privacy",
+      "y": 1722.265625,
+      "height": 515
+    },
+    {
+      "id": "life",
+      "y": 2237.265625,
+      "height": 360.109375
+    },
+    {
+      "id": "get-wiselife",
+      "y": 2597.375,
+      "height": 358.78125
+    }
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "networkMutations": 0,
+  "reference": "WiseLife：你的私人 AI 生活方式平台.png",
+  "intentionalDifferences": [
+    "User-selected V1 hero is reused at its original 1024 x 369 resolution; other photography remains high-resolution.",
+    "Device UI comes directly from current product prototypes at 3x resolution; sample data is disclosed.",
+    "Responsive device frames, SVG brand/icons and CSS privacy artwork remain crisp when scaled.",
+    "Public copy and CTAs describe current prototypes and optional external AI accurately."
+  ],
+  "preservedPreviousVersionFiles": 35
+}

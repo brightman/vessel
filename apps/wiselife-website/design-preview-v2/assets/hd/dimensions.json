@@ -1,0 +1,77 @@
+{
+  "hero-1200.webp": {
+    "width": 1200,
+    "height": 675,
+    "bytes": 44544
+  },
+  "hero-2400.webp": {
+    "width": 2400,
+    "height": 1350,
+    "bytes": 112174
+  },
+  "hero-reference.webp": {
+    "width": 1024,
+    "height": 369,
+    "bytes": 51698
+  },
+  "iphone-ai.webp": {
+    "width": 1170,
+    "height": 2532,
+    "bytes": 122118
+  },
+  "iphone-day.webp": {
+    "width": 1170,
+    "height": 2532,
+    "bytes": 155336
+  },
+  "mac-knowledge.webp": {
+    "width": 4320,
+    "height": 2682,
+    "bytes": 344724
+  },
+  "mac-models.webp": {
+    "width": 3720,
+    "height": 2694,
+    "bytes": 235624
+  },
+  "remember-1600.webp": {
+    "width": 1600,
+    "height": 900,
+    "bytes": 211380
+  },
+  "remember-800.webp": {
+    "width": 800,
+    "height": 450,
+    "bytes": 72530
+  },
+  "rhythm-1600.webp": {
+    "width": 1600,
+    "height": 1067,
+    "bytes": 103166
+  },
+  "rhythm-3200.webp": {
+    "width": 3200,
+    "height": 2133,
+    "bytes": 1090284
+  },
+  "rhythm-800.webp": {
+    "width": 800,
+    "height": 533,
+    "bytes": 31830
+  },
+  "watch-recording.webp": {
+    "width": 1080,
+    "height": 1293,
+    "bytes": 57236
+  },
+  "work-1600.webp": {
+    "width": 1600,
+    "height": 1067,
+    "bytes": 98360
+  },
+  "work-800.webp": {
+    "width": 800,
+    "height": 533,
+    "bytes": 30988
+  }
+}

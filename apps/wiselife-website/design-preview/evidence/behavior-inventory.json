@@ -1,0 +1,44 @@
+{
+  "header": [
+    "anchor navigation",
+    "FAQ dialog",
+    "video modal",
+    "pricing anchor",
+    "mobile menu"
+  ],
+  "hero": [
+    "TestFlight availability dialog",
+    "video modal",
+    "capture preview",
+    "action preview"
+  ],
+  "ecosystem": [
+    "Watch demo",
+    "iPhone demo",
+    "Mac prototype"
+  ],
+  "today": [
+    "sample context dialog for each feature and scene"
+  ],
+  "benefits": [
+    "memory interaction",
+    "privacy route choices",
+    "knowledge demo"
+  ],
+  "pricing": [
+    "App availability",
+    "Mac availability",
+    "Ring waitlist selection"
+  ],
+  "launch": [
+    "email validation",
+    "local-only confirmation",
+    "reset"
+  ],
+  "dialogs": [
+    "close",
+    "Escape",
+    "outside click",
+    "focus restoration"
+  ]
+}

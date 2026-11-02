@@ -1,0 +1,90 @@
+{
+  "status": "PASS",
+  "homepage": {
+    "status": 200,
+    "url": "https://wiselife.karama.cloud/",
+    "sha256": "d76f4b97d73d99fcb19898ce374a80986444e81895d6be304358016bb3fa8fba"
+  },
+  "verifiedPublicHashes": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "sha256": "d76f4b97d73d99fcb19898ce374a80986444e81895d6be304358016bb3fa8fba",
+      "bytes": 18156
+    },
+    {
+      "path": "index-next.html",
+      "status": 200,
+      "sha256": "d76f4b97d73d99fcb19898ce374a80986444e81895d6be304358016bb3fa8fba",
+      "bytes": 18156
+    },
+    {
+      "path": "design-preview-v2/index.html",
+      "status": 200,
+      "sha256": "58bb0878950b67ecf207a6c414106bea3ab8b7b17fda2619e65ccc881388cd07",
+      "bytes": 17280
+    },
+    {
+      "path": "design-preview-v2/style.css",
+      "status": 200,
+      "sha256": "a6c210411299c11ed39fa50fcceb9c7d2bcbdb08bc381746fd01e4af39fa26c9",
+      "bytes": 32467
+    },
+    {
+      "path": "design-preview-v2/site.js",
+      "status": 200,
+      "sha256": "38846ab43c2dbbe5a5521262ffd916edbe6dc0892711f63afbc4906439da8fbf",
+      "bytes": 17563
+    },
+    {
+      "path": "design-preview-v2/assets/hd/iphone-day.webp",
+      "status": 200,
+      "sha256": "ce7758762e88e166a7d47dce158f704c5c00f3ea8e09213021a5e7147407bb7e",
+      "bytes": 155336
+    },
+    {
+      "path": "design-preview-v2/assets/hd/mac-models.webp",
+      "status": 200,
+      "sha256": "03d401dec59e0baa94ccee01d9dfe8ec222be2d71622d011cfbd0db372b8ec28",
+      "bytes": 235624
+    },
+    {
+      "path": "design-preview-v2/assets/hd/hero-reference.webp",
+      "status": 200,
+      "sha256": "cac7731ff281af7f080a900e7f2d65c00a45218d18e6be7b05110a7b3b06ca3b",
+      "bytes": 51698
+    },
+    {
+      "path": "design-preview-v2/assets/watch-hardware.svg",
+      "status": 200,
+      "sha256": "abcce17dc227e82dabc491ecbfd3ad962ae231111f25bf6daea4aa13cc52064c",
+      "bytes": 4152
+    },
+    {
+      "path": "assets/brand/app-icon.svg",
+      "status": 200,
+      "sha256": "2aba6691953817352531406cb5586be1804bd9da0e24f4cfe250aab2df592017",
+      "bytes": 2340
+    },
+    {
+      "path": "product-demos/iphone/index.html",
+      "status": 200,
+      "sha256": "f6d1e52df045eec1dab4f55094105309f37ef7aeab352047f1693d733a68e6a1",
+      "bytes": 57242
+    },
+    {
+      "path": "product-demos/mac/index.html",
+      "status": 200,
+      "sha256": "b1c23f6be00fe80820f17c21dbbd1ed0ceb373a2ae2c4c065ed556e09b6165ad",
+      "bytes": 2000
+    }
+  ],
+  "videoRange": {
+    "status": 206,
+    "bytes": 1024,
+    "contentRange": "bytes 0-1023/281535"
+  },
+  "release": "20261031T135119Z-hd-v2",
+  "previousRelease": "20261031T132507Z-hd-v2",
+  "publicFilesVerifiedOnServer": 244
+}

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="560" viewBox="0 0 260 560" fill="none">
+  <title>Complete Watch hardware frame</title>
+  <desc>A rounded aluminum watch case, Digital Crown, side button, and a full midnight sport band. The real product screenshot is placed inside by the page.</desc>
+  <defs>
+    <linearGradient id="strap" x1="48" y1="0" x2="212" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#182634"/><stop offset=".12" stop-color="#344758"/><stop offset=".38" stop-color="#3e5161"/><stop offset=".77" stop-color="#344757"/><stop offset="1" stop-color="#182735"/></linearGradient>
+    <linearGradient id="strap-light" x1="124" y1="0" x2="124" y2="560" gradientUnits="userSpaceOnUse"><stop stop-color="#70808b" stop-opacity=".25"/><stop offset=".3" stop-color="#10202e" stop-opacity=".2"/><stop offset=".65" stop-color="#213342" stop-opacity=".2"/><stop offset="1" stop-color="#70808b" stop-opacity=".18"/></linearGradient>
+    <linearGradient id="case" x1="21" y1="149" x2="232" y2="411" gradientUnits="userSpaceOnUse"><stop stop-color="#d9dee1"/><stop offset=".09" stop-color="#8a969e"/><stop offset=".24" stop-color="#dce1e4"/><stop offset=".5" stop-color="#6d7b86"/><stop offset=".76" stop-color="#b6c1c9"/><stop offset="1" stop-color="#566573"/></linearGradient>
+    <linearGradient id="crown" x1="233" y1="211" x2="258" y2="211" gradientUnits="userSpaceOnUse"><stop stop-color="#4e5c66"/><stop offset=".45" stop-color="#ced5d9"/><stop offset=".72" stop-color="#73818b"/><stop offset="1" stop-color="#a7b2ba"/></linearGradient>
+    <linearGradient id="pin" x1="115" y1="52" x2="139" y2="76" gradientUnits="userSpaceOnUse"><stop stop-color="#f1f3f5"/><stop offset=".45" stop-color="#84929f"/><stop offset="1" stop-color="#d2dae0"/></linearGradient>
+  </defs>
+  <!-- Both strap ends are drawn in full, including the pin and adjustment holes. -->
+  <path d="M84 7C70 7 62 17 61 34L53 127C52 139 47 155 42 170H215C209 154 204 140 203 127L195 34C194 17 186 7 172 7H84Z" fill="url(#strap)" stroke="#243644" stroke-width="1.5"/>
+  <path d="M84 7C70 7 62 17 61 34L53 127C52 139 47 155 42 170H215C209 154 204 140 203 127L195 34C194 17 186 7 172 7H84Z" fill="url(#strap-light)"/>
+  <path d="M72 31L65 124M184 31L191 124" stroke="#9ca9b3" stroke-opacity=".18" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="128" cy="65" r="11" fill="#162633" stroke="#536675" stroke-width="1.5"/>
+  <circle cx="128" cy="64" r="7.5" fill="url(#pin)"/>
+  <path d="M44 392H214C207 410 202 425 201 441L192 529C190 545 182 553 166 553H90C74 553 66 545 64 529L55 441C54 425 50 409 44 392Z" fill="url(#strap)" stroke="#213340" stroke-width="1.5"/>
+  <path d="M44 392H214C207 410 202 425 201 441L192 529C190 545 182 553 166 553H90C74 553 66 545 64 529L55 441C54 425 50 409 44 392Z" fill="url(#strap-light)"/>
+  <path d="M68 441L76 527M188 441L180 527" stroke="#9ca9b3" stroke-opacity=".16" stroke-width="2" stroke-linecap="round"/>
+  <g fill="#112430" stroke="#6e808e" stroke-opacity=".5" stroke-width="1.1">
+    <ellipse cx="128" cy="436" rx="5" ry="4.2"/><ellipse cx="128" cy="456" rx="5" ry="4.2"/><ellipse cx="128" cy="476" rx="5" ry="4.2"/><ellipse cx="128" cy="496" rx="5" ry="4.2"/><ellipse cx="128" cy="516" rx="5" ry="4.2"/>
+  </g>
+  <path d="M56 143H201M54 412H202" stroke="#0b1c28" stroke-width="9" stroke-linecap="round"/>
+  <!-- Digital Crown and elongated side button remain outside the case silhouette. -->
+  <rect x="231" y="190" width="25" height="43" rx="9" fill="url(#crown)" stroke="#4e5c65"/>
+  <path d="M237 194V229M241 193V230M245 193V230M249 195V228M253 198V225" stroke="#53636f" stroke-width="1.4"/>
+  <rect x="234" y="266" width="10" height="49" rx="5" fill="url(#crown)" stroke="#56636f"/>
+  <rect x="12" y="140" width="228" height="274" rx="64" fill="url(#case)" stroke="#62717e" stroke-width="1.5"/>
+  <rect x="16" y="144" width="220" height="266" rx="60" fill="#10171e" stroke="#ecf0f3" stroke-opacity=".5"/>
+  <rect x="18" y="146" width="216" height="262" rx="58" fill="#080809"/>
+  <path d="M72 142H182M14 219V329" stroke="#f3f6f8" stroke-opacity=".5" stroke-width="1.4" stroke-linecap="round"/>
+</svg>

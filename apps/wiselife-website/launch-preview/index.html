@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f6">
+  <meta name="description" content="Your life, remembered. Your next step, clearer. A personal AI ecosystem for your Apple Watch, iPhone and Mac, with privacy at its heart.">
+  <meta name="robots" content="noindex,nofollow">
+  <title>WiseLife · Your life. Your AI. Your privacy.</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/brand/apple-touch-icon.png">
+  <link rel="stylesheet" href="launch.css">
+  <script src="launch.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="nav-container">
+    <a class="brand" href="#home" aria-label="WiseLife home"><img src="../assets/brand/app-icon.png" width="34" height="34" alt="">WiseLife</a>
+    <button class="menu-button" aria-expanded="false" aria-controls="navigation">Menu <span aria-hidden="true">＋</span></button>
+    <nav id="navigation" aria-label="Main navigation">
+      <a href="#ecosystem">How It Works</a><a href="#today">Features</a><a href="#privacy">Privacy</a><a href="#devices">Devices</a><a href="#launch">Launch</a>
+    </nav>
+    <a class="button nav-cta" href="#launch">Join the Launch <span aria-hidden="true">↗</span></a>
+  </div>
+</header>
+<main id="main">
+  <section class="hero container" id="home" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow">Personal AI. Privacy first.</p>
+      <h1 id="hero-title">Your life,<br>remembered.<br><span>Your next step,<br>clearer.</span></h1>
+      <p class="hero-description">Capture on your Watch. Understand on your iPhone. Go deeper with a Mac you control.</p>
+      <div class="hero-actions"><a class="button" href="#launch">Join the Launch <span aria-hidden="true">↗</span></a><button class="text-link" data-dialog="demo-dialog"><span class="play-icon" aria-hidden="true">▶</span> Watch the demo</button></div>
+    </div>
+    <figure class="hero-figure">
+      <div class="hero-scene">
+        <img class="studio" src="assets/studio.webp" alt="A quiet, naturally lit workspace with a wood desk and a leafy plant" width="1800" height="1200" fetchpriority="high">
+        <img class="hero-mac" src="assets/companion.webp" alt="WiseLife Companion knowledge-base prototype, showing daily records and Ask AI side by side" width="1440" height="908">
+        <img class="hero-phone phone-frame" src="assets/iphone.webp" alt="WiseLife iPhone prototype with a daily timeline and review" width="780" height="1688">
+        <img class="hero-watch" src="assets/watch.webp" alt="WiseLife Watch prototype with recording active" width="600" height="721">
+      </div>
+      <figcaption>Product prototypes · Sample data · Mac Companion in development</figcaption>
+    </figure>
+  </section>
+
+  <section class="section container ecosystem" id="ecosystem" aria-labelledby="ecosystem-title">
+    <div class="section-heading reveal"><h2 id="ecosystem-title">One life. Three devices.<br><span>One personal AI.</span></h2><p>Small moments, brought together. A clearer picture of your day, on devices that belong to you.</p></div>
+    <div class="ecosystem-layout reveal">
+      <div class="device-tabs" role="tablist" aria-label="Explore your devices" aria-orientation="vertical">
+        <button role="tab" id="tab-watch" aria-controls="device-panel" aria-selected="true" data-device="watch"><span class="device-number">01</span><span><small>Apple Watch</small><strong>Capture naturally.</strong><span>Keep a thought before it slips away.</span></span><b aria-hidden="true">↗</b></button>
+        <button role="tab" id="tab-iphone" aria-controls="device-panel" aria-selected="false" tabindex="-1" data-device="iphone"><span class="device-number">02</span><span><small>iPhone</small><strong>Understand your day.</strong><span>Your memories, with room to reflect.</span></span><b aria-hidden="true">↗</b></button>
+        <button role="tab" id="tab-mac" aria-controls="device-panel" aria-selected="false" tabindex="-1" data-device="mac"><span class="device-number">03</span><span><small>Mac · In development</small><strong>Think deeper.</strong><span>More capable AI. Still your devices.</span></span><b aria-hidden="true">↗</b></button>
+      </div>
+      <div class="device-panel" id="device-panel" role="tabpanel" aria-labelledby="tab-watch" tabindex="0">
+        <div class="device-visual"><img id="device-image" class="watch-visual" src="assets/watch.webp" alt="Watch recording prototype" width="600" height="721" loading="lazy"></div>
+        <div class="device-explanation"><p id="device-description">A quick thought or a longer conversation, captured from your wrist. Recordings transfer to your paired iPhone for review and transcription.</p><a class="text-link" id="device-demo" href="demos/watch.html">Explore the Watch demo <span aria-hidden="true">↗</span></a></div>
+      </div>
+    </div>
+    <div class="ecosystem-foot"><p>No WiseLife cloud account required.</p><p>Start with iPhone. Add the devices that fit your life.</p></div>
+  </section>
+
+  <section class="section today-section" id="today" aria-labelledby="today-title">
+    <div class="container today-layout">
+      <div class="today-copy reveal"><span class="status-label">Product vision preview</span><h2 id="today-title">See your day.<br><span>Know what<br>matters next.</span></h2><p>A day is more than a calendar or a step count. Bring your moments, plans and everyday rhythm into focus.</p>
+        <div class="feature-notes"><div><h3>Understand your rhythm.</h3><p>See activity, rest and meaningful moments together.</p></div><div><h3>Make room for what matters.</h3><p>Find the commitments worth your attention.</p></div><div><h3>See the context behind a suggestion.</h3><p>Follow the sources. Decide for yourself.</p></div></div>
+        <button class="text-link" id="preview-today">Explore a sample day <span aria-hidden="true">↗</span></button>
+        <p class="fine-print">Planned Today experience. Illustrative data, not a health assessment or a released dashboard.</p>
+      </div>
+      <div class="today-phone reveal" aria-label="Interactive Today concept with sample data">
+        <div class="phone-top"><span>9:41</span><span class="camera-pill" aria-hidden="true"></span><span aria-hidden="true">▰</span></div>
+        <div class="today-content"><div class="today-greeting"><div><small>Friday, October 30</small><h3>Your day.</h3></div><img src="../assets/brand/app-icon.png" alt="WiseLife" width="36" height="36"></div>
+          <div class="day-intro"><p>A little space to move forward.</p><span>Here’s how your day is taking shape.</span></div>
+          <div class="day-metrics"><button data-context="sleep"><small>Sleep</small><strong>7h 18m</strong><span>Apple Health ↗</span></button><button data-context="schedule"><small>Schedule</small><strong>3 plans</strong><span>Calendar ↗</span></button></div>
+          <div class="rhythm"><div><strong>Your time so far</strong><small>2:30 PM</small></div><div class="rhythm-track" aria-label="Sample time: meetings 25%, focus 35%, movement 12%, other 28%"><i></i><i></i><i></i><i></i></div><div class="rhythm-legend"><span>Meetings</span><span>Focus</span><span>Movement</span><span>Other</span></div></div>
+          <div class="next-suggestion"><small>WHAT MATTERS NEXT</small><h4>A moment for your proposal.</h4><p>You have a clear window before your next meeting. It could be a good time to finish the first draft.</p><button id="context-button" aria-expanded="false" aria-controls="today-context">Why this suggestion? <span aria-hidden="true">↗</span></button></div>
+          <div id="today-context" class="today-context" hidden tabindex="-1"><strong>From your sample records</strong><p>The next calendar event is at 3:30 PM. A voice note mentions a proposal draft you want to finish. A free calendar slot does not guarantee you are available.</p></div>
+          <div class="moment-mini"><span>08:46</span><div><strong>A thought from your morning</strong><p>“Keep one idea a day. Look back on Sunday.”</p></div></div>
+          <div class="today-tabbar"><strong>Today</strong><span>Ask AI</span><span>Actions</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section container capture-section" id="capture" aria-labelledby="capture-title">
+    <div class="section-heading reveal"><h2 id="capture-title">A thought worth keeping?<br><span>Just say it.</span></h2><p>The best ideas rarely wait for an empty page. Keep the moment, then get back to living it.</p></div>
+    <div class="capture-stage reveal"><img class="capture-photo" src="../assets/wiselife/morning-walk.webp" alt="Morning sunlight through trees on a quiet walking path" width="1600" height="1000" loading="lazy"><div class="capture-product"><img src="assets/watch.webp" alt="WiseLife Watch recording control" width="600" height="721" loading="lazy"><a class="button button-light" href="demos/watch.html">Try Watch recording <span aria-hidden="true">↗</span></a></div></div>
+    <div class="capture-steps"><article><span>Tap</span><h3>A longer recording.</h3><p>Keep a conversation or a discussion. Tap again when you’re done.</p></article><article><span>Hold</span><h3>A fleeting thought.</h3><p>Press and hold to capture an idea. Release to save it.</p></article><article><span>Return</span><h3>Pick it up on iPhone.</h3><p>Listen back, read the transcript and find what matters.</p></article></div>
+    <p class="section-note">You choose when recording starts and stops. WiseLife does not continuously listen in the background.</p>
+  </section>
+
+  <section class="section memory-section" id="memory" aria-labelledby="memory-title"><div class="container">
+    <div class="section-heading reveal"><h2 id="memory-title">Don’t just remember.<br><span>Make it meaningful.</span></h2><p>A conversation becomes a memory. A memory reveals an insight. You decide what happens next.</p></div>
+    <div class="memory-demo reveal">
+      <div class="memory-tabs" role="tablist" aria-label="Follow a memory into action"><button id="memory-tab-record" role="tab" aria-controls="memory-panel" aria-selected="true" data-memory="record"><span>01</span> Remember</button><button id="memory-tab-ask" role="tab" aria-controls="memory-panel" aria-selected="false" tabindex="-1" data-memory="ask"><span>02</span> Understand</button><button id="memory-tab-action" role="tab" aria-controls="memory-panel" aria-selected="false" tabindex="-1" data-memory="action"><span>03</span> Take a step</button></div>
+      <div id="memory-panel" class="memory-panel" role="tabpanel" aria-labelledby="memory-tab-record" tabindex="0"></div>
+      <p class="demo-caption">Interactive example · Sample data · No changes to Apple Reminders</p>
+    </div>
+    <div class="memory-footer"><p>Every suggestion has a source.<br>Every important action is your choice.</p><a class="text-link" href="demos/iphone.html#product">Explore the iPhone demo <span aria-hidden="true">↗</span></a></div>
+  </div></section>
+
+  <section class="section container privacy-section" id="privacy" aria-labelledby="privacy-title">
+    <div class="section-heading reveal"><p class="eyebrow">Private by design</p><h2 id="privacy-title">Your personal AI.<br><span>Your private world.</span></h2><p>Your memories stay on your iPhone by default. Choose where your AI runs, and what you share.</p></div>
+    <div class="privacy-demo reveal"><div class="mode-tabs" role="tablist" aria-label="Where your AI runs"><button id="mode-phone" role="tab" aria-selected="true" aria-controls="privacy-panel" data-mode="phone">iPhone Local</button><button id="mode-mac" role="tab" aria-selected="false" tabindex="-1" aria-controls="privacy-panel" data-mode="mac">Mac Local</button><button id="mode-external" role="tab" aria-selected="false" tabindex="-1" aria-controls="privacy-panel" data-mode="external">Optional External AI</button></div><div id="privacy-panel" role="tabpanel" aria-labelledby="mode-phone" tabindex="0"></div></div>
+    <div class="privacy-promises"><p>No WiseLife cloud account.</p><p>No WiseLife cloud storage.</p><p>No automatic cloud AI fallback.</p></div><div class="privacy-bottom"><p>iCloud backups and Apple Calendar or Reminders syncing follow your Apple settings.</p><a class="text-link" href="../privacy/">Read our privacy policy <span aria-hidden="true">↗</span></a></div>
+  </section>
+
+  <section class="section devices-section" id="devices" aria-labelledby="devices-title"><div class="container">
+    <div class="section-heading reveal"><h2 id="devices-title">Start with what<br><span>you already own.</span></h2><p>Have a compatible Apple Watch? You already have a way in. Add more only when it fits your life.</p></div>
+    <div class="setup-grid reveal"><article class="setup-main"><div class="setup-copy"><span class="status-label">Preparing for launch</span><h3>WiseLife App</h3><p>Your iPhone. Your Apple Watch.<br>A personal place for your memories and AI.</p><div class="price">$9.99 <span>USD · Planned launch price</span></div><p class="fine-print">Planned one-time purchase. Bring your own compatible devices. Third-party AI costs are separate.</p><a class="text-link" href="#launch" data-interest="app">Get App launch updates <span aria-hidden="true">↗</span></a></div><div class="setup-devices"><img class="setup-phone phone-frame" src="assets/iphone.webp" width="780" height="1688" alt="WiseLife iPhone prototype" loading="lazy"><img class="setup-watch" src="../assets/apple-watch-se.png" width="516" height="616" alt="Apple Watch SE" loading="lazy"></div></article>
+    <article class="setup-small"><span class="status-label">In development</span><h3>Mac Companion</h3><p>Bring more capable local models to a Mac you control.</p><img class="setup-mac" src="assets/companion.webp" width="1440" height="908" alt="Companion knowledge-base prototype" loading="lazy"><a class="text-link" href="demos/mac/index.html#knowledge">Explore the Mac prototype <span aria-hidden="true">↗</span></a><small>Pricing and release date to be announced.</small></article>
+    <article class="setup-small ring-setup"><span class="status-label">Crowdfunding planned</span><h3>EurekaRing</h3><p>An optional, more discreet way to keep a thought close.</p><img src="../assets/eureka-ring.webp" width="1448" height="1086" alt="EurekaRing voice capture ring" loading="lazy"><a class="text-link" href="#launch" data-interest="ring">Follow the Ring launch <span aria-hidden="true">↗</span></a><small>Integration is in place. Hardware availability and campaign details will be announced separately.</small></article></div>
+    <div class="devices-footer"><p>One ecosystem. Your choice of devices.</p><button class="text-link" data-dialog="compatibility-dialog">Check device compatibility <span aria-hidden="true">↗</span></button></div>
+  </div></section>
+
+  <section class="section container launch-section" id="launch" aria-labelledby="launch-title">
+    <div class="launch-layout reveal"><div><p class="eyebrow">Be part of the beginning</p><h2 id="launch-title">Your life. Your AI.<br><span>Be among the first.</span></h2><p class="launch-description">Help shape a personal AI that remembers what matters, respects your privacy, and helps you take the next step.</p><a class="text-link" href="demos/iphone.html#product">Explore the product demo <span aria-hidden="true">↗</span></a></div>
+    <div class="launch-form-wrap"><form id="launch-form" novalidate><h3>Keep a little space for what’s next.</h3><p>Product updates, early-access news and crowdfunding announcements.</p><label for="launch-email">Email address</label><input id="launch-email" type="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="email-error form-note"><p id="email-error" class="form-error" aria-live="polite" hidden></p><label class="consent"><input id="launch-consent" type="checkbox" aria-describedby="email-error" required><span>I’d like to receive WiseLife launch news. <a href="../privacy/">Privacy policy</a></span></label><button class="button form-submit" type="submit">Join the Launch <span aria-hidden="true">↗</span></button><p class="fine-print" id="form-note">Local preview only. Your email is not sent or saved, and no subscription is created.</p></form><div id="launch-success" hidden tabindex="-1"><span class="status-label">Preview complete</span><h3>A more personal beginning.</h3><p>This is how the next step will look. In the live service, you’ll confirm your email first. No email was sent in this preview.</p><fieldset><legend>What would you like to follow? <small>Optional</small></legend><label><input type="checkbox" value="app"> WiseLife App</label><label><input type="checkbox" value="mac"> Mac Companion</label><label><input type="checkbox" value="ring"> EurekaRing</label><label><input type="checkbox" value="beta"> Beta testing</label></fieldset><button class="text-link" id="reset-launch">Try the form again <span aria-hidden="true">↗</span></button></div></div></div>
+    <p class="launch-disclosure">Joining the launch list will be free. It will not reserve a product or guarantee delivery. App, Mac and Ring have separate release plans.</p>
+    <div class="faq-layout" id="faq"><h3>A few things<br>you might be wondering.</h3><div class="faq-list"><details><summary>Can I start with just my iPhone?</summary><p>Yes. Record and manage your memories on iPhone. A compatible Apple Watch or EurekaRing adds a more convenient capture option. Mac Companion is an optional extension in development.</p></details><details><summary>What can I download today?</summary><p>This page previews the launch experience. Official App Store, TestFlight, Mac downloads and crowdfunding links will appear when each is available. The interactive demos use sample data.</p></details><details><summary>Does everything work offline?</summary><p>Supported local models can work offline after download. Availability depends on your hardware, language, region and model. WiseLife does not automatically switch to cloud AI.</p></details><details><summary>Is the Today dashboard available?</summary><p>The proactive dashboard shown here is a product vision. Some source features already exist, but the combined experience and suggestions are still subject to development and testing.</p></details><details><summary>Do I need to buy new hardware?</summary><p>Not if you have a compatible iPhone and want to start there. A compatible Apple Watch is enough for wrist capture. EurekaRing and Mac are optional; hardware is not included in the App price.</p></details><details><summary>Will AI act on my behalf?</summary><p>You review and confirm important actions. Suggestions point back to source records. Adding to Apple Reminders or Calendar also requires your permission and a supported integration.</p></details></div></div>
+  </section>
+</main>
+<footer class="footer container"><div class="footer-top"><a class="brand" href="#home"><img src="../assets/brand/app-icon.png" alt="" width="34" height="34">WiseLife</a><p>Your life. Your AI. Your privacy.</p><button id="theme-button" class="theme-button" aria-pressed="false">Dark appearance</button></div><div class="footer-bottom"><span>© 2026 WiseLife</span><nav aria-label="Footer navigation"><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="mailto:hello@wiselife.cloud">Contact</a><a href="#faq">FAQ</a></nav><span class="photo-credit">Photography: Unsplash · Product visuals: WiseLife prototypes</span></div></footer>
+
+<dialog id="demo-dialog" class="video-dialog" aria-labelledby="demo-title"><div class="dialog-heading"><h2 id="demo-title">A moment. A memory. A next step.</h2><button class="close-dialog" aria-label="Close demo">×</button></div><video controls playsinline preload="none" poster="../assets/wiselife/film-poster.webp"><source src="../assets/wiselife/wiselife-walkthrough.mp4" type="video/mp4"><track kind="captions" src="../assets/wiselife/walkthrough-en.vtt" srclang="en" label="English" default></video><p>27-second prototype walkthrough · Sample data · Not a live device recording</p></dialog>
+<dialog id="compatibility-dialog" aria-labelledby="compatibility-title"><div class="dialog-heading"><h2 id="compatibility-title">A place to start.</h2><button class="close-dialog" aria-label="Close compatibility">×</button></div><div class="compatibility-list"><article><h3>iPhone</h3><p>iOS 26 or later on a supported iPhone. Apple Intelligence requires eligible hardware, language and region; App compatibility does not imply local AI availability.</p><a href="https://support.apple.com/en-us/121115" target="_blank" rel="noopener">Check Apple Intelligence requirements ↗</a></article><article><h3>Apple Watch</h3><p>watchOS 10 or later with a compatible paired iPhone. Check the pairing requirements for your particular Watch model.</p><a href="https://support.apple.com/en-us/118490" target="_blank" rel="noopener">Check Watch compatibility ↗</a></article><article><h3>Mac Companion</h3><p>In development for Apple silicon Macs. A 16GB Mac is a starting point for lightweight models; model and memory requirements vary. More memory allows larger models, subject to testing.</p><a href="demos/mac/index.html">Explore the Companion prototype ↗</a></article></div></dialog>
+<noscript><p class="noscript-note">This page uses JavaScript for interactive previews. You can still read the story and open the product demos.</p></noscript>
+</body>
+</html>

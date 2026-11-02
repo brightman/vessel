@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "time": "2026-10-31T10:44:09.889211+00:00",
+  "sourceFiles": 212,
+  "exactFilesAfterRelocation": 208,
+  "intentionalMigrationEdits": [
+    "README.md",
+    "design-preview-v2/README.md",
+    "design-preview-v2/scripts/verify.cjs",
+    "docs/tencent-deployment.md"
+  ],
+  "checkedLocalResourceReferences": 351,
+  "missingLocalResources": [],
+  "appSourceFilesPreserved": 290,
+  "backupAllSourceHashesMatch": true,
+  "noNestedGit": true,
+  "compatibilitySymlink": "/Users/karama/Documents/wiselife-website",
+  "sameDefaultHomepage": true,
+  "legalTestsPassed": 4,
+  "browserReport": "browser.json"
+}

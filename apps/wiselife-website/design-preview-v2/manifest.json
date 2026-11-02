@@ -1,0 +1,72 @@
+{
+  "app": "WiseLife private AI design preview",
+  "version": 2,
+  "mode": "public-static",
+  "reference": "WiseLife：你的私人 AI 生活方式平台.png",
+  "referenceSize": [
+    1024,
+    1536
+  ],
+  "dataObjects": {
+    "demoAction": {
+      "fields": {
+        "title": "string, required, max 120",
+        "date": "date, required",
+        "saved": "boolean, default false"
+      },
+      "operations": [
+        "read",
+        "edit",
+        "validate",
+        "confirm-locally"
+      ],
+      "persistence": "page-memory-only",
+      "externalWrites": false
+    },
+    "privacyMode": {
+      "values": [
+        "phone",
+        "mac",
+        "external"
+      ],
+      "operations": [
+        "select",
+        "explain"
+      ],
+      "persistence": "page-memory-only"
+    }
+  },
+  "externalDestinations": {
+    "appStore": null,
+    "macDownload": null,
+    "signIn": null,
+    "checkout": null
+  },
+  "routes": [
+    "#product",
+    "#devices",
+    "#how-it-works",
+    "#privacy",
+    "#get-wiselife",
+    "#download",
+    "#video",
+    "#signin",
+    "#pricing",
+    "#faq",
+    "#privacy-details",
+    "#capture",
+    "#insights",
+    "#action",
+    "#today",
+    "#clarity",
+    "#work",
+    "#rhythm",
+    "#remember",
+    "#iphone-screen",
+    "#ai-screen",
+    "#mac-screen",
+    "#watch-screen"
+  ],
+  "notes": "Current HD V2 homepage. Genuine 3x product-prototype screens with sample data; licensed high-resolution photography. Optional external AI explained, no unsupported user counts or App Store availability claims. No remote API or data collection on the landing page.",
+  "assetProvenance": "assets/hd/sources.json"
+}

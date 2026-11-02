@@ -1,0 +1,37 @@
+.chatgpt-card{border:1px solid var(--line);background:var(--blue-soft);border-radius:16px;padding:18px;margin:16px 0;color:var(--ink);overflow-wrap:anywhere}
+.chatgpt-card h3{font-size:17px;font-weight:550;line-height:1.5;margin:0 0 10px}
+.chatgpt-card p{font-size:11px;line-height:1.85;color:var(--secondary);margin:9px 0 14px}
+.chatgpt-status{display:flex;gap:8px;align-items:center;font-size:12px;line-height:1.6}
+.chatgpt-status .icon{flex-shrink:0;width:16px;height:16px}
+.chatgpt-status[data-state="connected"]{color:var(--green)}
+.chatgpt-continue{width:100%;min-height:48px;background:#171717;color:#fff;border:1px solid #171717;border-radius:12px;font-size:14px;font-weight:600;padding:12px 8px;margin-top:4px;cursor:pointer}
+.chatgpt-plan{font-weight:600;color:var(--ink)!important}
+.chatgpt-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+.chatgpt-actions>*{flex:1;min-width:100px;white-space:normal;text-align:center;justify-content:center}
+.chatgpt-usage{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:11px;text-decoration:none;min-height:32px}
+.chatgpt-usage .icon{width:13px;height:13px}
+.chatgpt-disconnect{display:block;margin-top:12px;font-size:11px!important;color:var(--secondary)}
+.chatgpt-danger{color:var(--red)!important}
+.chatgpt-demo-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.chatgpt-demo-actions button{font-size:10px}
+.chatgpt-demo-label{font-size:10px!important;color:var(--muted)!important;line-height:1.7}
+.ai-provider-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;min-width:0}
+.ai-provider-button{display:flex;align-items:center;gap:6px;text-align:left;color:var(--secondary);background:transparent;font-size:10px;min-height:34px;padding:0;min-width:0}
+.ai-provider-button>span{min-width:0;overflow-wrap:anywhere}
+.ai-provider-button small{display:block;font-size:9px;line-height:1.6;color:var(--muted)}
+.ai-provider-button .icon{width:13px;height:13px;flex-shrink:0}
+.ai-provider-bar .chatgpt-usage{font-size:9px;flex-shrink:0}
+.ai-provider-provenance{font-size:10px;color:var(--secondary);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:4px}
+.ai-remote-preview{border:1px solid var(--line);border-radius:13px;padding:14px;margin:12px 0;background:var(--paper);overflow-wrap:anywhere}
+.ai-remote-preview h3{font-size:12px;line-height:1.6;margin:0 0 10px}
+.ai-remote-preview p{white-space:pre-wrap;font-size:11px;color:var(--secondary);line-height:1.9}
+.ai-remote-records{margin-top:16px}
+.ai-remote-records>h3{font-size:12px;font-weight:550}
+.ai-remote-records details{border-bottom:1px solid var(--line);padding:12px 0}
+.ai-remote-records summary{font-size:11px;line-height:1.8;cursor:pointer;overflow-wrap:anywhere}
+.ai-remote-records pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:11px;line-height:1.8;color:var(--secondary)}
+.chatgpt-preview-actions{flex-wrap:wrap}
+.chatgpt-preview-actions button{font-size:11px;white-space:normal;min-width:95px;justify-content:center;line-height:1.6}
+#sheet:has(#dayChatGPTAI) .model-actions,#sheet:has(.ai-remote-records) .model-actions{bottom:0;padding-bottom:12px}
+
+.ai-send-preference{display:flex;align-items:center;gap:10px;min-height:44px;margin:16px 0 4px;font-size:13px;cursor:pointer}.ai-send-preference input{width:18px;height:18px;margin:0;accent-color:var(--accent)}

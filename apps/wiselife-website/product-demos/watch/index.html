@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080809">
+  <title>WristNotes · Apple Watch 录音界面</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: #171719;
+      color: #f7f7f8;
+    }
+
+    .preview {
+      display: grid;
+      justify-items: center;
+      gap: 22px;
+      padding: 36px 20px;
+    }
+
+    .watch {
+      position: relative;
+      width: min(398px, calc(100vw - 32px));
+      aspect-ratio: 398 / 478;
+      padding: 12px;
+      border-radius: 102px;
+      background: linear-gradient(145deg, #343437, #09090a 48%, #343438);
+      border: 1px solid #46464a;
+      box-shadow: 0 30px 70px #0008, inset 0 1px 2px #85858d55;
+    }
+
+    .watch::before {
+      content: "";
+      position: absolute;
+      right: -11px;
+      top: 102px;
+      width: 10px;
+      height: 64px;
+      border-radius: 0 6px 6px 0;
+      background: linear-gradient(90deg, #28282a, #65656b 68%, #2e2e31);
+      box-shadow: 0 1px 4px #0009;
+    }
+
+    .screen {
+      height: 100%;
+      overflow: hidden;
+      border-radius: 91px;
+      background: #080809;
+      border: 1px solid #252528;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      height: 38px;
+      flex: 0 0 38px;
+      padding: 14px 35px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      color: #e5e5e7;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-icons { display: flex; align-items: center; gap: 5px; padding-top: 2px; }
+    .status-icons svg { display: block; }
+
+    .record-area {
+      flex: 0 0 157px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1px 0 8px;
+    }
+
+    .record-button {
+      width: 79px;
+      height: 79px;
+      border: 0;
+      border-radius: 50%;
+      background: #f52b35;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 0 0 6px #f52b3526;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .record-button:hover { transform: scale(1.035); }
+    .record-button:active { transform: scale(.96); }
+    .record-button:focus-visible { outline: 2px solid white; outline-offset: 9px; }
+
+    .record-glyph {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      background: white;
+      transition: border-radius .2s ease, width .2s ease, height .2s ease;
+    }
+
+    .record-button[aria-pressed="true"] .record-glyph {
+      width: 25px;
+      height: 25px;
+      border-radius: 6px;
+    }
+
+    .record-button[aria-pressed="true"] { box-shadow: 0 0 0 6px #f52b352c; }
+    .record-caption {
+      min-height: 18px;
+      margin-top: 11px;
+      color: #939398;
+      font-size: 12px;
+      font-weight: 550;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .record-caption.active {
+      color: #ff575e;
+      font-size: 14px;
+      font-weight: 680;
+      letter-spacing: .04em;
+    }
+
+    .sync-summary {
+      min-height: 18px;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: #a6a6ab;
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 550;
+      text-align: center;
+    }
+
+    .sync-summary::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      flex: 0 0 5px;
+      border-radius: 50%;
+      background: #8f9095;
+    }
+
+    .sync-summary[data-state="recording"]::before,
+    .sync-summary[data-state="pending"]::before { background: #e7b85d; }
+    .sync-summary[data-state="synced"]::before { background: #62c887; }
+    .sync-summary[data-state="paused"]::before { background: #ff747a; }
+
+    .retry-button {
+      display: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 3px 7px;
+      background: #312326;
+      color: #ff9da1;
+      font: inherit;
+      font-size: 9px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .sync-summary[data-state="paused"] .retry-button:not([hidden]) { display: inline-flex; }
+
+    .list-section {
+      min-height: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 17px;
+    }
+
+    .list-heading {
+      height: 35px;
+      flex: 0 0 35px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+
+    .list-heading h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1;
+      letter-spacing: -.035em;
+      font-weight: 730;
+    }
+
+    .count { color: #76767c; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .recording-list {
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+      overscroll-behavior: contain;
+      padding-bottom: 20px;
+    }
+
+    .recording-list::-webkit-scrollbar { display: none; }
+    .item {
+      position: relative;
+      height: 79px;
+      overflow: hidden;
+      border-top: 1px solid #232326;
+      touch-action: pan-y;
+    }
+
+    .item:last-child { border-bottom: 1px solid #232326; }
+
+    .delete-button {
+      position: absolute;
+      top: 1px;
+      right: 0;
+      bottom: 1px;
+      width: 80px;
+      border: 0;
+      background: #d82932;
+      color: white;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .item-content {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      background: #080809;
+      padding: 14px 11px 12px;
+      display: grid;
+      gap: 9px;
+      cursor: grab;
+      user-select: none;
+      transition: transform .2s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .item.open .item-content { transform: translateX(-80px); }
+    .item.dragging .item-content { transition: none; }
+    .item-line { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+    .name {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 650;
+      letter-spacing: -.02em;
+    }
+
+    .meta { color: #89898f; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .duration { color: #aaaab0; flex: 0 0 auto; }
+
+    .sync-state {
+      flex: 0 0 auto;
+      font-size: 10px;
+      line-height: 1;
+      font-weight: 660;
+      letter-spacing: .01em;
+      padding: 5px 7px 4px;
+      border-radius: 5px;
+    }
+
+    .sync-state.pending { color: #d9bd80; background: #3a322485; }
+    .sync-state.synced { color: #93d6a7; background: #23402b75; }
+
+    .empty {
+      margin: 39px 0 0;
+      color: #828288;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .prototype-note {
+      margin: 0;
+      color: #89898e;
+      font-size: 12px;
+      letter-spacing: .01em;
+      text-align: center;
+    }
+
+    .demo-picker {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+      max-width: 420px;
+      margin-top: 4px;
+    }
+
+    .demo-picker button {
+      min-height: 32px;
+      border: 1px solid #39393d;
+      border-radius: 999px;
+      padding: 0 12px;
+      background: #202023;
+      color: #b9b9be;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background .16s ease, color .16s ease, border-color .16s ease;
+    }
+
+    .demo-picker button[aria-pressed="true"] {
+      border-color: #56565d;
+      background: #343438;
+      color: #fff;
+    }
+
+    .demo-label {
+      width: 100%;
+      margin: 0 0 1px;
+      color: #85858a;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .list-explainer {
+      width: min(398px, calc(100vw - 32px));
+      padding: 17px 19px 16px;
+      border: 1px solid #353539;
+      border-radius: 18px;
+      background: #202023;
+    }
+
+    .list-explainer h2 {
+      margin: 0 0 11px;
+      color: #f0f0f2;
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    .list-explainer ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list-explainer li {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 8px;
+      color: #aaaab0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .list-explainer strong {
+      color: #dedee1;
+      font-weight: 600;
+    }
+
+    @media (max-width: 430px) {
+      .watch { transform: scale(.9); margin: -22px 0; }
+      .preview { gap: 4px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .record-button, .record-glyph, .item-content { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <div class="watch" aria-label="Apple Watch 录音界面预览">
+      <div class="screen">
+        <div class="status-bar" aria-hidden="true">
+          <span id="watchTime">9:41</span>
+          <span class="status-icons">
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M1 3.9C4.8.5 11.2.5 15 3.9M3.8 6.7c2.3-2 6.1-2 8.4 0M6.5 9.3c.9-.8 2.1-.8 3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg width="19" height="10" viewBox="0 0 19 10" fill="none" aria-hidden="true"><rect x=".6" y=".6" width="16" height="8.8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M18 3.2v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="2.2" y="2.2" width="11.7" height="5.6" rx=".8" fill="currentColor"/></svg>
+          </span>
+        </div>
+
+        <section class="record-area" aria-label="录音控制">
+          <button id="recordButton" class="record-button" type="button" aria-label="轻点开始长录音，按住录闪念" aria-pressed="false" data-mode="idle">
+            <span class="record-glyph" aria-hidden="true"></span>
+          </button>
+          <div id="recordCaption" class="record-caption" role="status" aria-live="polite">轻点长录音 · 按住闪念</div>
+          <div id="syncSummary" class="sync-summary" data-state="idle" aria-live="polite">
+            <span id="syncText">已同步到 iPhone</span>
+            <button id="retryButton" class="retry-button" type="button" hidden>重试</button>
+          </div>
+        </section>
+
+        <section class="list-section" aria-label="录音文件列表">
+          <div class="list-heading"><h1>录音</h1><span id="recordCount" class="count"></span></div>
+          <div id="recordingList" class="recording-list"></div>
+        </section>
+      </div>
+    </div>
+    <p class="prototype-note">交互原型 · 轻点长录音 · 按住闪念，松开保存 · 上滑取消</p>
+    <div class="demo-picker" role="group" aria-label="预览同步状态">
+      <p class="demo-label">预览状态</p>
+      <button type="button" data-scene="recording" aria-pressed="true">录音中</button>
+      <button type="button" data-scene="pending" aria-pressed="false">稍后自动同步</button>
+      <button type="button" data-scene="synced" aria-pressed="false">已同步</button>
+      <button type="button" data-scene="paused" aria-pressed="false">同步暂停</button>
+    </div>
+    <section class="list-explainer" aria-labelledby="list-explainer-title">
+      <h2 id="list-explainer-title">录音列表说明</h2>
+      <ul>
+        <li><strong>新录音优先</strong><span>结束录音后自动加入列表，最近的记录排在前面。</span></li>
+        <li><strong>快速回看</strong><span>每条显示录音名称、时间、时长和简明同步状态。</span></li>
+        <li><strong>轻扫删除</strong><span>向左轻扫一条记录，露出删除按钮；列表不展示分片等传输细节。</span></li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    // UI demo only: no microphone, storage, transfer, or server calls.
+    const recordings = [
+      { id: 1, name: '晨间想法', startedAt: '今天 08:46', seconds: 74, sync: 'pending' },
+      { id: 2, name: '项目讨论', startedAt: '昨天 19:32', seconds: 764, sync: 'synced' },
+      { id: 3, name: '路上的灵感', startedAt: '10月16日 14:08', seconds: 38, sync: 'synced' }
+    ];
+
+    const button = document.getElementById('recordButton');
+    const caption = document.getElementById('recordCaption');
+    const list = document.getElementById('recordingList');
+    const count = document.getElementById('recordCount');
+    const watchTime = document.getElementById('watchTime');
+    const syncSummary = document.getElementById('syncSummary');
+    const syncText = document.getElementById('syncText');
+    const retryButton = document.getElementById('retryButton');
+    const sceneButtons = [...document.querySelectorAll('[data-scene]')];
+    let startedAt = new Date(Date.now() - (13 * 60 + 42) * 1000);
+    let timer = null;
+    let nextId = 4;
+    let mode = 'long';
+    let demoScene = 'recording';
+    let pressed = false;
+    let pressStartedAt = 0;
+    let pressStartX = 0;
+    let pressStartY = 0;
+    let holdTimer = null;
+    let noticeTimer = null;
+    let cancelThought = false;
+    let thoughtStartedAt = null;
+    let lastKeyboardUpAt = 0;
+    const HOLD_DELAY_MS = 450;
+
+    function formatDuration(seconds) {
+      const total=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;
+      return `${Math.floor(total/3600)}小时${Math.floor(total/60)%60}分${total%60}秒`;
+    }
+
+    function localTime(date) {
+      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function render() {
+      list.replaceChildren();
+      count.textContent = `${recordings.length} 条`;
+      if (recordings.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty';
+        empty.textContent = '还没有录音';
+        list.append(empty);
+      }
+
+      for (const recording of recordings) {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.dataset.id = recording.id;
+
+        const remove = document.createElement('button');
+        remove.className = 'delete-button';
+        remove.type = 'button';
+        remove.textContent = '删除';
+        remove.setAttribute('aria-label', `删除${recording.name}`);
+        remove.addEventListener('click', () => {
+          recordings.splice(recordings.findIndex(entry => entry.id === recording.id), 1);
+          render();
+        });
+
+        const content = document.createElement('div');
+        content.className = 'item-content';
+        content.tabIndex = 0;
+        content.setAttribute('role', 'group');
+        const isSynced = recording.sync === 'synced';
+        content.setAttribute('aria-label', `${recording.name}，${recording.startedAt}，${formatDuration(recording.seconds)}，${isSynced ? '已同步' : '稍后自动同步'}。左划删除`);
+        content.innerHTML = `<div class="item-line"><span class="name"></span><span class="sync-state ${isSynced ? 'synced' : 'pending'}">${isSynced ? '已同步' : '稍后同步'}</span></div><div class="item-line meta"><span class="started"></span><span class="duration"></span></div>`;
+        content.querySelector('.name').textContent = recording.name;
+        content.querySelector('.started').textContent = recording.startedAt;
+        content.querySelector('.duration').textContent = formatDuration(recording.seconds);
+
+        let initialX = 0;
+        let initialY = 0;
+        let offset = 0;
+        let dragging = false;
+        content.addEventListener('pointerdown', event => {
+          initialX = event.clientX;
+          initialY = event.clientY;
+          offset = item.classList.contains('open') ? -80 : 0;
+          dragging = true;
+        });
+        content.addEventListener('pointermove', event => {
+          if (!dragging) return;
+          const dx = event.clientX - initialX;
+          const dy = event.clientY - initialY;
+          if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) return;
+          if (Math.abs(dx) < 5) return;
+          item.classList.add('dragging');
+          content.style.transform = `translateX(${Math.min(0, Math.max(-80, offset + dx))}px)`;
+        });
+        const finishDrag = event => {
+          if (!dragging) return;
+          dragging = false;
+          item.classList.remove('dragging');
+          content.style.transform = '';
+          const dx = event.clientX - initialX;
+          if (dx < -32) item.classList.add('open');
+          if (dx > 32) item.classList.remove('open');
+        };
+        content.addEventListener('pointerup', finishDrag);
+        content.addEventListener('pointercancel', finishDrag);
+        content.addEventListener('keydown', event => {
+          if (event.key === 'ArrowLeft') { item.classList.add('open'); event.preventDefault(); }
+          if (event.key === 'ArrowRight' || event.key === 'Escape') { item.classList.remove('open'); event.preventDefault(); }
+        });
+        item.append(remove, content);
+        list.append(item);
+      }
+    }
+
+    function updateRecordingDisplay() {
+      button.dataset.mode = mode;
+      button.setAttribute('aria-pressed', String(mode === 'long' || mode === 'thought'));
+      caption.classList.toggle('active', mode === 'long' || mode === 'thought');
+      if (mode === 'long') {
+        caption.textContent = `长录音 · ${formatDuration(Math.floor((Date.now() - startedAt.getTime()) / 1000))}`;
+        button.setAttribute('aria-label', '轻点结束长录音');
+      } else if (mode === 'thought') {
+        caption.textContent = cancelThought ? '松开取消闪念' : `闪念 · ${formatDuration(Math.floor((Date.now() - startedAt.getTime()) / 1000))} · 松开保存`;
+        button.setAttribute('aria-label', cancelThought ? '松开取消闪念' : '松开保存闪念');
+      } else if (mode === 'arming') {
+        caption.textContent = '继续按住录闪念';
+        button.setAttribute('aria-label', '继续按住录闪念');
+      } else {
+        caption.textContent = '轻点长录音 · 按住闪念';
+        button.setAttribute('aria-label', '轻点开始长录音，按住录闪念');
+      }
+    }
+
+    function updateSyncSummary() {
+      syncSummary.dataset.state = demoScene;
+      if (demoScene === 'recording') {
+        syncText.textContent = '自动同步中';
+        retryButton.hidden = true;
+      } else if (demoScene === 'pending') {
+        syncText.textContent = '录音已保存在手表，稍后自动同步';
+        retryButton.hidden = true;
+      } else if (demoScene === 'synced') {
+        syncText.textContent = '已同步到 iPhone';
+        retryButton.hidden = true;
+      } else {
+        syncText.textContent = '同步暂停，录音仍保存在手表';
+        retryButton.hidden = false;
+      }
+    }
+
+    function updateSceneButtons() {
+      for (const sceneButton of sceneButtons) {
+        sceneButton.setAttribute('aria-pressed', String(sceneButton.dataset.scene === demoScene));
+      }
+    }
+
+    function selectScene(scene) {
+      demoScene = scene;
+      if (scene === 'recording') {
+        if (mode !== 'long') {
+          startedAt = new Date();
+          mode = 'long';
+          updateRecordingDisplay();
+          startTimer();
+        }
+      } else if (mode !== 'idle') {
+        clearInterval(timer);
+        timer = null;
+        mode = 'idle';
+        startedAt = null;
+        cancelThought = false;
+        updateRecordingDisplay();
+      }
+      updateSyncSummary();
+      updateSceneButtons();
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(updateRecordingDisplay, 250);
+    }
+
+    function finishRecording(kind) {
+      const seconds = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 1000));
+      const number = nextId - 3;
+      recordings.unshift({
+        id: nextId++,
+        name: kind === 'thought' ? `闪念 ${number}` : `新录音 ${number}`,
+        startedAt: `今天 ${localTime(startedAt)}`,
+        seconds,
+        sync: 'pending'
+      });
+      clearInterval(timer);
+      timer = null;
+      startedAt = null;
+      mode = 'idle';
+      demoScene = 'pending';
+      cancelThought = false;
+      updateRecordingDisplay();
+      updateSyncSummary();
+      updateSceneButtons();
+      caption.textContent = kind === 'thought' ? '闪念已保存' : '长录音已保存';
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(updateRecordingDisplay, 1700);
+      render();
+      list.scrollTop = 0;
+    }
+
+    function cancelArmedRecording(notice = '') {
+      clearTimeout(holdTimer);
+      clearInterval(timer);
+      holdTimer = null;
+      timer = null;
+      startedAt = null;
+      mode = 'idle';
+      cancelThought = false;
+      thoughtStartedAt = null;
+      updateRecordingDisplay();
+      if (notice) {
+        caption.textContent = notice;
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(updateRecordingDisplay, 1700);
+      }
+    }
+
+    function beginPress(x, y) {
+      if (pressed) return;
+      pressed = true;
+      pressStartedAt = Date.now();
+      pressStartX = x;
+      pressStartY = y;
+      clearTimeout(noticeTimer);
+      if (mode === 'idle') {
+        // UI timer starts at finger-down. Native audio capture needs a pre-roll buffer here.
+        startedAt = new Date();
+        mode = 'arming';
+        updateRecordingDisplay();
+        holdTimer = setTimeout(() => {
+          if (!pressed || mode !== 'arming') return;
+          mode = 'thought';
+          thoughtStartedAt = Date.now();
+          cancelThought = false;
+          navigator.vibrate?.(35); // Native implementation should use a Watch haptic.
+          updateRecordingDisplay();
+          startTimer();
+        }, HOLD_DELAY_MS);
+      }
+    }
+
+    function endPress() {
+      if (!pressed) return;
+      pressed = false;
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      if (mode === 'arming') {
+        mode = 'long';
+        demoScene = 'recording';
+        updateRecordingDisplay();
+        updateSyncSummary();
+        updateSceneButtons();
+        startTimer();
+      } else if (mode === 'long') {
+        // Holding an active long recording does nothing; only a deliberate tap stops it.
+        if (Date.now() - pressStartedAt < HOLD_DELAY_MS) finishRecording('long');
+      } else if (mode === 'thought') {
+        if (cancelThought) cancelArmedRecording('闪念已取消');
+        else if (Date.now() - thoughtStartedAt < 300) cancelArmedRecording('闪念太短，未保存');
+        else finishRecording('thought');
+      }
+    }
+
+    button.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      button.setPointerCapture(event.pointerId);
+      beginPress(event.clientX, event.clientY);
+    });
+    button.addEventListener('pointermove', event => {
+      if (!pressed) return;
+      if (mode === 'arming' && Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) > 35) {
+        pressed = false;
+        cancelArmedRecording();
+        return;
+      }
+      if (mode !== 'thought') return;
+      cancelThought = event.clientY < pressStartY - 55;
+      updateRecordingDisplay();
+    });
+    button.addEventListener('pointerup', endPress);
+    button.addEventListener('pointercancel', () => {
+      pressed = false;
+      if (mode === 'arming' || mode === 'thought') cancelArmedRecording();
+    });
+    button.addEventListener('keydown', event => {
+      if (event.repeat || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      beginPress(0, 0);
+    });
+    button.addEventListener('keyup', event => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      endPress();
+      lastKeyboardUpAt = Date.now();
+    });
+    button.addEventListener('click', event => {
+      // Assistive technology can activate a button without pointer or keyboard events.
+      if (Date.now() - lastKeyboardUpAt < 150) return;
+      if (event.detail !== 0 || pressed) return;
+      if (mode === 'idle' || mode === 'long') { beginPress(0, 0); endPress(); }
+    });
+
+    sceneButtons.forEach(sceneButton => {
+      sceneButton.addEventListener('click', () => selectScene(sceneButton.dataset.scene));
+    });
+    retryButton.addEventListener('click', () => {
+      demoScene = 'pending';
+      updateSyncSummary();
+      updateSceneButtons();
+    });
+
+    watchTime.textContent = localTime(new Date());
+    button.dataset.mode = mode;
+    button.setAttribute('aria-pressed', 'true');
+    caption.classList.add('active');
+    updateRecordingDisplay();
+    updateSyncSummary();
+    updateSceneButtons();
+    startTimer();
+    render();
+  </script>
+</body>
+</html>

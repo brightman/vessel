@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "changed": [
+    "design-preview-v2/index.html",
+    "design-preview-v2/site.js",
+    "design-preview-v2/style.css",
+    "index-next.html",
+    "index.html",
+    "product-demos/mac/index.html"
+  ],
+  "added": [
+    "design-preview-v2/assets/hd/mac-models.webp",
+    "product-demos/mac/website-entry.js"
+  ],
+  "removed": []
+}

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "changed": [
+    "design-preview-v2/index.html",
+    "design-preview-v2/site.js",
+    "index-next.html",
+    "index.html"
+  ],
+  "added": [],
+  "removed": []
+}

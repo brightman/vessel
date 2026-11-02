@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f6ff">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="A personal AI that captures your moments, understands your day, and helps you focus on what matters. Your life, remembered. Your next step, clearer.">
+  <title>WiseLife · Your personal AI</title>
+  <link rel="icon" type="image/png" href="../assets/brand/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/brand/apple-touch-icon.png">
+  <link rel="preload" as="image" href="assets/hero-landscape.webp">
+  <link rel="stylesheet" href="style.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="page">
+  <header class="header">
+    <a class="brand" href="#home" aria-label="WiseLife home"><img src="assets/brand-monochrome.svg" width="28" height="28" alt="">WiseLife</a>
+    <button class="menu-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Open navigation"><svg class="icon"><use href="assets/icons.svg#Menu"></use></svg></button>
+    <nav id="main-nav" aria-label="Main navigation"><a href="#features">Features</a><a href="#ecosystem">Ecosystem</a><a href="#privacy">Privacy</a><a href="#pricing">Pricing</a><a href="#faq" data-open="faq">FAQ</a></nav>
+    <div class="header-actions"><button class="button glass-button" data-open="video"><svg class="icon"><use href="assets/icons.svg#Play"></use></svg>Watch Demo</button><a class="button blue-button" href="#pricing">Get WiseLife</a></div>
+  </header>
+  <main id="main">
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <img class="hero-image" src="assets/hero-landscape.webp" width="1024" height="369" alt="A man raising his Apple Watch in the warm light of a mountain sunrise" fetchpriority="high">
+      <div class="hero-copy"><p class="eyebrow">Your personal AI</p><h1 id="hero-title">Your life, remembered.<br>Your next step, clearer.</h1><p class="hero-description">A personal AI that captures your moments, understands<br class="desktop-break"> your day, and helps you focus on what matters —<br class="desktop-break"> with privacy by design.</p><div class="hero-actions"><button class="button blue-button" data-open="app"><svg class="icon"><use href="assets/icons.svg#DraftingCompass"></use></svg>Try WiseLife on TestFlight <span aria-hidden="true">↗</span></button><button class="button glass-button" data-open="video"><svg class="icon"><use href="assets/icons.svg#CirclePlay"></use></svg>Watch Product Demo</button></div><div class="trust-notes"><span><svg class="icon"><use href="assets/icons.svg#Watch"></use></svg><span>Works with<br><strong>Apple Watch</strong></span></span><span><svg class="icon"><use href="assets/icons.svg#LockKeyhole"></use></svg><span>Private<br><strong>by Design</strong></span></span><span><svg class="icon"><use href="assets/icons.svg#Layers"></use></svg><span>App + Mac<br><strong>Ecosystem</strong></span></span></div></div>
+      <button class="thought-pill glass-pill" data-open="capture"><svg class="icon"><use href="assets/icons.svg#AudioLines"></use></svg>Record a thought…<span class="pill-glint" aria-hidden="true"></span></button>
+      <button class="action-pill glass-pill" data-open="action"><svg class="icon sparkle"><use href="assets/icons.svg#Sparkles"></use></svg>Turn it into action.</button>
+    </section>
+
+    <section class="ecosystem" id="ecosystem" aria-labelledby="ecosystem-title">
+      <img class="section-art ecosystem-art" src="assets/ecosystem-scene.webp" width="1024" height="348" alt="Apple Watch, iPhone and Mac with WiseLife concept interfaces, connected by a soft blue ribbon" loading="lazy">
+      <div class="ecosystem-heading"><h2 id="ecosystem-title">One ecosystem for your life</h2><p>Capture, understand, and take action — seamlessly across your Apple devices.</p></div>
+      <article class="device-description capture-description"><svg class="icon"><use href="assets/icons.svg#Watch"></use></svg><h3>Capture</h3><p>Record ideas, <br>conversations, <br>and moments on <br>your wrist.</p><a class="device-hit" href="../launch-preview/demos/watch.html" aria-label="Explore the Watch recording demo"><span class="device-hover-label">Explore Watch <span aria-hidden="true">↗</span></span></a><img class="mobile-device" src="assets/watch-product.webp" width="111" height="212" alt="WiseLife recording on Apple Watch" loading="lazy"></article>
+      <article class="device-description understand-description"><svg class="icon"><use href="assets/icons.svg#BadgeCheck"></use></svg><h3>Understand</h3><p>See your day, <br>memories, and <br>insights in one place.</p><a class="device-hit" href="../launch-preview/demos/iphone.html#product" aria-label="Explore the iPhone demo"><span class="device-hover-label">Explore iPhone <span aria-hidden="true">↗</span></span></a><img class="mobile-device" src="assets/iphone-product.webp" width="151" height="257" alt="WiseLife Today on iPhone" loading="lazy"></article>
+      <article class="device-description think-description"><svg class="icon"><use href="assets/icons.svg#Laptop"></use></svg><h3>Think Deeper</h3><p>A powerful Mac <br>companion for <br>longer context and <br>deeper insights.</p><a class="device-hit" href="../launch-preview/demos/mac/index.html#knowledge" aria-label="Explore the Mac Companion prototype"><span class="device-hover-label">Explore Mac <span aria-hidden="true">↗</span></span></a><img class="mobile-device" src="assets/mac-product.webp" width="369" height="220" alt="WiseLife Mac concept" loading="lazy"></article>
+    </section>
+
+    <section class="today" id="features" aria-labelledby="today-title">
+      <img class="section-art today-art" src="assets/today-scene.webp" width="1024" height="307" alt="Planned Today dashboard with example energy, focus and schedule views, alongside meetings, activity and reflection scenes" loading="lazy">
+      <div class="today-copy"><h2 id="today-title">Your day, at a glance.</h2><p class="today-intro">More than a recorder. WiseLife gives you<br class="desktop-break"> context, focus, and next steps for a<br class="desktop-break"> more intentional life.</p><div class="feature-list"><button data-open="rhythm"><span class="feature-icon"><svg class="icon"><use href="assets/icons.svg#ChartNoAxesColumn"></use></svg></span><span><strong>Understand your rhythm</strong><small>Time, activity, and key moments.</small></span></button><button data-open="suggestions"><span class="feature-icon"><svg class="icon"><use href="assets/icons.svg#Zap"></use></svg></span><span><strong>Get timely suggestions</strong><small>What to do next, based on your day.</small></span></button><button data-open="action"><span class="feature-icon"><svg class="icon"><use href="assets/icons.svg#CalendarCheck"></use></svg></span><span><strong>Turn insights into action</strong><small>Create tasks, reminders, and plans.</small></span></button></div></div>
+      <button class="today-preview" data-open="rhythm" aria-label="Explore the planned Today dashboard, using sample data"></button>
+      <div class="life-scenes"><button class="life-scene meetings" data-open="meetings"><img src="assets/meeting.webp" width="289" height="84" alt="A conversation in a sunlit workspace" loading="lazy"><span class="scene-label"><svg class="icon"><use href="assets/icons.svg#Users"></use></svg>Meetings</span></button><button class="life-scene activity" data-open="activity"><img src="assets/activity.webp" width="305" height="91" alt="A morning run by the sea" loading="lazy"><span class="scene-label"><svg class="icon"><use href="assets/icons.svg#PersonStanding"></use></svg>Activity</span></button><button class="life-scene reflection" data-open="reflection"><img src="assets/reflection.webp" width="320" height="96" alt="A quiet moment with music and a book" loading="lazy"><span class="scene-label"><svg class="icon"><use href="assets/icons.svg#BookOpen"></use></svg>Reflection</span></button></div>
+      <img class="mobile-today-phone" src="assets/today-phone.webp" width="359" height="303" alt="Illustrative Today dashboard, a planned experience" loading="lazy">
+    </section>
+
+    <section class="benefits" aria-label="What WiseLife brings to your day">
+      <button class="benefit memory-card" data-open="memory"><span class="benefit-copy"><h3>From memory<br>to action</h3><p>Turn conversations, ideas, and <br>experiences into insights, tasks, <br>and long-term knowledge.</p></span><img src="assets/memory-art.webp" width="130" height="112" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></button>
+      <button class="benefit privacy-card" id="privacy" data-open="privacy"><span class="benefit-copy"><h3>Private by design</h3><p>Your data stays on your devices. <br>Use on-device AI when supported, <br>with full control over any external AI.</p></span><img src="assets/privacy-art.webp" width="142" height="109" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></button>
+      <a class="benefit knowledge-card" href="../launch-preview/demos/mac/index.html#knowledge"><span class="benefit-copy"><h3>A personal knowledge hub</h3><p>Build your own memory over time — <br>searchable, connected, and useful <br>across work and life.</p></span><img src="assets/knowledge-art.webp" width="114" height="75" alt="" loading="lazy"><span class="card-arrow" aria-hidden="true">↗</span></a>
+    </section>
+
+    <section class="pricing" id="pricing" aria-labelledby="pricing-title">
+      <div class="pricing-intro"><h2 id="pricing-title">Choose your<br>WiseLife experience</h2><p>A Personal AI ecosystem that grows with you.</p></div>
+      <article class="price-card app-card"><div class="product-heading"><svg class="icon product-icon"><use href="assets/icons.svg#Smartphone"></use></svg><div><h3>WiseLife App</h3><p>Your daily AI companion <br>with Apple Watch.</p></div></div><p class="app-price">Free Trial on TestFlight</p><button class="button blue-button" data-open="app">Try on TestFlight <span aria-hidden="true">↗</span></button></article>
+      <article class="price-card mac-card"><div class="product-heading"><svg class="icon product-icon"><use href="assets/icons.svg#Laptop"></use></svg><div><h3>Mac Companion <span class="badge primary-badge">Preview</span></h3><p>A more powerful local AI <br>for deeper analysis.</p></div></div><p class="mac-price">$9.99 <s>$19.99</s></p><button class="button blue-button" data-open="mac">Get Mac Companion</button></article>
+      <article class="price-card ring-card"><div class="product-heading"><img class="ring-icon" src="assets/ring-product.webp" width="36" height="41" alt="EurekaRing"><div><h3>EurekaRing <span class="badge">Coming Soon</span></h3><p>A wearable for effortless <br>voice capture, anytime.</p></div></div><a class="button neutral-button" href="#launch" data-interest="ring">Join the Waitlist</a></article>
+    </section>
+
+    <section class="launch" id="launch" aria-labelledby="launch-title">
+      <img class="launch-art" src="assets/launch-mountains.webp" width="1024" height="207" alt="Sunrise across layers of quiet mountain peaks" loading="lazy">
+      <div class="launch-copy"><p class="eyebrow">Join the launch</p><h2 id="launch-title">Be part of the next generation of personal AI.</h2><p>Get product updates, early access, and crowdfunding launch details.</p></div>
+      <form class="signup-form" id="signup-form" novalidate><label for="email" class="sr-only">Your email address</label><svg class="icon mail-icon"><use href="assets/icons.svg#Mail"></use></svg><input id="email" type="email" name="email" placeholder="Your email address" autocomplete="email" required aria-describedby="signup-message"><button class="button blue-button" type="submit">Join the Launch</button></form>
+      <p id="signup-message" class="signup-message" role="status" hidden></p>
+      <div class="signup-promises"><span><svg class="icon"><use href="assets/icons.svg#Check"></use></svg>Product updates</span><span><svg class="icon"><use href="assets/icons.svg#Check"></use></svg>Early access</span><span><svg class="icon"><use href="assets/icons.svg#Check"></use></svg>Crowdfunding alerts</span></div>
+    </section>
+  </main>
+</div>
+<dialog id="site-dialog" aria-labelledby="dialog-title"><div class="dialog-top"><span class="dialog-brand"><img src="assets/brand-monochrome.svg" alt="" width="24" height="24">WiseLife</span><button id="close-dialog" class="close-button" aria-label="Close dialog"><svg class="icon"><use href="assets/icons.svg#X"></use></svg></button></div><div id="dialog-content"></div></dialog>
+<noscript><p class="no-script">For product demos and interactive previews, please enable JavaScript.</p></noscript>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-10-31T06:54:16.452Z",
+  "checks": [
+    "8 sections, English homepage",
+    "device tabs and keyboard navigation",
+    "Today concept and source context",
+    "source jump, editable action, explicit demo confirmation",
+    "3 privacy data-flow modes",
+    "native dialogs, focus return, actual 27-second video",
+    "email and consent validation; no email network request or storage",
+    "responsive 1440/1024/768/390/320px, mobile menu, reduced motion",
+    "dark appearance desktop/mobile",
+    "iPhone/Watch/Mac demo pages and return navigation"
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "source": "https://chatgpt.com/s/t_6ae58d2f441c8191bdcdf22247c5d433",
+  "scope": "Local preview only. No deployment."
+}

@@ -1,0 +1,13 @@
+/* Website identity uses the iPhone AppIcon, including dark appearance. */
+.wiselife-app-logo{display:block;width:32px;height:32px;flex-shrink:0;object-fit:contain;border-radius:8px}
+@media(max-width:580px){.wiselife-app-logo{width:28px;height:28px;border-radius:7px}}
+@media(max-width:380px){
+  .site-header .wordmark{font-size:17px;gap:6px}
+  .site-header .wiselife-app-logo{width:24px;height:24px;border-radius:6px}
+  .site-nav-wrap .site-nav{gap:8px}
+  .site-nav-wrap .site-nav a{font-size:9px}
+  .header .nav-wrap{width:calc(100% - 24px);gap:8px}
+  .header .brand{font-size:20px;gap:7px}
+  .header .compact{font-size:10px;padding:7px 9px;gap:4px}
+  .header .menu-toggle{padding:8px}
+}

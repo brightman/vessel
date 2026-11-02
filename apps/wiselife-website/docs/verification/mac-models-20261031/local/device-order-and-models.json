@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "origin": "http://127.0.0.1:8789",
+  "order": [
+    {
+      "width": 320,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 390,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 768,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 900,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 1024,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 1440,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    },
+    {
+      "width": 1920,
+      "order": [
+        "Apple Watch",
+        "iPhone",
+        "Mac"
+      ],
+      "allDeviceFramesWithinSection": true
+    }
+  ],
+  "mac": {
+    "model": "Qwen3-4B · 4-bit",
+    "status": "Loaded",
+    "api": "Available",
+    "localService": "Enabled",
+    "source": "Existing prototype sample data",
+    "deepLink": "http://127.0.0.1:8789/product-demos/mac/#models"
+  }
+}

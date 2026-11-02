@@ -1,5 +1,7 @@
 # WiseLife product website
 
+> 2026-10-31 directory update: the current website is maintained in [`../../wiselife-website/`](../../wiselife-website/README.md), with [V1](../../wiselife-website/design-preview/index.html), [V2](../../wiselife-website/design-preview-v2/index.html), and [comparison](../../wiselife-website/compare-designs/index.html). This document describes the earlier App-embedded website/prototype and is retained as historical reference. App interaction prototypes remain in this directory.
+
 Updated: 2026-10-23
 
 Entry: [iphone-day.html](iphone-day.html)
@@ -73,14 +75,14 @@ Retrieved 2026-10-19. Product imagery remains the respective owners' material, u
 From the repository root, serve the prototype in one terminal:
 
 ```sh
-python3 -m http.server 8767 --bind 127.0.0.1 --directory apps/wrist-notes/prototype
+npm run dev:wiselife-website
 ```
 
 In another terminal (Playwright, Pillow and ffmpeg required):
 
 ```sh
-node apps/wrist-notes/scripts/capture_website_media.mjs
-python3 apps/wrist-notes/scripts/render_website_media.py
+node apps/wiselife-website/scripts/capture_website_media.mjs
+python3 apps/wiselife-website/scripts/render_website_media.py
 ```
 
 The capture script writes source PNGs, raw WebM and cue timings to `/private/tmp/wiselife-website-media`. The renderer creates WebP screenshots, a rounded-screen poster and a silent 1280 × 720 H.264 MP4 with fast-start metadata. On non-macOS machines, supply `--font /path/to/cjk-font.ttc`. If capture timing changes substantially, use `cues.json` to adjust the initial 1.9-second trim, chapter offsets and the three WebVTT files.

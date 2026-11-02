@@ -1,0 +1,10 @@
+{
+  "name": "wiselife-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8789 --bind 127.0.0.1",
+    "test:design": "node design-preview-v2/scripts/verify.cjs",
+    "test:legal": "python3 -m unittest discover -s Tests -p 'test_website_legal_pages.py'"
+  }
+}

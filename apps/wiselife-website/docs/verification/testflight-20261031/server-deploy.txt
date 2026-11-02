@@ -1,0 +1,2 @@
+Verified public files: 244
+Active release: /opt/wiselife-site/releases/20261031T140652Z-hd-v2

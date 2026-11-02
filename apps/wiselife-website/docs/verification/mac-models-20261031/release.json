@@ -1,0 +1,11 @@
+{
+  "release": "20261031T135119Z-hd-v2",
+  "workspace": "/tmp/wiselife-20261031T135119Z-hd-v2",
+  "archive": "/tmp/wiselife-20261031T135119Z-hd-v2/20261031T135119Z-hd-v2.tar.gz",
+  "manifest": "/tmp/wiselife-20261031T135119Z-hd-v2/SHA256SUMS",
+  "files": 244,
+  "bytes": 11115926,
+  "archiveSHA256": "91f85de4fba06fc9513afb78edaa671b7eca1104145dbfd5a2ae8d8e7facef81",
+  "homepageSHA256": "d76f4b97d73d99fcb19898ce374a80986444e81895d6be304358016bb3fa8fba",
+  "previousRelease": "20261031T132507Z-hd-v2"
+}

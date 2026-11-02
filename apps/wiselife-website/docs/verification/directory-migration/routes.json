@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "time": "2026-10-31T10:43:36.501Z",
+  "checks": [
+    "/ HTTP 200",
+    "/index-next.html HTTP 200",
+    "/iphone-day.html HTTP 200",
+    "/iphone-notes.html HTTP 200",
+    "/watch-recorder.html HTTP 200",
+    "/launch-preview/ HTTP 200",
+    "/launch-preview/demos/watch.html HTTP 200",
+    "/launch-preview/demos/iphone.html HTTP 200",
+    "/launch-preview/demos/mac/index.html HTTP 200",
+    "/design-preview/ HTTP 200",
+    "/design-preview-v2/ HTTP 200",
+    "/compare-designs/ HTTP 200",
+    "/privacy/ HTTP 200",
+    "/terms/ HTTP 200",
+    "Existing 8789 preview server serves the migrated directory through the compatibility link",
+    "App legacy homepage redirects to the independent website and preserves query / hash"
+  ],
+  "errors": [],
+  "failed": []
+}

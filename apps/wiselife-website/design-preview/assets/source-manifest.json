@@ -1,0 +1,219 @@
+{
+  "source": "/Users/karama/Downloads/WiseLife\u4e2a\u4ebaAI\u751f\u6001\u7cfb\u7edf\u5b98\u7f51\u5417-1.png",
+  "source_size": [
+    1024,
+    1536
+  ],
+  "assets": [
+    {
+      "file": "hero-landscape.webp",
+      "source_rect": [
+        0,
+        0,
+        1024,
+        369
+      ],
+      "size": [
+        1024,
+        369
+      ],
+      "processing": "Website text and controls removed with masked inpainting. Device UI retained."
+    },
+    {
+      "file": "ecosystem-scene.webp",
+      "source_rect": [
+        0,
+        369,
+        1024,
+        717
+      ],
+      "size": [
+        1024,
+        348
+      ],
+      "processing": "Website text and controls removed with masked inpainting. Device UI retained."
+    },
+    {
+      "file": "today-scene.webp",
+      "source_rect": [
+        0,
+        717,
+        1024,
+        1024
+      ],
+      "size": [
+        1024,
+        307
+      ],
+      "processing": "Website text and controls removed with masked inpainting. Device UI retained."
+    },
+    {
+      "file": "launch-mountains.webp",
+      "source_rect": [
+        0,
+        1329,
+        1024,
+        1536
+      ],
+      "size": [
+        1024,
+        207
+      ],
+      "processing": "Website text and controls removed with masked inpainting. Device UI retained."
+    },
+    {
+      "file": "watch-product.webp",
+      "source_rect": [
+        145,
+        493,
+        256,
+        705
+      ],
+      "size": [
+        111,
+        212
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "iphone-product.webp",
+      "source_rect": [
+        298,
+        453,
+        449,
+        710
+      ],
+      "size": [
+        151,
+        257
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "mac-product.webp",
+      "source_rect": [
+        553,
+        477,
+        922,
+        697
+      ],
+      "size": [
+        369,
+        220
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "today-phone.webp",
+      "source_rect": [
+        316,
+        721,
+        675,
+        1024
+      ],
+      "size": [
+        359,
+        303
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "meeting.webp",
+      "source_rect": [
+        694,
+        734,
+        983,
+        818
+      ],
+      "size": [
+        289,
+        84
+      ],
+      "processing": "Crop from supplied design"
+    },
+    {
+      "file": "activity.webp",
+      "source_rect": [
+        679,
+        822,
+        984,
+        913
+      ],
+      "size": [
+        305,
+        91
+      ],
+      "processing": "Crop from supplied design"
+    },
+    {
+      "file": "reflection.webp",
+      "source_rect": [
+        664,
+        912,
+        984,
+        1008
+      ],
+      "size": [
+        320,
+        96
+      ],
+      "processing": "Crop from supplied design"
+    },
+    {
+      "file": "memory-art.webp",
+      "source_rect": [
+        226,
+        1038,
+        356,
+        1150
+      ],
+      "size": [
+        130,
+        112
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "privacy-art.webp",
+      "source_rect": [
+        557,
+        1044,
+        699,
+        1153
+      ],
+      "size": [
+        142,
+        109
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "knowledge-art.webp",
+      "source_rect": [
+        875,
+        1077,
+        989,
+        1152
+      ],
+      "size": [
+        114,
+        75
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    },
+    {
+      "file": "ring-product.webp",
+      "source_rect": [
+        780,
+        1190,
+        816,
+        1231
+      ],
+      "size": [
+        36,
+        41
+      ],
+      "processing": "Crop from supplied design; feathered edges"
+    }
+  ]
+}

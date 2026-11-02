@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "time": "2026-10-31T07:31:29.326Z",
+  "checks": [
+    "1024px desktop section geometry matches the 1536px reference",
+    "All images load; responsive 320/390/768/1024/1440/1920px; no horizontal overflow",
+    "Every feature, scene, availability and FAQ control opens useful content",
+    "Capture → memory → editable action → confirmation; source navigation",
+    "Privacy modes and keyboard tab navigation",
+    "Video loads, actual 27-second duration, Escape and focus restoration",
+    "Email validation; selected Ring interest; no submission, persistence or network mutation",
+    "FAQ deep link and outside-click dismiss",
+    "Product prototype destinations respond"
+  ],
+  "geometry": [
+    {
+      "id": "home",
+      "y": 0,
+      "height": 369
+    },
+    {
+      "id": "ecosystem",
+      "y": 369,
+      "height": 348
+    },
+    {
+      "id": "features",
+      "y": 717,
+      "height": 307
+    },
+    {
+      "id": "benefits",
+      "y": 1024,
+      "height": 140
+    },
+    {
+      "id": "pricing",
+      "y": 1164,
+      "height": 165
+    },
+    {
+      "id": "launch",
+      "y": 1329,
+      "height": 207
+    }
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "networkMutations": 0,
+  "intentionalDifferences": [
+    "Official WiseLife mark retained in a monochrome treatment.",
+    "Demo button names the real 27-second video, not an unavailable 60-second film.",
+    "Mac badge says Preview; pricing is a design concept and download actions explain availability."
+  ],
+  "source": "/Users/karama/Downloads/WiseLife个人AI生态系统官网吗-1.png"
+}

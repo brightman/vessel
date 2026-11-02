@@ -1,0 +1,471 @@
+{
+  "source": "/Users/karama/Downloads/WiseLife：你的私人 AI 生活方式平台.png",
+  "source_size": [
+    1024,
+    1536
+  ],
+  "assets": [
+    {
+      "file": "hero.webp",
+      "source_rect": [
+        0,
+        0,
+        1024,
+        436
+      ],
+      "size": [
+        1024,
+        436
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "ecosystem.webp",
+      "source_rect": [
+        0,
+        436,
+        1024,
+        703
+      ],
+      "size": [
+        1024,
+        267
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "today.webp",
+      "source_rect": [
+        0,
+        703,
+        1024,
+        945
+      ],
+      "size": [
+        1024,
+        242
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "privacy.webp",
+      "source_rect": [
+        0,
+        945,
+        1024,
+        1258
+      ],
+      "size": [
+        1024,
+        313
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "lifestyle.webp",
+      "source_rect": [
+        0,
+        1258,
+        1024,
+        1414
+      ],
+      "size": [
+        1024,
+        156
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "closing.webp",
+      "source_rect": [
+        0,
+        1414,
+        1024,
+        1536
+      ],
+      "size": [
+        1024,
+        122
+      ],
+      "processing": "Text and controls removed using local masks and inpainting; device screens and handwriting retained."
+    },
+    {
+      "file": "hero-portrait.webp",
+      "source_rect": [
+        434,
+        34,
+        1024,
+        367
+      ],
+      "size": [
+        590,
+        333
+      ],
+      "processing": "Crop from cleaned hero, for the mobile layout."
+    },
+    {
+      "file": "devices.webp",
+      "source_rect": [
+        425,
+        7,
+        1009,
+        267
+      ],
+      "size": [
+        584,
+        260
+      ],
+      "processing": "Crop from cleaned ecosystem, for the mobile layout."
+    },
+    {
+      "file": "today-phone.webp",
+      "source_rect": [
+        574,
+        2,
+        810,
+        242
+      ],
+      "size": [
+        236,
+        240
+      ],
+      "processing": "Crop from cleaned Today illustration, for the mobile layout."
+    },
+    {
+      "file": "privacy-devices.webp",
+      "source_rect": [
+        28,
+        7,
+        577,
+        304
+      ],
+      "size": [
+        549,
+        297
+      ],
+      "processing": "Crop from cleaned privacy illustration, for the mobile layout."
+    },
+    {
+      "file": "privacy-mobile.webp",
+      "source_rect": [
+        28,
+        952,
+        577,
+        1249
+      ],
+      "size": [
+        549,
+        297
+      ],
+      "processing": "Original privacy illustration with its four in-scene labels, for the mobile layout."
+    },
+    {
+      "file": "closing-mobile.webp",
+      "source_rect": [
+        0,
+        0,
+        384,
+        122
+      ],
+      "size": [
+        384,
+        122
+      ],
+      "processing": "Text-free mountain crop for the responsive footer."
+    },
+    {
+      "file": "work.webp",
+      "source_rect": [
+        391,
+        4,
+        574,
+        84
+      ],
+      "size": [
+        183,
+        80
+      ],
+      "processing": "Scene photo for the mobile layout, cropped before the original caption panel."
+    },
+    {
+      "file": "rhythm.webp",
+      "source_rect": [
+        582,
+        4,
+        782,
+        85
+      ],
+      "size": [
+        200,
+        81
+      ],
+      "processing": "Scene photo for the mobile layout, cropped before the original caption panel."
+    },
+    {
+      "file": "remember.webp",
+      "source_rect": [
+        789,
+        4,
+        987,
+        85
+      ],
+      "size": [
+        198,
+        81
+      ],
+      "processing": "Scene photo for the mobile layout, cropped before the original caption panel."
+    },
+    {
+      "file": "trust-lock.webp",
+      "source_rect": [
+        78,
+        367,
+        126,
+        415
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "trust-devices.webp",
+      "source_rect": [
+        226,
+        367,
+        275,
+        415
+      ],
+      "size": [
+        49,
+        48
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "trust-chip.webp",
+      "source_rect": [
+        400,
+        367,
+        449,
+        415
+      ],
+      "size": [
+        49,
+        48
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "trust-ecosystem.webp",
+      "source_rect": [
+        559,
+        367,
+        630,
+        415
+      ],
+      "size": [
+        71,
+        48
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "trust-shield.webp",
+      "source_rect": [
+        778,
+        367,
+        828,
+        415
+      ],
+      "size": [
+        50,
+        48
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "feature-capture.webp",
+      "source_rect": [
+        57,
+        842,
+        109,
+        887
+      ],
+      "size": [
+        52,
+        45
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "feature-insights.webp",
+      "source_rect": [
+        187,
+        842,
+        237,
+        887
+      ],
+      "size": [
+        50,
+        45
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "feature-actions.webp",
+      "source_rect": [
+        306,
+        842,
+        357,
+        887
+      ],
+      "size": [
+        51,
+        45
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "feature-clarity.webp",
+      "source_rect": [
+        441,
+        842,
+        491,
+        887
+      ],
+      "size": [
+        50,
+        45
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "scene-work.webp",
+      "source_rect": [
+        398,
+        1348,
+        439,
+        1389
+      ],
+      "size": [
+        41,
+        41
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "scene-rhythm.webp",
+      "source_rect": [
+        588,
+        1348,
+        630,
+        1389
+      ],
+      "size": [
+        42,
+        41
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "scene-remember.webp",
+      "source_rect": [
+        794,
+        1348,
+        836,
+        1389
+      ],
+      "size": [
+        42,
+        41
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "privacy-shield.webp",
+      "source_rect": [
+        646,
+        1109,
+        679,
+        1138
+      ],
+      "size": [
+        33,
+        29
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "privacy-lock.webp",
+      "source_rect": [
+        646,
+        1143,
+        679,
+        1174
+      ],
+      "size": [
+        33,
+        31
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "privacy-chip.webp",
+      "source_rect": [
+        646,
+        1180,
+        679,
+        1211
+      ],
+      "size": [
+        33,
+        31
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "privacy-user.webp",
+      "source_rect": [
+        646,
+        1217,
+        679,
+        1248
+      ],
+      "size": [
+        33,
+        31
+      ],
+      "processing": "Decorative icon cropped from the reference, for responsive layouts."
+    },
+    {
+      "file": "brand-mark.png",
+      "source_rect": [
+        74,
+        10,
+        110,
+        46
+      ],
+      "size": [
+        36,
+        36
+      ],
+      "processing": "Transparent mark extracted from the user-supplied reference."
+    },
+    {
+      "file": "apple-mark.png",
+      "source_rect": [
+        98,
+        311,
+        116,
+        333
+      ],
+      "size": [
+        18,
+        22
+      ],
+      "processing": "White Apple glyph extracted from the button in the reference."
+    }
+  ]
+}

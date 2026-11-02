@@ -1,0 +1,117 @@
+{
+  "measurement": "Bounding rectangle of dark pixels, threshold RGB < 90, within each reference heading crop. Not an overall fidelity score.",
+  "headings": {
+    "hero_line_1": {
+      "reference_dark_pixel_bounds": [
+        77,
+        92,
+        416,
+        126
+      ],
+      "local_dark_pixel_bounds": [
+        77,
+        92,
+        415,
+        125
+      ]
+    },
+    "hero_line_2": {
+      "reference_dark_pixel_bounds": [
+        77,
+        136,
+        344,
+        178
+      ],
+      "local_dark_pixel_bounds": [
+        77,
+        136,
+        344,
+        178
+      ]
+    },
+    "hero_promise": {
+      "reference_dark_pixel_bounds": [
+        79,
+        191,
+        466,
+        207
+      ],
+      "local_dark_pixel_bounds": [
+        80,
+        192,
+        466,
+        209
+      ]
+    },
+    "ecosystem_heading": {
+      "reference_dark_pixel_bounds": [
+        59,
+        472,
+        481,
+        496
+      ],
+      "local_dark_pixel_bounds": [
+        60,
+        472,
+        483,
+        496
+      ]
+    },
+    "today_heading": {
+      "reference_dark_pixel_bounds": [
+        59,
+        745,
+        510,
+        766
+      ],
+      "local_dark_pixel_bounds": [
+        60,
+        745,
+        512,
+        767
+      ]
+    },
+    "privacy_heading": {
+      "reference_dark_pixel_bounds": [
+        644,
+        976,
+        962,
+        1003
+      ],
+      "local_dark_pixel_bounds": [
+        644,
+        976,
+        964,
+        1003
+      ]
+    },
+    "lifestyle_heading": {
+      "reference_dark_pixel_bounds": [
+        44,
+        1287,
+        291,
+        1309
+      ],
+      "local_dark_pixel_bounds": [
+        44,
+        1288,
+        292,
+        1310
+      ]
+    },
+    "closing_heading": {
+      "reference_dark_pixel_bounds": [
+        328,
+        1434,
+        697,
+        1457
+      ],
+      "local_dark_pixel_bounds": [
+        329,
+        1433,
+        695,
+        1457
+      ]
+    }
+  }
+}

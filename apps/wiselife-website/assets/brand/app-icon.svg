@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>WiseLife · 观</title>
+  <desc>A continuous inward-turning path surrounds a point of warm light. Experience becomes awareness; the open path leaves room for becoming.</desc>
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#274857"/><stop offset=".55" stop-color="#193542"/><stop offset="1" stop-color="#102733"/></linearGradient>
+    <radialGradient id="atmosphere" cx=".37" cy=".28" r=".8"><stop stop-color="#6d8992" stop-opacity=".18"/><stop offset="1" stop-color="#1b3440" stop-opacity="0"/></radialGradient>
+    <linearGradient id="porcelain" x1=".2" y1=".12" x2=".75" y2=".88"><stop stop-color="#f8faf5"/><stop offset=".45" stop-color="#e6efed"/><stop offset="1" stop-color="#bdced0"/></linearGradient>
+    <radialGradient id="present" cx=".32" cy=".25" r=".8"><stop stop-color="#f1dfad"/><stop offset=".6" stop-color="#dbbe7d"/><stop offset="1" stop-color="#b39457"/></radialGradient>
+    <filter id="depth" x="-.3" y="-.3" width="1.6" height="1.6"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#06141e" flood-opacity=".23"/></filter>
+  </defs>
+  <path fill="url(#ground)" d="M0 0h1024v1024H0z"/>
+  <path fill="url(#atmosphere)" d="M0 0h1024v1024H0z"/>
+  <g filter="url(#depth)" transform="translate(-34 12)">
+    <path d="M649.240 228.468 C689.409 252.425 723.306 285.002 748.171 322.478 C773.036 359.954 788.853 402.269 794.805 445.037 C800.757 487.804 796.856 530.965 784.248 570.383 C771.640 609.802 750.361 645.431 723.149 674.189 C695.937 702.946 662.842 724.808 627.525 738.278 C592.207 751.748 554.721 756.827 518.843 753.778 C482.965 750.730 448.742 739.578 419.297 722.149 C389.852 704.720 365.215 681.054 347.282 654.036 C329.349 627.019 318.128 596.698 314.008 566.336 C309.889 535.975 312.856 505.618 321.855 478.203 C330.854 450.788 345.852 426.348 364.703 406.919 C383.553 387.491 406.215 373.088 430.005 364.510 C453.795 355.932 478.673 353.173 502.043 355.754 C525.413 358.336 547.243 366.234 565.566 377.930 C583.890 389.626 598.693 405.085 608.996 422.193 C619.299 439.300 625.105 458.019 626.527 476.173" fill="none" stroke="url(#porcelain)" stroke-width="76" stroke-linecap="round"/>
+    <circle cx="512" cy="512" r="34" fill="url(#present)"/>
+  </g>
+</svg>

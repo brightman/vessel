@@ -1,0 +1,116 @@
+{
+  "updated": "2026-10-31",
+  "photography": [
+    {
+      "files": [
+        "hero-1200.webp",
+        "hero-2400.webp"
+      ],
+      "photographer": "Vitaly Gariev",
+      "page": "https://unsplash.com/photos/man-in-suit-sitting-with-laptop-on-couch-HzF5f-sjNyw",
+      "original": "https://images.unsplash.com/photo-1758519286890-65efbc4c3cd5?auto=format&fit=max&w=3000&q=90",
+      "originalPixels": [
+        3000,
+        1688
+      ]
+    },
+    {
+      "files": [
+        "work-800.webp",
+        "work-1600.webp"
+      ],
+      "photographer": "Priscilla Du Preez",
+      "page": "https://unsplash.com/photos/a-man-sitting-in-front-of-a-laptop-computer-OEdkPaxYMXU",
+      "original": "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?auto=format&fit=max&w=3000&q=90",
+      "originalPixels": [
+        3000,
+        2000
+      ]
+    },
+    {
+      "files": [
+        "rhythm-800.webp",
+        "rhythm-1600.webp",
+        "rhythm-3200.webp"
+      ],
+      "photographer": "tonny huang",
+      "page": "https://unsplash.com/photos/a-man-running-along-a-road-next-to-a-body-of-water-D2DnWMh7I3g",
+      "original": "https://images.unsplash.com/photo-1707531194888-b15da9c283ef?auto=format&fit=max&w=4000&q=90",
+      "originalPixels": [
+        4000,
+        2666
+      ]
+    },
+    {
+      "files": [
+        "remember-800.webp",
+        "remember-1600.webp"
+      ],
+      "photographer": "Vitaly Gariev",
+      "page": "https://unsplash.com/photos/woman-relaxing-on-a-sofa-with-hands-behind-head-0j2sFmCGhY4",
+      "original": "https://images.unsplash.com/photo-1758273706261-bf264d3dbc38?auto=format&fit=max&w=3000&q=90",
+      "originalPixels": [
+        3000,
+        1688
+      ]
+    }
+  ],
+  "photoLicense": "https://unsplash.com/license",
+  "licenseVerification": "Each source photo page indicated Free to use under the Unsplash License on 2026-10-31. Photos illustrate everyday situations, not product endorsements.",
+  "screenshots": {
+    "iphone-day.webp": {
+      "source": "product-demos/iphone/",
+      "selector": ".phone-screen",
+      "state": "Day; light appearance; English interface",
+      "scale": 3
+    },
+    "iphone-ai.webp": {
+      "source": "product-demos/iphone/",
+      "selector": ".phone-screen",
+      "state": "AI; light appearance; English interface",
+      "scale": 3
+    },
+    "mac-knowledge.webp": {
+      "source": "product-demos/mac/#knowledge",
+      "selector": ".window",
+      "state": "Knowledge base; first sample question and answer",
+      "scale": 3
+    },
+    "watch-recording.webp": {
+      "source": "product-demos/watch/",
+      "selector": ".watch",
+      "state": "Recording scene",
+      "scale": 3
+    },
+    "mac-models.webp": {
+      "source": "product-demos/mac/#models",
+      "selector": ".window",
+      "state": "Existing model library; Qwen3-4B loaded; LLM API available; local service enabled. Scroll to the service card.",
+      "scale": 3,
+      "viewport": [
+        1440,
+        1010
+      ]
+    }
+  },
+  "screenshotNote": "Actual current product prototypes with sample data, not native device captures. No UI redraw or AI-generated screen content.",
+  "reproduce": [
+    "node scripts/capture-product-previews.cjs",
+    "python3 scripts/prepare-hd-assets.py --photos /path/to/downloads",
+    "node scripts/capture-mac-models.cjs && python3 scripts/prepare-hd-assets.py --screens mac-models"
+  ],
+  "selectedHero": {
+    "file": "hero-reference.webp",
+    "source": "design-preview/assets/hero-landscape.webp",
+    "selection": "User selected the V1 hero on 2026-10-31. The #launch URL points to the footer; use the page header portrait per the stated default while clarification was pending.",
+    "sourcePixels": [
+      1024,
+      369
+    ],
+    "processing": "Byte-for-byte reuse; no upscaling or generated replacement. Existing image from the user supplied design. It is an explicit source-resolution exception to the HD photo policy."
+  },
+  "hardwareFrame": {
+    "file": "../watch-hardware.svg",
+    "kind": "Original vector illustration with complete straps, case, crown and side button. Screenshot remains unmodified."
+  }
+}

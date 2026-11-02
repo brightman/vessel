@@ -1,0 +1,78 @@
+{
+  "status": "PASS",
+  "homepage": {
+    "status": 200,
+    "url": "https://wiselife.karama.cloud/",
+    "sha256": "4b31a174442162098bd7da9a948ca9dfb10f2646d12be6d63884f5e867a3b843"
+  },
+  "verifiedPublicHashes": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "sha256": "4b31a174442162098bd7da9a948ca9dfb10f2646d12be6d63884f5e867a3b843",
+      "bytes": 17392
+    },
+    {
+      "path": "index-next.html",
+      "status": 200,
+      "sha256": "4b31a174442162098bd7da9a948ca9dfb10f2646d12be6d63884f5e867a3b843",
+      "bytes": 17392
+    },
+    {
+      "path": "design-preview-v2/index.html",
+      "status": 200,
+      "sha256": "7c2869d02f3d67dbd8c3c9e134ac266c8a2a8c96b6e53d975189ce44965263ef",
+      "bytes": 16534
+    },
+    {
+      "path": "design-preview-v2/style.css",
+      "status": 200,
+      "sha256": "3ea811fc5bffdcf6a63910d1f29638f1dd8fcc3386d1ced6667d75e229428660",
+      "bytes": 30093
+    },
+    {
+      "path": "design-preview-v2/site.js",
+      "status": 200,
+      "sha256": "0d7b5a6d28853a977c1ecc8b6f60bd239dd30aeac6d8578439af8cb78e4a15e4",
+      "bytes": 17098
+    },
+    {
+      "path": "design-preview-v2/assets/hd/iphone-day.webp",
+      "status": 200,
+      "sha256": "ce7758762e88e166a7d47dce158f704c5c00f3ea8e09213021a5e7147407bb7e",
+      "bytes": 155336
+    },
+    {
+      "path": "design-preview-v2/assets/hd/mac-knowledge.webp",
+      "status": 200,
+      "sha256": "c1558235d36adcf3579ba12beef6d46cb7d28d6dc4a1066da1f8061b23499fab",
+      "bytes": 344724
+    },
+    {
+      "path": "assets/brand/app-icon.svg",
+      "status": 200,
+      "sha256": "2aba6691953817352531406cb5586be1804bd9da0e24f4cfe250aab2df592017",
+      "bytes": 2340
+    },
+    {
+      "path": "product-demos/iphone/index.html",
+      "status": 200,
+      "sha256": "f6d1e52df045eec1dab4f55094105309f37ef7aeab352047f1693d733a68e6a1",
+      "bytes": 57242
+    },
+    {
+      "path": "product-demos/mac/index.html",
+      "status": 200,
+      "sha256": "8748af211d419f5a7dea3870e7170694a97fa2ce58c3da71273048c890fe92cd",
+      "bytes": 1954
+    }
+  ],
+  "videoRange": {
+    "status": 206,
+    "bytes": 1024,
+    "contentRange": "bytes 0-1023/281535"
+  },
+  "release": "20261031T121307Z-hd-v2",
+  "previousRelease": "20261031T060113Z",
+  "publicFilesVerifiedOnServer": 240
+}
