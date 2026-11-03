@@ -1,6 +1,12 @@
 # WiseLife iPhone 与 Apple Watch 数据生命周期及本地结构
 
-更新：2026-11-01。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
+更新：2026-11-03。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
+
+## Watch／Ring 原音与来源（2026-11-03）
+
+Watch 长录音每小时一个物理文件，以录音组 ID、序号和偏移组成连续音源；Ring 每条设备长录音保留一个完整文件，不受小时分片时长限制。Ring 完整 AAC/M4A 保存在现有 `VoiceNotes/Audio/<UUID>.m4a`，元数据使用 `voice_notes`；Watch 沿用现有小时录音组／会话结构。AI 窗口按帧读取原音，不为窗口另存原始分片。
+
+新增可选 `RecordingOrigin.captureDevice`：`watch`／`ring`／`iPhone`／`unknown`，与设备名称、ID、文件名一起保存到 Codable payload，并保留到 AI 音源快照。旧 payload 缺字段时按设备名称识别，无新增 SQL 列或 schema 版本、不重写旧音频。契约及验证见 [Ring 编译与录音兼容](2026-10-20-ring-build-switch.md)。
 
 ## 数据分为三部分
 

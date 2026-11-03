@@ -125,7 +125,7 @@ struct RecordingSessionDetailView: View {
                 Text(RecordingFormat.duration(session.recordedDuration))
             }
                 .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
-            LabeledContent("录制设备", value: session.origin?.device ?? "设备未知")
+            LabeledContent("录制设备", value: session.origin?.deviceLabel ?? "设备未知")
                 .font(.system(size: 12)).padding(.bottom, 2)
             if let location = session.location { CapturePlaceDetails(point: location) }
             if let origin = session.origin, origin.recordingTimeIsEstimated {

@@ -1077,6 +1077,7 @@
 				444E0331A23472D0E1ABC438 /* Embed Watch Content */,
 				109DBC555D2EDAE7D3E0ADBA /* Embed Recording Activity */,
 				06BC47E7C508A58F744857EA /* Write build metadata */,
+				89A4A889ECFBF1305686DD93 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -1250,6 +1251,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		89A4A889ECFBF1305686DD93 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/br_flutter_plugin_ble/BRRecorderSDKPrivacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/br_flutter_plugin_ble/BRRecorderOpusNotices.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderSDKPrivacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BRRecorderOpusNotices.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-WristNotes/Pods-WristNotes-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -1622,10 +1643,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					"$(inherited)",
-					RingIntegrationTests.swift,
-				);
+				EXCLUDED_SOURCE_FILE_NAMES = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1633,13 +1651,18 @@
 					"$(SRCROOT)/Vendor/SQLiteVector/libs",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					BRRecorderOpus,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WISELIFE_EUREKA_RING";
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Vendor/SQLiteVector";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WiseLife.app/WiseLife";
-				WISELIFE_EUREKA_RING_ENABLED = NO;
+				WISELIFE_EUREKA_RING_ENABLED = YES;
 			};
 			name = Debug;
 		};
@@ -1772,10 +1795,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					"$(inherited)",
-					RingIntegrationTests.swift,
-				);
+				EXCLUDED_SOURCE_FILE_NAMES = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1783,14 +1803,19 @@
 					"$(SRCROOT)/Vendor/SQLiteVector/libs",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					BRRecorderOpus,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.RingIntegrationTests;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WISELIFE_EUREKA_RING";
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Vendor/SQLiteVector";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WiseLife.app/WiseLife";
 				VALIDATE_PRODUCT = YES;
-				WISELIFE_EUREKA_RING_ENABLED = NO;
+				WISELIFE_EUREKA_RING_ENABLED = YES;
 			};
 			name = Release;
 		};
@@ -1806,11 +1831,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = S56V68L4NP;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					"$(inherited)",
-					EurekaRingModel.swift,
-					RingTransferStore.swift,
-				);
+				EXCLUDED_SOURCE_FILE_NAMES = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1835,12 +1856,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
 				PRODUCT_NAME = WiseLife;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WISELIFE_EUREKA_RING";
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Vendor/SQLiteVector";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
-				WISELIFE_EUREKA_RING_ENABLED = NO;
+				WISELIFE_EUREKA_RING_ENABLED = YES;
 			};
 			name = Release;
 		};
@@ -1900,11 +1921,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = S56V68L4NP;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					"$(inherited)",
-					EurekaRingModel.swift,
-					RingTransferStore.swift,
-				);
+				EXCLUDED_SOURCE_FILE_NAMES = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1929,11 +1946,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote;
 				PRODUCT_NAME = WiseLife;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WISELIFE_EUREKA_RING";
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Vendor/SQLiteVector";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				WISELIFE_EUREKA_RING_ENABLED = NO;
+				WISELIFE_EUREKA_RING_ENABLED = YES;
 			};
 			name = Debug;
 		};

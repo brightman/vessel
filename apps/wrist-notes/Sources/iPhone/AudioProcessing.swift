@@ -75,13 +75,17 @@ struct AudioSourceOrigin: Codable, Equatable, Sendable {
     let deviceID: String
     let fileName: String
     let recordingTimeIsEstimated: Bool
+    var captureDevice: RecordingCaptureDevice? = nil
     init(recordingOrigin: RecordingOrigin) {
         device = recordingOrigin.device; deviceID = recordingOrigin.deviceID
         fileName = recordingOrigin.fileName; recordingTimeIsEstimated = recordingOrigin.recordingTimeIsEstimated
+        captureDevice = recordingOrigin.captureDevice
     }
     var recordingOrigin: RecordingOrigin {
-        RecordingOrigin(device: device, deviceID: deviceID, fileName: fileName, recordingTimeIsEstimated: recordingTimeIsEstimated)
+        RecordingOrigin(device: device, deviceID: deviceID, fileName: fileName, recordingTimeIsEstimated: recordingTimeIsEstimated, captureDevice: captureDevice)
     }
+    var deviceKind: RecordingCaptureDevice { recordingOrigin.deviceKind }
+    var deviceLabel: String { recordingOrigin.deviceLabel }
 }
 
 struct AudioSourceSnapshot: Codable, Equatable, Sendable {

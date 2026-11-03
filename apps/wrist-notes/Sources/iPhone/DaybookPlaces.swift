@@ -13,7 +13,7 @@ enum DaybookPlaces {
         var record = DayRecord(id: note.id, capturedAt: note.capturedAt,
             kind: note.kind == .thought ? .thought : .voice, title: note.displayTitle,
             text: note.transcript, summary: note.summary, duration: note.duration)
-        record.captureDevice = note.origin?.device ?? "设备未知"
+        record.captureDevice = note.origin?.deviceLabel ?? "设备未知"
         record.location = note.location
         record.recordingGroupID = note.recordingGroupID
         return record
@@ -46,7 +46,7 @@ enum DaybookPlaces {
         let audio = notes.compactMap { note -> DayRecord? in
             guard let point = note.location else { return nil }
             return record(id: LifeAggregation.locationID(note.id), parentID: note.id, at: note.capturedAt,
-                          point: point, device: note.origin?.device ?? "设备未知")
+                          point: point, device: note.origin?.deviceLabel ?? "设备未知")
         }
         let images = photos.flatMap { moment in
             moment.photos.compactMap { photo -> DayRecord? in

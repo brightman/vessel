@@ -491,7 +491,7 @@ final class NotesModel: ObservableObject {
         _ = try repository.importRecording(id: job.id, from: fileURL, kind: job.recordingKind,
             capturedAt: job.capturedAt, duration: duration,
             origin: RecordingOrigin(device: "EurekaRing", deviceID: job.deviceID, fileName: job.file.name,
-                recordingTimeIsEstimated: job.file.recordedAt == nil))
+                recordingTimeIsEstimated: job.file.recordedAt == nil, captureDevice: .ring))
         refresh()
         if isNew { Task { await self.transcribe(job.id, automatic:true) } }
     }
@@ -573,10 +573,12 @@ final class NotesModel: ObservableObject {
         }
         connectivity?.recordImportStarted(metadata.id)
         do {
+            var origin = metadata.recordingOrigin ?? RecordingOrigin(device: "Apple Watch", deviceID: "", fileName: audio.lastPathComponent, recordingTimeIsEstimated: false)
+            origin.captureDevice = .watch
             _ = try repository.importRecording(
                 id: metadata.id, from: audio, kind: metadata.kind,
                 capturedAt: metadata.capturedAt, duration: metadata.duration,
-                origin: metadata.recordingOrigin ?? RecordingOrigin(device: "Apple Watch", deviceID: "", fileName: audio.lastPathComponent, recordingTimeIsEstimated: false),
+                origin: origin,
                 location: metadata.location, recordingGroupID: metadata.recordingGroupID,
                 recordingGroupOrdinal: metadata.recordingGroupOrdinal, recordingGroupOffset: metadata.recordingGroupOffset,
                 recordingGroupFinalOrdinal: metadata.recordingGroupFinalOrdinal,

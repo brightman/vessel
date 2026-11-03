@@ -3,6 +3,8 @@ import XCTest
 @testable import WiseLife
 
 @MainActor final class VoiceEnrollmentTests: XCTestCase {
+    // Injected enrollment closures do not read audio or need a private store path.
+    private let recordingURL = URL(fileURLWithPath: "/synthetic/voice-enrollment.m4a")
     func testWhisperOnlyAcceptsTranscriptWithSpeechCharacters() {
         XCTAssertTrue(WhisperTranscriptValidity.containsSpeechCharacters("你好，今天天气不错。"))
         XCTAssertTrue(WhisperTranscriptValidity.containsSpeechCharacters("A short voice note."))
@@ -24,7 +26,7 @@ import XCTest
         let store = try store(), original = try profile(), candidate = try profile(), gate = VoiceEnrollmentGate()
         try store.save(original)
         let model = MyVoiceProfileModel(store: store, enroll: { _ in await gate.pause(); return candidate })
-        let task = Task { await model.saveRecording(url: store.root, duration: 35, confirmedSolo: true) }
+        let task = Task { await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true) }
         await gate.wait(); model.cancelEnrollment(); await gate.resume()
         let saved = await task.value
         XCTAssertFalse(saved); XCTAssertEqual(try store.load()?.id, original.id); XCTAssertEqual(model.profile?.id, original.id)
@@ -33,7 +35,7 @@ import XCTest
         let store = try store(), candidate = try profile(), gate = VoiceEnrollmentGate()
         try store.save(try profile())
         let model = MyVoiceProfileModel(store: store, enroll: { _ in await gate.pause(); return candidate })
-        let task = Task { await model.saveRecording(url: store.root, duration: 35, confirmedSolo: true) }
+        let task = Task { await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true) }
         await gate.wait(); XCTAssertTrue(model.delete()); await gate.resume()
         let saved = await task.value
         XCTAssertFalse(saved); XCTAssertNil(model.profile); XCTAssertNil(try store.load())
@@ -42,10 +44,10 @@ import XCTest
         let store = try store(), candidate = try profile()
         var calls = 0
         let model = MyVoiceProfileModel(store: store, enroll: { _ in calls += 1; return candidate })
-        let short = await model.saveRecording(url: store.root, duration: 29.9, confirmedSolo: true)
-        let unconfirmed = await model.saveRecording(url: store.root, duration: 35, confirmedSolo: false)
+        let short = await model.saveRecording(url: recordingURL, duration: 29.9, confirmedSolo: true)
+        let unconfirmed = await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: false)
         XCTAssertFalse(short); XCTAssertFalse(unconfirmed); XCTAssertEqual(calls, 0); XCTAssertNil(try store.load())
-        let saved = await model.saveRecording(url: store.root, duration: 35, confirmedSolo: true)
+        let saved = await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true)
         XCTAssertTrue(saved); XCTAssertEqual(calls, 1); XCTAssertEqual(try store.load()?.id, candidate.id)
     }
     func testInvalidReplacementCannotDestroyOriginal() async throws {
@@ -53,7 +55,7 @@ import XCTest
         try store.save(original)
         let invalid = VoiceProfile(id: UUID(), enrolledAt: .now, recordingDuration: 35, modelID: "incompatible", embeddings: original.embeddings)
         let model = MyVoiceProfileModel(store: store, enroll: { _ in invalid })
-        let saved = await model.saveRecording(url: store.root, duration: 35, confirmedSolo: true)
+        let saved = await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true)
         XCTAssertFalse(saved); XCTAssertEqual(try store.load()?.id, original.id); XCTAssertNotNil(model.errorMessage)
     }
     func testOverlappingSecondVoiceRejectsReplacementAndPreservesOriginal() async throws {
@@ -66,7 +68,7 @@ import XCTest
             XCTFail("Overlapping second voice should be rejected")
             return original
         })
-        let saved = await model.saveRecording(url: store.root, duration: 35, confirmedSolo: true)
+        let saved = await model.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true)
         XCTAssertFalse(saved); XCTAssertEqual(try store.load()?.id, original.id)
         XCTAssertEqual(model.profile?.id, original.id)
         XCTAssertEqual(model.errorMessage, VoiceEnrollmentError.multipleVoices.localizedDescription)
@@ -136,7 +138,7 @@ import XCTest
         let task = Task { await model.transcribe(note.id) }
         await gate.wait()
         if replacement {
-            let saved = await owner.saveRecording(url: store.root, duration: 35, confirmedSolo: true)
+            let saved = await owner.saveRecording(url: recordingURL, duration: 35, confirmedSolo: true)
             XCTAssertTrue(saved); XCTAssertEqual(owner.profile?.id, candidate.id)
         } else { XCTAssertTrue(owner.delete()) }
         await gate.resume(); await task.value

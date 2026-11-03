@@ -391,7 +391,7 @@ struct DaybookVoiceDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("\(RecordingFormat.date(note.capturedAt)) · \(note.kind == .thought ? "闪念" : "语音记录") · \(RecordingFormat.duration(note.duration))")
                 .font(.system(size: 10)).lineSpacing(6).foregroundStyle(DaybookStyle.secondary)
-            LabeledContent("录制设备", value: note.origin?.device ?? "设备未知")
+            LabeledContent("录制设备", value: note.origin?.deviceLabel ?? "设备未知")
                 .font(.system(size: 12))
             if let sources = note.mergedSources, !sources.isEmpty {
                 VStack(alignment: .leading, spacing: 7) {
@@ -523,7 +523,7 @@ struct DaybookVoiceDetailView: View {
                     Text("\(groupNotes.count) 个文件")
                 }
             }.font(.system(size:10)).foregroundStyle(DaybookStyle.secondary)
-            LabeledContent("录制设备",value:note.origin?.device ?? "设备未知")
+            LabeledContent("录制设备",value:note.origin?.deviceLabel ?? "设备未知")
                 .font(.system(size:12))
             if let point=note.location { CapturePlaceDetails(point:point) }
             if let origin=note.origin,origin.recordingTimeIsEstimated {
@@ -598,7 +598,7 @@ struct DaybookVoiceDetailView: View {
                     .foregroundStyle(allFilesAvailable ? DaybookStyle.green : DaybookStyle.red)
             }
             LazyVGrid(columns:[GridItem(.flexible(),alignment:.leading),GridItem(.flexible(),alignment:.leading)],alignment:.leading,spacing:8) {
-                legacyFileMetric("录制设备",value:note.origin?.device ?? "设备未知")
+                legacyFileMetric("录制设备",value:note.origin?.deviceLabel ?? "设备未知")
                 legacyFileMetric(groupNotes.isEmpty ? "录音时长" : "录音组文件",value:groupNotes.isEmpty ? RecordingFormat.duration(note.duration) : "\(files.count) 个")
                 legacyFileMetric("存储位置",value:"仅此 iPhone")
                 legacyFileMetric("录音结束",value:recordingGroupEndStatus)

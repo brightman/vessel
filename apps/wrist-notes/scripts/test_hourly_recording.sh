@@ -10,6 +10,11 @@ swiftc -module-cache-path "$output/cache" \
   Sources/Shared/RecordingDiagnostics.swift Sources/Watch/SegmentedAudioCapture.swift \
   Sources/iPhone/AudioProcessing.swift Sources/iPhone/AudioWindowPlanner.swift \
   Sources/iPhone/DaybookDatabase.swift \
+  Sources/iPhone/NoteRepository.swift Sources/iPhone/AudioSpeakerMapping.swift \
+  Sources/iPhone/AudioProcessingRepository.swift Sources/iPhone/TranscriptionConfiguration.swift \
+  Sources/iPhone/AudioProcessingCoordinator.swift Sources/iPhone/AudioSourceDiscovery.swift \
+  Sources/iPhone/ContentSegmentation.swift Sources/iPhone/ContentSegmentationV2.swift \
+  Sources/iPhone/ContentSegmentRepository.swift Sources/iPhone/ContentEnrichmentService.swift \
   Sources/iPhone/RecordingSessionRepository.swift Tests/HourlyRecordingVerification.swift \
   -o "$output/hourly"
 "$output/hourly"

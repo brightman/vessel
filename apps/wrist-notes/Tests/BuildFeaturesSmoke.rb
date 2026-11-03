@@ -39,8 +39,8 @@ class BuildFeaturesSmoke < Minitest::Test
   end
 
   # Catches a switch that hides Swift code but cannot restore native SDK dependencies.
-  def test_enabled_build_resolves_all_three_native_modules
-    assert_equal %w[BRBluetoothLib BRRecorderCore BRRecorderOpus], pod_dependencies(true).uniq.sort
+  def test_enabled_build_uses_one_packaged_native_sdk
+    assert_equal %w[br_flutter_plugin_ble/Native], pod_dependencies(true).uniq.sort
   end
 
   # Catches non-reversible exclusions or overwriting unrelated developer build settings.
@@ -67,6 +67,9 @@ class BuildFeaturesSmoke < Minitest::Test
             flags = Array(config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'])
             assert_includes flags, 'ANOTHER_FEATURE'
             assert_equal enabled, flags.include?('WISELIFE_EUREKA_RING')
+            if target == tests
+              assert_equal enabled, Array(config.build_settings['OTHER_LDFLAGS']).each_cons(2).include?(%w[-framework BRRecorderOpus])
+            end
             excluded = Array(config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'])
             assert_includes excluded, 'Unrelated.swift'
             names = target == phone ? %w[EurekaRingModel.swift RingTransferStore.swift] : %w[RingIntegrationTests.swift]

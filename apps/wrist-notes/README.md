@@ -55,29 +55,17 @@ Watch 单按钮界面方案见 [`prototype/watch-recorder.html`](prototype/watch
 
 ## 打开与安装
 
-默认构建已关闭 Eureka Ring，不需要其原生 SDK。在 `apps/wrist-notes` 中运行 `pod install --no-repo-update`，再打开 `WristNotes.xcworkspace`。这会同时应用编译开关和 CocoaPods 依赖设置。
+当前构建已开启 EurekaRing。在 `apps/wrist-notes` 中运行 `pod install --no-repo-update`，再打开 `WristNotes.xcworkspace`。SDK 使用仓库内 `pods/br_flutter_plugin_ble` 的原生二进制 Pod，包含 BLE、适配层与 Opus 模块，不需要相邻插件源码、Flutter 或 `br_app_services`。
 
 ### Eureka Ring 编译开关
 
-配置文件：`Config/BuildFeatures.json`，当前为 `{"eurekaRing": false}`。关闭时硬件页只展示 Apple Watch，Ring 模型、传输存储和 Ring 集成测试不编译，三个 Ring Pod 不解析或链接；已有 Ring 笔记仍保留并可在原笔记库中查看。其他测试继续保留在现有测试 target 中。
+配置文件：`Config/BuildFeatures.json`，当前为 `{"eurekaRing": true}`。修改后运行 `pod install`，同步依赖、Swift 编译条件与源码排除；无需重建整个工程。关闭时隐藏 Ring 入口并排除 SDK 和相关测试，已有录音继续保留。开关检查：`ruby Tests/BuildFeaturesSmoke.rb`；SDK 校验：`python3 scripts/verify_ble_pod.py`。
 
-重新开启时，将 `eurekaRing` 改成 `true`，补齐下述依赖，再运行 `pod install`。仅修改 JSON 后直接点击 Build 不会更新已有 Xcode 工程。工程生成器也读取同一配置；日常切换无需重新生成整个工程。开关检查：`ruby Tests/BuildFeaturesSmoke.rb`。
+### Watch 与 Ring 长录音
 
-### 仅开启 Ring 时准备 SDK
+Watch 每小时保存一个 M4A，通过录音组 ID、序号和真实偏移恢复连续时间轴。Ring 每条硬件录音保留为一个完整文件，本地转为 16 kHz 单声道 AAC/M4A；超过一小时也不套用 Watch 分片限制或重新拆成小时文件。两者共用按帧范围读取的 AI 窗口，窗口和主题片段不改变原音文件粒度。
 
-将用户指定的原生 SDK 仓库放在 Vessel 的相邻目录，使用 `dev-300` 分支（需要该 GitLab 项目的访问权限）：
-
-```sh
-git clone --branch dev-300 --single-branch git@git.100credit.cn:ai2c/app/flutter_lib/br_flutter_plugin_ble.git ../br_flutter_plugin_ble
-```
-
-以上命令从 Vessel 仓库根目录执行；后续步骤进入 `apps/wrist-notes`。
-
-环境恢复注意：当前远端 `dev-300`（`627569fb`）只有原始 Flutter 插件，不含此工程需要的原生适配层。还需同步已有接入工作区中的 `ios/RecorderCore/`、`ios/BRRecorderCore.podspec` 和 `ios/bootstrap_recorder_core.sh`，才能执行下面的依赖准备步骤。当前恢复进度见 [钥匙串问题记录](verification/keychain-simulator.md#安装状态与外部依赖)。
-
-补充提供的 `br_app_services/dev-301`（`d985c6f7`）已选择性提取到相邻 `br_app_services` 目录，作为本地硬件／传输逻辑参考。它是 Dart 服务层，不含上述 Swift 适配层；未引入 App 构建或替换现有 SQLite 存储。提取清单和逐文件校验记录见该目录的 `EXTRACTION.md` 与 `SOURCE_DOWNLOAD.json`。
-
-`bairongble-ios/develop-sync`（`d70596a2`）已下载到相邻 `bairongble-ios` 目录，并链接至 `br_flutter_plugin_ble/ios/.native-sdk/BRBluetoothLib`。它补齐了 `BRBluetoothLib 3.0.0` 的源码路径，已通过独立 iOS Simulator 编译；`BRRecorderCore` 与 Opus 模块仍需恢复，尚未完成整个 App 的依赖安装。
+来源保存在 `RecordingOrigin.captureDevice`（`watch`／`ring`），同时保留设备名称、设备 ID 和文件名；旧数据缺少字段时按名称识别。首页、完整录音及内容片段详情统一显示 Apple Watch／EurekaRing。契约与验证见 [Ring 编译与文件处理说明](docs/2026-10-20-ring-build-switch.md)。
 
 ### 安装步骤
 

@@ -48,7 +48,9 @@ final class AudioSourceDiscovery {
         var groupedNotes: [UUID:[VoiceNote]] = [:]
         for row in try db.query("SELECT payload FROM voice_notes ORDER BY id") {
             let note = try DaybookDatabase.decode(VoiceNote.self,row["payload"])
-            if let groupID = note.recordingGroupID {
+            // Ring supplies complete device files, including multi-hour files.
+            // Watch hourly grouping must not change their physical-file ownership.
+            if let groupID = note.recordingGroupID, note.origin?.deviceKind != .ring {
                 groupedNotes[groupID, default: []].append(note)
                 continue
             }

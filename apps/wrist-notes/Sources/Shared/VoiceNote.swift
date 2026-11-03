@@ -206,12 +206,36 @@ enum ProcessingState: String, Codable {
     case failed
 }
 
+enum RecordingCaptureDevice: String, Codable, Sendable {
+    case watch, ring, iPhone, unknown
+
+    static func legacyDevice(_ name: String) -> Self {
+        switch name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "watch", "apple watch": .watch
+        case "ring", "eurekaring", "eureka ring": .ring
+        case "iphone": .iPhone
+        default: .unknown
+        }
+    }
+}
+
 struct RecordingOrigin: Codable, Equatable {
     let device: String
     let deviceID: String
     let fileName: String
     let recordingTimeIsEstimated: Bool
     var timeZoneIdentifier: String? = nil
+    /// Older recordings/senders omit this field; retain the original model name too.
+    var captureDevice: RecordingCaptureDevice? = nil
+    var deviceKind: RecordingCaptureDevice { captureDevice ?? .legacyDevice(device) }
+    var deviceLabel: String {
+        switch deviceKind {
+        case .watch: "Apple Watch"
+        case .ring: "EurekaRing"
+        case .iPhone: "iPhone"
+        case .unknown: device
+        }
+    }
 }
 
 struct MergedRecordingSource: Codable, Equatable, Identifiable {
@@ -393,7 +417,7 @@ struct VoiceNote: Codable, Identifiable, Equatable {
         titleManuallyEdited = false
         return true
     }
-    var usesLocalThoughtAI: Bool { kind == .thought && origin?.device == "EurekaRing" }
+    var usesLocalThoughtAI: Bool { kind == .thought && origin?.deviceKind == .ring }
 
     init(id: UUID, kind: RecordingKind, capturedAt: Date, duration: TimeInterval) {
         self.id = id

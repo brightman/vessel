@@ -18,7 +18,7 @@ enum RecordingSessionPresentation {
                 duration: session.recordedDuration,
                 intervals: session.recordedIntervals.map { DateInterval(start: $0.start, end: $0.end) })
             record.recordingSessionID = session.id
-            record.captureDevice = session.origin?.device
+            record.captureDevice = session.origin?.deviceLabel
             record.location = session.location
             return record
         }

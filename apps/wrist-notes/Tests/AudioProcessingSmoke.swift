@@ -5,8 +5,8 @@ import Foundation
         let passed = try value()
         precondition(passed, message)
     }
-    static func rejects(_ action: () throws -> Void) {
-        do { try action(); fatalError("invalid operation accepted") } catch {}
+    static func rejects(line: UInt = #line, _ action: () throws -> Void) {
+        do { try action(); fatalError("invalid operation accepted at line \(line)") } catch {}
     }
     static func main() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -14,6 +14,7 @@ import Foundation
         defer { try? FileManager.default.removeItem(at: root) }
         let origin = AudioSourceOrigin(recordingOrigin: RecordingOrigin(device: "synthetic", deviceID: "fixture", fileName: "fixture.wav", recordingTimeIsEstimated: false))
         try expect(origin.recordingOrigin.deviceID == "fixture", "origin retains immutable metadata")
+        try captureDeviceCompatibility()
         try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:16) == [.asr,.speaker], "short completed recordings skip VAD while retaining ASR and independent speaker analysis")
         try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:1_800) == [.asr,.speaker], "the exact thirty-minute boundary skips VAD")
         try expect(AudioInferenceStagePolicy.initialStages(sourceDuration:1_801) == .all, "recordings beyond thirty minutes request VAD for topic processing")
@@ -80,6 +81,18 @@ import Foundation
         try expect(windows[1].ranges.count == 2, "file boundary does not break core")
         let long = try AudioWindowPlanner.plan(source: source([range(0, 23400)]), configurationKey: "v1")
         try expect(long.count == 78 && long.last?.coreEnd == 23400, "6.5 hour plan")
+        let ringID = UUID()
+        let ringWindows = try AudioWindowPlanner.plan(source: source([range(0, 7323.5, chunkID: ringID)]), configurationKey: "v1")
+        let watchWindows = try AudioWindowPlanner.plan(source: source([range(0, 3600), range(3600, 3600), range(7200, 123.5)]), configurationKey: "v1")
+        try expect(ringWindows.count == 25 && watchWindows.count == 25, "Ring whole file and Watch hourly files cover the same long timeline")
+        for (ring, watch) in zip(ringWindows, watchWindows) {
+            try expect(ring.coreStart == watch.coreStart && ring.coreEnd == watch.coreEnd, "AI boundaries are independent of physical files")
+            try expect(ring.ranges.allSatisfy { $0.chunkID == ringID }, "Ring windows reference the original whole file")
+        }
+        let crossingHour = [AudioTranscriptSpan(start: 3599, end: 3601, text: "hour boundary")]
+        for plan in [ringWindows, watchWindows] {
+            try expect(try plan.flatMap { try AudioWindowPlanner.ownedSpans(crossingHour, window: $0) } == crossingHour, "cross-hour speech keeps global time and occurs exactly once")
+        }
         let gaps = try AudioWindowPlanner.plan(source: source([range(0, 100), range(110, 100, gap: "captureGap")]), configurationKey: "v1")
         try expect(gaps.count == 2 && gaps[0].inputEnd == 100 && gaps[1].inputStart == 110, "gap clips context")
         let repeated = [AudioTranscriptSpan(start: 299, end: 301, text: "again"), AudioTranscriptSpan(start: 310, end: 311, text: "again")]
@@ -96,7 +109,7 @@ import Foundation
         var repo = AudioProcessingRepository(database: db)
         try repo.register(source: receiving, configurationKey: "v1", windows: initial)
         let job = try repo.claimNext()!
-        let result = AudioWindowResult(spans: [AudioTranscriptSpan(start: 1, end: 2, text: "synthetic")], activities: [], asr: .success, vad: .missingResource, speaker: .notRequested, asrCoverage: [AudioTimeRange(start: 0, end: 300)], vadCoverage: [])
+        let result = AudioWindowResult(spans: [AudioTranscriptSpan(start: 1, end: 2, text: "synthetic")], activities: [], asr: .success, vad: .notRequested, speaker: .notRequested, asrCoverage: [AudioTimeRange(start: 0, end: 300)], vadCoverage: [])
         // A trigger simulates disk/constraint failure AFTER inserting spans, before job completion.
         try db.execute("CREATE TRIGGER interrupt_audio_commit BEFORE UPDATE OF state ON audio_processing_jobs WHEN NEW.state='completed' BEGIN SELECT RAISE(ABORT,'synthetic interruption'); END")
         rejects { try repo.commit(job: job, result: result) }
@@ -123,11 +136,17 @@ import Foundation
         try expect(try repo.results(sourceID: id).last?.asr == .success, "empty ASR successful, VAD independent")
         try expect(try repo.results(sourceID: id).last?.vad == .missingResource, "empty ASR is not no speech")
         let partial = try repo.completedAnalyses(sourceID: id)
-        try expect(partial.count == 2 && partial[0].window.id == initial[0].id && partial[0].result.vad == .missingResource, "partial outcomes retain window provenance")
+        try expect(partial.count == 2 && partial[0].window.id == initial[0].id && partial[0].result.vad == .notRequested && partial[1].result.vad == .missingResource, "independent stage outcomes retain window provenance")
         try expect(try repo.spans(sourceID: id).count == 1, "missing VAD retains successful ASR")
         try repo.retry(sourceID: id)
         let failing = try repo.claimNext()!
         try repo.fail(job: failing, state: .failed, message: "synthetic")
+        // Ordinary failures become terminal only after the existing automatic retry budget.
+        for _ in 0..<3 {
+            let retry = try repo.claimNext()!
+            try expect(retry.window.id == failing.window.id, "automatic retry retains the failing window")
+            try repo.fail(job: retry, state: .failed, message: "synthetic")
+        }
         try expect(try repo.progress(sourceID: id).states[.failed] == 1, "failure distinct from resource/cancel")
         try repo.retry(sourceID: id)
         let staleConfig = try repo.claimNext()!
@@ -169,6 +188,20 @@ import Foundation
         let disguised = try AudioSourceRange(range: RecordingSourceRange(chunkID: UUID(), url: first.url, startFrame: 0, endFrame: 16000, sampleRate: 16000, sessionStartOffset: 302), contentHash: first.contentHash)
         rejects { _ = try source([first, disguised]) }
         print("AudioProcessingSmoke passed: bounded/gapped/append plans, timestamp ownership, SQLite atomic rollback/reopen, leases, versions, outcomes, cancellation and tombstones")
+    }
+
+    static func captureDeviceCompatibility() throws {
+        for (name, expected) in [("Apple Watch", RecordingCaptureDevice.watch), ("Watch", .watch), ("EurekaRing", .ring), ("Ring", .ring), ("iPhone", .iPhone), ("other recorder", .unknown)] {
+            let old = RecordingOrigin(device: name, deviceID: "fixture", fileName: "audio.m4a", recordingTimeIsEstimated: false)
+            let decoded = try JSONDecoder().decode(RecordingOrigin.self, from: JSONEncoder().encode(old))
+            try expect(decoded.captureDevice == nil && decoded.deviceKind == expected, "old origin metadata stays readable without rewriting audio")
+        }
+        let explicit = RecordingOrigin(device: "Vendor model", deviceID: "ring-fixture", fileName: "long.opus", recordingTimeIsEstimated: true, captureDevice: .ring)
+        let decoded = try JSONDecoder().decode(RecordingOrigin.self, from: JSONEncoder().encode(explicit))
+        try expect(decoded.captureDevice == .ring && decoded.deviceLabel == "EurekaRing", "source marker survives persistence independently of model name")
+        let projected = AudioSourceOrigin(recordingOrigin: decoded)
+        let reopened = try JSONDecoder().decode(AudioSourceOrigin.self, from: JSONEncoder().encode(projected))
+        try expect(reopened.recordingOrigin == decoded, "AI snapshot retains explicit source")
     }
 
     static func shortRecordingCrossingThresholdRequestsVAD() throws {

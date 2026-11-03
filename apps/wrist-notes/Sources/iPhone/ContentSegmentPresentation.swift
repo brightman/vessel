@@ -46,7 +46,7 @@ enum ContentSegmentPresentation {
             title:segment.displayTitle,text:AudioTranscriptPresentation.fullText(spans),summary:segment.summary,
             duration:segment.ranges.reduce(0) { $0 + $1.duration },intervals:intervals)
         value.recordingSessionID = source.id.kind == .session ? source.id.id : nil
-        value.captureDevice = source.origin?.device
+        value.captureDevice = source.origin?.deviceLabel
         // Range metadata makes no claim about the location throughout the recording.
         value.contentProvenance = .init(segmentID:segment.id,sourceID:source.id.id,sourceKind:source.id.kind.rawValue,
             sourceRevision:segment.sourceRevision,segmentRevision:segment.revision,configurationKey:segment.provenance.configurationKey,

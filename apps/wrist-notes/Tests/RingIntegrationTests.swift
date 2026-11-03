@@ -91,6 +91,34 @@ import BRRecorderOpus
         XCTAssertThrowsError(try reopened.enqueue([file("../escape.opus")], deviceID: hardware.id))
     }
 
+    func testPhoneImportPreservesRingSourceAndUsesDurableProcessing() async throws {
+        let root = try temporary()
+        let repository = try NoteRepository(root: root.appendingPathComponent("Library"))
+        let notes = NotesModel(repository: repository, connectWatch: false, transcribe: { _, _ in
+            XCTFail("Ring long recordings must use the durable processing queue")
+            return ""
+        })
+        var routed: [RecordingCaptureDevice] = []
+        notes.durableTranscription = { note, _ in
+            routed.append(note.origin?.deviceKind ?? .unknown)
+            return true
+        }
+        let output = try await BRAudioNormalizer.normalize(input: legacyFixture(), output: root.appendingPathComponent("whole.m4a"))
+        let store = try RingTransferStore(root: root.appendingPathComponent("Ring"))
+        let job = try XCTUnwrap(try store.enqueue([file()], deviceID: hardware.id).first)
+        try notes.saveRingRecording(job: job, fileURL: output.url, duration: output.duration)
+        await Task.yield()
+        await notes.transcribe(job.id, automatic: true)
+        let saved = try XCTUnwrap(notes.note(job.id))
+        XCTAssertEqual(saved.origin?.captureDevice, .ring)
+        XCTAssertEqual(saved.origin?.deviceLabel, "EurekaRing")
+        XCTAssertNil(saved.recordingGroupID)
+        XCTAssertNil(saved.recordingGroupOrdinal)
+        XCTAssertTrue(routed.contains(.ring))
+        let reopened = try NoteRepository(root: root.appendingPathComponent("Library"))
+        XCTAssertEqual(reopened.notes.first?.origin?.captureDevice, .ring)
+    }
+
     func testSyncSavesRecordedDateAndDoesNotReimportDeletedNotes() async throws {
         let root = try temporary()
         let sdk = FakeRingDevice(input: try legacyFixture(), files: [file()])

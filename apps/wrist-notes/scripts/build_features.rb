@@ -30,6 +30,17 @@ module WristNotesBuildFeatures
         excluded.concat(sources) unless enabled
         settings['EXCLUDED_SOURCE_FILE_NAMES'] = excluded.uniq
         settings['WISELIFE_EUREKA_RING_ENABLED'] = enabled ? 'YES' : 'NO'
+        if target.name == 'RingIntegrationTests'
+          # Native already copies Opus. A second Pod target would produce the
+          # same XCFramework output twice; tests only need the encoder linked.
+          linker = tokens(settings['OTHER_LDFLAGS'])
+          while (index = linker.each_cons(2).find_index { |pair| pair == %w[-framework BRRecorderOpus] })
+            linker.slice!(index, 2)
+          end
+          linker.unshift('$(inherited)') unless linker.include?('$(inherited)')
+          linker.concat(%w[-framework BRRecorderOpus]) if enabled
+          settings['OTHER_LDFLAGS'] = linker
+        end
       end
     end
   end

@@ -20,6 +20,13 @@ import XCTest
     private var output: TranscriptionOutput {
         .init(text: "Hello. Hi.", segments: [.init(start: 0, end: 1, text: "Hello."), .init(start: 2, end: 3, text: " Hi.")])
     }
+    private func database(_ repository: NoteRepository, note: VoiceNote) throws -> DaybookDatabase {
+        let root = repository.audioURL(for: note).deletingLastPathComponent().deletingLastPathComponent()
+        return try DaybookDatabase(url: DaybookDatabase.metadataURL(forRoot: root))
+    }
+    private func failWrites(_ database: DaybookDatabase) throws {
+        try database.execute("CREATE TRIGGER block_note_updates BEFORE UPDATE ON voice_notes BEGIN SELECT RAISE(ABORT,'synthetic write failure'); END")
+    }
 
     func testTranscriptionPersistsBeforeDiarizationAndFailureCanRetry() async throws {
         let (repository, note, settings) = try fixture()
@@ -82,12 +89,11 @@ import XCTest
     func testASRPersistenceFailureDoesNotStartDiarization() async throws {
         let (repository, note, settings) = try fixture()
         let output = output
-        let index = repository.audioURL(for: note).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("notes.json")
+        let database = try database(repository, note: note)
         var diarizationCalls = 0
         let model = NotesModel(repository: repository, settings: settings, connectWatch: false,
             transcribeWithSegments: { _, _ in
-                try FileManager.default.removeItem(at: index)
-                try FileManager.default.createDirectory(at: index, withIntermediateDirectories: false)
+                try self.failWrites(database)
                 return output
             }, diarize: { _, pieces in diarizationCalls += 1; return pieces })
         await model.transcribe(note.id)
@@ -100,20 +106,19 @@ import XCTest
     func testFinalDiarizationWriteFailureAllowsRetry() async throws {
         let (repository, note, settings) = try fixture()
         let output = output
-        let index = repository.audioURL(for: note).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("notes.json")
+        let database = try database(repository, note: note)
         var fail = true
         let model = NotesModel(repository: repository, settings: settings, connectWatch: false,
             transcribeWithSegments: { _, _ in output }, diarize: { _, pieces in
                 if fail {
-                    try FileManager.default.removeItem(at: index)
-                    try FileManager.default.createDirectory(at: index, withIntermediateDirectories: false)
+                    try self.failWrites(database)
                 }
                 return SpeakerAlignment.align(pieces, turns: [.init(start: 0, end: 3, speaker: 0)])
             })
         await model.transcribe(note.id)
         XCTAssertEqual(model.note(note.id)?.transcript, "Hello. Hi.")
         XCTAssertNotEqual(model.note(note.id)?.diarizationState, .running)
-        try FileManager.default.removeItem(at: index)
+        try database.execute("DROP TRIGGER block_note_updates")
         fail = false
         await model.identifySpeakers(note.id)
         XCTAssertEqual(model.note(note.id)?.diarizationState, .ready)

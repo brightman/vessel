@@ -100,7 +100,7 @@ struct ContentSegmentDetailView: View {
     private func metadata(_ detail:ContentSegmentDetail) -> some View {
         let start=detail.source.capturedAt.addingTimeInterval(detail.segment.ranges.first?.sessionStartOffset ?? 0)
         let duration=detail.segment.ranges.reduce(0) { $0+$1.duration }
-        let fields=[RecordingFormat.date(start),detail.source.origin?.device,"内容片段",RecordingFormat.duration(duration)].compactMap { $0 }
+        let fields=[RecordingFormat.date(start),detail.source.origin?.deviceLabel,"内容片段",RecordingFormat.duration(duration)].compactMap { $0 }
         return VStack(alignment:.leading,spacing:8) {
             Text(fields.joined(separator:" · "))
             if !detail.segment.isFinal { Text("该片段尚未完成 ASR/VAD 覆盖或话题整理，暂不显示在时间轴。请查看下方处理状态。") }

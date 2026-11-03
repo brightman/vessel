@@ -306,7 +306,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             startedAt = .now
             thoughtOrigin = RecordingOrigin(device: WKInterfaceDevice.current().model,
                 deviceID: UserDefaults.standard.string(forKey: "WiseLifeRecordingDeviceID") ?? "",
-                fileName: destination.lastPathComponent, recordingTimeIsEstimated: false, timeZoneIdentifier: TimeZone.current.identifier)
+                fileName: destination.lastPathComponent, recordingTimeIsEstimated: false, timeZoneIdentifier: TimeZone.current.identifier, captureDevice: .watch)
             try? writeCaptureItem(PendingRecording(id: id, kind: kind, capturedAt: startedAt!, duration: 0, recordingOrigin: thoughtOrigin), id: id)
             isRecording = true
             capturedLocation = nil
@@ -330,13 +330,13 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         let deviceID = UserDefaults.standard.string(forKey: deviceKey) ?? UUID().uuidString
         UserDefaults.standard.set(deviceID, forKey: deviceKey)
         let origin = RecordingOrigin(device: WKInterfaceDevice.current().model, deviceID: deviceID,
-                                     fileName: "hourly-recording", recordingTimeIsEstimated: false)
+                                     fileName: "hourly-recording", recordingTimeIsEstimated: false, captureDevice: .watch)
         let captureRoot = directory.appendingPathComponent("HourlyCapture", isDirectory: true).appendingPathComponent(groupID.uuidString, isDirectory: true)
         let capture = SegmentedAudioCapture(root: captureRoot, origin: origin) { [weak self] chunk, temporaryURL, isFinal in
             guard let self else { throw RecordingTransportError.unavailable }
             let fileURL = self.directory.appendingPathComponent(chunk.audioFilename)
             let fileOrigin = RecordingOrigin(device: chunk.origin.device, deviceID: chunk.origin.deviceID,
-                                             fileName: chunk.audioFilename, recordingTimeIsEstimated: false)
+                                             fileName: chunk.audioFilename, recordingTimeIsEstimated: false, captureDevice: .watch)
             let item = PendingRecording(id: chunk.id, kind: .long, capturedAt: chunk.capturedAt,
                 duration: chunk.duration, location: chunk.location, recordingGroupID: groupID,
                 recordingGroupOrdinal: chunk.ordinal, recordingGroupOffset: chunk.sessionStartOffset,
@@ -518,7 +518,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             let recovered = readCaptureItem(id)
             let defaultOrigin = RecordingOrigin(device: WKInterfaceDevice.current().model,
                 deviceID: UserDefaults.standard.string(forKey: "WiseLifeRecordingDeviceID") ?? "unknown",
-                fileName: file.lastPathComponent, recordingTimeIsEstimated: parsedGroupFile == nil)
+                fileName: file.lastPathComponent, recordingTimeIsEstimated: parsedGroupFile == nil, captureDevice: .watch)
             var item = recovered?.id == id ? recovered! : PendingRecording(id: id, kind: .long, capturedAt: date,
                 duration: 0, recordingGroupID: parsedGroupFile?.groupID,
                 recordingGroupOrdinal: parsedGroupFile?.ordinal,
@@ -566,7 +566,7 @@ final class WatchRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
                             recordingGroupOffset: intent.sessionStartOffset,
                             recordingOrigin: RecordingOrigin(device: intent.context.origin.device,
                                 deviceID: intent.context.origin.deviceID, fileName: canonicalName,
-                                recordingTimeIsEstimated: false))
+                                recordingTimeIsEstimated: false, captureDevice: .watch))
                         pending.append(item)
                     }
                     recordDiagnostic("恢复已封存录音", detail: "\(RecordingTransportDiagnostics.shortID(identity.id)) · \(Int(duration))秒")
