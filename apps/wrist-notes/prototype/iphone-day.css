@@ -1,0 +1,36 @@
+/* Standalone app preview. Product styles remain in the shared daybook files. */
+.iphone-prototype .prototype-stage{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+.iphone-prototype .phone-shell{width:430px;height:min(928px,calc(100dvh - 48px));min-height:600px;flex-shrink:0}
+html:has(.iphone-prototype #sheet[open]){overflow:hidden}
+.iphone-prototype .app-faq details{border-bottom:1px solid var(--line)}
+.iphone-prototype .app-faq summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;font-size:14px;font-weight:500;line-height:1.7;cursor:pointer}
+.iphone-prototype .app-faq summary::-webkit-details-marker{display:none}
+.iphone-prototype .app-faq summary>.icon{width:16px;height:16px;color:var(--secondary)}
+.iphone-prototype .app-faq details[open] summary>.icon{transform:rotate(45deg)}
+.iphone-prototype .app-faq details p{font-size:13px;line-height:1.9;color:var(--secondary);margin:0 0 20px}
+.iphone-prototype .app-faq summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.iphone-prototype{--nb-surface:#fff;--nb-soft:#f0f3f6;--nb-violet:#746286}
+.iphone-prototype .toolbar{gap:8px}
+.iphone-prototype .demo-label{font-size:9px;white-space:nowrap}
+.iphone-prototype .toolbar-right .icon-button{width:34px}
+.iphone-prototype .screen-scroll:has(#notebookView:not([hidden])){display:flex;overflow:hidden}
+.iphone-prototype #notebookView{padding:0;flex:1;min-height:0;min-width:0}
+.iphone-prototype #notebookView:not([hidden]){display:flex;flex-direction:column}
+.iphone-prototype #notebookView .nb-app{padding-bottom:0}
+.iphone-prototype #notebookView .nb-title-row{margin-top:5px}
+.iphone-prototype #notebookView .nb-header>p{margin-bottom:15px}
+.iphone-prototype .nb-overlay{z-index:30}
+.iphone-prototype .nb-toast{z-index:40;bottom:105px}
+.product-guide-intro{font-size:14px;line-height:1.8;color:var(--secondary);margin:8px 0 20px}
+.product-guide details{border-bottom:1px solid var(--line);padding:16px 0}
+.product-guide summary{cursor:pointer;font-size:15px;font-weight:550;line-height:1.6}
+.product-guide details p,.product-guide details li{font-size:13px;color:var(--secondary);line-height:1.85}
+.product-guide ul{padding-left:20px;margin:12px 0}
+.product-guide .text-button{margin-top:5px;min-height:38px}
+.product-guide-boundary{background:var(--nb-soft);border-radius:14px;padding:14px 16px;margin-top:22px;font-size:12px;line-height:1.8;color:var(--secondary)}
+:root[data-appearance=dark] .iphone-prototype{--nb-surface:#1b242e;--nb-soft:#202a34}
+@media(max-width:500px){
+  .iphone-prototype .prototype-stage{padding:0}
+  .iphone-prototype .phone-shell{width:100%;height:100dvh;min-height:0}
+}
+@media(max-width:360px){.iphone-prototype .toolbar{padding-left:16px;padding-right:16px}.iphone-prototype .watch-pill{padding-left:8px;padding-right:8px}.iphone-prototype .demo-label{font-size:8px}}

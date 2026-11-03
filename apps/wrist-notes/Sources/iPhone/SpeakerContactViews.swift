@@ -70,7 +70,7 @@ struct SpeakerContactPicker: UIViewControllerRepresentable {
 }
 
 private struct ManualSpeakerContactForm: View {
-    let save: (String,String?,String?,String?) async -> SpeakerContactSnapshot?
+    let save: (SpeakerContactSnapshot) async -> SpeakerContactSnapshot?
     let onSaved: (SpeakerContactSnapshot) -> Void
     let cancel: () -> Void
     @State private var name=""
@@ -78,6 +78,7 @@ private struct ManualSpeakerContactForm: View {
     @State private var email=""
     @State private var phone=""
     @State private var saving=false
+    @State private var relationships:[String]=[]
     @State private var failure:String?
     var body:some View {
         NavigationStack {
@@ -88,6 +89,7 @@ private struct ManualSpeakerContactForm: View {
                     TextField("邮箱",text:$email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never)
                     TextField("手机号",text:$phone).textContentType(.telephoneNumber).keyboardType(.phonePad)
                 }
+                NotebookRelationshipEditor(selection:$relationships)
                 if let failure { Text(failure).foregroundStyle(.orange) }
             }
             .navigationTitle("添加联系人").navigationBarTitleDisplayMode(.inline)
@@ -97,8 +99,14 @@ private struct ManualSpeakerContactForm: View {
                     Button(saving ? "保存中…" : "保存") {
                         saving=true
                         Task {
-                            if let contact=await save(name,organization,email,phone) { onSaved(contact) }
-                            else { failure="无法保存联系人关联，请检查姓名并重试。"; saving=false }
+                            do {
+                                let name=name,organization=organization,email=email,phone=phone,relationships=relationships
+                                let created = try await Task.detached {
+                                    try NotebookPeopleRepository(database:DaybookDatabase()).createContact(name:name,organization:organization,email:email,phone:phone,relationships:relationships)
+                                }.value
+                                if let contact=await save(created) { onSaved(contact) }
+                                else { failure="联系人已保存，但关联失败，请从已保存联系人重试。"; saving=false }
+                            } catch { failure=error.localizedDescription; saving=false }
                         }
                     }.disabled(saving || name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
                 }
@@ -218,8 +226,8 @@ struct SpeakerManagementView: View {
                 },cancelled:{ showSavedContacts=false })
             }
             .sheet(isPresented:$showManualContact) {
-                ManualSpeakerContactForm(save:{ name,organization,email,phone in
-                    guard let created=model.createManualContact(name:name,organization:organization,email:email,phone:phone),save(created) else { return nil }
+                ManualSpeakerContactForm(save:{ created in
+                    guard save(created) else { return nil }
                     return created
                 },onSaved:{ _ in showManualContact=false },cancel:{ showManualContact=false })
             }
@@ -344,9 +352,8 @@ struct ContentSpeakerAssociationView: View {
                 },cancelled:{ showSavedContacts=false })
             }
             .sheet(isPresented:$showManualContact) {
-                ManualSpeakerContactForm(save:{ name,organization,email,phone in
-                    guard let created=await content.saveManualContact(name:name,organization:organization,email:email,phone:phone),
-                          await content.setSpeakerContact(sourceID:request.sourceID,speakerID:request.speakerID,contact:created) else { return nil }
+                ManualSpeakerContactForm(save:{ created in
+                    guard await content.setSpeakerContact(sourceID:request.sourceID,speakerID:request.speakerID,contact:created) else { return nil }
                     return created
                 },onSaved:{ contact in
                     linkedContact=contact; savedMessage="已关联到 \(contact.displayName)"; showManualContact=false

@@ -198,3 +198,123 @@ xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace \
 ### 边界
 
 真实模型提取、ASR、音频播放、系统 EventKit 写入、通知送达、Watch 文件传输及真机尚未在本轮验证。自动测试使用真实 SQLite 和假的系统执行适配器；模拟器 UI 验证使用虚构记录，不证明真实系统执行。本轮未完成全语言／深色／所有尺寸验收，未提交、推送或发布。
+
+
+<a id="notebook-four-categories-20261103"></a>
+
+## 2026-11-03 四类记事本可交互原型
+
+类型：产品原型验证记录 · 状态：浏览器主流程已验证，产品待评审，未同步原生 · 更新：2026-11-03。
+
+关联：[当前设计第 10 节](../../prototype/flash-assets-design.md#notebook-four-categories) · [原型](../../prototype/notebook.html) · [索引](../../docs/INDEX.md)。用户授权先制作原型讨论；沿用本记录，不新建原生实施计划。
+
+> 本节初版的地点采集状态与往返规律已被下方“地点简化与按天去重”评审更新替代；保留初版验证作为历史记录。
+
+### 修改范围与运行
+
+- 新增 `prototype/notebook.html`、`notebook.css`、`notebook.js`；主原型 `iphone-day.html` 的闪念设计入口区增加四类记事本链接。既有两类记事本原型和 Swift 行为未替换。
+- 本地服务：`python3 -m http.server 8778 --bind 127.0.0.1 --directory apps/wrist-notes/prototype`；入口 `http://127.0.0.1:8778/notebook.html`。hash 可使用 `ideas`、`money`、`people`、`places`。
+- 所有数据均为虚构；AI 结果由本页逻辑模拟。状态仅在页面内存，刷新恢复。不读取数据库、通讯录、照片、录音或定位，不产生外部请求或系统权限弹窗。
+- 用户关于“无需主动开启”的地点采集措辞待澄清。原型默认展示首次授权后自动低功耗采集，并可切换仅媒体位置方案；这两个选项是设计对照，不是已完成的采集能力。
+
+### 浏览器实际走查
+
+环境：macOS 原生 Google Chrome，通过 CUA 操作可见 UI；窗口截图 2940 × 1750 像素。430 px 标准框与 360 px 窄框为 CSS 宽度，不代表真机测试。
+
+| 操作 | 实际结果 |
+| --- | --- |
+| 灵感选择两条 → 输入“组合成一个小方案” → 模拟失败 → 重试 | 显示生成中、连接中断、保留选择与方向提示；重试得到三条演示候选 |
+| 保存默认第一条候选 | 列表由 5 条变 6 条；新项带 AI 再创作标记，详情包含两个原始灵感入口；原项仍在 |
+| 编辑原始灵感正文 | 保存后显示修改后的文字，录下时的原话及 Apple Watch 来源保持不变 |
+| 记账筛选收入、切换 10 月／11 月 | 11 月收入 3,600.00；10 月支出 4,624.50、收入 18,500.00、结余 13,875.50 |
+| 待补充咖啡补金额 32.50 | 11 月 CNY 支出由 4,429.00 变 4,461.50，结余由 -829.00 变 -861.50，待补充数清零 |
+| 切换 USD | 支出 20.00、收入 0.00、结余 -20.00，未与人民币相加 |
+| 新增虚构联系人“许知夏”，选择同学＋朋友并自定义跑友 | 保存后关系三项都显示，关联录音数为 0；列表由 4 人变 5 人 |
+| 打开林茜 → 产品方向讨论 | 展示明确绑定的发言、日期与 03:20–04:08 时间范围；不播放真实音频 |
+| 地点规律 → 查看依据 | 展示 12 天家→公司→家，以及最近 4 个日期的 07:45／09:30／20:10 顺序；未绘制缺失路线 |
+| 将未标记地点命名为梧桐咖啡，类型选咖啡馆 | 保存成功，地点仍为 6 次、6 天，列表名称和图标更新 |
+| 自动地点说明 → 暂停 → 恢复 | 显示已暂停和恢复入口；返回列表恢复自动记录状态，既有示例记录保留 |
+| 空状态 → 切换仅媒体采集方案 | 空状态描述同步切换为录音／照片附带位置；评审栏同步变更 |
+| 深色与 360 px 窄屏 | 截图检查字体、四栏标签、地点列表和数量可读，无横向裁切；内容在手机框内滚动 |
+| Escape 关闭弹层 | 多次在灵感、人物、地点详情关闭成功 |
+
+桌面手机框高度调整为随视口缩放，完整边框和底部指示条可见。一次原生 AX 索引失效后重新读取状态恢复；没有把失败的工具调用计为验证通过。
+
+### 静态验证与未覆盖范围
+
+- `node --check apps/wrist-notes/prototype/notebook.js`：通过。
+- HTTP：HTML／CSS／JS 均返回 200，响应内容与磁盘一致。本地资源、设计／验证／索引的文件链接及新增锚点存在。`git diff --check -- apps/wrist-notes/prototype/iphone-day.html apps/wrist-notes/prototype/flash-assets-design.md apps/wrist-notes/verification/flash-assets-prototype/README.md apps/wrist-notes/docs/INDEX.md` 通过；新原型三文件单独检查无行尾空白。索引重新计数为 210 份文档（另有 1 份 JSON 验证附件），修正了已有总数漂移。
+- 未测试真实模型、SQLite 持久化、系统定位授权、后台采集覆盖和耗电、真实联系人绑定／录音播放、原生 App、模拟器或真机交互。尚无完整 VoiceOver、全键盘、Safari、手机浏览器或全页面深色回归验收。
+- 合成地点归组仅用于展示，尚未实现真实坐标聚类、归组纠错、合并／拆分、位置权限撤回与删除策略。公司改学校的数据路径已提供，未完成独立学生样例的浏览器走查。
+- 无 commit、push、构建、安装或发布。
+
+
+### 2026-11-03 地点简化与按天去重
+
+用户在原型评审中要求仅保留高频地点，同一地点每天最多计 1 次。已同步[主要说明](../../prototype/flash-assets-design.md#notebook-four-categories)、原型和索引；本段替代初版中地点次数／生活规律／采集状态的现行说明。
+
+- 移除低功耗采集状态、暂停／恢复、采集方案切换、生活节奏与规律依据、时段分布；删除相应演示逻辑及样式。
+- 高频地点按近 30 天的地点 ID＋原始本地日期去重后降序排列。详情按天合并，展开保留当天全部来源；不删除原始记录。
+- Chrome / CUA 实际刷新后：列表依次为公司 18 次、家 12 次、梧桐路附近 6 次、河畔公园 4 次，显示“近 30 天 · 按天去重”，未出现旧采集状态或规律卡片。
+- 点击家：显示总计 12 次、12 个日期；点击 10 月 27 日：保留 07:45 与 20:10 两条录音来源，明确显示当天共计 1 次。已验证跨日分别计数、同日多次合并、各地点独立统计与排序。
+- 浏览器截图检查简化列表及名称／地址／次数排版。正常刷新曾命中旧脚本缓存，随后添加 CSS／JS 版本参数，再次正常刷新确认读取新文案和统计。
+- 本次只修改原型与文档，未改 Swift／SQLite／真机设置；未构建、安装或发布。未重复验证其他三类全部交互。
+- 静态检查：`node --check apps/wrist-notes/prototype/notebook.js` 与文档 scoped `git diff --check` 通过；原型三文件 HTTP 200、服务响应与磁盘一致，无行尾空白；已检查移除的采集／规律文案及逻辑不再存在。
+
+
+<a id="notebook-native-four-20261103"></a>
+
+## 四类记事本原生实现与验证（2026-11-03）
+
+类型：实现与验证记录 · 状态：代码／自动检查完成，人工原生交互与真实模型未验收。用户在评审原型及设置返回路径后明确要求“开发新的记事本功能”。范围以[产品规则第 10 节](../../prototype/flash-assets-design.md#notebook-four-categories)为准；沿用[同一实施计划](../../docs/superpowers/plans/2026-10-31-flash-notebook-native.md)。最初实现位于 `codex/pages-api-base` 的未提交工作区；该阶段未提交、推送、发布或修改真机数据。后续用户授权 GitHub 推送的隔离分支验证见本节末尾。
+
+### 已实现
+
+四栏 SwiftUI 记事本，设置入口／返回，闪念分类入口及基于持久化来源种类的录音／照片跳转；灵感新增、编辑、多选、真实模型接口、候选草稿及选择另存；月度币种收支与筛选；本地联系人多选／自定义关系和关联发言；高频地点近 30 天、按自然日去重及手动标记。来源列表和汇总后台执行；旧数据增量保留。
+
+### 自动验证
+
+macOS / Xcode / Swift，所有 SQLite 用临时数据库或专用测试模拟器的合成数据。
+
+| 命令 | 结果与覆盖 |
+| --- | --- |
+| `sh scripts/test_notebook_ledger.sh` | 通过：v1 旧表升级与重开、账目跨月、待补充录制月、撤销排除、多币种、分页、JSON 边界、过期来源拒绝、生成快照、重复采纳、草稿删除不删内容、本地限制跨代传播、取消中的草稿不写入。 |
+| `sh scripts/test_notebook_people.sh` | 通过：关系空值／多选／自定义／去重、同名不同 ID、旧联系人、修订冲突、解绑／删来源保留联系人、真实来源及复核状态；含 iOS SwiftUI typecheck。 |
+| `sh scripts/test_notebook_places.sh` | 通过：同日多次、A→B→A、跨日／30 天边界、时区稳定、样本及文件证据、名称／计数独立、来源删除、缓存地址精确关联；含 iOS SwiftUI typecheck。 |
+| `sh scripts/test_notebook_sources.sh` | 通过：独立 SQLite 查询历史 session／photo 类型，来源删除返回缺失；不依赖最新 50 条的 UI 缓存。 |
+| `sh scripts/test_flash_capture.sh` | 通过：既有来源校验、金额精度、编辑冲突、撤销、历史记录和去重回归。 |
+| `sh scripts/test_places.sh` | 通过：采集元数据、位置生命周期、照片元数据和地点投影四组件。照片新增原始日与时区保存断言。 |
+| `sh scripts/test_speaker_contacts.sh` | 通过：联系人／说话人／声纹 owner 三组件。旧 runner 补全当前真实依赖；payload-only 旧联系人预期改为 needsReview=true，并保留其余字段完整相等比较，符合现有归一化规则。 |
+
+代码复查发现并修复：联系人分页过期请求影响状态；地点漏读独立地址缓存；AI 配置／取消跨 await 的旧请求落库；历史 session 不在 UI 缓存时错误跳转照片。均已定向复查；未声称真实网络 AI 运行已验证。
+
+### 构建与运行
+
+```
+xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes -configuration Debug -destination 'platform=iOS Simulator,id=3898445B-1B0A-4D10-94DA-FFA88744E5C5' -derivedDataPath /private/tmp/wiselife-notebook-build CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
+```
+
+结果：`BUILD SUCCEEDED`。专用设备 `WiseLife Notebook Review`（iPhone 17 Pro / iOS 26.3），安装 `cloud.karama.wisenote` 并通过 simctl 启动；launchctl／进程检查确认运行。`Tests/NotebookUIFixture.swift` 只允许该独立模拟器容器，写入虚构灵感、账目、人物、照片位置与合成 AI 候选。合成候选不代表实际模型输出质量。
+
+### 未验证与已知限制
+
+- 当前工具环境未安装 Simulator 图形应用。CUA 获取 `com.apple.iphonesimulator` 返回 Invalid app；尝试 Xcode 官方 Simulator.app 路径返回文件不存在。未进行原生点击／视觉验收，不把构建或进程启动等同于 E2E 通过。
+- 真实模型输出、网络异常端到端、真机 ASR／后台位置与用户数据升级未实测；本次未安装真机、未改版本号、未上传 TestFlight。
+- 地点使用稳定近似坐标区域分组，边界可能拆分，近邻可能合并；尚无手动合并／拆分。未知历史时区按固定 UTC 日计数并显示依据。未新增后台定位能力。
+- 附属表／列迁移保留旧数据，回退保留数据库供旧版忽略；不要清库回退。真实已有数据的升级接受度仍需设备验收。
+
+
+### GitHub 分支整理与复验（2026-11-03）
+
+用户明确要求“代码推送到 github 分支上”。以已发布的 `origin/dev-card-1103`（`7ed237f`）为基础，在隔离 worktree 整理 `codex/wiselife-notebook`；原 `codex/pages-api-base` 的脏工作区和空暂存区保持原样。
+
+- 范围：四类记事本原生代码、SQLite 增量迁移及测试；已评审的独立／集成 HTML 原型；对应产品说明、数据规则、prompt、实施计划与验证记录。未携带原工作区中其他回顾、录音性能、播放器时间、版本号及 Vessel 后端／Web 改动。
+- 在隔离分支重新运行上述 7 个 `test_notebook_*`／既有回归脚本，全部退出 0；包含人物／地点的 iOS SwiftUI typecheck。
+- `node --check` 检查 `daybook.js`、`daybook-locales.js`、`daybook-flash-assets.js`、`notebook.js`，全部通过；两个 HTML 的资源路径存在且 ID 无重复；新增文档链接存在。索引保留独立 Huawei 项目的 7 条既有跨项目引用，当前 checkout 不包含这些文件。
+- Xcode 核对 12 个 Notebook Swift 文件各有且仅有一个 WristNotes target source entry；完整 Debug iOS Simulator 构建退出 0，结果 `BUILD SUCCEEDED`。构建基于隔离代码，复用本机已锁定 CocoaPods 和 Swift Package 依赖；依赖目录不入提交。
+
+```sh
+xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes -configuration Debug -destination 'platform=iOS Simulator,id=3898445B-1B0A-4D10-94DA-FFA88744E5C5' -derivedDataPath /private/tmp/wiselife-notebook-publish-build -clonedSourcePackagesDirPath /private/tmp/wiselife-notebook-build/SourcePackages -disableAutomaticPackageResolution CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
+```
+
+本轮为代码分支交付复验，未重复安装模拟器、未操作真机或发布 TestFlight；原生点击／视觉和真实模型验收边界保持如上。

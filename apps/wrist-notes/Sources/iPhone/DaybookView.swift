@@ -15,7 +15,7 @@ private enum DaybookSheet: Hashable, Identifiable {
 #if WISELIFE_EUREKA_RING
     case ring
 #endif
-    case notebook(FlashAsset.Kind), flashAsset(UUID), flashAction(UUID), actionOrigin(ActionSource), record(UUID), lifeMoment(UUID, Date, Bool), recap(Date), reminder(DaybookReminderDraft), source(String)
+    case notebook(FlashAsset.Kind?), notebookSource(UUID), flashAsset(UUID), flashAction(UUID), actionOrigin(ActionSource), record(UUID), lifeMoment(UUID, Date, Bool), recap(Date), reminder(DaybookReminderDraft), source(String)
     var id: Self { self }
 }
 private enum DaybookFilter: String, CaseIterable {
@@ -276,6 +276,13 @@ struct DaybookView: View {
         observedContent
             .onChange(of: life.isEnabled(.location)) { _, _ in synchronizeAddresses() }
             .onChange(of: search) { _, _ in clearMergeSelection(); synchronizeSemantic() }
+            .onReceive(NotificationCenter.default.publisher(for: .notebookReturnToSettings)) { _ in
+                nextSheet = nil; sheet = nil; navigate(to: .data)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .notebookOpenSource)) { event in
+                if let id = event.object as? UUID { present(.notebookSource(id)) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .notebookAssetSaved)) { _ in Task { await flash.refreshNotebookAssets() } }
             .onReceive(NotificationCenter.default.publisher(for: .daybookSemanticChanged)) { notification in
                 guard let change = notification.object as? DaybookSemanticResourceChange else { return }
                 semanticSearch.resourcesChanged(change, active: page == .library && scenePhase == .active); assistant.cancel(reason: .resourceChanged)
@@ -401,10 +408,6 @@ struct DaybookView: View {
     private var libraryPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             pageHeading("留住那些片刻", title: "我的记录", subtitle: filter == .recap ? "按日期查看每日回顾" : "\(DaybookFormat.day(selectedDate)) · \(filter == .original ? shownRecords.count : timelineRecords.count) 条\(filter == .original ? "原始录音" : "记录")")
-            HStack(spacing: 20) {
-                Button("我的想法") { present(.notebook(.idea)) }
-                Button("我的记账") { present(.notebook(.expense)) }
-            }.font(.system(size: 12, weight: .medium)).foregroundStyle(DaybookStyle.accent).padding(.bottom, 18)
             HStack(spacing: 9) {
                 DaybookIcon("Search", size: 17).foregroundStyle(DaybookStyle.secondary)
                 TextField(filter == .recap ? "搜索每日回顾" : filter == .original ? "搜索原始录音" : "搜索想法、片段或关键词", text: $search).font(.system(size: 12))
@@ -768,8 +771,8 @@ struct DaybookView: View {
                 Button { search = ""; filter = .original; navigate(to: .library) } label: {
                     SettingsMenuRow(icon: "AudioLines", title: "原始录音", subtitle: "按录制批次查看原始文件")
                 }.accessibilityIdentifier("settings.originalRecordings")
-                Button { present(.notebook(.idea)) } label: {
-                    SettingsMenuRow(icon: "NotebookPen", title: "记事本", subtitle: "我的想法与我的记账")
+                Button { present(.notebook(nil)) } label: {
+                    SettingsMenuRow(icon: "NotebookPen", title: "记事本", subtitle: "灵感 · 记账 · 人物 · 地点")
                 }.accessibilityIdentifier("settings.notebook")
             }
             SettingsFootnote(text: "暂停来源后，已有记录仍保留。录音始终由你主动开始。")
@@ -897,7 +900,18 @@ struct DaybookView: View {
         case .flashAsset(let id):
             FlashAssetDetailView(id: id, onOpenSource: { present(.record($0)) })
         case .notebook(let kind):
-            FlashNotebookView(kind: kind, onClose: { sheet = nil }, onOpenSource: { present(.record($0)) })
+            FlashNotebookView(kind: kind, onClose: { sheet = nil; navigate(to: .data) }, onOpenSource: { present(.notebookSource($0)) })
+        case .notebookSource(let id):
+            NotebookSourceView(id: id, onClose: { sheet = nil }) { kind in
+                switch kind {
+                case .session: RecordingSessionDetailView(sessionID: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
+                case .note: DaybookVoiceDetailView(id: id, playbackAllowed: !recorder.isRecording && !recorder.requestingPermission)
+                case .photo: PhotoDetailView(momentID: id, library: photos, onAskAI: {
+                    if let moment = photos.moments.first(where: { $0.id == id }) { selectedDate = moment.capturedAt }
+                    sheet = nil; ask("这一天的图片记录了什么？")
+                })
+                }
+            }
         case .actionProposal:
             ActionProposalView(sources:actionSources,store:actions,settings:settings,isCurrent:{
                 let current = assistant.recordsForEvidence(records)

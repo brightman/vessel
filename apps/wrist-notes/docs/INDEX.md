@@ -1,10 +1,10 @@
 # WiseLife 文档总索引
 
-> 整理日期：2026-10-31；更新：2026-11-02。面向产品、开发、测试与交接；链接指向原文，保留现有文件位置。
+> 整理日期：2026-10-31；更新：2026-11-03。面向产品、开发、测试与交接；链接指向原文，保留现有文件位置。
 
 ## 使用与范围
 
-本次收录 **206 份文档与文字资料**：Apple 项目 153 份、仓库根目录的相关规范、设计与计划 45 份、独立 Huawei 项目参考 7 份、官网迁移说明 1 份。本索引自身另计；按不含锚点的唯一文件链接计数。
+本次收录 **209 份文档与文字资料**：Apple 项目 156 份、仓库根目录的相关规范、设计与计划 45 份、独立 Huawei 项目参考 7 份、官网迁移说明 1 份。本索引自身另计；按不含锚点的唯一文档文件链接计数（不计 JSON 等验证附件；包含独立 Huawei 项目的既有引用）。
 
 - 主体是 `apps/wrist-notes/`，补齐散落于仓库 `docs/` 的 WiseLife / WristNotes / 早期 WiseNote 原生 App 文档。
 - 全量收录项目内 Markdown、HTML 原型、TXT 验证附件和许可文本；无扩展名的上游许可证也已包含。
@@ -46,8 +46,9 @@
 | [WiseLife website icon](../prototype/assets/brand/README.md) | 未标注 | 产品、交互或品牌说明 |
 | [我的一天：24 小时个人记录首页](../prototype/daybook-design.md) | 2026-10-19 | 产品、交互或品牌说明 |
 | [WiseLife 闪念：整理、想法、记账与行动](../prototype/flash-assets-design.md) | 2026-10-31 | 整理／全文、明确指令自动创建、想法与账目本地保存、结果时间轴；原型及原生实现状态 |
+| [四类记事本交互原型](../prototype/notebook.html) | 2026-11-03 | 灵感、记账、人物、地点；合成数据与模拟 AI；四类原生已授权开发并完成代码，原生验证见日期索引 |
 | [WiseLife · 你的生活，你的个人 AI](../prototype/index-next.html) | 未标注 | 官网备选设计，勿与主原型混用 |
-| [WiseLife · 轻松记录，每天更懂自己](../prototype/iphone-day.html) | 未标注 | WiseLife 产品官网与 iPhone 主原型入口 |
+| [WiseLife · iPhone 产品原型](../prototype/iphone-day.html) | 2026-11-03 | 纯产品界面；设置中接入四类记事本，查看全部只展示记录，顶部问号提供功能说明 |
 | [WristNotes · iPhone 语音笔记界面](../prototype/iphone-notes.html) | 未标注 | 早期语音笔记原型，保留作历史参考 |
 | [今天的片段：步数、起床与位置变化](../prototype/life-moments-design.md) | 2026-10-22 | 产品、交互或品牌说明 |
 | [说话人关联联系人与 Apple 提醒事项](../prototype/people-reminders-design.md) | 2026-10-21 | 产品、交互或品牌说明 |
@@ -111,6 +112,16 @@
 按**文件名、文档标题、文首日期以及明确日期的更新章节**倒序组织设计、实施、修复和验证材料。这里是文档所记载工作的入口，不是 Git 提交日志，也不是 App 版本发布日期。
 
 同一文档有明确的多日更新时会在多天出现；示例录音日期、测试数据日期及文件修改时间不作为变更日期。未标注日期的文档集中列于末尾。
+
+### 2026-11-03
+
+- **记事本 GitHub 分支交付** · 基于 `dev-card-1103` 整理 `codex/wiselife-notebook`，包含本功能代码、原型和文档；隔离分支的 7 组测试、原型静态检查和完整 iOS 模拟器构建通过，原工作区保留。[复验记录](../verification/flash-assets-prototype/README.md#github-分支整理与复验2026-11-03)。
+
+- **四类记事本原生实现** · [当前产品规则](../prototype/flash-assets-design.md#notebook-four-categories) · [同一实施计划](superpowers/plans/2026-10-31-flash-notebook-native.md) · [验证与边界](../verification/flash-assets-prototype/README.md#notebook-native-four-20261103)。灵感新增／编辑、选择 AI 再创作与候选持久化，按月／币种收支，联系人多选／自定义关系，高频地点按日去重；设置入口／返回，查看全部不放记事本快捷入口。增量 SQLite 保留旧数据，新存储与旧回归测试、iPhone 模拟器构建通过；独立模拟器已安装启动，图形应用缺失故未做原生点击／视觉验收，真实模型、真机与发布未验收。
+
+- **iPhone 主原型清理与整合** · [当前说明与验证](../prototype/daybook-design.md#standalone-prototype-20261103) · [产品原型](../prototype/iphone-day.html)。移除外围官网／评审内容；设置与闪念详情接入灵感、记账、人物、地点，原闪念编辑在两处同步；按最新评审移除“查看全部”里的记事本和四分类入口，记事本返回链接统一为“设置”；增加可展开的产品功能说明。仅 HTML 原型变更，原生与发布未改。
+
+- **四类记事本产品原型** · [设计与确认记录](../prototype/flash-assets-design.md#notebook-four-categories) · [交互原型](../prototype/notebook.html) · [验证](../verification/flash-assets-prototype/README.md#notebook-four-categories-20261103)。灵感编辑与 AI 再创作、月度收支、人物多选／自定义关系、地点高频列表均可演示。主动闪念自动保存、长录音想法暂不收录；按用户最新评审移除地点采集状态与生活节奏卡片，同一地点每天最多计 1 次，按去重后的次数排序，并可按日期查看来源。已走查浏览器，原生代码与真机数据未改。
 
 ### 2026-11-02
 

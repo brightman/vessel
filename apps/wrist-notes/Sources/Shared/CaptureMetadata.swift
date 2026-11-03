@@ -101,6 +101,8 @@ struct PhotoCaptureMetadata: Codable, Equatable, Sendable {
     var importMethod: ImportMethod
     var location: CaptureLocation?
     var timeZoneKnown: Bool? = nil
+    var capturedTimeZoneIdentifier: String? = nil
+    var originalLocalDate: String? = nil
 }
 
 /// Independent observation: late fixes never rewrite immutable audio descriptors.

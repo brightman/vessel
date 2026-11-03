@@ -1,10 +1,10 @@
 import Foundation
 
-struct FlashAsset: Codable, Identifiable, Equatable {
-    enum Kind: String, Codable, CaseIterable { case idea, expense
+struct FlashAsset: Codable, Identifiable, Equatable, Sendable {
+    enum Kind: String, Codable, CaseIterable, Sendable { case idea, expense
         var title: String { self == .idea ? "我的想法" : "我的记账" }
     }
-    enum Direction: String, Codable, CaseIterable { case income, expense }
+    enum Direction: String, Codable, CaseIterable, Sendable { case income, expense }
     var id = UUID()
     var kind: Kind
     var title: String
@@ -17,6 +17,10 @@ struct FlashAsset: Codable, Identifiable, Equatable {
     var date: String?
     var revoked = false
     var revision = 0
+    enum Origin: String, Codable, Sendable { case manual, generated }
+    var origin: Origin? = nil
+    var parentIdeas: [FlashIdeaSource]? = nil
+    var requiresLocalAI: Bool? = nil
     var ready: Bool {
         kind == .idea || (direction != nil && amountMinor.map { $0 > 0 } == true && currency != nil && date != nil)
     }
@@ -33,6 +37,15 @@ struct FlashAsset: Codable, Identifiable, Equatable {
         if let amountMinor, amountMinor <= 0 || amountMinor > 9_000_000_000_000 { throw ActionFailure.invalid("请填写有效的正数金额。") }
         if let date, !FlashMoney.validDate(date) { throw ActionFailure.invalid("请填写有效的账目日期。") }
     }
+}
+
+struct FlashIdeaSource: Codable, Equatable, Sendable, Identifiable {
+    let id: UUID
+    let title: String
+    let text: String
+    let revision: Int
+    let source: ActionSource
+    init(_ asset: FlashAsset) { id=asset.id; title=asset.title; text=asset.text; revision=asset.revision; source=asset.source }
 }
 
 enum FlashMoney {
@@ -61,7 +74,7 @@ enum FlashMoney {
     }
 }
 
-struct FlashCurrencyTotal: Equatable { let currency: String; let income: Int64; let expense: Int64 }
+struct FlashCurrencyTotal: Equatable, Sendable { let currency: String; let income: Int64; let expense: Int64 }
 struct FlashExtraction { var assets: [FlashAsset] = []; var actions: [ActionItem] = [] }
 struct FlashBatch: Codable {
     enum State: String, Codable { case historical, pending, running, awaitingConsent, failed, complete }

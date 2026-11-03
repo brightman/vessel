@@ -643,7 +643,49 @@
     "管理这条主动建议": "この提案を管理",
     "给反复想到的事，留一点时间。": "繰り返し考えることに、少し時間を使いましょう。"
   };
-  for (const [zh, en, ja] of [...(window.wiseLifeSiteCopy ?? []), ...(window.daybookSettingsCopy ?? []), ...(window.daybookHardwareCopy ?? []), ...(window.daybookVoiceProfileCopy ?? []), ...(window.daybookChatGPTCopy ?? []), ...(window.daybookPlacesCopy ?? []), ...(window.daybookRecordSourcesCopy ?? []), ...(window.daybookSpeakerContactsCopy ?? []), ...(window.daybookAppleRemindersCopy ?? []), ...(window.daybookFlashAssetsCopy ?? []), ...(window.daybookLifeMomentsCopy ?? []), ...(window.daybookRecordMergeCopy ?? []), ...(window.daybookRecordManagementCopy ?? [])]) {
+  const appHelpCopy = [
+  [
+    "不联网，也能转写和总结吗？",
+    "Can I transcribe and summarize offline?",
+    "オフラインでも文字起こしや要約はできますか？"
+  ],
+  [
+    "WiseLife App 不提供云端服务；所有记录、转写、照片、总结和洞察默认保存在 iPhone 本机。支持的语音模型下载后可以离线转写；本地总结取决于设备、系统、语言及模型支持。你可以自行连接第三方 AI；只有确认后，选中的文字才会发送给该服务商。",
+    "WiseLife has no cloud service; all records, transcripts, photos, summaries and insights stay on your iPhone by default. Supported speech models work offline after download. Local summaries depend on device, OS, language and model support. You can connect a third-party AI; selected text is sent only after you confirm.",
+    "WiseLife はクラウドサービスを提供せず、すべての記録、文字起こし、写真、要約、インサイトは通常 iPhone 本体に保存されます。対応する音声モデルはダウンロード後にオフラインで利用できます。端末内要約は機種・OS・言語・モデルの対応状況によります。第三者 AI を接続できますが、確認後に選択した文章のみが送信されます。"
+  ],
+  [
+    "我的录音会上传到哪里？",
+    "Where does my recording go?",
+    "録音はどこに送られますか？"
+  ],
+  [
+    "WiseLife App 不提供云端服务，也不会把你的记录上传到 WiseLife 服务器。Apple Watch 录音会传回配对 iPhone 后保存在手机。只有你主动选择外部 AI 并确认时，选中的文字才会直接发送给你配置的服务商；录音与照片不会发送给外部 AI。",
+    "WiseLife has no cloud service and does not upload your records to WiseLife servers. Apple Watch recordings transfer to your paired iPhone for storage. Only text you select and confirm is sent to your chosen AI provider; recordings and photos are not sent to external AI.",
+    "WiseLife はクラウドサービスを提供せず、記録を WiseLife のサーバーへアップロードしません。Apple Watch の録音はペアリングした iPhone に転送後保存されます。自分で外部 AI を選び確認した場合のみ、選んだ文章が提供元へ送信されます。録音や写真は外部 AI に送信されません。"
+  ],
+  [
+    "AI 的回答能找到依据吗？",
+    "Can I check the sources behind an answer?",
+    "AI の回答の根拠を確認できますか？"
+  ],
+  [
+    "可以从回答的来源链接回到记录。当前按所选日期检索你允许的内容；没有足够记录时，会说明信息不足。",
+    "Source links take you back to your records. Search currently covers allowed content on the selected date. When evidence is insufficient, the app says so.",
+    "出典リンクから元の記録に戻れます。現在は選択した日付の許可済みデータを検索し、記録が足りない場合はその旨を伝えます。"
+  ],
+  [
+    "会一直录音，或者自动判断情绪吗？",
+    "Is it always recording or interpreting my emotions?",
+    "常時録音したり、感情を自動判断したりしますか？"
+  ],
+  [
+    "录音由你主动开始和结束。健康与活动是可选的数据来源；WiseLife 不据单次心率或一天的记录判断情绪，也不提供健康诊断。",
+    "You start and stop recording. Health and activity are optional sources. WiseLife does not infer emotions from a single heart-rate reading or one day of records, and does not provide health diagnoses.",
+    "録音の開始と終了は自分で操作します。健康や活動は任意のデータソースです。単一の心拍や一日の記録から感情を判断せず、健康診断も行いません。"
+  ]
+];
+  for (const [zh, en, ja] of [...appHelpCopy, ...(window.wiseLifeSiteCopy ?? []), ...(window.daybookSettingsCopy ?? []), ...(window.daybookHardwareCopy ?? []), ...(window.daybookVoiceProfileCopy ?? []), ...(window.daybookChatGPTCopy ?? []), ...(window.daybookPlacesCopy ?? []), ...(window.daybookRecordSourcesCopy ?? []), ...(window.daybookSpeakerContactsCopy ?? []), ...(window.daybookAppleRemindersCopy ?? []), ...(window.daybookFlashAssetsCopy ?? []), ...(window.daybookLifeMomentsCopy ?? []), ...(window.daybookRecordMergeCopy ?? []), ...(window.daybookRecordManagementCopy ?? [])]) {
     translations[zh] = en;
     japanese[zh] = ja;
   }
@@ -699,7 +741,9 @@
       }
     });
     document.documentElement.lang = language === 'zh-Hans' ? 'zh-CN' : language;
-    document.title = document.body.classList.contains('wiselife-site')
+    document.title = document.body.classList.contains('iphone-prototype')
+      ? (language === 'en' ? 'WiseLife · iPhone Prototype' : language === 'ja' ? 'WiseLife · iPhone プロトタイプ' : 'WiseLife · iPhone 产品原型')
+      : document.body.classList.contains('wiselife-site')
       ? (language === 'en' ? 'WiseLife · Capture with ease. Understand your day.' : language === 'ja' ? 'WiseLife · 気軽に記録。毎日、自分を知る。' : 'WiseLife · 轻松记录，每天更懂自己')
       : (language === 'en' ? 'WiseLife · My Day' : language === 'ja' ? 'WiseLife · 私の一日' : 'WiseLife · 我的一天');
     picker.value = language;

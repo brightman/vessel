@@ -2,7 +2,7 @@
 id: wiselife-ai-prompts
 type: technical
 status: current
-updated: 2026-11-02
+updated: 2026-11-03
 scope: WiseLife iPhone 标题、总结、内容分段、建议、每日回顾与 Ask AI
 ---
 
@@ -33,6 +33,7 @@ scope: WiseLife iPhone 标题、总结、内容分段、建议、每日回顾与
 | 功能 | 实际入口／模板 | 输出 | 路径说明 |
 | --- | --- | --- | --- |
 | 普通录音标题 | `OnDeviceRecordingTitleGenerator` / `CustomAISummarizer.recordingTitleInstruction` | 一个标题 | Apple 与外部模型有不同模板；采用转写语言 |
+| 灵感 AI 再创作 | `NotebookIdeaGeneration.instruction` / `NotebookIdeasModel` | 1–3 项 JSON 候选 | 只用所选 2–10 条灵感；草稿持久化，用户选择另存 |
 | 闪念结构化整理 | `FlashCaptureParser.instruction` / `FlashCaptureService` | 最多12项 JSON | 想法、账目、明确指令；原话与命令校验后保存并执行 |
 | 普通笔记总结 | `OnDeviceSummarizer` / `CustomAISummarizer` / `ChatGPTSummarizer` | 中文总结 | 长文本先分层压缩；Apple 闪念有专用模板 |
 | 长录音章内主题拆分 | `ContentSegmentationV2.Engine.chapterInstruction` | JSON 主题边界、证据 | 当前生产分段路径 |
@@ -866,3 +867,11 @@ Reply with OK.
 相关入口：[文档总索引](INDEX.md)、[内容分段策略](superpowers/specs/2026-10-23-content-segmentation-v2-review.md)、[摘要预算](superpowers/specs/2026-10-24-adaptive-content-summary-budget-design.md)、[文档维护规则](../../../docs/documentation-rules.md)。
 
 2026-11-01 的 Ask AI Runtime prompt 更新对应本期代码；自动测试与构建状态见[运行时验证](../verification/ask-ai-runtime-2026-11-01.md)，未声称已改善真实模型效果。
+
+## 记事本灵感 AI 再创作（2026-11-03）
+
+执行源：[NotebookIdeas.swift](../Sources/iPhone/NotebookIdeas.swift) 的 `NotebookIdeaGeneration.instruction`；调用：[NotebookIdeasModel.swift](../Sources/iPhone/NotebookIdeasModel.swift)。本地 Apple、Custom、Nearby Mac、ChatGPT 复用同一模板。
+
+输入为用户选择的 2–10 条灵感标题／正文，以及最多 1000 字的方向；序列化上限 48,000 bytes，不附带其他录音／联系人／地点。约束输出 `{"ideas":[{"title":"…","text":"…"}]}`，1–3 项，标题 1–200 字、正文 1–4000 字；只生成建议，不能声称保存或调用工具。解析失败显示明确错误，不改变原内容。
+
+外部模型沿用发送确认；配置／发送确认偏好变化、用户取消及来源被改动时阻止旧结果保存。来源为 EurekaRing 或继承其本地限制时强制 Apple 本地模型。模型完成后候选存 SQLite 草稿，用户选择后另存为新的灵感，保留父灵感快照；原灵感不覆盖。当前验证使用 JSON 合约／存储测试，尚未用真实模型做质量验收。

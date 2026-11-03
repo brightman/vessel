@@ -28,6 +28,15 @@ enum PhotoMetadataReader {
         }
         var result = PhotoCaptureMetadata(capturedAt: date, device: device, importMethod: .library)
         result.timeZoneKnown = date == nil ? nil : offset != nil
+        if date != nil, let rawDate, rawDate.count >= 10 {
+            result.originalLocalDate = String(rawDate.prefix(10)).replacingOccurrences(of: ":", with: "-")
+        }
+        if date != nil, let offset, offset.range(of: #"^[+-]\d{2}:\d{2}$"#, options: .regularExpression) != nil {
+            let parts = offset.dropFirst().split(separator: ":").compactMap { Int($0) }
+            if parts.count == 2, parts[0] <= 14, parts[1] < 60 {
+                result.capturedTimeZoneIdentifier = TimeZone(secondsFromGMT: (offset.hasPrefix("-") ? -1 : 1) * (parts[0] * 3600 + parts[1] * 60))?.identifier
+            }
+        }
         guard includeLocation, let gps = properties[kCGImagePropertyGPSDictionary as String] as? [String: Any],
               let latitude = (gps[kCGImagePropertyGPSLatitude as String] as? NSNumber)?.doubleValue,
               let longitude = (gps[kCGImagePropertyGPSLongitude as String] as? NSNumber)?.doubleValue,

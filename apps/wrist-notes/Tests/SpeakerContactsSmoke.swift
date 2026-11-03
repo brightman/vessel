@@ -22,7 +22,10 @@ import Foundation
   _ = try repository.importRecording(id: note.id, from: audio, kind: .long, capturedAt: .now, duration: 2)
   try repository.update(id: note.id) { $0 = note }
   let reopened = try NoteRepository(root: root)
-  precondition(reopened.notes.first?.speakerContacts?["speaker-1"] == contact)
+  // An unverified legacy payload snapshot must require review until normalized speaker evidence exists.
+  var expectedLegacyContact=contact
+  expectedLegacyContact.needsReview=true
+  precondition(reopened.notes.first?.speakerContacts?["speaker-1"] == expectedLegacyContact)
   var busy = note; busy.diarizationState = .running
   precondition(!busy.setSpeakerContact("speaker-1", contact: nil, expectedRevision: revision, expectedSegments: [segment]))
   busy = note; busy.transcriptionState = .running

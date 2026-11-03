@@ -13,6 +13,7 @@ import Combine
     private var observation: AnyCancellable?
     private var draining = false
     private var retryAfterDrain = false
+    private var notebookReloadID = UUID()
 
     func attach(notes: NotesModel, actions: ActionStore) {
         guard self.notes == nil else { return }
@@ -32,11 +33,24 @@ import Combine
         return opened
     }
     func reload() {
+        notebookReloadID = UUID()
         do {
             let repo = try open()
             assets = try repo.assets(); totals = try repo.totals()
             batches = Dictionary(uniqueKeysWithValues: try repo.batches().map { ($0.sourceID, $0) })
         } catch { self.error = error.localizedDescription }
+    }
+    /// Notebook edits refresh durable assets off the main actor, without waking extraction.
+    func refreshNotebookAssets() async {
+        let id = UUID(); notebookReloadID = id
+        do {
+            let result = try await Task.detached(priority: .userInitiated) {
+                let repo = try FlashCaptureRepository(database: DaybookDatabase())
+                return (try repo.assets(), try repo.totals())
+            }.value
+            guard notebookReloadID == id else { return }
+            assets = result.0; totals = result.1
+        } catch { if notebookReloadID == id { self.error = error.localizedDescription } }
     }
     func resume() {
         guard !draining else { retryAfterDrain = true; return }

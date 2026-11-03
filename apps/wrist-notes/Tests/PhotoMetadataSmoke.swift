@@ -13,6 +13,8 @@ import UniformTypeIdentifiers
         let parsed = PhotoMetadataReader.read(properties: props, includeLocation: true)
         precondition(parsed.location?.latitude == -31.2 && parsed.location?.longitude == -121.5)
         precondition(parsed.capturedAt == ISO8601DateFormatter().date(from: "2026-09-01T06:28:00Z"))
+        precondition(parsed.originalLocalDate == "2026-09-01")
+        precondition(parsed.capturedTimeZoneIdentifier.flatMap(TimeZone.init(identifier:))?.secondsFromGMT(for: parsed.capturedAt!) == 28800)
         precondition(parsed.device == "iPhone 16 Pro" && parsed.importMethod == .library)
         precondition(PhotoMetadataReader.read(properties: props, includeLocation: false).location == nil)
         let empty = PhotoMetadataReader.read(properties: [:], includeLocation: true)

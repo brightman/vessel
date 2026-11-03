@@ -36,7 +36,7 @@
     {id:'tired-14',day:14,kind:'thought',start:7+5/60,end:7+6/60,time:'07:05',duration:46,title:'今早醒来还有点困',preview:'“今天醒来还有点困，先喝杯水。”',source:'Apple Watch',summary:'醒来后主动记录了有点困的感受。',text:'今天醒来还有点困，先喝杯水。',tags:['晨间','自述']},
     {id:'sleep-13',day:13,kind:'sleep',start:0,end:7+35/60,time:'00:00',duration:27300,title:'10月13日睡眠记录',preview:'睡眠片段合计 7 小时 35 分钟。',source:'Apple 健康',summary:'10月13日睡眠片段合计 7 小时 35 分钟。',text:'来源：Apple 健康（示例）\n时长：7 小时 35 分钟',tags:['睡眠']}
   ];
-  const flashAssets=window.createDaybookFlashAssets({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord:id=>records.find(r=>r.id===id),refreshRecords:renderRecordLists,showTimeline:showFlashTimeline});
+  const flashAssets=window.createDaybookFlashAssets({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord:id=>records.find(r=>r.id===id),refreshRecords:renderRecordLists,showTimeline:showFlashTimeline,openNotebook});
   flashAssets.seed(records);
   const places=window.createDaybookPlaces({$,esc,icon,openSheet,getDay:()=>state.day,getRecords:()=>records,isEnabled:()=>sources.places.enabled});
   places.seed(records);
@@ -69,7 +69,7 @@
   const state = {day:TODAY,view:'today',filter:'all',query:'',plans:new Set(),dismissed:new Set(),recordingAt:null};
   const recordMerge=window.createDaybookRecordMerge();
   const mergeSelection=new Set();
-  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings,hardware,myVoice,speakerContacts,recordManagement;
+  let toastTimer,playerTimer,recordingTimer,activeRecord,playSeconds=0,sheetOpener=null,ai,photos,modelSettings,hardware,myVoice,speakerContacts,recordManagement,notebook;
   const dayRecords = () => records.filter(r=>r.day===state.day).sort((a,b)=>b.start-a.start);
   const audioRecord = r => r.kind==='voice'||r.kind==='thought';
   function formatDuration(seconds) {const n=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;return `${Math.floor(n/3600)}小时${Math.floor(n/60)%60}分${n%60}秒`;}
@@ -197,16 +197,21 @@
     if(name!=='today'&&mergeSelection.size){mergeSelection.clear();renderRecordLists();}
     if(name==='actions'||name==='insights')flashAssets.render();
     if(name==='today'&&(state.query||state.filter==='recap')){state.query='';state.filter='all';$('searchInput').value='';renderRecordLists();}
-    state.view=name;['today','ai','insights','actions','library','data'].forEach(v=>$(v+'View').hidden=v!==name);
+    state.view=name;['today','ai','insights','actions','library','notebook','data'].forEach(v=>$(v+'View').hidden=v!==name);
     $('aiComposerDock').hidden=name!=='ai';
-    document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===name||(name==='library'&&b.dataset.view==='today');b.classList.toggle('active',active);active?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');});
+    document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===name||(['library','notebook'].includes(name)&&b.dataset.view==='today');b.classList.toggle('active',active);active?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');});
     $('screenScroll').scrollTop=0;if(focusSearch)$('searchInput').focus();
     ai?.render();
   }
+  function openNotebook(tab='ideas'){
+    if($('sheet').open)closeSheet();
+    showView('notebook');notebook?.open(tab);
+  }
+  function openProductGuide(){openSheet('产品功能说明',$('productGuide').innerHTML);}
   function positionSheet() {
     if(!$('sheet').open)return;
     const r=document.querySelector('.phone-screen').getBoundingClientRect();
-    // Resizing the surrounding website can leave the phone partly above the viewport.
+    // Resizing the prototype viewport can leave the phone partly above the viewport.
     // Keep the complete sheet (including its close button) inside the visible window.
     const width=Math.min(r.width,window.innerWidth);
     const maxHeight=Math.min(Math.max(250,r.height*.87),window.innerHeight-16);
@@ -223,7 +228,7 @@
   }
   function closeSheet(){stopPlayback();$('sheet').close();}
   function openAboutFAQ() {
-    const source=document.querySelector('#questions .site-faq');
+    const source=document.querySelector('#appFAQ')?.content.querySelector('.app-faq');
     if(!source){toast('常见问题暂不可用。');return;}
     const faq=source.cloneNode(true);
     faq.querySelectorAll('a').forEach(link=>link.remove());
@@ -364,6 +369,9 @@
     if(b.hasAttribute('data-confirm-merge')){simulateSelectedMerge();return;}
     if(b.hasAttribute('data-merge-cancel')){mergeSelection.clear();renderRecordLists();return;}
     if(b.hasAttribute('data-merge-submit')){openMergeConfirmation();return;}
+    if(b.dataset.notebookTab){openNotebook(b.dataset.notebookTab);return;}
+    if(b.hasAttribute('data-product-guide')){openProductGuide();return;}
+    if(b.dataset.guideView){closeSheet();showView(b.dataset.guideView);return;}
     if(lifeMoments.handleClick(b))return;
     if(flashAssets.handleClick(b))return;
     if(places.handleClick(b))return;
@@ -422,8 +430,11 @@
     getInsight:currentInsight,
     today:TODAY
   });
+  notebook=window.createDaybookNotebook({root:$('notebookView'),getFlashEntries:flashAssets.notebookEntries,saveFlashEntry:flashAssets.saveNotebookEntry,onModal:open=>{document.querySelector('.toolbar').inert=open;document.querySelector('.bottom-nav').inert=open;}});
   renderDay();
   const preview=new URLSearchParams(window.location.search).get('preview');
+  if(preview==='library')requestAnimationFrame(()=>showView('library'));
+  if(preview==='guide')requestAnimationFrame(openProductGuide);
   if(preview==='today')requestAnimationFrame(()=>{showView('today');$('product').scrollIntoView({block:'start'});});
   if(preview==='flash-timeline')requestAnimationFrame(()=>showFlashTimeline());
   if(preview==='settings')requestAnimationFrame(()=>{showView('data');$('product').scrollIntoView({block:'start'});});

@@ -1,67 +1,5 @@
 import SwiftUI
 
-struct FlashNotebookView: View {
-    @EnvironmentObject private var flash: FlashCaptureModel
-    @State var kind: FlashAsset.Kind = .idea
-    let onClose: () -> Void
-    let onOpenSource: (UUID) -> Void
-    @State private var pendingOnly = false
-    @State private var showRevoked = false
-    @State private var selected: FlashAsset?
-    private var rows: [FlashAsset] {
-        flash.assets.filter { $0.kind == kind && (showRevoked || !$0.revoked) && (!pendingOnly || !$0.ready) }
-    }
-    var body: some View {
-        DaybookSheetLayout(title: "记事本", onClose: onClose) {
-            VStack(alignment: .leading, spacing: 18) {
-                Picker("记事本", selection: $kind) {
-                    ForEach(FlashAsset.Kind.allCases, id: \.self) { Text($0.title).tag($0) }
-                }.pickerStyle(.segmented).accessibilityIdentifier("notebook.tabs")
-                if kind == .expense {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("全部日期 · 按币种汇总").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
-                        ForEach(flash.totals, id: \.currency) { total in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(total.currency).font(.system(size: 12, weight: .semibold))
-                                Text("收入 \(FlashMoney.decimalString(total.income, currency: total.currency)) · 支出 \(FlashMoney.decimalString(total.expense, currency: total.currency))").font(.system(size: 14))
-                            }
-                        }
-                        Toggle("只看待补充", isOn: $pendingOnly).font(.system(size: 12))
-                        Text("待补充与已撤销账目不计入汇总。").font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
-                    }.daybookRecordingCard(padding: 14)
-                }
-                if rows.isEmpty { DaybookQuietInfo(text: kind == .idea ? "还没有想法。录下一条闪念，整理后会保存在这里。" : "还没有符合条件的账目。") }
-                LazyVStack(spacing: 0) {
-                    ForEach(rows) { item in
-                        Button { selected = item } label: {
-                            VStack(alignment: .leading, spacing: 7) {
-                                if kind == .idea {
-                                    Text(item.text).font(.system(size: 14)).lineSpacing(5).foregroundStyle(DaybookStyle.ink)
-                                } else {
-                                    HStack { Text(item.title); Spacer(); Text(item.amountText).monospacedDigit() }
-                                        .font(.system(size: 14, weight: .medium))
-                                    Text("\(item.category ?? "未分类") · \(item.date ?? "日期待补充") · \(item.statusTitle)")
-                                        .font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
-                                }
-                                Text(RecordingFormat.date(item.source.capturedAt) + (item.revoked ? " · 已撤销" : ""))
-                                    .font(.system(size: 10)).foregroundStyle(DaybookStyle.secondary)
-                            }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 13)
-                                .overlay(alignment: .bottom) { DaybookStyle.line.frame(height: 0.5) }
-                        }.buttonStyle(.plain)
-                    }
-                }
-                Toggle("显示已撤销", isOn: $showRevoked).font(.system(size: 11)).foregroundStyle(DaybookStyle.secondary)
-                if let error = flash.error { Text(error).font(.caption).foregroundStyle(DaybookStyle.red) }
-            }.padding(.top, 12)
-        }
-        .onAppear { flash.reload() }
-        .onChange(of: kind) { _, _ in pendingOnly = false }
-        .sheet(item: $selected) { item in
-            FlashAssetDetailView(id: item.id, onOpenSource: { id in selected = nil; onOpenSource(id) })
-        }
-    }
-}
-
 struct FlashAssetDetailView: View {
     @EnvironmentObject private var flash: FlashCaptureModel
     @EnvironmentObject private var notes: NotesModel
@@ -204,7 +142,10 @@ struct FlashOrganizedView: View {
         .sheet(isPresented: Binding(get: { notebook != nil }, set: { if !$0 { notebook = nil } }), onDismiss: {
             if let id = sourceToOpen { sourceToOpen = nil; if id != note.id { sourceNote = notes.note(id) } }
         }) {
-            FlashNotebookView(kind: notebook ?? .idea, onClose: { notebook = nil }, onOpenSource: { id in sourceToOpen = id; notebook = nil })
+            FlashNotebookView(kind: notebook ?? .idea, onClose: { notebook = nil }, onOpenSource: { id in
+                notebook = nil
+                NotificationCenter.default.post(name: .notebookOpenSource, object: id)
+            })
         }
         .sheet(item: $sourceNote) { DaybookVoiceDetailView(id: $0.id) }
         .sheet(item: $remote) { request in

@@ -305,7 +305,10 @@ private final class PhotoCaptureModel: ObservableObject {
                     let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
                     if (status == .authorized || status == .limited), let identifier = item.itemIdentifier,
                        let asset = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject {
-                        if let date = asset.creationDate { metadata.capturedAt = date; metadata.timeZoneKnown = true }
+                        if metadata.capturedAt == nil, let date = asset.creationDate {
+                            // PHAsset exposes an instant, not the original local timezone.
+                            metadata.capturedAt = date; metadata.timeZoneKnown = false
+                        }
                         if CaptureLocationSettings.enabled, let point = asset.location {
                             metadata.location = CaptureLocation(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude,
                                 accuracy: point.horizontalAccuracy >= 0 ? point.horizontalAccuracy : nil,
@@ -408,7 +411,13 @@ private struct PhotoCameraView: UIViewControllerRepresentable {
                 var metadata = PhotoMetadataReader.read(properties: info[.mediaMetadata] as? [String: Any] ?? [:], includeLocation: CaptureLocationSettings.enabled)
                 metadata.device = metadata.device ?? "iPhone"
                 metadata.importMethod = .camera
-                metadata.timeZoneKnown = metadata.capturedAt == nil ? nil : true
+                metadata.capturedAt = metadata.capturedAt ?? Date.now
+                metadata.timeZoneKnown = true
+                metadata.capturedTimeZoneIdentifier = metadata.capturedTimeZoneIdentifier ?? TimeZone.current.identifier
+                if metadata.originalLocalDate == nil, let date = metadata.capturedAt {
+                    let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = .current; f.dateFormat = "yyyy-MM-dd"
+                    metadata.originalLocalDate = f.string(from: date)
+                }
                 let point = location.finishCamera(at: metadata.capturedAt)
                 metadata.location = metadata.location ?? point
                 onFinish(.success(CameraCaptureResult(image: image, metadata: metadata)))

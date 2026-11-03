@@ -6,7 +6,7 @@
     idea:{label:'想法',icon:'Lightbulb'}, expense:{label:'记账',icon:'NotebookPen'}
   };
   const actionKinds = {todo:{label:'待办',icon:'CheckCheck'},reminder:{label:'提醒',icon:'Bell'},event:{label:'日程',icon:'CalendarDays'}};
-  window.createDaybookFlashAssets = ({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord,refreshRecords,showTimeline}) => {
+  window.createDaybookFlashAssets = ({$,esc,icon,toast,openSheet,closeSheet,showView,openRecord,getRecord,refreshRecords,showTimeline,openNotebook}) => {
     const assets = [
       {id:'idea-people',kind:'idea',title:'让每次讨论，都能接着上次继续',content:'给 WiseLife 增加「按人回顾」，把与同一个人讨论过的内容串起来。',capture:'flash-mixed',quote:'记个想法，给 WiseLife 做一个按人回顾，把和同一个人讨论过的内容串起来。',offset:'00:00–00:16',status:'ready'},
       {id:'expense-taxi',kind:'expense',title:'打车去见林茜',content:'打车去见林茜，支出三十八元人民币。',capture:'flash-mixed',quote:'再记一笔，今天打车去见林茜花了三十八元人民币。',offset:'00:16–00:27',amount:'38.00',currency:'CNY',date:'2026-10-19',direction:'expense',category:'交通',status:'ready'},
@@ -289,7 +289,7 @@
       for(let i=actions.length-1;i>=0;i--)if(draftIDs.has(actions[i].id))actions.splice(i,1);
       renderActions();
     });
-    function openLibrary() {insightTab='assets';render();openSheet('记事本',`<div id="faLibraryContent">${$('flashAssetPanel').innerHTML}</div>`);}
+    function openLibrary() {if(openNotebook){openNotebook(type==='expense'?'money':'ideas');return;}insightTab='assets';render();openSheet('记事本',`<div id="faLibraryContent">${$('flashAssetPanel').innerHTML}</div>`);}
     function handleClick(b) {
       const d=b.dataset;
       if(d.faTimeline){showTimeline(d.faTimeline);return true;}
@@ -337,7 +337,9 @@
       event.preventDefault();const next=event.key==='Home'?'assets':event.key==='End'?'life':insightTab==='assets'?'life':'assets';
       const button=document.querySelector(`[data-fa-insight-tab="${next}"]`);button.click();button.focus();
     });
-    return {seed,render,entry,badge,timelineMarkup,searchText,resultMarkup,recordSuggestions,handleClick,openCapture,openLibrary};
+    function notebookEntries(){return assets.filter(a=>a.status!=='ignored').map(a=>{const r=getRecord(a.capture);return {...a,date:a.date||`2026-10-${String(r?.day||19).padStart(2,'0')}`,time:r?.time||'16:30',device:r?.source||'Apple Watch'};});}
+    function saveNotebookEntry(id,change){const a=find(id);if(!a)return;const {title,content,amount,currency,date,direction,category,status}=change;for(const [key,value] of Object.entries({title,content,amount,currency,date,direction,category,status}))if(value!==undefined)a[key]=value;render();}
+    return {seed,render,entry,badge,timelineMarkup,searchText,resultMarkup,recordSuggestions,handleClick,openCapture,openLibrary,notebookEntries,saveNotebookEntry};
   };
   window.daybookFlashAssetsCopy = [
     ['记事本','Notebook','ノート'],['我的想法','My ideas','私のアイデア'],['我的记账','My ledger','私の家計簿'],

@@ -1,6 +1,6 @@
 # WiseLife iPhone 与 Apple Watch 数据生命周期及本地结构
 
-更新：2026-11-01。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
+更新：2026-11-03。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
 
 ## 数据分为三部分
 
@@ -323,3 +323,22 @@ Watch 生成的传输描述不直接包含文件路径；iPhone 仅按已校验�
 | `ask_ai_checkpoints` | 可删除的 Apple Transcript≤64KiB；仅匹配完整输入、模型、系统、指令、工具、来源和权限时复用；完成 turn 锚点外键级联 |
 
 `storage_migrations` 的 `ask-ai-runtime-cache-generation` 领域记录持久缓存代次。清空或权限清理在事务内增加代次、终止未完成运行并删除缓存；旧 worker 写入必须携带计算前捕获的代次和有效取消 fence。资料异步复核开始时立即暂停发布许可，只有最新未变化的复核可恢复，事务提交仍校验该许可；完成答案与成功 run 同事务发布；重复保存相同结果幂等，旧 attempt 或不同结果拒绝覆盖。启动时未完成运行转 interrupted，原 pending 问题保留为 cancelled。尚未实现工具诊断 30 天定时清理。
+
+## 四类记事本扩展（2026-11-03）
+
+当前实现与范围：[产品说明第 10 节](../prototype/flash-assets-design.md#notebook-four-categories)。各 repository 在既有 daybook.sqlite3 中幂等安装增量字段／表，不重建用户数据库、不删除原记录。
+
+| 表／字段 | 规则 |
+| --- | --- |
+| `flash_assets.accounting_month` | `flash-notebook-months-v2` 迁移事务回填 yyyy-MM；账目日期优先，缺日期取来源时区／UTC。保存时更新列和 payload，同月索引支持筛选与 SQL 收支汇总。 |
+| `FlashAsset.origin / parentIdeas / requiresLocalAI` | 可选 Codable 字段，旧 payload 缺字段可读；manual/generated 区分来源，parentIdeas 保留生成时 ID、revision、标题、正文与原来源快照，本地 AI 限制向后续生成传播。 |
+| `notebook_idea_drafts` | id、created_at、payload；保存所选灵感快照、方向、1–3 个候选和 savedCandidateIDs。最多 50 份。采纳同时写 flash_assets 与 marker，UUID 稳定，重复操作不重复新增。丢弃草稿不删已保存灵感。 |
+| `notebook_contact_metadata` | contact_id 外键及 revision；contacts 更新触发修订，Notebook 编辑检测冲突。 |
+| `notebook_contact_relationships` | contact_id、relationship、position；关系去空白去重，多选、自定义及空选择。与联系人编辑同事务，不改系统通讯录。 |
+| `notebook_place_labels` | place_id、name、type、revision；稳定坐标区域 ID，人工标签独立保存，不因删除来源或更名重建统计身份。 |
+| `notebook_place_evidence` | 原始证据 ID、place_id、source_id/kind、captured_at、day、time_zone、date_basis、display_label、coordinate_label；可重建，按地点和日去重统计，保留单条来源时间。 |
+| `PhotoCaptureMetadata.capturedTimeZoneIdentifier / originalLocalDate` | 可选字段；保留 EXIF 偏移和自然日期，本机拍照记录当地时区。PHAsset 只有绝对时间时不冒充原始时区。旧数据 fallback UTC，详情注明。 |
+
+地点从近 32 天的元数据安全窗口分批读取，包含 long-recording samples 的独立地址缓存精确关联。未知日期依据首次索引后固定；照片无原始时间不入统计。标签与证据分开，删除来源后的下次重建移除其证据；关系与联系人分开，不因 speaker 重新绑定覆盖关系。
+
+迁移失败事务回滚并显示错误；不删除原始音频／用户数据。旧版本可忽略新字段与附属表，但不能用删除数据库的方式回退。验证覆盖旧账目回填、重开、修订冲突、来源删除、月份移动、币种隔离、按天去重及重复采纳，详见[验证记录](../verification/flash-assets-prototype/README.md#notebook-native-four-20261103)。

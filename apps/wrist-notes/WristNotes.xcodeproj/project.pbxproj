@@ -22,6 +22,7 @@
 		08A69D91607DF787BDA6ECBF /* WhisperModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */; };
 		0A2F9AB5693EA6BFA07FD7C9 /* StartWiseLifeRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1853FFE8C5C0D3935A284BAF /* StartWiseLifeRecordingIntent.swift */; };
 		0D10E1FD86A085DE04209D2D /* DaybookDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC3AFCC7FAE2B92CB90CBCE /* DaybookDatabase.swift */; };
+		0DF504971B3B38083A5A23A4 /* NotebookIdeasModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321306AB6AFDA493CD85A15E /* NotebookIdeasModel.swift */; };
 		0E7699E578D3DB5F22A84808 /* ActionItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA1288203F293FDBA37CD902 /* ActionItem.swift */; };
 		0F248D5428D4B97F37B4F92C /* DaybookRecapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E20769AB7A4E8CF652E945C /* DaybookRecapService.swift */; };
 		1034CA3C4059CE7CC02D119D /* ContentEnrichmentConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B3075B62EF2036E0430F47 /* ContentEnrichmentConfirmationView.swift */; };
@@ -36,6 +37,7 @@
 		178A7C410C0316BECF32B14A /* DaybookAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBE3DD07FB039FB11CE3334 /* DaybookAnswerService.swift */; };
 		19188680E7236464ADE52A68 /* distance-avx512.c in Sources */ = {isa = PBXBuildFile; fileRef = 8262BF0DF5D4D5BFD6BF594B /* distance-avx512.c */; settings = {COMPILER_FLAGS = "-DSQLITE_CORE"; }; };
 		1A1A5C316739385AD6CE7F2A /* PhotoMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B918843DFB158EEDC1EB1EA /* PhotoMoment.swift */; };
+		1D4DBBE577D5DDCD0C92534A /* NotebookPlacesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF4E3B68ADEDBD905087B9C /* NotebookPlacesRepository.swift */; };
 		20C793A8C26ACC562C71FF0E /* RecordingIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A79382559FE7473A2C892B /* RecordingIntents.swift */; };
 		212CD106C95C61E25423135A /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = DA94D87CCE53A4352E7E3DE4 /* WhisperKit */; };
 		2200857EDDD049D703F6DE00 /* PhotoRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E23E7A9462D7E8A0299CE36 /* PhotoRepository.swift */; };
@@ -47,6 +49,7 @@
 		28E65C02612EE29B45EF85A8 /* DaybookComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503433E2EE63542C0E66EAC1 /* DaybookComponents.swift */; };
 		28EED20B00BC9F748652C780 /* DaybookVoiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2786517210589F5B1AA6FE /* DaybookVoiceDetailView.swift */; };
 		2927BDB0B38A44719C5F27D4 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7F4CC99F2DF619201EADC16B /* InfoPlist.xcstrings */; };
+		29B7B94EFFCBB277E5AF5709 /* NotebookIdeaViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFBB1B166ABAEF1714349527 /* NotebookIdeaViews.swift */; };
 		2A5CF413AA4A43B06C01E92D /* DaybookFullTextIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB68F6500ADA7BF3B1A08E1 /* DaybookFullTextIndex.swift */; };
 		2AC4D1202832127E2082A26D /* ChatGPTLoopback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D0E816B392C71E5D7CCA4D /* ChatGPTLoopback.swift */; };
 		2B0180BD07956B695FE2C390 /* StopWiseLifeRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44CBA5888781DE7E68CAF9B3 /* StopWiseLifeRecordingIntent.swift */; };
@@ -55,6 +58,7 @@
 		2D03490CD9A90B7008C6822F /* DayRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9E23E7FC109EC79ADDB6477 /* DayRecord.swift */; };
 		2D0F813CF6363BFE2F152C9C /* RecordingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6176FC22D68D30470AF55D6B /* RecordingActivityAttributes.swift */; };
 		2D51A5983D720739DAD59F22 /* Pods_WristNotes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A299FE3E12A69E9EB8FCF92 /* Pods_WristNotes.framework */; };
+		30721996BE0FEDAEAA8F4311 /* NotebookPeople.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0250508EDA8FA2AA4FF6556C /* NotebookPeople.swift */; };
 		30D6EE953660A179304A73BD /* ContentSegmentationV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04564BAA07AFF5C5CD5AAD6 /* ContentSegmentationV2.swift */; };
 		31EA0C19AF03CE7E879C5733 /* WiseLifeRecordingActivity.appex in Embed Recording Activity */ = {isa = PBXBuildFile; fileRef = 6944341D73FE3FCF4C6F4F7A /* WiseLifeRecordingActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		323B115938CFCE390E8F29DE /* OnDeviceRecordingTitleGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C32351078CA959D3E8E67F /* OnDeviceRecordingTitleGenerator.swift */; };
@@ -67,6 +71,7 @@
 		3A7B00D5B019C3FCFAE781DB /* SegmentedAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE064EC0AFF9E00D5065E6C2 /* SegmentedAudioCapture.swift */; };
 		3BA4F460A14A4A7307B7B2BD /* DaybookPlaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4695CFDC1ADC22EA3ED2AD4 /* DaybookPlaces.swift */; };
 		3C9DA7401475952583A98B47 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D79295DE1DDDB43BFB2DBEC /* OnboardingView.swift */; };
+		3F8BA12DF2A681D4ED95F131 /* NotebookIdeas.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C719581560A557197A8B29 /* NotebookIdeas.swift */; };
 		403510A19A75346CEF378D46 /* RecordingLocationAddressModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E54D877CD591BDCBD5C1A84 /* RecordingLocationAddressModel.swift */; };
 		40C1E6EF865C041F6DDC7937 /* VoiceSpeechSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0EC27666309B3F7D530FDF8 /* VoiceSpeechSelection.swift */; };
 		42E608DD0BC7811769D96C21 /* AppleSpeechResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7109AA63A6C546FF6C4C5E2C /* AppleSpeechResources.swift */; };
@@ -100,6 +105,7 @@
 		66B9711178E6690F4D0B21AF /* RecordingRangePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C53F5C7A5D5B3E53B785899 /* RecordingRangePlayback.swift */; };
 		66C063F4E1B38388088EAE46 /* RecordingAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37858EE0C328F109A2325CCD /* RecordingAudioFile.swift */; };
 		682F8F4233386A9F9FDDD4E8 /* sdk-opus-16k-mono.bin in Resources */ = {isa = PBXBuildFile; fileRef = 280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */; };
+		6868D2AE417D3601F76E1FEB /* NotebookPeopleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07729F2A8FA3E2CC19DF15B2 /* NotebookPeopleView.swift */; };
 		692DB95FD6B051A1341200A7 /* AudioSourceDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BC086F8C7DEE4D6385EBEC /* AudioSourceDiscovery.swift */; };
 		6A0356C56EF7AB11FC0AF4B7 /* Pods_RingIntegrationTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */; };
 		6A2A524FA8ED365A8F074593 /* ContentSegmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3EB2CC88406D78A5F8C5652 /* ContentSegmentRepository.swift */; };
@@ -111,6 +117,7 @@
 		73E8F47FB0058F1A4DC45DD2 /* AskAIRuntimeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97AC49668C0E2F04AF1E5AE7 /* AskAIRuntimeStore.swift */; };
 		76F2E402266719391935F529 /* AppleCaptureAddressResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1EC0867DBE34FD5068A05F /* AppleCaptureAddressResolver.swift */; };
 		770D97A2D15E9E9AA4F56DD2 /* WatchRecordingLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20346C78522ABF905DCB3D98 /* WatchRecordingLauncher.swift */; };
+		7B85A8D619D4529CBF6F976B /* NotebookSourceLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80A8BEF9B45076E629E3490 /* NotebookSourceLookup.swift */; };
 		7BA49D727A8987FE2F6A00EE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 080E9A2FC12C5C761058BB30 /* Foundation.framework */; };
 		7BBE964FFDF48CB1FA55A02D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 27C19C41829C22601A422B43 /* Localizable.xcstrings */; };
 		7C2147F6F32E26110B472093 /* AssistantVoiceInputModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7B079349D8B266DDFE63B3 /* AssistantVoiceInputModel.swift */; };
@@ -193,6 +200,7 @@
 		BEDA26D3293B236AFF61248B /* Bridge.c in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3B491D58066CF5ED4CA9B /* Bridge.c */; settings = {COMPILER_FLAGS = "-DSQLITE_CORE"; }; };
 		BF3B925C6ED1EC5BE2170EE9 /* AppleSpeechReservationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EE40A9E0C58159711DCE89 /* AppleSpeechReservationCoordinator.swift */; };
 		BFA057AFA5A2EFAC6AA982AD /* WristNotesWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 20A2FEE8B8CC0A18E1C8EA98 /* WristNotesWatch.app */; };
+		BFC08D949777EEF5A4B75A09 /* NotebookIdeaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24A9E6EB4503F00B0EA2BBD /* NotebookIdeaRepository.swift */; };
 		BFC41A31E79D1C676EC906DE /* ChatGPTAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBC767C6D879319E873289B /* ChatGPTAPI.swift */; };
 		C1F2EE8965A22D31B82A8B8C /* WiseLifeWatchRecordingWidget.appex in Embed Watch Recording Widget */ = {isa = PBXBuildFile; fileRef = E2AD2884A594200E2C7EC32B /* WiseLifeWatchRecordingWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C2665CEB7914ACE21A887F99 /* RecordingActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2711962AC7878C86C8B7889 /* RecordingActivityWidget.swift */; };
@@ -222,6 +230,7 @@
 		D8E52EACC55B3FD2679C5D45 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7CD3F88FF60BDB724647EF /* AppSettings.swift */; };
 		DB743308109E33A6CB2FAD78 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 851E353F90324B76A1C2E2D7 /* Assets.xcassets */; };
 		DC8398E5713D948943F187C6 /* AIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BDD61CED4E5EC7D0FFDBAAC /* AIConfiguration.swift */; };
+		DCC51AE06AF335E49DA3A6C9 /* NotebookPeopleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF24A14C28A44CE6C4AF838E /* NotebookPeopleRepository.swift */; };
 		DEA7FFF2BBE3BCE03CED4B94 /* WhisperModels.json in Resources */ = {isa = PBXBuildFile; fileRef = 08301C6B02531923091C75EE /* WhisperModels.json */; };
 		DEEC12B5F656BBE77C1E6D4A /* DaybookStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7927F4B170EC7C4557B48023 /* DaybookStyle.swift */; };
 		DF4F590D2E407D57BB63A999 /* AudioProcessingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5048E5D21136CC7B5458D114 /* AudioProcessingCoordinator.swift */; };
@@ -232,9 +241,11 @@
 		E39449AF53EEC0B00B149472 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFF45E6991AE38F630DC140 /* OnboardingProgress.swift */; };
 		E458C87C805CB9FCEF0C013D /* DaybookRecapViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B63125BF203FF95D3F79B1E /* DaybookRecapViews.swift */; };
 		E4CFAA61DFB27665F9CBE51C /* ConfiguredContentTextModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D8A830813D980AA42D14B /* ConfiguredContentTextModel.swift */; };
+		E533DDE6E3DE4B82A198A9D4 /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD12819131B3E438FBBD481D /* NotebookView.swift */; };
 		E6508556BF3E5B955F272E15 /* NoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873E38517898BADBAFE9917 /* NoteRepository.swift */; };
 		E6A1F10E099CB89903DB9D5A /* OnboardingUsageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A769EB539F67428FD54CE3 /* OnboardingUsageView.swift */; };
 		E6DEA9A33727B7336189256A /* PhoneRecorderEnrollmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D95D36BB112FE964C8A8C8 /* PhoneRecorderEnrollmentTests.swift */; };
+		E74613A3E936681C54E986ED /* NotebookPlaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = B624FC6C48D61481C8E3F749 /* NotebookPlaces.swift */; };
 		E7CAE0FCB4093E97103D00A7 /* DaybookInsightModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA70CFEE664E114CF30EE26D /* DaybookInsightModel.swift */; };
 		E9DD773391DF293361BDD415 /* OnboardingDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64693CAD88C1E084B77C61B1 /* OnboardingDataView.swift */; };
 		EA501FDC477D42D3352347E3 /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85070FCFC1375D60B6CE77ED /* PhotoDetailView.swift */; };
@@ -246,6 +257,7 @@
 		F2A4C7D91E5B4680A34F2D12 /* WhisperIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A4C7D91E5B4680A34F2D13 /* WhisperIntegrationTests.swift */; };
 		F2BED047DA75FAE2590ECC3B /* NearbyMacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */; };
 		F3141EF272E6739822D74A53 /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F42656FC8229CB0B7BCF1D /* AudioPlayback.swift */; };
+		F34F0D38EC34CC410FFE78D9 /* NotebookPlacesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A5ACBAD415A8ED198061A9 /* NotebookPlacesView.swift */; };
 		F3C0E0ABDBFD33369BD6713B /* DaybookSuggestionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14198B1C1D0EC1C980416FC1 /* DaybookSuggestionStore.swift */; };
 		F3FB16C89E65184D06F00589 /* AudioSpeakerMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 691F6E59FE5CACD94F6C865A /* AudioSpeakerMapping.swift */; };
 		F4D2A16649BEA782E094F7ED /* ChatGPTProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856BF9520ACAAF37F5C6C6B3 /* ChatGPTProtocol.swift */; };
@@ -331,11 +343,13 @@
 
 /* Begin PBXFileReference section */
 		01A792FA01CC41DE8215A967 /* ChatGPTBrowserAuthorization.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTBrowserAuthorization.swift; sourceTree = "<group>"; };
+		0250508EDA8FA2AA4FF6556C /* NotebookPeople.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPeople.swift; sourceTree = "<group>"; };
 		03506D8057CD7F28A6B0FFD6 /* NotesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesModel.swift; sourceTree = "<group>"; };
 		04CB62DFC46855A6CD3A8221 /* DaybookSemanticIndex.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookSemanticIndex.swift; sourceTree = "<group>"; };
 		0545B5E718C83BA2F0775683 /* TranscriptionSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionSettingsView.swift; sourceTree = "<group>"; };
 		05BB3B4123869E92E2BD124B /* DaybookRetrieval.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookRetrieval.swift; sourceTree = "<group>"; };
 		068B6E16015601618238A785 /* TranscriptionConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TranscriptionConfiguration.swift; sourceTree = "<group>"; };
+		07729F2A8FA3E2CC19DF15B2 /* NotebookPeopleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPeopleView.swift; sourceTree = "<group>"; };
 		080E9A2FC12C5C761058BB30 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		08120ACD1FD5D5F8F19242FA /* Pods-WristNotes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WristNotes.debug.xcconfig"; path = "Target Support Files/Pods-WristNotes/Pods-WristNotes.debug.xcconfig"; sourceTree = "<group>"; };
 		08301C6B02531923091C75EE /* WhisperModels.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; path = WhisperModels.json; sourceTree = "<group>"; };
@@ -366,6 +380,7 @@
 		27C19C41829C22601A422B43 /* Localizable.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		27E26E18F85A0360819674FB /* PhoneRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecorder.swift; sourceTree = "<group>"; };
 		280ED07D52B59D3A2F46AF93 /* sdk-opus-16k-mono.bin */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = archive.macbinary; name = "sdk-opus-16k-mono.bin"; path = "Fixtures/sdk-opus-16k-mono.bin"; sourceTree = "<group>"; };
+		29A5ACBAD415A8ED198061A9 /* NotebookPlacesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPlacesView.swift; sourceTree = "<group>"; };
 		29D10EA2963814A65831FA57 /* RingIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingIntegrationTests.swift; sourceTree = "<group>"; };
 		2C91AD876CDB0FC04A271C59 /* WhisperModelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
 		2EB5C543DBDF09E7A2FA0157 /* distance-rvv.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-rvv.c"; path = "src/distance-rvv.c"; sourceTree = "<group>"; };
@@ -373,6 +388,7 @@
 		3006EF03126C31E8A3640F11 /* AudioWindowPlanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioWindowPlanner.swift; sourceTree = "<group>"; };
 		30CDD98F9D9C9A789608CFE9 /* VoiceIdentityModels-NOTICES.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "VoiceIdentityModels-NOTICES.txt"; sourceTree = "<group>"; };
 		31D5603D47DE141D923B722B /* WristNotesApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesApp.swift; sourceTree = "<group>"; };
+		321306AB6AFDA493CD85A15E /* NotebookIdeasModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookIdeasModel.swift; sourceTree = "<group>"; };
 		33D5715BEF4E41B970BC5026 /* RecordingFormat.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingFormat.swift; sourceTree = "<group>"; };
 		36BD2DAB33EB1587C2073DFE /* distance-sse2.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-sse2.c"; path = "src/distance-sse2.c"; sourceTree = "<group>"; };
 		3764DBAAE3C133685B24BF8C /* AskAIReadTools.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskAIReadTools.swift; sourceTree = "<group>"; };
@@ -430,6 +446,7 @@
 		6C587E9E480972437E7C8D27 /* ChatGPTAccountStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTAccountStore.swift; sourceTree = "<group>"; };
 		6DB5BA524077A1CD8DD061EC /* LifeSourceViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LifeSourceViews.swift; sourceTree = "<group>"; };
 		6E7D4F87ED5EA568EC939C21 /* VoiceIdentity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceIdentity.swift; sourceTree = "<group>"; };
+		6EF4E3B68ADEDBD905087B9C /* NotebookPlacesRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPlacesRepository.swift; sourceTree = "<group>"; };
 		6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RingIntegrationTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F7E70D050137A8E5132CC55 /* WatchRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
 		706653431E1F8551633B4EF1 /* CaptureMetadata.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureMetadata.swift; sourceTree = "<group>"; };
@@ -497,12 +514,14 @@
 		AB80E68F7DF4BBED293ADF48 /* WatchRecordingLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecordingLink.swift; sourceTree = "<group>"; };
 		AE064EC0AFF9E00D5065E6C2 /* SegmentedAudioCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SegmentedAudioCapture.swift; sourceTree = "<group>"; };
 		AEA2F3C0D603C9ED8D4DDDBE /* LifeSourceReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LifeSourceReader.swift; sourceTree = "<group>"; };
+		AF24A14C28A44CE6C4AF838E /* NotebookPeopleRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPeopleRepository.swift; sourceTree = "<group>"; };
 		B1236B02755A16885C124C5B /* DaybookView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookView.swift; sourceTree = "<group>"; };
 		B131594FCE20E77E035CA0B3 /* DaybookRecapStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookRecapStore.swift; sourceTree = "<group>"; };
 		B1B2AD346C783F4CEFBE563F /* NearbyMacClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NearbyMacClient.swift; sourceTree = "<group>"; };
 		B2C32351078CA959D3E8E67F /* OnDeviceRecordingTitleGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceRecordingTitleGenerator.swift; sourceTree = "<group>"; };
 		B38EDD8383388D400B37A5AB /* RecordingTitleCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingTitleCoordinator.swift; sourceTree = "<group>"; };
 		B3E16CE1FC1363C78541AF24 /* WristNotesWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesWatchApp.swift; sourceTree = "<group>"; };
+		B624FC6C48D61481C8E3F749 /* NotebookPlaces.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPlaces.swift; sourceTree = "<group>"; };
 		B8596FEE7153E354EB92EA25 /* VoiceEmbeddingEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceEmbeddingEngine.swift; sourceTree = "<group>"; };
 		B87F72E2C07F60D2242FD940 /* PhotoLibraryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoLibraryModel.swift; sourceTree = "<group>"; };
 		B8CD3D22F6502ABBCAE21A80 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -525,6 +544,7 @@
 		CB95961CAF0899CF936F6210 /* EurekaRingModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EurekaRingModel.swift; sourceTree = "<group>"; };
 		CC08CE6F3ECEB2A9417D056D /* ContentSegmentDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentSegmentDetailView.swift; sourceTree = "<group>"; };
 		CC0CB4FE885B0F9262B9C3AD /* AudioProcessingRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioProcessingRepository.swift; sourceTree = "<group>"; };
+		CD12819131B3E438FBBD481D /* NotebookView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookView.swift; sourceTree = "<group>"; };
 		CEBE3DD07FB039FB11CE3334 /* DaybookAnswerService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookAnswerService.swift; sourceTree = "<group>"; };
 		CF7B079349D8B266DDFE63B3 /* AssistantVoiceInputModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssistantVoiceInputModel.swift; sourceTree = "<group>"; };
 		D04564BAA07AFF5C5CD5AAD6 /* ContentSegmentationV2.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentSegmentationV2.swift; sourceTree = "<group>"; };
@@ -547,14 +567,17 @@
 		DF96BBFF9C07C9D7238394D2 /* ChatGPTAccountModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTAccountModel.swift; sourceTree = "<group>"; };
 		DFB7132783F0855539E97FEA /* CaptureLocationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureLocationService.swift; sourceTree = "<group>"; };
 		E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NearbyMacSettingsView.swift; sourceTree = "<group>"; };
+		E24A9E6EB4503F00B0EA2BBD /* NotebookIdeaRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookIdeaRepository.swift; sourceTree = "<group>"; };
 		E2AD2884A594200E2C7EC32B /* WiseLifeWatchRecordingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WiseLifeWatchRecordingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3EB2CC88406D78A5F8C5652 /* ContentSegmentRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentSegmentRepository.swift; sourceTree = "<group>"; };
 		E4695CFDC1ADC22EA3ED2AD4 /* DaybookPlaces.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookPlaces.swift; sourceTree = "<group>"; };
 		E576861C250390EC6BFB3D43 /* LifeMomentViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LifeMomentViews.swift; sourceTree = "<group>"; };
 		E655A8EC1CB10A33A0A59857 /* LocalTranscriptionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalTranscriptionService.swift; sourceTree = "<group>"; };
+		E80A8BEF9B45076E629E3490 /* NotebookSourceLookup.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookSourceLookup.swift; sourceTree = "<group>"; };
 		E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
 		EAF7A0883DE81D706D708903 /* NearbyMacScanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NearbyMacScanner.swift; sourceTree = "<group>"; };
 		EB09CD5B21B2963BB7721CE8 /* AppleDaybookEmbedding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleDaybookEmbedding.swift; sourceTree = "<group>"; };
+		EFBB1B166ABAEF1714349527 /* NotebookIdeaViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookIdeaViews.swift; sourceTree = "<group>"; };
 		F047A82D103508BD4B3E6C38 /* RecordingSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
 		F12341630232D5303233548F /* AskAICustomDriver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskAICustomDriver.swift; sourceTree = "<group>"; };
 		F199BC4149FC3A1882E9CE22 /* RecordingDiagnostics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingDiagnostics.swift; sourceTree = "<group>"; };
@@ -564,6 +587,7 @@
 		F2A4C7D91E5B4680A34F2D13 /* WhisperIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WhisperIntegrationTests.swift; sourceTree = "<group>"; };
 		F37D5E23CBC9DA45C513488A /* PhoneWatchStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneWatchStatus.swift; sourceTree = "<group>"; };
 		F4260536029D6C180D4327B1 /* ContentSegmentModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentSegmentModel.swift; sourceTree = "<group>"; };
+		F4C719581560A557197A8B29 /* NotebookIdeas.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookIdeas.swift; sourceTree = "<group>"; };
 		F5355146D9F48195EB985F26 /* AskAIRuntime.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskAIRuntime.swift; sourceTree = "<group>"; };
 		F5CCA06757C91D83B7970789 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F7E2BE5A4455917820D76365 /* DaybookInsightStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookInsightStore.swift; sourceTree = "<group>"; };
@@ -823,6 +847,18 @@
 				7D79295DE1DDDB43BFB2DBEC /* OnboardingView.swift */,
 				64693CAD88C1E084B77C61B1 /* OnboardingDataView.swift */,
 				73A769EB539F67428FD54CE3 /* OnboardingUsageView.swift */,
+				E24A9E6EB4503F00B0EA2BBD /* NotebookIdeaRepository.swift */,
+				EFBB1B166ABAEF1714349527 /* NotebookIdeaViews.swift */,
+				F4C719581560A557197A8B29 /* NotebookIdeas.swift */,
+				321306AB6AFDA493CD85A15E /* NotebookIdeasModel.swift */,
+				0250508EDA8FA2AA4FF6556C /* NotebookPeople.swift */,
+				AF24A14C28A44CE6C4AF838E /* NotebookPeopleRepository.swift */,
+				07729F2A8FA3E2CC19DF15B2 /* NotebookPeopleView.swift */,
+				B624FC6C48D61481C8E3F749 /* NotebookPlaces.swift */,
+				6EF4E3B68ADEDBD905087B9C /* NotebookPlacesRepository.swift */,
+				29A5ACBAD415A8ED198061A9 /* NotebookPlacesView.swift */,
+				E80A8BEF9B45076E629E3490 /* NotebookSourceLookup.swift */,
+				CD12819131B3E438FBBD481D /* NotebookView.swift */,
 			);
 			path = iPhone;
 			sourceTree = "<group>";
@@ -1448,6 +1484,18 @@
 				3C9DA7401475952583A98B47 /* OnboardingView.swift in Sources */,
 				E9DD773391DF293361BDD415 /* OnboardingDataView.swift in Sources */,
 				E6A1F10E099CB89903DB9D5A /* OnboardingUsageView.swift in Sources */,
+				BFC08D949777EEF5A4B75A09 /* NotebookIdeaRepository.swift in Sources */,
+				29B7B94EFFCBB277E5AF5709 /* NotebookIdeaViews.swift in Sources */,
+				3F8BA12DF2A681D4ED95F131 /* NotebookIdeas.swift in Sources */,
+				0DF504971B3B38083A5A23A4 /* NotebookIdeasModel.swift in Sources */,
+				30721996BE0FEDAEAA8F4311 /* NotebookPeople.swift in Sources */,
+				DCC51AE06AF335E49DA3A6C9 /* NotebookPeopleRepository.swift in Sources */,
+				6868D2AE417D3601F76E1FEB /* NotebookPeopleView.swift in Sources */,
+				E74613A3E936681C54E986ED /* NotebookPlaces.swift in Sources */,
+				1D4DBBE577D5DDCD0C92534A /* NotebookPlacesRepository.swift in Sources */,
+				F34F0D38EC34CC410FFE78D9 /* NotebookPlacesView.swift in Sources */,
+				7B85A8D619D4529CBF6F976B /* NotebookSourceLookup.swift in Sources */,
+				E533DDE6E3DE4B82A198A9D4 /* NotebookView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

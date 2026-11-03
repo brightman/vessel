@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fafbfc">
+  <title>WiseLife · 记事本设计</title>
+  <link rel="icon" href="assets/brand/favicon-32.png">
+  <link rel="stylesheet" href="daybook.css">
+  <link rel="stylesheet" href="daybook-theme.css">
+  <link rel="stylesheet" href="notebook.css?v=20261103-places-daily">
+</head>
+<body class="notebook-review">
+  <main class="nb-stage">
+    <aside class="nb-intro">
+      <a class="wordmark" href="iphone-day.html#product"><img src="assets/brand/app-icon.png" width="34" height="34" alt="">WiseLife</a>
+      <p class="nb-eyebrow">NOTEBOOK / 产品设计</p>
+      <h1>把随手记录，<br>变成日积月累。</h1>
+      <p class="nb-lead">留下想法，理清收支。<br>记住聊过的人，发现常出现的地方。</p>
+      <nav class="nb-chapters" aria-label="原型章节">
+        <button data-tab="ideas"><span>01</span><div><strong>灵感</strong><small>从一个想法，走向下一个</small></div></button>
+        <button data-tab="money"><span>02</span><div><strong>记账</strong><small>每月收支，清楚一点</small></div></button>
+        <button data-tab="people"><span>03</span><div><strong>人物</strong><small>人与谈话，慢慢连接</small></div></button>
+        <button data-tab="places"><span>04</span><div><strong>地点</strong><small>常去的地方，按天整理</small></div></button>
+      </nav>
+      <a class="nb-backlink" href="iphone-day.html#product">← 返回完整产品原型</a>
+    </aside>
+    <section class="phone-shell nb-phone" aria-label="WiseLife 记事本手机原型">
+      <div class="phone-screen">
+        <div class="statusbar"><span>9:41</span><span class="dynamic-island"></span><span class="nb-system" aria-hidden="true">▮▮▮ <svg viewBox="0 0 28 14"><rect x="1" y="1" width="23" height="12" rx="3" fill="none" stroke="currentColor"/><rect x="3" y="3" width="18" height="8" rx="1" fill="currentColor"/><path d="M26 5v4" stroke="currentColor" stroke-width="2"/></svg></span></div>
+        <div id="nbApp" class="nb-app">
+          <header class="nb-header">
+            <div class="nb-topline"><a href="iphone-day.html?preview=settings#product" class="nb-back">‹ 设置</a><span class="nb-local">记事本</span><button class="nb-icon-button" data-action="new" id="nbAdd" aria-label="新建灵感"></button></div>
+            <div class="nb-title-row"><h2 id="nbTitle" tabindex="-1">灵感</h2><button class="nb-text-button" data-action="select" id="nbSelect">选择</button></div>
+            <p id="nbSubtitle">想到的时候，留下来。</p>
+            <div id="nbTabs" class="nb-tabs" role="tablist" aria-label="记事本分类"></div>
+          </header>
+          <div class="nb-content" id="nbContent" role="tabpanel" tabindex="0"></div>
+          <div class="nb-dock" id="nbDock" hidden></div>
+        </div>
+        <div id="nbOverlay" class="nb-overlay" hidden>
+          <section class="nb-sheet" role="dialog" aria-modal="true" aria-labelledby="nbSheetTitle" tabindex="-1">
+            <div class="nb-handle"></div><header class="nb-sheet-header"><h3 id="nbSheetTitle"></h3><button class="nb-icon-button" data-action="close" aria-label="关闭弹层">×</button></header>
+            <div id="nbSheetBody" class="nb-sheet-body"></div>
+          </section>
+        </div>
+        <div id="nbToast" class="nb-toast" role="status" aria-live="polite" hidden></div>
+        <div class="home-indicator"></div>
+      </div>
+    </section>
+    <aside class="nb-review-notes">
+      <p class="nb-eyebrow">交互评审 · 01</p>
+      <h2 id="nbReviewTitle">让想法继续生长</h2>
+      <p id="nbReviewText">打开一条灵感编辑，或点「选择」勾选两条，用 AI 发展新的想法。</p>
+      <div class="nb-review-flow" id="nbReviewFlow"></div>
+      <div class="nb-review-controls">
+        <button data-action="theme" id="nbTheme">切换深色外观</button>
+        <button data-action="compact" id="nbCompact" aria-pressed="false">查看窄屏 · 360 px</button>
+        <button data-action="empty" id="nbEmpty" aria-pressed="false">查看空状态</button>
+        <label class="nb-demo-check"><input type="checkbox" id="nbFailAI">模拟下一次 AI 生成失败</label>
+        <button data-action="reset">重置示例数据</button>
+      </div>
+      <p class="nb-disclosure">可交互设计原型 · 示例数据<br>修改只在本页内保留，刷新重置。<br>AI 结果为演示，不连接真实模型。<br>不读取通讯录，不采集位置。</p>
+      <a class="nb-spec-link" href="flash-assets-design.md#notebook-four-categories">查看产品设计说明 ↗</a>
+    </aside>
+  </main>
+  <script src="notebook.js?v=main-integrated-20261103b"></script>
+</body>
+</html>

@@ -12,6 +12,21 @@ final class FlashCaptureRepository {
             try db.execute("CREATE INDEX flash_assets_library ON flash_assets(kind,captured_at DESC)")
             try db.execute("CREATE INDEX flash_assets_source ON flash_assets(source_id)")
         }
+        try db.migrate("flash-notebook-months-v2") {
+            try db.execute("ALTER TABLE flash_assets ADD COLUMN accounting_month TEXT")
+            for row in try db.query("SELECT payload FROM flash_assets WHERE kind='expense'") {
+                let asset = try DaybookDatabase.decode(FlashAsset.self, row["payload"])
+                try db.execute("UPDATE flash_assets SET accounting_month=? WHERE id=?", [.text(Self.month(for: asset)), .text(asset.id.uuidString)])
+            }
+            try db.execute("CREATE INDEX flash_assets_month ON flash_assets(kind,accounting_month,revoked,captured_at DESC,id)")
+        }
+    }
+    static func month(for asset: FlashAsset) -> String {
+        if let date = asset.date, FlashMoney.validDate(date) { return String(date.prefix(7)) }
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = asset.source.timeZoneKnown ? (TimeZone(identifier: asset.source.timeZoneID) ?? TimeZone(secondsFromGMT: 0)) : TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: asset.source.capturedAt)
     }
     func seedHistory(_ ids: [UUID]) throws {
         try db.migrate("flash-notebook-history-v1") {
@@ -49,14 +64,36 @@ final class FlashCaptureRepository {
             let revision = try db.query("SELECT revision FROM flash_assets WHERE id=?", [.text(asset.id.uuidString)]).first?["revision"]?.double ?? 0
             guard Int(revision) == asset.revision else { throw ActionFailure.changed }
             var next = asset; next.revision += 1
-            try db.execute("INSERT INTO flash_assets(id,source_id,kind,captured_at,revision,revoked,ready,currency,direction,amount_minor,payload) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,revoked=excluded.revoked,ready=excluded.ready,currency=excluded.currency,direction=excluded.direction,amount_minor=excluded.amount_minor,payload=excluded.payload", [
-                .text(next.id.uuidString), .text(next.source.id.uuidString), .text(next.kind.rawValue), .real(next.source.capturedAt.timeIntervalSinceReferenceDate), .integer(Int64(next.revision)), .integer(next.revoked ? 1 : 0), .integer(next.ready ? 1 : 0), next.currency.map(DaybookDatabase.Value.text) ?? .null, next.direction.map { .text($0.rawValue) } ?? .null, next.amountMinor.map(DaybookDatabase.Value.integer) ?? .null, try DaybookDatabase.json(next)])
+            try db.execute("INSERT INTO flash_assets(id,source_id,kind,captured_at,revision,revoked,ready,currency,direction,amount_minor,payload,accounting_month) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,revoked=excluded.revoked,ready=excluded.ready,currency=excluded.currency,direction=excluded.direction,amount_minor=excluded.amount_minor,payload=excluded.payload,accounting_month=excluded.accounting_month", [
+                .text(next.id.uuidString), .text(next.source.id.uuidString), .text(next.kind.rawValue), .real(next.source.capturedAt.timeIntervalSinceReferenceDate), .integer(Int64(next.revision)), .integer(next.revoked ? 1 : 0), .integer(next.ready ? 1 : 0), next.currency.map(DaybookDatabase.Value.text) ?? .null, next.direction.map { .text($0.rawValue) } ?? .null, next.amountMinor.map(DaybookDatabase.Value.integer) ?? .null, try DaybookDatabase.json(next), next.kind == .expense ? .text(Self.month(for: next)) : .null])
             return next
         }
     }
-    func totals() throws -> [FlashCurrencyTotal] {
-        try db.query("SELECT currency,SUM(CASE WHEN direction='income' THEN amount_minor ELSE 0 END) AS income,SUM(CASE WHEN direction='expense' THEN amount_minor ELSE 0 END) AS expense FROM flash_assets WHERE kind='expense' AND revoked=0 AND ready=1 GROUP BY currency ORDER BY currency").map {
+    func totals(month: String? = nil) throws -> [FlashCurrencyTotal] {
+        let monthSQL = month == nil ? "" : " AND accounting_month=?"
+        return try db.query("SELECT currency,SUM(CASE WHEN direction='income' THEN amount_minor ELSE 0 END) AS income,SUM(CASE WHEN direction='expense' THEN amount_minor ELSE 0 END) AS expense FROM flash_assets WHERE kind='expense' AND revoked=0 AND ready=1" + monthSQL + " GROUP BY currency ORDER BY currency", month.map { [.text($0)] } ?? []).map {
             FlashCurrencyTotal(currency: try $0.requiredString("currency"), income: Int64(try $0.requiredInt("income")), expense: Int64(try $0.requiredInt("expense")))
         }
     }
+    func assets(kind: FlashAsset.Kind, month: String? = nil, currency: String? = nil,
+                direction: FlashAsset.Direction? = nil, pendingOnly: Bool = false, showRevoked: Bool = false,
+                limit: Int = 50, offset: Int = 0) throws -> [FlashAsset] {
+        var conditions = ["kind=?"], values: [DaybookDatabase.Value] = [.text(kind.rawValue)]
+        if !showRevoked { conditions.append("revoked=0") }
+        if let month { conditions.append("accounting_month=?"); values.append(.text(month)) }
+        if let currency { conditions.append("currency=?"); values.append(.text(currency)) }
+        if let direction { conditions.append("direction=?"); values.append(.text(direction.rawValue)) }
+        if pendingOnly { conditions.append("ready=0") }
+        values += [.integer(Int64(max(1, min(limit, 200)))), .integer(Int64(max(0, offset)))]
+        return try db.query("SELECT payload FROM flash_assets WHERE " + conditions.joined(separator: " AND ") + " ORDER BY captured_at DESC,id LIMIT ? OFFSET ?", values)
+            .map { try DaybookDatabase.decode(FlashAsset.self, $0["payload"]) }
+    }
+    func months() throws -> [String] {
+        try db.query("SELECT DISTINCT accounting_month FROM flash_assets WHERE kind='expense' AND accounting_month IS NOT NULL ORDER BY accounting_month DESC")
+            .map { try $0.requiredString("accounting_month") }
+    }
+    func asset(_ id: UUID) throws -> FlashAsset? {
+        try db.query("SELECT payload FROM flash_assets WHERE id=?", [.text(id.uuidString)]).first.map { try DaybookDatabase.decode(FlashAsset.self, $0["payload"]) }
+    }
+
 }
