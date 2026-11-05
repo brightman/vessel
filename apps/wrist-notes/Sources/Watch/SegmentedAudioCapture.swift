@@ -1,6 +1,7 @@
 import AVFAudio
 import Foundation
 import Darwin
+import RecordingAtomics
 
 /// Durable local capture checkpoint for an hourly recording file.
 struct RecordingCaptureContext: Codable {
@@ -203,23 +204,22 @@ final class RecordingPCMBufferPool: @unchecked Sendable {
     private let buffers: [AVAudioPCMBuffer]
     // Single producer / single consumer ring. Atomic state transitions publish
     // copied PCM with full memory barriers: free -> filling -> ready -> reading.
-    // OSAtomic is available on the project's watchOS 10 deployment baseline.
-    private let states: UnsafeMutablePointer<Int32>
+    // C11 32-bit atomics remain lock-free on the watchOS 10 deployment baseline.
+    private let states: OpaquePointer
     private var readIndex = 0 // consumer only
     private var writeIndex = 0 // producer only
     init(format: AVAudioFormat, count: Int = 8, frameCapacity: AVAudioFrameCount = 4096) {
         precondition(count > 0)
         buffers = (0..<count).map { _ in AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCapacity)! }
-        states = .allocate(capacity: count)
-        states.initialize(repeating: 0, count: count)
+        states = WLRecordingAtomicInt32Create(count, 0)!
     }
-    deinit { states.deinitialize(count: buffers.count); states.deallocate() }
+    deinit { WLRecordingAtomicInt32Destroy(states) }
     func offer(_ input: AVAudioPCMBuffer) -> Bool { offerDetailed(input).accepted }
     func offerDetailed(_ input: AVAudioPCMBuffer) -> OfferResult {
         let slot = writeIndex
         guard input.frameLength <= buffers[slot].frameCapacity else { return .inputBufferTooLarge }
         guard input.format == buffers[slot].format else { return .formatMismatch }
-        guard OSAtomicCompareAndSwap32Barrier(0, 1, states.advanced(by: slot)) else { return .poolBusy }
+        guard WLRecordingAtomicInt32CompareExchange(states, slot, 0, 1) else { return .poolBusy }
         let target = buffers[slot]
         target.frameLength = input.frameLength
         let sourceBuffers = UnsafeMutableAudioBufferListPointer(input.mutableAudioBufferList)
@@ -227,22 +227,22 @@ final class RecordingPCMBufferPool: @unchecked Sendable {
         for index in 0..<sourceBuffers.count {
             guard let source = sourceBuffers[index].mData, let destination = targetBuffers[index].mData,
                   sourceBuffers[index].mDataByteSize <= targetBuffers[index].mDataByteSize else {
-                _ = OSAtomicCompareAndSwap32Barrier(1, 0, states.advanced(by: slot))
+                _ = WLRecordingAtomicInt32CompareExchange(states, slot, 1, 0)
                 return .bufferLayoutMismatch
             }
             memcpy(destination, source, Int(sourceBuffers[index].mDataByteSize))
         }
-        _ = OSAtomicCompareAndSwap32Barrier(1, 2, states.advanced(by: slot))
+        _ = WLRecordingAtomicInt32CompareExchange(states, slot, 1, 2)
         writeIndex = (writeIndex + 1) % buffers.count
         return .accepted
     }
     func take() -> (Int, AVAudioPCMBuffer)? {
         let slot = readIndex
-        guard OSAtomicCompareAndSwap32Barrier(2, 3, states.advanced(by: slot)) else { return nil }
+        guard WLRecordingAtomicInt32CompareExchange(states, slot, 2, 3) else { return nil }
         readIndex = (readIndex + 1) % buffers.count
         return (slot, buffers[slot])
     }
-    func release(_ slot: Int) { _ = OSAtomicCompareAndSwap32Barrier(3, 0, states.advanced(by: slot)) }
+    func release(_ slot: Int) { _ = WLRecordingAtomicInt32CompareExchange(states, slot, 3, 0) }
 }
 
 /// One serial consumer owns converter, writer, completion and failure state. The
@@ -255,7 +255,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
     private let pool: RecordingPCMBufferPool
     private let signal: DispatchSourceUserDataAdd
     private let overflow: DispatchSourceUserDataAdd
-    private let overflowReason: UnsafeMutablePointer<Int32>
+    private let overflowReason: OpaquePointer
     private let onFailure: (Error) -> Void
     private var terminalError: Error?
     private var finished = false
@@ -287,8 +287,7 @@ final class RecordingCapturePipeline: @unchecked Sendable {
         pool = RecordingPCMBufferPool(format: format,
             count: RecordingPCMBufferPool.microphoneBufferCount(sampleRate: format.sampleRate),
             frameCapacity: RecordingPCMBufferPool.microphoneBufferFrameCapacity)
-        overflowReason = .allocate(capacity: 1)
-        overflowReason.initialize(to: RecordingPCMBufferPool.OfferResult.accepted.rawValue)
+        overflowReason = WLRecordingAtomicInt32Create(1, RecordingPCMBufferPool.OfferResult.accepted.rawValue)!
         self.onFailure = onFailure
         signal = DispatchSource.makeUserDataAddSource(queue: worker)
         overflow = DispatchSource.makeUserDataAddSource(queue: worker)
@@ -297,17 +296,17 @@ final class RecordingCapturePipeline: @unchecked Sendable {
         signal.resume(); overflow.resume()
     }
 
-    deinit { overflowReason.deinitialize(count: 1); overflowReason.deallocate() }
+    deinit { WLRecordingAtomicInt32Destroy(overflowReason) }
 
     private var overflowFailure: SegmentedAudioCapture.Failure {
-        .bufferOverflow(RecordingPCMBufferPool.OfferResult(rawValue: OSAtomicAdd32Barrier(0, overflowReason)) ?? .poolBusy)
+        .bufferOverflow(RecordingPCMBufferPool.OfferResult(rawValue: WLRecordingAtomicInt32Load(overflowReason, 0)) ?? .poolBusy)
     }
 
     func submit(_ input: AVAudioPCMBuffer) {
         let result = pool.offerDetailed(input)
         if result.accepted { signal.add(data: 1) }
         else {
-            _ = OSAtomicCompareAndSwap32Barrier(RecordingPCMBufferPool.OfferResult.accepted.rawValue, result.rawValue, overflowReason)
+            _ = WLRecordingAtomicInt32CompareExchange(overflowReason, 0, RecordingPCMBufferPool.OfferResult.accepted.rawValue, result.rawValue)
             overflow.add(data: 1)
         }
     }

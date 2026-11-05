@@ -326,7 +326,7 @@ struct ContentEnrichmentConfirmation: Identifiable {
                 model:{ instruction,content in try await topicRouter.respond(instruction:instruction,content:content) },
                 loadCheckpoint:{ key in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).contentV2Checkpoint(sourceID:id,key:key) } },
                 saveCheckpoint:{ key,data in try await worker.withRepository { try ContentSegmentRepository(database:$0.derivedDatabase).saveContentV2Checkpoint(sourceID:id,key:key,data:data) } },
-                progress:{ stage in
+                progress:{ [weak self] stage in
                     Task { @MainActor [weak self] in
                         guard let self else { return }
                         if stage == "complete" { self.publishEnrichmentProgress(id,nil) }

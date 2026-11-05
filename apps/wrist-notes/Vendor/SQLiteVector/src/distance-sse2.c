@@ -1068,7 +1068,7 @@ float bit1_distance_hamming_sse2 (const void *v1, const void *v2, int n) {
     }
     
     // Horizontal sum of the two 64-bit accumulators
-    int distance = _mm_cvtsi128_si64(acc) + _mm_cvtsi128_si64(_mm_srli_si128(acc, 8));
+    int64_t distance = _mm_cvtsi128_si64(acc) + _mm_cvtsi128_si64(_mm_srli_si128(acc, 8));
     
     // Handle remainder with scalar code
     for (; i < n; i++) {

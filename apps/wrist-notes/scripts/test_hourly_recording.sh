@@ -3,7 +3,11 @@ set -eu
 cd "$(dirname "$0")/.."
 output=$(mktemp -d /private/tmp/wiselife-hourly-check.XXXXXX)
 trap 'rm -rf "$output"' EXIT
-swiftc -module-cache-path "$output/cache" \
+host_target="$(uname -m)-apple-macosx14.0"
+xcrun clang -target "$host_target" -std=c11 -O2 -Wall -Wextra -Werror \
+  -c Sources/Watch/RecordingAtomics/RecordingAtomics.c -o "$output/RecordingAtomics.o"
+swiftc -target "$host_target" -module-cache-path "$output/cache" \
+  -I Sources/Watch/RecordingAtomics "$output/RecordingAtomics.o" \
   Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift \
   Sources/Shared/RecordingSession.swift Sources/Shared/RecordingSessionFiles.swift \
   Sources/Shared/RecordingFramePartition.swift Sources/Shared/RecordingAudioFile.swift \

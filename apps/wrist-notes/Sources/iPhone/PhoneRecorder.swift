@@ -134,6 +134,13 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
         requestingPermission = false
         guard !Task.isCancelled else { releaseMicrophone(); return }
         guard allowed else { releaseMicrophone(); errorMessage = "请在系统设置中允许 WiseLife 使用麦克风。"; return }
+        // Playback hardware transitions are queued off-main. Drain any earlier transition before
+        // taking the shared session; the capture activity token prevents later playback requests.
+        requestingPermission = true
+        await PlaybackAudioSession.shared.prepareForCapture()
+        guard request == version else { return }
+        requestingPermission = false
+        guard !Task.isCancelled else { releaseMicrophone(); return }
         let chunked = stagedDraft?.isChunked == true
         configuredBuiltInMicrophoneOnly = builtInMicrophoneOnly
         let url = stagedDraft?.fileURL ?? FileManager.default.temporaryDirectory.appendingPathComponent("phone-recording-\(UUID().uuidString).m4a")
@@ -255,8 +262,7 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
 #endif
         captureLocation.cancel(); capturedLocation = nil
         version += 1; requestingPermission = false
-        let ownedMicrophone = Self.microphoneOwner === self
-        releaseMicrophone()
+        let ownedSession = Self.microphoneOwner === self && recorder != nil
         let url = recorder?.url
         isRecording = false; recorder?.stop(); recorder = nil; timer?.invalidate(); timer = nil
         if let stagedDraft { try? draftStore.remove(stagedDraft) }
@@ -265,7 +271,9 @@ final class PhoneRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate, 
             if let draft { try? FileManager.default.removeItem(at: draft.fileURL) }
         }
         draft = nil; duration = 0; errorMessage = nil; measuresCompletedFile = false
-        if ownedMicrophone { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
+        if ownedSession { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
+        // Keep capture intent until deactivation finishes, so queued playback cannot overtake it.
+        releaseMicrophone()
         stagedDraft = nil
     }
 

@@ -72,3 +72,12 @@
 - [x] 同步当前产品说明、SQLite 结构、prompt 目录、索引与持续验证记录。分别报告自动测试／构建／模拟器／真机／发布状态。
 
 实现复查补充：联系人分页加入请求代次隔离；长录音地点按精确 sample ID 读取独立地址缓存；AI 在来源读取前后检查配置与取消，设置／发送权限变化终止旧请求；候选入库前再次检查取消；来源跳转从 SQLite 查询真实种类，不依赖分页中的最新 50 条录音缓存。审查发现均已修复并复查。验证入口见[持续记录](../../../verification/flash-assets-prototype/README.md#notebook-native-four-20261103)。
+
+## 联系人五字段同步（2026-11-04，用户已要求代码实现）
+
+依据：[已评审原型](../../../prototype/flash-assets-design.md#contact-form-20261104)。在现有工作区实现，不提交、发布或安装真机；保留所有既有修改。复用 contacts 的邮箱／号码 JSON 数组，不改数据库结构。
+
+- [x] 扩展 `Tests/NotebookPeopleSmoke.swift`：实际 SQLite 新增／修改／重开后五字段一致，清空可选字段，多关系去重、冲突回滚、已有额外邮箱／号码及来源保留。
+- [x] `NotebookPeople.swift`／`NotebookPeopleRepository.swift`：读取邮箱／号码，`save` 支持 `email`／`phone`；提供值更新第一项，省略参数保留原数组；其他条目、标签、头像、ID、来源及版本检查保留。新增联系人走同一保存链路。
+- [x] `NotebookPeopleView.swift`／`SpeakerContactViews.swift`：共用五字段控件，关系收起显示选择摘要，展开多选及添加自定义；回填／取消、保存期间防重复、已保存自定义选项复用，统一输入框与字号间距。
+- [x] 运行 `sh scripts/test_notebook_people.sh`、`sh scripts/test_speaker_contacts.sh` 与 iOS Simulator 构建；按实际环境记录 UI 验证范围。同步主要说明、数据规则、验证与索引。

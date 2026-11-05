@@ -318,3 +318,67 @@ xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes
 ```
 
 本轮为代码分支交付复验，未重复安装模拟器、未操作真机或发布 TestFlight；原生点击／视觉和真实模型验收边界保持如上。
+
+<a id="contact-form-20261104"></a>
+
+## 联系人五字段产品原型（2026-11-04）
+
+类型：原型验证记录。用户明确要求先优化产品原型；适用独立 `notebook.html` 与主原型 `iphone-day.html?preview=notebook`。当前交互以[联系人统一表单](../../prototype/flash-assets-design.md#contact-form-20261104)为准；使用现有未提交工作区，未修改 Swift、SQLite、真机或 TestFlight，也未提交或推送。
+
+### 修改与浏览器检查
+
+两入口共享 `notebook.js`／`notebook.css`，资源版本为 `contacts-five-fields-20261104`。macOS Chrome，通过 CUA 操作 `http://127.0.0.1:8778`，所有联系人均为原型合成样例。
+
+| 操作 | 实际结果 |
+| --- | --- |
+| 打开添加联系人 | 五个主字段依次为姓名、公司、邮箱、手机号、关系；初始为空，姓名标记必填。 |
+| 填写合成姓名、公司、example.com 邮箱和示例手机号，选择多个关系 | 保存后详情显示所有资料及多个关系；新增联系人无关联录音。 |
+| 在关系框输入“跑友”并按回车 | 增加并选中该选项，表单保持打开；未提前保存联系人。 |
+| 保存后重新编辑，再修改邮箱并保存 | 五个字段完整回填；再次保存后新邮箱显示，手机号与原关系保留。 |
+| 再次添加“跑友” | 显示“已选择‘跑友’”，仍只有一个同名选项。 |
+| 修改公司后取消，再打开联系人 | 仍显示原公司，未保存的编辑被丢弃。 |
+| 独立原型切换 360 px 深色，展开关系并滚动 | 字段、标签、自定义输入和底部操作可访问，截图未见水平裁切；取消操作成功。 |
+| 主原型进入人物 → 林茜 → 编辑联系人 | 五字段及示例邮箱／手机号、同事＋朋友均已回填；浅色标准宽度截图检查通过。 |
+
+### 检查边界
+
+- 原型数据只在当前页面保留，刷新恢复；没有操作真实联系人或系统通讯录。
+- 本轮未进行完整键盘／VoiceOver、Safari、手机浏览器或真机键盘验收，也未验证原生持久化。未重复回归其他三类全部交互。
+
+### 完成检查
+
+- `node --check apps/wrist-notes/prototype/notebook.js`：通过。
+- scoped `git diff --check`（四个原型文件、主要说明、本记录、索引）：通过；未跟踪的原型文件另检，无行尾空白。
+- Python `urllib.request` 检查四个原型文件：HTTP 200，响应字节与磁盘完全一致；两 HTML 无重复静态 ID，本地 CSS／JS 存在，两个入口均引用本次资源版本。
+- 本次设计与验证锚点存在；相对文档链接检查通过。任务前后原型差异检查仅涉及联系人表单、资料展示、说明文案、焦点处理和资源版本。
+
+<a id="contact-form-native-20261104"></a>
+
+## 联系人五字段原生实现（2026-11-04）
+
+用户在原型交付后明确要求“代码实现上面功能改动”。本节追加原生结果，不改变上节原型阶段的历史范围。沿用[同一计划](../../docs/superpowers/plans/2026-10-31-flash-notebook-native.md)及 [五字段产品规则](../../prototype/flash-assets-design.md#contact-form-20261104)。环境：macOS、现有 `codex/pages-api-base` 未提交工作区；测试只使用内存／临时 SQLite 合成数据。
+
+### 实现
+
+- `NotebookPeople.swift`／`NotebookPeopleRepository.swift` 读取邮箱／号码数组，保存支持全部五字段及关系，同事务保留 revision 检查。旧联系人和其他邮箱／号码、标签、头像、来源身份及录音关联保留；无数据库结构变更。
+- `NotebookPeopleView.swift` 中添加和编辑使用相同五字段控件，回填资料，输入框统一样式，关系可展开、多选、自定义和去重；选项在后台读取已有自定义关系。保存期间禁用重复操作，取消不写入。人物列表显示已保存的邮箱与手机号。
+- `SpeakerContactViews.swift` 中录音内手动添加联系人也复用五字段控件与同一保存链路；保持原来的录音关联流程。
+- 原生沿用顶部取消／保存操作，关系摘要在空间足够时显示标签、较窄时换行显示关系文本。尚未做原生屏幕视觉验收。
+
+### 自动检查与结果
+
+| 命令／操作 | 实际结果 |
+| --- | --- |
+| 首先运行新增回归检查 | 按预期失败：`contact form must trim organization on save and reload`，揭示原保存返回未归一化资料；实现后通过。中间一次 Swift 局部变量重复声明导致编译失败，修正后重新运行通过。 |
+| `sh scripts/test_notebook_people.sh` | 通过：五字段新增／编辑／读取、磁盘关闭重开、可选字段清空、邮箱格式拒绝、关系去重与复用、旧数据、额外邮箱／号码及标签／头像／来源保留、版本冲突和录音关联保留；包含 iOS 18 Simulator SwiftUI typecheck。 |
+| `sh scripts/test_speaker_contacts.sh` | 通过：联系人存储、说话人持久化／旧数据解码／对齐／编辑与版本保护、本人声纹归属三个组件。 |
+| iPhone Simulator Debug 完整构建 | `BUILD SUCCEEDED`，含主 App、Watch 和扩展；命令见下方。 |
+| 完成检查 | 本次文件 scoped `git diff --check`、未跟踪文件空白检查、文档本地链接及新增锚点检查通过。按任务开始时的副本复核差异，保留工作区其他修改。 |
+
+```sh
+xcodebuild -workspace apps/wrist-notes/WristNotes.xcworkspace -scheme WristNotes -configuration Debug -destination 'platform=iOS Simulator,id=3898445B-1B0A-4D10-94DA-FFA88744E5C5' -derivedDataPath /private/tmp/wiselife-notebook-build CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
+```
+
+### 验收边界
+
+只完成代码、存储回归、SwiftUI typecheck 与构建；本轮未安装模拟器／真机，未进行原生点击、软键盘、VoiceOver 或深色视觉验收。当前工具文件环境中 `/Applications/Xcode.app/Contents/Developer/Applications` 不存在，未将构建成功视为 UI 验收。未修改版本号、提交、推送或上传 TestFlight。

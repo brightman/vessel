@@ -104,7 +104,7 @@ actor NotebookIdeaStore {
         ).sink { [weak self] _ in
             self?.cancelGeneration(); self?.error="AI 设置已改变，请重新发起生成。"
         }
-        generationTask=Task { [weak self] in
+        generationTask=Task { [weak self, settings] in
             guard let self else { return }
             defer { if self.runID == id { self.generating=false; self.generationTask=nil; self.generationSettingsObservation=nil } }
             do {

@@ -23,9 +23,14 @@ if File.directory?(project_path)
   end
 end
 project = Xcodeproj::Project.new(project_path)
-project.root_object.attributes['LastUpgradeCheck'] = '2630'
+project.root_object.attributes['LastUpgradeCheck'] = '2720'
+project.root_object.attributes['BuildIndependentTargetsInParallel'] = '1'
 project.build_configurations.each do |configuration|
   configuration.build_settings['SWIFT_VERSION'] = '5.0'
+  configuration.build_settings['DEAD_CODE_STRIPPING'] = 'YES'
+  configuration.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'YES'
+  configuration.build_settings['STRING_CATALOG_GENERATE_SYMBOLS'] = 'YES'
+  configuration.build_settings['ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS'] = 'YES'
 end
 
 sources = project.main_group.new_group('Sources', 'Sources')
@@ -38,7 +43,7 @@ phone_files = %w[OnboardingProgress.swift OnboardingStore.swift OnboardingView.s
                  RecordingSessionModel.swift RecordingSessionDetailView.swift RecordingRangePlayback.swift RecordingSessionPresentation.swift
                  PhoneConnectivity.swift OnDeviceTranscriber.swift AssistantVoiceInputModel.swift AssistantVoiceInputLive.swift AppKeyboardCoordinator.swift
                  RingTransferStore.swift EurekaRingModel.swift RingHardwareViews.swift
-                 OnDeviceSummarizer.swift OnDeviceRecordingTitleGenerator.swift RecordingTitleCoordinator.swift NotesStyle.swift AudioPlayback.swift
+                 OnDeviceSummarizer.swift OnDeviceRecordingTitleGenerator.swift RecordingTitleCoordinator.swift NotesStyle.swift AudioPlayback.swift PlaybackAudioSession.swift
                  AIConfiguration.swift AppReleaseInfo.swift NearbyMacClient.swift NearbyMacSettingsView.swift NearbyMacScanner.swift AppSettings.swift KeychainSecretStore.swift
                  CustomAISummarizer.swift ChatGPTProtocol.swift ChatGPTIDToken.swift ChatGPTAPI.swift
                  ChatGPTLoopback.swift ChatGPTBrowserAuthorization.swift ChatGPTAccountStore.swift ChatGPTAccountModel.swift
@@ -46,7 +51,7 @@ phone_files = %w[OnboardingProgress.swift OnboardingStore.swift OnboardingView.s
                  TranscriptionConfiguration.swift TranscriptionSettingsModel.swift TranscriptionSettingsView.swift
                  AppleSpeechResources.swift AppleSpeechReservationCoordinator.swift WhisperModelStore.swift LiveTranscriptionResources.swift LocalTranscriptionService.swift LocalAudioInferenceGate.swift BoundedAudioReader.swift OnDeviceSpeechActivity.swift AudioSpeakerMapping.swift SpeakerTranscript.swift SpeakerModelStore.swift SpeakerTranscriptView.swift SpeakerContactViews.swift
                  VoiceIdentity.swift VoiceEmbeddingEngine.swift VoiceIdentityModelStore.swift VoiceSpeechSelection.swift MyVoiceProfileModel.swift MyVoiceEnrollmentView.swift
-                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift AskAIContext.swift AskAIRuntimeStore.swift AskAIReadTools.swift AskAIRuntime.swift AskAIAppleDriver.swift AskAICustomDriver.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift FlashCapture.swift FlashCaptureRepository.swift FlashCaptureService.swift FlashCaptureModel.swift FlashCaptureViews.swift FlashTimelineViews.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift AppleQueryTranslator.swift DaybookQueryExpansion.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
+                 DaybookStyle.swift DaybookCalendarView.swift DaybookVoiceDetailView.swift DayRecord.swift LifeSourceStore.swift LifeSourceReader.swift LifeSourceModel.swift LifeSourceViews.swift LifeMomentBuilder.swift LocationMovementBuilder.swift LifeMomentViews.swift AskAIContext.swift AskAIRuntimeStore.swift AskAIReadTools.swift AskAIRuntime.swift AskAIAppleDriver.swift AskAICustomDriver.swift DaybookAnswerService.swift DaybookAssistantModel.swift DaybookAssistantView.swift DaybookComponents.swift DaybookPreferences.swift DaybookReminderPersistence.swift DaybookReminderStore.swift AppleReminderService.swift DaybookReminderViews.swift FlashCapture.swift FlashCaptureRepository.swift FlashCaptureService.swift FlashCaptureModel.swift FlashCaptureViews.swift FlashTimelineViews.swift NotebookIdeaRepository.swift NotebookIdeaViews.swift NotebookIdeas.swift NotebookIdeasModel.swift NotebookPeople.swift NotebookPeopleRepository.swift NotebookPeopleView.swift NotebookPlaces.swift NotebookPlacesRepository.swift NotebookPlacesView.swift NotebookSourceLookup.swift NotebookView.swift ActionItem.swift ActionSystemService.swift ActionStore.swift ActionViews.swift ActionProposal.swift ActionProposalView.swift DaybookSemanticIndex.swift DaybookFullTextIndex.swift DaybookTextChunks.swift AppleDaybookEmbedding.swift AppleQueryTranslator.swift DaybookQueryExpansion.swift DaybookSemanticSearchModel.swift DaybookSemanticSettingsView.swift DaybookDatabase.swift DaybookConversationStore.swift DaybookRetrieval.swift DaybookSuggestionStore.swift DaybookInsightStore.swift DaybookInsightService.swift DaybookInsightModel.swift DaybookInsightView.swift DaybookRecap.swift DaybookRecapStore.swift DaybookRecapService.swift DaybookRecapModel.swift DaybookRecapViews.swift DaybookView.swift PhoneRecorder.swift PhoneRecordingSession.swift PhoneRecordingDraftStore.swift RecordingActivityManager.swift WiseLifeRuntime.swift RecordingIntents.swift QuickRecordingSettingsView.swift PhoneRecordingView.swift PhotoCaptureView.swift PhotoDetailView.swift PhotoLibraryModel.swift PhotoMoment.swift PhotoRepository.swift PhotoMetadataReader.swift DaybookPlaces.swift DaybookPlacesView.swift CaptureAddressModel.swift AppleCaptureAddressResolver.swift RecordingLocationAddressModel.swift].map { |name| phone.new_file(name) }
 watch_files = %w[WristNotesWatchApp.swift WatchContentView.swift WatchRecorder.swift SegmentedAudioCapture.swift
                  WatchConnectivityStatus.swift RecordingButtonInteraction.swift].map { |name| watch.new_file(name) }
 
@@ -126,6 +131,11 @@ end
 watch_target = project.new_target(:application, 'WristNotesWatch', :watchos, '10.0')
 shared_files.each { |file| watch_target.source_build_phase.add_file_reference(file) }
 watch_files.each { |file| watch_target.source_build_phase.add_file_reference(file) }
+atomics = watch.new_group('RecordingAtomics', 'RecordingAtomics')
+%w[RecordingAtomics.h RecordingAtomics.c module.modulemap].each do |name|
+  file = atomics.new_file(name)
+  watch_target.source_build_phase.add_file_reference(file) if name.end_with?('.c')
+end
 watch_target.resources_build_phase.add_file_reference(watch.new_file('PrivacyInfo.xcprivacy'))
 watch_target.resources_build_phase.add_file_reference(phone.files.find { |file| file.path == 'Localizable.xcstrings' })
 if File.directory?(File.join(root, 'Sources/Watch/Assets.xcassets'))
@@ -142,6 +152,9 @@ watch_target.build_configurations.each do |configuration|
   settings['INFOPLIST_FILE'] = 'Sources/Watch/Info.plist'
   settings['TARGETED_DEVICE_FAMILY'] = '4'
   settings['WATCHOS_DEPLOYMENT_TARGET'] = '10.0'
+  # The main Watch app declares no App Intents; the widget target extracts its own metadata.
+  settings['LM_SKIP_METADATA_EXTRACTION'] = 'YES'
+  settings['SWIFT_INCLUDE_PATHS'] = ['$(inherited)', '$(SRCROOT)/Sources/Watch/RecordingAtomics']
   settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
   settings['CODE_SIGN_STYLE'] = 'Automatic'
   settings['DEVELOPMENT_TEAM'] = existing_development_teams[watch_target.name] if

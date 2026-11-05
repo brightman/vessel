@@ -140,10 +140,12 @@ private struct FaceIDUnlockView: View {
     }
 }
 
-/// HealthKit background launches must install their observer queries before launch finishes.
+/// Cold HealthKit background launches finish observer installation before the delegate returns;
+/// normal launches keep HealthKit preparation asynchronous.
 final class WiseLifeAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        _ = WiseLifeRuntime.shared.life
+        let life = WiseLifeRuntime.shared.life
+        if application.applicationState == .background { life.finishHealthObservationForBackgroundLaunch() }
         return true
     }
 }

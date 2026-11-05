@@ -39,6 +39,7 @@ struct RecordingRangePlan {
         let start = min(max(0, index), ranges.count)
         return start..<min(start + 2, ranges.count)
     }
+
 }
 
 /// Fixed output and one small PCM buffer irrespective of recording length.
@@ -91,7 +92,9 @@ import Combine
     private var waveformTask: Task<Void, Never>?
     private var timer: Timer?
     private var anchorPosition = 0.0
-    private var ownsAudioSession = false
+    private var sessionLease: PlaybackAudioSession.Lease?
+    private var startTask: Task<Void, Never>?
+
 
     func load(_ ranges: [RecordingSourceRange]) {
         stop(); plan = nil; position = 0; duration = 0; gapPositions = []; error = nil
@@ -110,12 +113,12 @@ import Combine
     }
 
     func toggle() {
-        if isPlaying { pause() } else { play() }
+        if isPlaying || startTask != nil { pause() } else { play() }
     }
 
     func seek(_ value: Double) {
         guard value.isFinite else { return }
-        let resume = isPlaying
+        let resume = isPlaying || startTask != nil
         releaseMedia(); position = min(max(0, value), duration)
         if resume && position < duration { play() }
     }
@@ -130,25 +133,32 @@ import Combine
     }
 
     private func releaseMedia() {
+        startTask?.cancel(); startTask = nil
         generation = UUID(); timer?.invalidate(); timer = nil
         node?.stop(); engine?.stop(); node = nil; engine = nil; files.removeAll(); isPlaying = false
-        if ownsAudioSession {
-            ownsAudioSession = false
-            // A recorder may already have taken over the shared session before UI updates.
-            if AVAudioSession.sharedInstance().category == .playback {
-                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            }
-        }
+        if let sessionLease { PlaybackAudioSession.shared.release(sessionLease) }
+        sessionLease = nil
     }
 
     private func play() {
         guard let plan, plan.duration > 0 else { return }
         if position >= duration { position = 0 }
         guard let location = plan.locate(position) else { return }
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
-            try AVAudioSession.sharedInstance().setActive(true)
-            ownsAudioSession = true
+        let lease = PlaybackAudioSession.Lease(), token = generation
+        sessionLease = lease
+        startTask = Task { [weak self] in
+          do {
+            try await PlaybackAudioSession.shared.activate(lease)
+            guard let self else {
+                PlaybackAudioSession.shared.release(lease); return
+            }
+            guard !Task.isCancelled, self.generation == token,
+                  AudioCaptureActivity.activeIDs.isEmpty else {
+                if self.generation == token { self.releaseMedia() }
+                else { PlaybackAudioSession.shared.release(lease) }
+                return
+            }
+            self.startTask = nil
             let file = try AVAudioFile(forReading: plan.ranges[location.rangeIndex].url)
             let engine = AVAudioEngine(), node = AVAudioPlayerNode()
             engine.attach(node); engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
@@ -162,7 +172,13 @@ import Combine
             timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.updatePosition() }
             }
-        } catch { releaseMedia(); self.error = "无法播放这段录音" }
+          } catch {
+            PlaybackAudioSession.shared.release(lease)
+            guard let self, self.generation == token else { return }
+            self.releaseMedia()
+            if !(error is CancellationError) { self.error = "无法播放这段录音" }
+          }
+        }
     }
 
     private func schedule(_ index: Int, start: Int64) throws {

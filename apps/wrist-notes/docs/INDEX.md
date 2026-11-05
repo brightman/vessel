@@ -1,10 +1,10 @@
 # WiseLife 文档总索引
 
-> 整理日期：2026-10-31；更新：2026-11-03。面向产品、开发、测试与交接；链接指向原文，保留现有文件位置。
+> 整理日期：2026-10-31；更新：2026-11-05。面向产品、开发、测试与交接；链接指向原文，保留现有文件位置。
 
 ## 使用与范围
 
-本次收录 **209 份文档与文字资料**：Apple 项目 156 份、仓库根目录的相关规范、设计与计划 45 份、独立 Huawei 项目参考 7 份、官网迁移说明 1 份。本索引自身另计；按不含锚点的唯一文档文件链接计数（不计 JSON 等验证附件；包含独立 Huawei 项目的既有引用）。
+本次收录 **210 份文档与文字资料**：Apple 项目 157 份、仓库根目录的相关规范、设计与计划 45 份、独立 Huawei 项目参考 7 份、官网迁移说明 1 份。本索引自身另计；按不含锚点的唯一文档文件链接计数（不计 JSON 等验证附件；包含独立 Huawei 项目的既有引用）。
 
 - 主体是 `apps/wrist-notes/`，补齐散落于仓库 `docs/` 的 WiseLife / WristNotes / 早期 WiseNote 原生 App 文档。
 - 全量收录项目内 Markdown、HTML 原型、TXT 验证附件和许可文本；无扩展名的上游许可证也已包含。
@@ -112,6 +112,18 @@
 按**文件名、文档标题、文首日期以及明确日期的更新章节**倒序组织设计、实施、修复和验证材料。这里是文档所记载工作的入口，不是 Git 提交日志，也不是 App 版本发布日期。
 
 同一文档有明确的多日更新时会在多天出现；示例录音日期、测试数据日期及文件修改时间不作为变更日期。未标注日期的文档集中列于末尾。
+
+### 2026-11-05
+
+- **GitHub 分支更新** · `codex/wiselife-notebook` 从 `3b9d0e5` 整理联系人五字段、HealthKit 签名与 Xcode 修复，独立模拟器构建 0 warning／0 error，专项回归与集成审查通过；全量旧测试入口的既存失败单独保留。[提交范围与复验](work/2026-11-05-xcode-warnings/README.md#github-分支整理2026-11-05)。
+
+- **Xcode 编译与运行时诊断** · [修复与验证](work/2026-11-05-xcode-warnings/README.md)。通过 computer-use 检查 12 项构建 issue 与 2 项历史运行时诊断；修正 Swift 捕获／登录窗口、Watch 原子操作与资源、项目设置，播放会话与系统定位检查移出主线程。自动检查、完整构建、现场复查与真机状态分项见记录。
+
+- **HealthKit 真机缺少签名权限** · [当前规则与原因](2026-10-20-health-background.md#signing-20261105) · [打包修复与验证](testflight-release-2026-10-19.md#healthkit-signing-20261105)。保留的构建 13 IPA 中 profile 允许健康能力，但 App 签名缺失；新增带签名归档与最终 IPA 权限校验，阻止无能力包通过发布检查。健康刷新回归通过；本次未上传或安装真机，签名产物状态见验证记录。
+
+### 2026-11-04
+
+- **人物联系人五字段表单** · [当前交互说明](../prototype/flash-assets-design.md#contact-form-20261104) · [iPhone 主原型](../prototype/iphone-day.html?preview=notebook) · [原型验证](../verification/flash-assets-prototype/README.md#contact-form-20261104)。添加与编辑共用姓名、公司、邮箱、手机号、关系表单；关系支持多选及新增自定义选项。原型已走查；用户随后要求代码实现，原生已共用五字段控件并补齐 SQLite 邮箱／手机号读写，保留额外资料与录音关联。[原生验证](../verification/flash-assets-prototype/README.md#contact-form-native-20261104)记录存储回归、SwiftUI typecheck 与构建；未进行本次真机安装或发布。
 
 ### 2026-11-03
 

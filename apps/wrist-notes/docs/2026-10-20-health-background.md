@@ -3,7 +3,7 @@
 ## 更新方式
 
 - 只读 iPhone HealthKit 的步数和睡眠；Apple Watch 的健康数据需先由系统同步到 iPhone。
-- 来源已启用时，在 App 启动阶段安装步数和睡眠的 `HKObserverQuery`；UI 与后台共用 `WiseLifeRuntime.life`，不会重复创建模型或观察查询。
+- 来源已启用时，在 App 启动阶段请求健康观察注册；`HKHealthStore` 的可用性检查与初始化由独立后台 worker 按需仅执行一次。普通启动不等待准备，完成后立即安装 `HKObserverQuery`；冷后台启动则由 app delegate 等待该 worker 并在返回前完成观察查询注册，保留 HealthKit 后台投递所需时序。等待不依赖 MainActor task，来源关闭且从未使用时不会初始化。UI 与后台共用 `WiseLifeRuntime.life`；准备期间暂停／重开以最新 generation 为准，健康读取在停止或取消后拒绝旧结果。真机后台唤醒仍需验收。
 - 步数申请 `.hourly` 后台通知，睡眠申请 `.immediate`。这表示请求的最高频率，不是固定刷新时间，也不保证立即送达。
 - 通知到达、回到前台或受保护数据恢复时，刷新**今天、昨天、当前选中日期**，按日期去重。选择其他历史日期或点击“刷新所选日期”，会重新读取该日。
 - 本次不保存全量 HealthKit 样本或 anchored query 游标。较早日期的修改/删除在查看或手动刷新该日时才同步，不声称后台实时同步全部历史。
@@ -56,6 +56,31 @@
 6. 修改较早日期，进入对应日期确认重新读取；不要将该行为误认为全历史后台增量同步。
 
 Simulator 不支持 HealthKit 后台投递；编译和 mock 生命周期测试不能替代真机验收。
+
+<a id="signing-20261105"></a>
+
+## 发布包 HealthKit 权限丢失（2026-11-05）
+
+用户真机截图同时出现 `Missing com.apple.developer.healthkit entitlement.` 和健康自动更新失败。当前源码的设备 entitlement 文件及 Debug／Release 配置均包含健康读取和后台投递权限；问题位于实际发布包签名。
+
+核对保留的 1.0.3（13）IPA（SHA-256 `891773a5363ccdfa0ecef220510c1c6c22276b1e4f358aadd09826451d455d21`）发现：内嵌 provisioning profile 允许 `com.apple.developer.healthkit` 和 `com.apple.developer.healthkit.background-delivery`，但 App 自身的签名中两项均不存在。严格 `codesign --verify` 仍返回成功，因为它只证明签名有效，不证明产品所需能力完整。对应归档采用 `CODE_SIGNING_ALLOWED=NO`；导出时的重新签名没有从源码补回这些声明。
+
+### 当前打包与校验规则
+
+- 使用 `sh scripts/package_release.sh OUTPUT_DIRECTORY [DERIVED_DATA_DIRECTORY] [SOURCE_PACKAGES_DIRECTORY]` 做**带签名的 Release 归档**，再导出 App Store IPA。脚本只打包，不上传；已有归档／导出目录拒绝覆盖。
+- `scripts/verify_healthkit_signing.py` 分别校验归档中的 App 和最终 IPA：真实设备平台、正确主 App、严格签名有效、App 签名与内嵌 profile 均含两项 HealthKit 权限、健康读取用途说明。发布 IPA 额外要求 `get-task-allow=false`。
+- 不以 `.entitlements` 源文件、provisioning profile、构建成功或签名有效单独代替最终安装包的权限检查。导出后失败即停止，不允许继续上传。
+- 已安装的错误签名不能通过重复授权或刷新修复；需使用新构建覆盖升级。保留本地数据库与录音，不卸载或重置数据。
+
+### 本次验证与边界
+
+- 新校验器在原构建 13 IPA 上按预期退出 1，准确报告缺少两项权限；在已保留的有效开发签名 App 上通过。
+- `sh scripts/test_health.sh` 通过，涵盖健康观察、通知合并、SQLite 快照、删除同步、解锁与暂停竞态。未修改健康读取业务代码。
+- 新带签名归档及导出结果见[发布流程修复记录](testflight-release-2026-10-19.md#healthkit-signing-20261105)。本轮检查时实体 iPhone 显示 unavailable，尚未核对截图设备所装构建号或完成新包真机健康读取验收。
+
+## 同一 reader 的定位状态检查（2026-11-05）
+
+`LifeSourceReader` 优先使用 `authorizationStatus` 与 `locationManagerDidChangeAuthorization`。仅在 denied 状态下于后台读取系统定位总开关，缓存并区分“未授权”和“系统定位关闭”；回到前台时异步重查。同步页面状态查询不再调用可能阻塞主线程的 `locationServicesEnabled()`，不增加 GPS 采集或权限申请。见 [Xcode 诊断修复与验证](work/2026-11-05-xcode-warnings/README.md)。
 
 ## Apple 依据
 

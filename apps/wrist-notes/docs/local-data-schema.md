@@ -1,6 +1,6 @@
 # WiseLife iPhone 与 Apple Watch 数据生命周期及本地结构
 
-更新：2026-11-03。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
+更新：2026-11-04。本文先按数据生命周期划分 iPhone/Watch 数据，再列当前代码中的文件和 SQLite 表，供技术评审。数据库版本、文件布局和模型字段以代码为准；未来保留策略、Mac 同步和知识库能力会明确标为“计划”，不代表已实现。主要实现：`Sources/iPhone/DaybookDatabase.swift`、各 Repository/Store、`Sources/Watch/WatchRecorder.swift`、`WatchRecordingSessionStore.swift` 与 `Shared/RecordingChunkProtocol.swift`。
 
 ## 数据分为三部分
 
@@ -327,6 +327,8 @@ Watch 生成的传输描述不直接包含文件路径；iPhone 仅按已校验�
 ## 四类记事本扩展（2026-11-03）
 
 当前实现与范围：[产品说明第 10 节](../prototype/flash-assets-design.md#notebook-four-categories)。各 repository 在既有 daybook.sqlite3 中幂等安装增量字段／表，不重建用户数据库、不删除原记录。
+
+2026-11-04 联系人五字段扩展：姓名、公司、邮箱、手机号和多选关系使用同一事务保存，继续复用 `contacts.emails_json`／`phone_numbers_json`，不增加数据库迁移。表单编辑首项并保留其他条目及标签；清空首项后显示下一项，省略参数则保持原数组。ID、来源、头像、录音关联及 revision 冲突检查保留。见[联系人当前规则](../prototype/flash-assets-design.md#contact-form-20261104)。
 
 | 表／字段 | 规则 |
 | --- | --- |

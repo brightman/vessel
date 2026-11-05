@@ -260,10 +260,12 @@ struct LifeCoordinate: Sendable {
     func stop(_ source: LifeSource)
     func locationAvailabilityIssue() -> LifeSourceReadFailure?
     func startHealthObservation(onChange: @escaping (@escaping () -> Void) -> Void, onError: @escaping (Error) -> Void)
+    func finishHealthObservationForBackgroundLaunch()
     func stopHealthObservation()
 }
 extension LifeSourceReading {
     func locationAvailabilityIssue() -> LifeSourceReadFailure? { nil }
     func startHealthObservation(onChange: @escaping (@escaping () -> Void) -> Void, onError: @escaping (Error) -> Void) {}
+    func finishHealthObservationForBackgroundLaunch() {}
     func stopHealthObservation() {}
 }

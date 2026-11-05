@@ -1,0 +1,4 @@
+module RecordingAtomics {
+    header "RecordingAtomics.h"
+    export *
+}

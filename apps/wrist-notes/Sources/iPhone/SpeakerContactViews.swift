@@ -82,17 +82,16 @@ private struct ManualSpeakerContactForm: View {
     @State private var failure:String?
     var body:some View {
         NavigationStack {
-            Form {
-                Section("联系人信息") {
-                    TextField("姓名",text:$name).textContentType(.name)
-                    TextField("公司",text:$organization).textContentType(.organizationName)
-                    TextField("邮箱",text:$email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never)
-                    TextField("手机号",text:$phone).textContentType(.telephoneNumber).keyboardType(.phonePad)
-                }
-                NotebookRelationshipEditor(selection:$relationships)
-                if let failure { Text(failure).foregroundStyle(.orange) }
-            }
+            ScrollView {
+                VStack(alignment:.leading,spacing:20) {
+                    NotebookContactFields(name:$name,organization:$organization,email:$email,phone:$phone,relationships:$relationships)
+                        .disabled(saving)
+                    Text("仅保存在 WiseLife，不修改系统通讯录。").font(.caption).foregroundStyle(DaybookStyle.secondary)
+                    if let failure { Text(failure).font(.subheadline).foregroundStyle(DaybookStyle.red) }
+                }.padding(24)
+            }.scrollDismissesKeyboard(.interactively).background(DaybookStyle.paper)
             .navigationTitle("添加联系人").navigationBarTitleDisplayMode(.inline)
+            .tint(DaybookStyle.accent).interactiveDismissDisabled(saving)
             .toolbar {
                 ToolbarItem(placement:.cancellationAction) { Button("取消",action:cancel).disabled(saving) }
                 ToolbarItem(placement:.confirmationAction) {

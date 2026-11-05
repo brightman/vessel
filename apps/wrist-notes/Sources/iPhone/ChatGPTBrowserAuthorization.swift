@@ -5,12 +5,12 @@ import UIKit
 /// System browser sign-in with a separate, IPv4 loopback HTTP callback.
 /// A fresh attempt owns every resource; callbacks from earlier attempts are ignored.
 @MainActor
-final class ChatGPTBrowserAuthorization: NSObject, ASWebAuthenticationPresentationContextProviding {
+final class ChatGPTBrowserAuthorization: NSObject {
     private var activeID: UUID?
     private var continuation: CheckedContinuation<URL, Error>?
     private var loopback: ChatGPTLoopback?
     private var session: ASWebAuthenticationSession?
-    private var anchor: ASPresentationAnchor?
+    private var presentationContext: PresentationContext?
     private var startupTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
 
@@ -46,9 +46,17 @@ final class ChatGPTBrowserAuthorization: NSObject, ASWebAuthenticationPresentati
         finish(id, result: .failure(ChatGPTError.cancelled))
     }
 
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        // Kept strongly for the full session; begin() requires a visible key window.
-        anchor ?? ASPresentationAnchor()
+    @MainActor
+    private final class PresentationContext: NSObject, ASWebAuthenticationPresentationContextProviding {
+        let anchor: ASPresentationAnchor
+
+        init(anchor: ASPresentationAnchor) {
+            self.anchor = anchor
+        }
+
+        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            anchor
+        }
     }
 
     private func begin(_ id: UUID, buildURL: @escaping (URL) throws -> URL) async {
@@ -75,7 +83,9 @@ final class ChatGPTBrowserAuthorization: NSObject, ASWebAuthenticationPresentati
                 .compactMap({ $0 as? UIWindowScene })
                 .filter({ $0.activationState == .foregroundActive })
                 .flatMap(\.windows).first(where: \.isKeyWindow) else { throw ChatGPTError.network }
-            anchor = window
+            // The provider always owns the visible key window for this attempt.
+            let presentationContext = PresentationContext(anchor: window)
+            self.presentationContext = presentationContext
             let browser = ASWebAuthenticationSession(url: authorizationURL, callbackURLScheme: nil) { [weak self] _, error in
                 // Success is exclusively the validated HTTP listener callback. The web
                 // session callback is relevant only for user cancellation or failure.
@@ -87,7 +97,7 @@ final class ChatGPTBrowserAuthorization: NSObject, ASWebAuthenticationPresentati
                     self?.finish(id, result: .failure(cancelled ? ChatGPTError.cancelled : ChatGPTError.network))
                 }
             }
-            browser.presentationContextProvider = self
+            browser.presentationContextProvider = presentationContext
             session = browser
             guard browser.start() else { throw ChatGPTError.network }
         } catch {
@@ -111,7 +121,7 @@ final class ChatGPTBrowserAuthorization: NSObject, ASWebAuthenticationPresentati
         let browser = session
         session = nil
         browser?.cancel()
-        anchor = nil
+        presentationContext = nil
         pending?.resume(with: result)
     }
 }

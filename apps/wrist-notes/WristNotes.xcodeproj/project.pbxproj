@@ -135,10 +135,12 @@
 		86328AE04B6B0563B779D900 /* CaptureLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB7132783F0855539E97FEA /* CaptureLocationService.swift */; };
 		87B5EB2D75B3B182C9FE80AE /* ActionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9062473635521C3074C326DB /* ActionStore.swift */; };
 		8864BFC888B1FC8AECA07158 /* VoiceEmbeddingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8596FEE7153E354EB92EA25 /* VoiceEmbeddingEngine.swift */; };
+		88A2D0719220AE00362FD85F /* PlaybackAudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D7598FA7EC5C7FC8DBB071 /* PlaybackAudioSession.swift */; };
 		8B191A99964BA219E07CC8FC /* ChatGPTIDToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59C9509563A9A6889D34A8AB /* ChatGPTIDToken.swift */; };
 		8B86118250F83D22F927AB81 /* FlashCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A885971235D2B0A3D4479C00 /* FlashCapture.swift */; };
 		8C09623B6DBA69E048AFA1CA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87E7DDBAF306B6365A15B62A /* Foundation.framework */; };
 		8C897DB903707AE5EDFAEE38 /* AppKeyboardCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B22FBB6A86FA6D36688350D /* AppKeyboardCoordinator.swift */; };
+		8D143B9E80AB6AA4E8408048 /* RecordingAtomics.c in Sources */ = {isa = PBXBuildFile; fileRef = E00498AFF2FFFBB461DBB29B /* RecordingAtomics.c */; };
 		8D646B284E045F5FAEC105C5 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85A212928BF33498F6A7E34 /* OnDeviceTranscriber.swift */; };
 		8DE591EBCE83408470F919DE /* DaybookAssistantModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A27EF497F43520D58FD8551 /* DaybookAssistantModel.swift */; };
 		8ED724E0F3FD50B6CC682D9C /* DaybookSemanticSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E2067126C690AA04DE9A96 /* DaybookSemanticSearchModel.swift */; };
@@ -393,6 +395,7 @@
 		36BD2DAB33EB1587C2073DFE /* distance-sse2.c */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.c; name = "distance-sse2.c"; path = "src/distance-sse2.c"; sourceTree = "<group>"; };
 		3764DBAAE3C133685B24BF8C /* AskAIReadTools.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskAIReadTools.swift; sourceTree = "<group>"; };
 		376FDDC2ACFE631C13E0F2AF /* DaybookPreferences.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DaybookPreferences.swift; sourceTree = "<group>"; };
+		377CC87CF0840521E13B8BC7 /* RecordingAtomics.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = RecordingAtomics.h; sourceTree = "<group>"; };
 		37858EE0C328F109A2325CCD /* RecordingAudioFile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingAudioFile.swift; sourceTree = "<group>"; };
 		3E23E7A9462D7E8A0299CE36 /* PhotoRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoRepository.swift; sourceTree = "<group>"; };
 		3E86DB5D82E2C32CF329F548 /* ChatGPTSettingsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTSettingsSection.swift; sourceTree = "<group>"; };
@@ -449,6 +452,7 @@
 		6EF4E3B68ADEDBD905087B9C /* NotebookPlacesRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPlacesRepository.swift; sourceTree = "<group>"; };
 		6F0DF8C039A7DBA0789BC035 /* Pods_RingIntegrationTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RingIntegrationTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F7E70D050137A8E5132CC55 /* WatchRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
+		6FC541EC73DB6D16B520BA2B /* module.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = module.modulemap; sourceTree = "<group>"; };
 		706653431E1F8551633B4EF1 /* CaptureMetadata.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureMetadata.swift; sourceTree = "<group>"; };
 		70D95D36BB112FE964C8A8C8 /* PhoneRecorderEnrollmentTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneRecorderEnrollmentTests.swift; sourceTree = "<group>"; };
 		7109AA63A6C546FF6C4C5E2C /* AppleSpeechResources.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSpeechResources.swift; sourceTree = "<group>"; };
@@ -522,6 +526,7 @@
 		B38EDD8383388D400B37A5AB /* RecordingTitleCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingTitleCoordinator.swift; sourceTree = "<group>"; };
 		B3E16CE1FC1363C78541AF24 /* WristNotesWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WristNotesWatchApp.swift; sourceTree = "<group>"; };
 		B624FC6C48D61481C8E3F749 /* NotebookPlaces.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookPlaces.swift; sourceTree = "<group>"; };
+		B6D7598FA7EC5C7FC8DBB071 /* PlaybackAudioSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlaybackAudioSession.swift; sourceTree = "<group>"; };
 		B8596FEE7153E354EB92EA25 /* VoiceEmbeddingEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceEmbeddingEngine.swift; sourceTree = "<group>"; };
 		B87F72E2C07F60D2242FD940 /* PhotoLibraryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhotoLibraryModel.swift; sourceTree = "<group>"; };
 		B8CD3D22F6502ABBCAE21A80 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -566,6 +571,7 @@
 		DF8E40735CF312E88FA69AC0 /* AppleReminderService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleReminderService.swift; sourceTree = "<group>"; };
 		DF96BBFF9C07C9D7238394D2 /* ChatGPTAccountModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTAccountModel.swift; sourceTree = "<group>"; };
 		DFB7132783F0855539E97FEA /* CaptureLocationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureLocationService.swift; sourceTree = "<group>"; };
+		E00498AFF2FFFBB461DBB29B /* RecordingAtomics.c */ = {isa = PBXFileReference; includeInIndex = 1; path = RecordingAtomics.c; sourceTree = "<group>"; };
 		E1FEB8C86AC4C5B59CA719CA /* NearbyMacSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NearbyMacSettingsView.swift; sourceTree = "<group>"; };
 		E24A9E6EB4503F00B0EA2BBD /* NotebookIdeaRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotebookIdeaRepository.swift; sourceTree = "<group>"; };
 		E2AD2884A594200E2C7EC32B /* WiseLifeWatchRecordingWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WiseLifeWatchRecordingWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -859,6 +865,7 @@
 				29A5ACBAD415A8ED198061A9 /* NotebookPlacesView.swift */,
 				E80A8BEF9B45076E629E3490 /* NotebookSourceLookup.swift */,
 				CD12819131B3E438FBBD481D /* NotebookView.swift */,
+				B6D7598FA7EC5C7FC8DBB071 /* PlaybackAudioSession.swift */,
 			);
 			path = iPhone;
 			sourceTree = "<group>";
@@ -953,6 +960,7 @@
 				F5CCA06757C91D83B7970789 /* PrivacyInfo.xcprivacy */,
 				20346C78522ABF905DCB3D98 /* WatchRecordingLauncher.swift */,
 				AE064EC0AFF9E00D5065E6C2 /* SegmentedAudioCapture.swift */,
+				FAA06A9182307B8E5603BDCF /* RecordingAtomics */,
 			);
 			path = Watch;
 			sourceTree = "<group>";
@@ -1025,6 +1033,17 @@
 				F199BC4149FC3A1882E9CE22 /* RecordingDiagnostics.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		FAA06A9182307B8E5603BDCF /* RecordingAtomics */ = {
+			isa = PBXGroup;
+			children = (
+				377CC87CF0840521E13B8BC7 /* RecordingAtomics.h */,
+				E00498AFF2FFFBB461DBB29B /* RecordingAtomics.c */,
+				6FC541EC73DB6D16B520BA2B /* module.modulemap */,
+			);
+			name = RecordingAtomics;
+			path = RecordingAtomics;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1137,8 +1156,9 @@
 		D914D8F69314D6406DB2332A /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2720;
 			};
 			buildConfigurationList = 26911F6FA9F23B84408BD325 /* Build configuration list for PBXProject "WristNotes" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -1496,6 +1516,7 @@
 				F34F0D38EC34CC410FFE78D9 /* NotebookPlacesView.swift in Sources */,
 				7B85A8D619D4529CBF6F976B /* NotebookSourceLookup.swift in Sources */,
 				E533DDE6E3DE4B82A198A9D4 /* NotebookView.swift in Sources */,
+				88A2D0719220AE00362FD85F /* PlaybackAudioSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1530,6 +1551,7 @@
 				66C063F4E1B38388088EAE46 /* RecordingAudioFile.swift in Sources */,
 				3A7B00D5B019C3FCFAE781DB /* SegmentedAudioCapture.swift in Sources */,
 				A2F426974C1DB4FC27D3BED3 /* RecordingDiagnostics.swift in Sources */,
+				8D143B9E80AB6AA4E8408048 /* RecordingAtomics.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1594,12 +1616,12 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/WatchRecordingWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WiseLife;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wisenote.watchkitapp.recording-widget";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -1614,6 +1636,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1644,9 +1667,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -1658,6 +1683,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -1696,12 +1722,12 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/WatchRecordingWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WiseLife;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wisenote.watchkitapp.recording-widget";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -1717,14 +1743,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Watch/Info.plist;
-				MARKETING_VERSION = 1.0.2;
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Sources/Watch/RecordingAtomics";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.0;
@@ -1737,13 +1765,13 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/RecordingActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "WiseLife 录音";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wisenote.recording-activity";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1757,6 +1785,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1787,9 +1816,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1808,6 +1839,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1852,7 +1884,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"$(inherited)",
@@ -1875,7 +1907,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lsqlite3",
@@ -1898,14 +1930,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Watch/Info.plist;
-				MARKETING_VERSION = 1.0.2;
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.karama.wisenote.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Sources/Watch/RecordingAtomics";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
@@ -1919,13 +1953,13 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/RecordingActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "WiseLife 录音";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "cloud.karama.wisenote.recording-activity";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1946,7 +1980,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sources/iPhone/WristNotes.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = Sources/iPhone/WristNotesSimulator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = S56V68L4NP;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"$(inherited)",
@@ -1969,7 +2003,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lsqlite3",

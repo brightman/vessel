@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 output=$(mktemp -d /private/tmp/wristnotes-checks.XXXXXX)
 trap 'rm -rf "$output"' EXIT
 sh scripts/test_phone_recording.sh
+sh scripts/test_playback_audio_session.sh
 sh scripts/test_flash_capture.sh
 sh scripts/test_assistant_voice.sh
 sh scripts/test_watch_sync.sh
@@ -74,7 +75,7 @@ swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" S
 swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/LifeSourceStore.swift Tests/LifeSourceSmoke.swift -o "$output/life-sources"
 "$output/life-sources"
 
-swiftc Sources/Shared/CaptureMetadata.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/LifeSourceStore.swift Sources/iPhone/LifeSourceModel.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Tests/LifeSourceModelSmoke.swift -o "$output/life-source-model"
+swiftc Sources/Shared/CaptureMetadata.swift Sources/Shared/VoiceNote.swift Sources/Shared/RecordingSession.swift Sources/iPhone/AudioProcessing.swift Sources/iPhone/AudioWindowPlanner.swift Sources/iPhone/ContentSegmentation.swift -module-cache-path "$output/cache" Sources/iPhone/DayRecord.swift Sources/iPhone/LifeSourceStore.swift Sources/iPhone/LifeSourceModel.swift Sources/iPhone/DaybookPreferences.swift Sources/iPhone/DaybookDatabase.swift Sources/iPhone/DaybookConversationStore.swift Sources/iPhone/DaybookRetrieval.swift Tests/LifeSourceModelSmoke.swift -o "$output/life-source-model"
 "$output/life-source-model"
 
 sh scripts/test_daily_insights.sh
@@ -85,4 +86,5 @@ sh scripts/test_semantic.sh
 
 sh scripts/test_places.sh
 sh scripts/test_health.sh
+sh scripts/test_health_preparation.sh
 sh scripts/test_addresses.sh

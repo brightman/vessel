@@ -15,7 +15,7 @@ final class NotebookPeopleRepository {
         }
     }
     func page(relationship:String? = nil,limit:Int = 40,offset:Int = 0) throws -> [NotebookPerson] {
-        let rows=try db.query("SELECT c.id,c.display_name,c.organization,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE ? IS NULL OR EXISTS(SELECT 1 FROM notebook_contact_relationships r WHERE r.contact_id=c.id AND r.relationship=?) ORDER BY c.display_name COLLATE NOCASE,c.id LIMIT ? OFFSET ?",[relationship.map{.text($0)} ?? .null,relationship.map{.text($0)} ?? .null,.integer(Int64(max(1,min(100,limit)))),.integer(Int64(max(0,offset)))])
+        let rows=try db.query("SELECT c.id,c.display_name,c.organization,c.emails_json,c.phone_numbers_json,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE ? IS NULL OR EXISTS(SELECT 1 FROM notebook_contact_relationships r WHERE r.contact_id=c.id AND r.relationship=?) ORDER BY c.display_name COLLATE NOCASE,c.id LIMIT ? OFFSET ?",[relationship.map{.text($0)} ?? .null,relationship.map{.text($0)} ?? .null,.integer(Int64(max(1,min(100,limit)))),.integer(Int64(max(0,offset)))])
         return try rows.map(person)
     }
     func relationships() throws -> [String] {
@@ -24,38 +24,61 @@ final class NotebookPeopleRepository {
     private func person(_ row:DaybookDatabase.Row) throws -> NotebookPerson {
         let id=try row.requiredString("id")
         let relationships=try db.query("SELECT relationship FROM notebook_contact_relationships WHERE contact_id=? ORDER BY position",[.text(id)]).compactMap{$0["relationship"]?.string}
-        return .init(id:id,name:try row.requiredString("display_name"),organization:row["organization"]?.string,relationships:relationships,revision:Int(row["revision"]?.double ?? 0))
+        return .init(id:id,name:try row.requiredString("display_name"),organization:row["organization"]?.string,emails:try contactFields(row,"emails_json"),phoneNumbers:try contactFields(row,"phone_numbers_json"),relationships:relationships,revision:Int(row["revision"]?.double ?? 0))
     }
-    @discardableResult func save(id:String?,expectedRevision:Int?,name:String,organization:String?,relationships:[String]) throws -> NotebookPerson {
+    private func contactFields(_ row:DaybookDatabase.Row,_ key:String) throws -> [SpeakerContactField] {
+        try JSONDecoder().decode([SpeakerContactField].self,from:Data((row[key]?.string ?? "[]").utf8))
+    }
+    /// nil keeps existing values; an explicit empty string removes only the displayed first entry.
+    private func updatingFirst(_ fields:[SpeakerContactField],with value:String?,label:String) -> [SpeakerContactField] {
+        guard let supplied=value else { return fields }
+        let value=supplied.trimmingCharacters(in:.whitespacesAndNewlines)
+        var result=fields
+        if value.isEmpty {
+            if !result.isEmpty { result.removeFirst() }
+        } else if let first=result.first {
+            result[0] = .init(label:first.label,value:value)
+        } else {
+            result.append(.init(label:label,value:value))
+        }
+        return result
+    }
+    @discardableResult func save(id:String?,expectedRevision:Int?,name:String,organization:String?,email:String? = nil,phone:String? = nil,relationships:[String]) throws -> NotebookPerson {
         let name=name.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !name.isEmpty else { throw NotebookPeopleError.invalidName }
+        let organization=organization?.trimmingCharacters(in:.whitespacesAndNewlines)
+        let organizationValue:DaybookDatabase.Value = organization.flatMap{$0.isEmpty ? nil : $0}.map{.text($0)} ?? .null
         return try db.transaction {
             let key=id ?? "manual:\(UUID().uuidString)"
             let now=Date.now.timeIntervalSinceReferenceDate
+            let existing=try db.query("SELECT c.id,c.emails_json,c.phone_numbers_json,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE c.id=?",[.text(key)]).first
             if id != nil {
-                guard let row=try db.query("SELECT c.id,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE c.id=?",[.text(key)]).first,Int(row["revision"]?.double ?? 0)==expectedRevision else { throw NotebookPeopleError.conflict }
-                try db.execute("UPDATE contacts SET display_name=?,organization=?,updated_at=? WHERE id=?",[.text(name),organization.map{.text($0)} ?? .null,.real(now),.text(key)])
+                guard let existing,Int(existing["revision"]?.double ?? 0)==expectedRevision else { throw NotebookPeopleError.conflict }
+            }
+            let originalEmails=try existing.map{try contactFields($0,"emails_json")} ?? []
+            let originalPhones=try existing.map{try contactFields($0,"phone_numbers_json")} ?? []
+            if let email=email?.trimmingCharacters(in:.whitespacesAndNewlines),!email.isEmpty,email != originalEmails.first?.value {
+                guard email.range(of:#"^[^\s@]+@[^\s@]+$"#,options:.regularExpression) != nil else { throw NotebookPeopleError.invalidEmail }
+            }
+            let emails=updatingFirst(originalEmails,with:email,label:"email")
+            let phones=updatingFirst(originalPhones,with:phone,label:"phone")
+            let emailJSON=String(decoding:try JSONEncoder().encode(emails),as:UTF8.self)
+            let phoneJSON=String(decoding:try JSONEncoder().encode(phones),as:UTF8.self)
+            if id != nil {
+                try db.execute("UPDATE contacts SET display_name=?,organization=?,emails_json=?,phone_numbers_json=?,updated_at=? WHERE id=?",[.text(name),organizationValue,.text(emailJSON),.text(phoneJSON),.real(now),.text(key)])
             } else {
-                try db.execute("INSERT INTO contacts(id,origin_type,display_name,organization,sync_state,created_at,updated_at) VALUES(?,'manual',?,?,'manual',?,?)",[.text(key),.text(name),organization.map{.text($0)} ?? .null,.real(now),.real(now)])
+                try db.execute("INSERT INTO contacts(id,origin_type,display_name,organization,emails_json,phone_numbers_json,sync_state,created_at,updated_at) VALUES(?,'manual',?,?,?,?,'manual',?,?)",[.text(key),.text(name),organizationValue,.text(emailJSON),.text(phoneJSON),.real(now),.real(now)])
             }
             try db.execute("DELETE FROM notebook_contact_relationships WHERE contact_id=?",[.text(key)])
             for (position,value) in NotebookRelationships.normalized(relationships).enumerated() {
                 try db.execute("INSERT INTO notebook_contact_relationships(contact_id,relationship,position) VALUES(?,?,?)",[.text(key),.text(value),.integer(Int64(position))])
             }
-            return try person(db.query("SELECT c.id,c.display_name,c.organization,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE c.id=?",[.text(key)]).first!)
+            return try person(db.query("SELECT c.id,c.display_name,c.organization,c.emails_json,c.phone_numbers_json,COALESCE(m.revision,0) AS revision FROM contacts c LEFT JOIN notebook_contact_metadata m ON m.contact_id=c.id WHERE c.id=?",[.text(key)]).first!)
         }
     }
     func createContact(name:String,organization:String?,email:String?,phone:String?,relationships:[String]) throws -> SpeakerContactSnapshot {
-        try db.transaction {
-            let person=try save(id:nil,expectedRevision:nil,name:name,organization:organization,relationships:relationships)
-            func fields(_ value:String?,label:String)->[SpeakerContactField] {
-                guard let value=value?.trimmingCharacters(in:.whitespacesAndNewlines),!value.isEmpty else { return [] }
-                return [.init(label:label,value:value)]
-            }
-            let emails=fields(email,label:"email"),phones=fields(phone,label:"phone")
-            try db.execute("UPDATE contacts SET emails_json=?,phone_numbers_json=? WHERE id=?",[.text(String(data:try JSONEncoder().encode(emails),encoding:.utf8)!),.text(String(data:try JSONEncoder().encode(phones),encoding:.utf8)!),.text(person.id)])
-            return .init(identifier:person.id,displayName:person.name,thumbnailData:nil,origin:.manual,organization:organization,emails:emails,phoneNumbers:phones)
-        }
+        let person=try save(id:nil,expectedRevision:nil,name:name,organization:organization,email:email,phone:phone,relationships:relationships)
+        return .init(identifier:person.id,displayName:person.name,thumbnailData:nil,origin:.manual,organization:person.organization,emails:person.emails,phoneNumbers:person.phoneNumbers)
     }
     func sources(contactID:String,limit:Int = 30,offset:Int = 0) throws -> [NotebookPersonSource] {
         let rows=try db.query("SELECT l.source_key,l.speaker_id,l.speaker_revision,s.source_id,COALESCE(n.captured_at,r.started_at,r.created_at) AS captured_at FROM recording_speaker_contacts l JOIN audio_processing_sources s ON s.source_key=l.source_key LEFT JOIN voice_notes n ON n.id=s.note_id LEFT JOIN recording_sessions r ON r.id=s.session_id WHERE l.contact_id=? ORDER BY captured_at DESC,l.source_key,l.speaker_id LIMIT ? OFFSET ?",[.text(contactID),.integer(Int64(max(1,min(100,limit)))),.integer(Int64(max(0,offset)))])

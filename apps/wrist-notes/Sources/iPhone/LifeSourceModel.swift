@@ -208,9 +208,14 @@ final class LifeSourceModel: ObservableObject {
         } else { startHealthObservationIfEnabled() }
     }
 
+    func finishHealthObservationForBackgroundLaunch() {
+        reader.finishHealthObservationForBackgroundLaunch()
+    }
+
     private func startHealthObservationIfEnabled() {
-        // On a locked cold launch, install the previously enabled observer before launch ends.
-        // Its callbacks acknowledge without reading until SQLite can confirm the source setting.
+        // Request observers during launch without waiting for a view. Normal launches install
+        // after off-main preparation; the app delegate's background-only barrier finishes before
+        // returning. Callbacks acknowledge without reading until SQLite confirms the source setting.
         let lockedLaunchHint = store == nil && observationDefaults?.bool(forKey: Self.observationHintKey) == true
         guard isEnabled(.health) || lockedLaunchHint, observationID == nil else { return }
         let id = UUID(); observationID = id

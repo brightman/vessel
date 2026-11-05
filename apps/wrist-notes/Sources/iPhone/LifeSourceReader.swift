@@ -3,11 +3,65 @@ import EventKit
 import HealthKit
 import Foundation
 
+/// One independent worker serves both async foreground preparation and the cold-background
+/// launch barrier. Waiting never depends on a Task that needs the blocked MainActor to resume.
+private final class LifeHealthStorePreparation: @unchecked Sendable {
+    private let condition = NSCondition()
+    private let factory: @Sendable () -> HKHealthStore?
+    private var started = false
+    private var finished = false
+    private var store: HKHealthStore?
+    private var waiters: [CheckedContinuation<HKHealthStore?, Never>] = []
+
+    init(factory: @escaping @Sendable () -> HKHealthStore?) { self.factory = factory }
+    var hasStarted: Bool { condition.lock(); defer { condition.unlock() }; return started }
+
+    func start() {
+        condition.lock()
+        guard !started else { condition.unlock(); return }
+        started = true
+        condition.unlock()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let value = self.factory()
+            self.condition.lock()
+            self.store = value; self.finished = true
+            let waiters = self.waiters; self.waiters.removeAll()
+            self.condition.broadcast()
+            self.condition.unlock()
+            waiters.forEach { $0.resume(returning: value) }
+        }
+    }
+
+    func value() async -> HKHealthStore? {
+        start()
+        return await withCheckedContinuation { continuation in
+            condition.lock()
+            if finished {
+                let value = store
+                condition.unlock()
+                continuation.resume(returning: value)
+            } else {
+                waiters.append(continuation)
+                condition.unlock()
+            }
+        }
+    }
+
+    func waitForBackgroundLaunch() -> HKHealthStore? {
+        start()
+        condition.lock()
+        defer { condition.unlock() }
+        while !finished { condition.wait() }
+        return store
+    }
+}
+
 /// Read APIs only. Observation is explicitly started from the persisted source setting.
 @MainActor
 final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceReading {
     var onLocationAuthorizationChange: (() -> Void)?
-    private let health = HKHealthStore()
+    private let healthPreparation: LifeHealthStorePreparation
+    private var health: HKHealthStore?
     private let events = EKEventStore()
     private let location = CLLocationManager()
     private var locationWaiters: [CheckedContinuation<CLLocation, Error>] = []
@@ -15,24 +69,48 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
     private var healthObservers: [HKObserverQuery] = []
     private var observationID = UUID()
     private var observationError: ((Error) -> Void)?
+    private var observationChange: ((@escaping () -> Void) -> Void)?
     private var backgroundDeliveryTask: Task<Void, Never>?
     private var configuredBackgroundGeneration: UUID?
     private var healthReadCancellations: [UUID: () -> Void] = [:]
+    private var healthReadGeneration = UUID()
+    private var locationServicesEnabled: Bool?
+    private var locationAvailabilityTask: Task<Void, Never>?
 
     private var observedHealthTypes: [HKSampleType] { [HKQuantityType(.stepCount), HKCategoryType(.sleepAnalysis), HKObjectType.workoutType()] }
 
-    override init() { super.init(); location.delegate = self; location.desiredAccuracy = kCLLocationAccuracyHundredMeters }
+    override convenience init() {
+        self.init(healthFactory: { HKHealthStore.isHealthDataAvailable() ? HKHealthStore() : nil })
+    }
+    init(healthFactory: @escaping @Sendable () -> HKHealthStore?) {
+        healthPreparation = LifeHealthStorePreparation(factory: healthFactory)
+        super.init()
+        location.delegate = self; location.desiredAccuracy = kCLLocationAccuracyHundredMeters
+    }
+    private func preparedHealth() async throws -> HKHealthStore {
+        try Task.checkCancellation()
+        if let health { return health }
+        let prepared = await healthPreparation.value()
+        try Task.checkCancellation()
+        guard let prepared else { throw failure(.unavailable, "此设备不支持 Apple 健康。") }
+        health = prepared
+        return prepared
+    }
     func authorize(_ source: LifeSource) async throws {
         switch source {
         case .health:
-            guard HKHealthStore.isHealthDataAvailable() else { throw failure(.unavailable, "此设备不支持 Apple 健康。") }
+            let generation = healthReadGeneration
+            let health = try await preparedHealth()
+            guard healthReadGeneration == generation else { throw CancellationError() }
             // HealthKit deliberately hides read authorization. Success means the prompt completed only.
             try await health.requestAuthorization(toShare: [], read: Set(observedHealthTypes).union([HKQuantityType(.activeEnergyBurned)]))
         case .calendar:
             if EKEventStore.authorizationStatus(for: .event) == .notDetermined { _ = try await events.requestFullAccessToEvents() }
             try checkCalendar()
         case .location:
-            guard CLLocationManager.locationServicesEnabled() else { throw failure(.unavailable, "系统定位服务未开启。") }
+            refreshLocationAvailability()
+            await locationAvailabilityTask?.value
+            try Task.checkCancellation()
             if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
             else { try checkLocation() }
         }
@@ -41,7 +119,6 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
         let interval = LifeAggregation.dayInterval(day, calendar: calendar)
         switch source {
         case .health:
-            guard HKHealthStore.isHealthDataAvailable() else { throw failure(.unavailable, "此设备不支持 Apple 健康。") }
             try Task.checkCancellation()
             let steps = try await stepCount(interval)
             try Task.checkCancellation()
@@ -65,6 +142,9 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
         }
     }
     func oneShotLocation() async throws -> LifeCoordinate {
+        refreshLocationAvailability()
+        await locationAvailabilityTask?.value
+        try Task.checkCancellation()
         try checkLocation()
         let value: CLLocation = try await withCheckedThrowingContinuation { continuation in
             locationWaiters.append(continuation)
@@ -79,11 +159,15 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
         return LifeCoordinate(latitude: value.coordinate.latitude, longitude: value.coordinate.longitude, accuracy: value.horizontalAccuracy)
     }
     func locationAvailabilityIssue() -> LifeSourceReadFailure? {
+        // Foreground refresh also rechecks the global switch asynchronously when authorization
+        // is denied. The synchronous status path only reads CLLocationManager's cached status.
+        refreshLocationAvailability()
         do { try checkLocation(); return nil }
         catch { return error as? LifeSourceReadFailure }
     }
     func stop(_ source: LifeSource) {
         if source == .health {
+            healthReadGeneration = UUID()
             let cancellations = Array(healthReadCancellations.values)
             healthReadCancellations.removeAll()
             cancellations.forEach { $0() }
@@ -92,26 +176,45 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
     }
 
     func startHealthObservation(onChange: @escaping (@escaping () -> Void) -> Void, onError: @escaping (Error) -> Void) {
-        guard healthObservers.isEmpty else { return }
-        guard HKHealthStore.isHealthDataAvailable() else { onError(failure(.unavailable, "此设备不支持 Apple 健康")); return }
-        let id = UUID(); observationID = id; observationError = onError
+        guard observationChange == nil else { return }
+        observationID = UUID(); observationError = onError; observationChange = onChange
+        // Start independently of view presentation, but leave normal app launch nonblocking.
+        healthPreparation.start()
+        if let health { installHealthObservers(using: health) }
+        reconcileBackgroundDelivery()
+    }
+
+    func finishHealthObservationForBackgroundLaunch() {
+        guard observationChange != nil else { return }
+        // HealthKit cold background launches require observers before didFinishLaunching returns.
+        // Only that launch path waits; the factory itself still performs I/O off the main thread.
+        guard let prepared = health ?? healthPreparation.waitForBackgroundLaunch() else {
+            observationError?(failure(.unavailable, "此设备不支持 Apple 健康。")); return
+        }
+        health = prepared
+        installHealthObservers(using: prepared)
+        reconcileBackgroundDelivery()
+    }
+
+    private func installHealthObservers(using health: HKHealthStore) {
+        guard healthObservers.isEmpty, let onChange = observationChange else { return }
+        let id = observationID, onError = observationError
         for type in observedHealthTypes {
             let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, completion, error in
                 Task { @MainActor [weak self] in
                     guard let self, self.observationID == id else { completion(); return }
-                    if let error { onError(error); completion(); return }
+                    if let error { onError?(error); completion(); return }
                     onChange(completion)
                 }
             }
             healthObservers.append(query)
             health.execute(query)
         }
-        reconcileBackgroundDelivery()
     }
 
     func stopHealthObservation() {
-        observationID = UUID(); observationError = nil
-        healthObservers.forEach { health.stop($0) }; healthObservers.removeAll()
+        observationID = UUID(); observationError = nil; observationChange = nil
+        healthObservers.forEach { health?.stop($0) }; healthObservers.removeAll()
         stop(.health)
         reconcileBackgroundDelivery()
     }
@@ -119,31 +222,40 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
     /// Keep enable/disable operations serialized. A quick pause/re-enable must not leave a
     /// late disable call winning over the user's most recent setting.
     private func reconcileBackgroundDelivery() {
-        guard backgroundDeliveryTask == nil, HKHealthStore.isHealthDataAvailable() else { return }
+        guard backgroundDeliveryTask == nil, observationChange != nil || healthPreparation.hasStarted else { return }
         backgroundDeliveryTask = Task { [weak self] in
             guard let self else { return }
+            defer { self.backgroundDeliveryTask = nil }
+            let health: HKHealthStore
+            do { health = try await self.preparedHealth() }
+            catch { self.observationError?(error); return }
             while self.configuredBackgroundGeneration != self.observationID {
-                let enabled = !self.healthObservers.isEmpty
                 let id = self.observationID
+                let enabled = self.observationChange != nil
+                // Reconcile only the latest desired generation after asynchronous preparation.
+                // A pause/re-enable during initialization must not install the obsolete observer.
+                self.installHealthObservers(using: health)
                 for type in self.observedHealthTypes {
                     do {
                         if enabled {
                             let frequency: HKUpdateFrequency = type == HKQuantityType(.stepCount) ? .hourly : .immediate
-                            try await self.health.enableBackgroundDelivery(for: type, frequency: frequency)
-                        } else { try await self.health.disableBackgroundDelivery(for: type) }
+                            try await health.enableBackgroundDelivery(for: type, frequency: frequency)
+                        } else { try await health.disableBackgroundDelivery(for: type) }
                     } catch {
                         if enabled, self.observationID == id { self.observationError?(error) }
                     }
                 }
                 self.configuredBackgroundGeneration = id
             }
-            self.backgroundDeliveryTask = nil
         }
     }
 
     /// HealthKit does not promise a callback after stop(query). Own the continuation so pause,
     /// timeout, and a racing query callback can resume it exactly once.
     private func healthQuery<Value>(_ makeQuery: (@escaping (Result<Value, Error>) -> Void) -> HKQuery) async throws -> Value {
+        let generation = healthReadGeneration
+        let health = try await preparedHealth()
+        guard healthReadGeneration == generation else { throw CancellationError() }
         let id = UUID()
         return try await withTaskCancellationHandler {
             try Task.checkCancellation()
@@ -250,16 +362,39 @@ final class LifeSourceReader: NSObject, CLLocationManagerDelegate, LifeSourceRea
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { throw failure(.denied, "未获日历读取权限。请在系统设置中允许完整访问；本应用只读取日程，不会写入日历。") }
     }
     private func checkLocation() throws {
-        guard CLLocationManager.locationServicesEnabled() else { throw failure(.unavailable, "系统定位服务未开启。") }
         switch location.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse: return
         case .notDetermined: throw failure(.awaitingAuthorization, "等待定位授权；之后仅在前台保存新记录时获取一次地点。")
+        case .denied where locationServicesEnabled == false: throw failure(.unavailable, "系统定位服务未开启。")
         default: throw failure(.denied, "未获定位权限。请前往系统设置。")
+        }
+    }
+
+    private func refreshLocationAvailability() {
+        guard location.authorizationStatus == .denied else {
+            locationAvailabilityTask?.cancel(); locationAvailabilityTask = nil
+            locationServicesEnabled = nil
+            return
+        }
+        guard locationAvailabilityTask == nil else { return }
+        locationAvailabilityTask = Task { [weak self] in
+            // CoreLocation can synchronously contact its daemon for the global switch. Its
+            // authorization delegate remains the primary signal; only distinguish denial from
+            // disabled system services here, without blocking the main thread or requesting GPS.
+            let enabled = await Task.detached(priority: .utility) { CLLocationManager.locationServicesEnabled() }.value
+            guard let self, !Task.isCancelled, self.location.authorizationStatus == .denied else { return }
+            defer { self.locationAvailabilityTask = nil }
+            let changed = self.locationServicesEnabled != enabled
+            self.locationServicesEnabled = enabled
+            if changed { self.onLocationAuthorizationChange?() }
         }
     }
     private func failure(_ status: LifeSourceStatus, _ message: String) -> LifeSourceReadFailure { LifeSourceReadFailure(status: status, message: message) }
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in self.onLocationAuthorizationChange?() }
+        Task { @MainActor in
+            self.refreshLocationAvailability()
+            self.onLocationAuthorizationChange?()
+        }
     }
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in

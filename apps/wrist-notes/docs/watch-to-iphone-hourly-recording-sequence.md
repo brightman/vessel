@@ -98,3 +98,5 @@ sequenceDiagram
 ## 当前实现差异
 
 Watch 的正常停止封存文件携带 `isGroupFinal=true` 和 `finalOrdinal`，普通轮转文件携带 `isGroupFinal=false`；iPhone 将结束序号和接收时间随录音记录持久化。接收完整性、开放尾段拆分、跨组调度与 `isFinal` 保留逻辑已落入实现，设备行为仍需验收。
+
+2026-11-05：采集池的四状态所有权同步改用始终 lock-free 的 C11 int32 原子操作，保持 strong CAS 与 sequential consistency；初始化分配位于实时采集回调外。录音分块、封存、传输协议不变。[验证记录](work/2026-11-05-xcode-warnings/README.md)包含 watchOS 10 双架构编译、并发交接与 TSan 检查，尚未替代 Watch 长时间实机验收。

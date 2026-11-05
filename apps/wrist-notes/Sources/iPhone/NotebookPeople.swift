@@ -1,18 +1,23 @@
 import Foundation
 
 enum NotebookPeopleError: LocalizedError {
-    case conflict, invalidName
+    case conflict, invalidName, invalidEmail
     var errorDescription:String? { switch self {
     case .conflict: return "联系人已更新，请刷新后重试。"
     case .invalidName: return "请输入联系人姓名。"
+    case .invalidEmail: return "请输入有效的邮箱地址，或留空。"
     } }
 }
 struct NotebookPerson: Identifiable, Sendable {
     let id:String
     let name:String
     let organization:String?
+    let emails:[SpeakerContactField]
+    let phoneNumbers:[SpeakerContactField]
     let relationships:[String]
     let revision:Int
+    var email:String { emails.first?.value ?? "" }
+    var phone:String { phoneNumbers.first?.value ?? "" }
 }
 struct NotebookPersonSource: Identifiable, Sendable {
     let sourceID:UUID

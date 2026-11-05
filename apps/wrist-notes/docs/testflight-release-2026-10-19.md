@@ -1,8 +1,10 @@
 # WiseLife TestFlight 发布记录
 
-类型：发布记录。首发日期：2026-10-19；更新：2026-11-02。
+类型：发布记录。首发日期：2026-10-19；更新：2026-11-05。
 
-最新发布进度见 [2026-11-02 构建 11](#build11-20261102)；下方 10 月 19 日内容为当时记录，不代表当前线上构建状态。
+构建 11 的历史发布进度见 [2026-11-02 构建 11](#build11-20261102)；本分支没有同步后续每次发布记录，下方 10 月 19 日内容不代表当前线上构建状态。
+
+**2026-11-05 签名勘误：** 保留的构建 13 IPA 实际签名缺少 HealthKit 权限；此前“签名通过”不等于健康能力通过。后续发布采用[带签名归档与最终 IPA 校验](#healthkit-signing-20261105)，下方不签名归档命令仅作为历史记录保留。
 
 ## 当前结果
 
@@ -149,3 +151,21 @@ xcodebuild -exportArchive \
 - 20:28:50（UTC+8）Apple 返回 `Uploaded package is processing`、`Upload succeeded`、`Uploaded WristNotes`，最终 `EXPORT SUCCEEDED`，退出码 0。此时已上传但尚不能宣称构建 11 可安装。
 - 后续 App Store Connect 页面确认：构建 UUID `93cae6fa-e266-48ed-b3b3-f7f6c9648d55`，上传状态“完成”，构建状态“正在测试”，关联 `WiseLife Internal` 与 `WiseLife External Beta`，邀请数 5。现场页面操作后已完成分组／提交，没有重复提交或覆盖已填写的测试说明。
 - 独立打开外部组的“构建版本”页，`1.0.2 (11)` 明确为“正在测试”，90 天后过期；公开入口 <https://testflight.apple.com/join/HjdCdWJu> 正常展示 WiseLife 与“在 TestFlight 中查看”。发布状态已核验，尚未验证测试员实际下载并运行构建 11。
+
+<a id="healthkit-signing-20261105"></a>
+
+## 2026-11-05：修复发布签名遗漏 HealthKit 权限
+
+状态：已定位构建 13 的发布 IPA 权限缺失，修复后的签名归档及最终发布 IPA 验证通过；本轮未发布。依据：[HealthKit 当前规则与证据](2026-10-20-health-background.md#signing-20261105)。
+
+用户提供的截图报告 `Missing com.apple.developer.healthkit entitlement.`。保留 IPA 的严格签名校验通过、profile 允许健康读取及后台投递，但 App 签名本身缺失两项权限；归档日志确认 `CODE_SIGNING_ALLOWED=NO`。这属于此前发布验收遗漏，不能归因于用户未授权健康读取。
+
+新增 `scripts/package_release.sh`：签名归档 → 验证归档能力 → 自动发布签名导出 → 验证最终 IPA。新增 `scripts/verify_healthkit_signing.py` 检查实际签名及 profile，原错误 IPA 退出 1，保留的正确开发包通过；不改 App 的健康数据权限范围或用户数据。
+
+本次验证保留版本／构建号 1.0.3（13），仅验证打包流程，不覆盖已发布包；后续上传修复版本需递增构建号。未上传、未安装或清除手机数据，截图设备的实际安装渠道／构建号尚待确认。
+
+- 实际执行 `sh apps/wrist-notes/scripts/package_release.sh /private/tmp/wiselife-healthkit-20261105/package /private/tmp/wiselife-testflight-build13 /private/tmp/wiselife-notebook-build/SourcePackages`，退出 0，`ARCHIVE SUCCEEDED`、`EXPORT SUCCEEDED`。
+- 归档 App：严格签名通过，两项 HealthKit entitlement 均为 true，profile 同样允许；导出 IPA：再次严格签名通过，两项权限均为 true，`get-task-allow=false`。
+- 验证 IPA 16,295,402 字节，SHA-256 `56fcf214cba42179bf831918e8aa4e954c57b0922cd2e1d80f0f80779365461a`。该包是后续 Xcode warning 修复之前的工作区快照，仅用于证明签名流程修复，不作为已发布或 warning 修复后产物。
+
+同日完成 Xcode warning 与播放／健康初始化修复后的最终签名产物：`/private/tmp/wiselife-warnings-20261105/release-accepted/export/WiseLife.ipa`，16,340,596 字节，SHA-256 `397b3757c3623269c3b09c36f4fc5b5cef6b776b5ef492271c1a778f616132cf`。归档及导出均成功，完整日志 0 warning、0 error，归档与 IPA 的两项实际健康权限和 profile 检查均通过，IPA 为 distribution 签名。仍为 1.0.3（13）的本地验证包，未上传；模拟器与真机验收限制见[完整修复记录](work/2026-11-05-xcode-warnings/README.md)。
